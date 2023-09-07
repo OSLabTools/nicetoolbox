@@ -1,0 +1,13 @@
+.vscode/
+.idea/
+__pycache__
+**/__pycache__
+
+doc/_build/*
+
+output/
+envs/
+
+configs/machine_specific_paths.toml
+*.tex~
+*.bib~

@@ -1,0 +1,59 @@
+# This config supports using placeholders.
+# options are <git_hash> <commit_message> <me> <today> <yyyymmdd> <time> <pwd>
+# and all keys from your local 'machine_specific_paths.toml'
+
+annotation_interval = 1
+git_hash = "<git_hash>"
+number_of_frames = 100
+
+[io]
+video_folder = "<pis_folder_path>/PIS_ID_000/IOI/compressed_25/withAudio"
+calibration_file = "<pis_folder_path>/GazeInterpersonalSynchrony/Data_gaze_estimation_sent_to_Xucong/CameraCalibrationParameters/camera_params_all_cameras.json"
+out_folder = "<pis_folder_path>/experiments/<yyyymmdd>"
+tmp_folder = "<pis_folder_path>/experiments/tmp"
+method_out_folder = "<out_folder>/<method_name>/method_output"
+method_visualization_folder = "<out_folder>/<method_name>/method_visualization"
+method_additional_output_folder = "<out_folder>/<method_name>/method_additionals"
+method_tmp_folder = "<tmp_folder>/<method_name>"
+method_final_result_folder = "<out_folder>/<method_name>"
+
+[methods]
+names = ["mmpose"]
+
+[methods.nodding_pigeon]
+input_data_format = "segments"
+camera_ids = [1, 2]
+
+[methods.ethXgaze]
+input_data_format = "frames"
+camera_ids = [1, 2]
+shape_predictor_filename = "<methods_folder_path>/ethXgaze/ethXgaze/modules/shape_predictor_68_face_landmarks.dat"
+face_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/face_model.txt"
+pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
+camera_id = 2
+
+[methods.xgaze_3cam]
+input_data_format = "frames"
+camera_ids = [1, 2, 3, 4]
+shape_predictor_filename = "<pwd>/detectors/gaze/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
+face_model_filename = "<pwd>/detectors/gaze/xgaze_3cams/face_model.txt"
+pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
+face_detector_filename = "<pwd>/detectors/gaze/xgaze_3cams/mmod_human_face_detector.dat"
+
+[methods.mmpose]
+input_data_format = "video"
+camera_ids = [3, 4]
+algorithm = "hrnetw48"
+framework = "mmpose"
+env_name = "openmmlab"
+multi_person = true
+save_images = true
+resolution = [1400, 980] # ToDo - after implement bbox intersection calculation, get rid of this
+
+[methods.mmpose.hrnetw48]
+pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
+pose_checkpoint = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
+detection_config = "C:\\Users\\oslab\\Documents\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py"
+detection_checkpoint = "C:\\Users\\oslab\\Documents\\mmpose_0.27\\configs\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+keypoint_mapping = "coco_wholebody"
+min_detection_confidence = 0.5
