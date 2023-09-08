@@ -6,7 +6,7 @@ import h5py
 
 
 def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
-    """save the numpy array into give output_file
+    """save the numpy array into given output_file
 
     Parameters
     ----------
@@ -30,7 +30,7 @@ def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
     if index:
         for array in array_list:
             if array.shape[0]!=len(index):
-                raise ValueError("The lengths the index does not match with data shape.")
+                raise ValueError("The length of the index does not match with data shape.")
 
     with h5py.File(output_file, 'w') as f:
         for i, array in enumerate(array_list):
