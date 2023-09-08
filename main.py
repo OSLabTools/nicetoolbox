@@ -2,6 +2,7 @@
 
 """
 import copy
+import logging
 import os
 import subprocess
 import plotly.graph_objects as go
@@ -13,19 +14,22 @@ from oslab_utils.in_out import create_tmp_folder
 from oslab_utils.annotations import CustomEaf
 
 #from detectors.nodding.noddingpigeon import NoddingPigeon
-from detectors.gaze.ETH_XGaze import ETHXGaze
-from detectors.gaze.XGaze_3cams import XGaze3cams
+#from detectors.gaze.ETH_XGaze import ETHXGaze
+#from detectors.gaze.XGaze_3cams import XGaze3cams
 from detectors.human_pose.pose_detector import PoseDetector
+from features.kinematics.kinematics import Kinematics
 from configs.config_handler import Configuration
+import oslab_utils.logging_utils as log_ut
 
 
 all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
-        ethXgaze=ETHXGaze,
-        xgaze_3cams=XGaze3cams,
+#        ethXgaze=ETHXGaze,
+#        xgaze_3cams=XGaze3cams,
         mmpose=PoseDetector,
 )
 
+all_features = dict(kinematics=Kinematics)
 
 # def run(settings, Model, data, eaf):
 #     """Main function to run the method
@@ -84,11 +88,15 @@ def main():
     # # run validity checks that these annotations were not done before
 
     # IO
-    io = IO(config['io'], config['methods']['names'])
+    io = IO(config['io'], config['methods']['names'] + config['features']['names'])
 
     # save experiment configs
     config_handler.save_experiment_config(
             io.get_output_folder('config', 'output'))
+
+    #initialize log
+    log_path = os.path.join(io.get_output_folder('config', 'output'), "application_.log")
+    log_ut.setup_logging(log_path, level=logging.INFO)
 
     # -> clean up all /tmp/ even if the code crashes or triggers an assertion
     with create_tmp_folder(io.get_all_tmp_folders()):
@@ -104,11 +112,27 @@ def main():
                 method_config.update(method_config[method_config['algorithm']])
 
             detector = all_methods[method_name](method_config, io, data)
-            detector.run_inference()
+            inference_returncode = detector.run_inference()
 
+            log_ut.assert_and_log(inference_returncode == 0, f"INFERENCE Pipeline {method_name} - FAILURE - See method log for details")
+            logging.info(f"INFERENCE Pipeline {method_name} - SUCCESS - See method log for details")
             detector.visualization(data)
 
-        # RUN feature extractions
+        # RUN feature extractions pipeline
+        for feature_name in config['features']['names']:
+            # prepare the part of the config relevant for the feature
+            feature_config = copy.deepcopy(config['features'][feature_name])
+            # add its detector config as well
+            input_detector_name = config['features'][feature_name]['input_detector_name']
+            feature_config.update(config['methods'][input_detector_name])
+            feature_config["input_name"] = input_detector_name
+            if 'input_algorithm_name' in feature_config.keys():
+                input_algorithm_name = config['features'][feature_name]['input_algorithm_name']
+                feature_config.update(config['methods'][input_detector_name][input_algorithm_name])
+                feature_config["input_name"] = f'{feature_config["input_name"]}_{input_algorithm_name}'
+            feature = all_features[feature_name](feature_config, io)
+            feature_data = feature.compute()
+            feature.visualization(feature_data)
 
         # create ELAN annotation file
 

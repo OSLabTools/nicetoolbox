@@ -3,7 +3,7 @@
 """
 
 import os
-from oslab_utils.logging import log_configs
+from oslab_utils.logging_utils import log_configs
 from oslab_utils.config import config_fill_auto, config_fill_placeholders, load_config
 
 

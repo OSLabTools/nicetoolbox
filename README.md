@@ -111,3 +111,25 @@ shape: [num_frames, 6d] 6d: 3d position, 3d coords\
 shape: [num_frames, label]\
 shape: [num_frames, num_emotions/num_categories, confidence scores]\
 shape: [num_annotation/num_segments, [starttime, endtime, label]]\
+
+### Calibration Mapping
+```
+{
+    'PIS_ID_000':'2020-08-11',
+    'PIS_ID_01': '2020-08-11',
+    'PIS_ID_02': '2020-08-11',
+    'PIS_ID_03': '2020-08-11',
+    'PIS_ID_04': '2020-08-12',
+    'PIS_ID_05': '2020-08-12',
+    'PIS_ID_06': '2020-08-12',
+    'PIS_ID_07': '2020-08-12',
+    'PIS_ID_08': '2020-08-12',
+    'PIS_ID_09': '2020-08-13',
+    'PIS_ID_666': '2020-08-13'
+}
+```
+### Used ChAruCo Calibration Board
+BOARD_SIZE = (12, 9)
+SQUARE_SIZE = 60 mm
+DICT_5X5
+

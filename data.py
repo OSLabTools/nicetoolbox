@@ -32,7 +32,10 @@ class Data:
         for detector in config['methods']['names']:
             assert 'input_data_format' in config['methods'][detector].keys(), \
                 f"Please specify the key 'input_data_format' for detector " \
-                f"'{detector}'. Options are 'segments' and 'frames'."
+                f"'{detector}'. Options are 'segments', 'frames', and 'video." #ToDo detector specific assert?
+            assert config['methods'][detector]['input_data_format'] in ["frames", "segments", "videos"], \
+                f"Unsupported input data format in" \
+                f"'{detector}'. Options are 'segments', 'frames', and 'video."
             self.data_formats.add(config['methods'][detector]['input_data_format'])
             assert 'camera_ids' in config['methods'][detector].keys(), \
                 f"Please create the key 'camera_ids' for detector '{detector}'."
@@ -46,6 +49,7 @@ class Data:
         self.frames_list = None
         self.frame_indices_list = None
         self.videos_list = None
+
 
         self.data_initialization()
 
@@ -83,12 +87,12 @@ class Data:
         self.segments_list = []
         self.videos_list = []
         for video_file in video_files:
-            camera_id = int(video_file[video_file.find('Cam') + 3:][0])
+            camera_id = int(video_file[video_file.find('cam') + 3:][0])
             if camera_id not in self.all_camera_ids:
                 continue
 
             # split video into frames
-            data_folder = os.path.join(self.tmp_folder, f'Cam{camera_id}')
+            data_folder = os.path.join(self.tmp_folder, f'cam{camera_id}')
             os.makedirs(data_folder, exist_ok=True)
 
             if 'frames' in self.data_formats:

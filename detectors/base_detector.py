@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import subprocess
 from oslab_utils.system import detect_os_type
 from oslab_utils.config import save_config
-
+import oslab_utils.filehandling as fh
 
 class BaseDetector(ABC):
     """Class to setup and run existing computer vision research code.
@@ -28,13 +28,19 @@ class BaseDetector(ABC):
         config['result_folder'] = io.get_output_folder(self.name, 'result')
         self.viz_folder = io.get_output_folder(self.name, 'visualization')
 
+        config['calibration'] = data.calibration
+
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(io.get_output_folder(self.name, 'tmp'),
                                         'run_config.toml')
+
         save_config(config, self.config_path)
 
         # get the path of the third party inference script
-        self.script_path = data.get_inference_path(self.name)
+        if "mmpose" in self.name:
+            self.script_path = data.get_inference_path("mmpose")
+        else:
+            self.script_path = data.get_inference_path(self.name)
 
         # specify the virtual environment for the third party method/detector
         self.venv, self.env_name = config['env_name'].split(':')
@@ -67,7 +73,7 @@ class BaseDetector(ABC):
                 command = f"conda activate {self.env_name} && " \
                           f"python {self.script_path} {self.config_path}"
 
-        if self.venv == 'venv':
+        elif self.venv == 'venv':
             # create terminal command
             if os_type == 'windows':
                 command = f'cmd "/c source {self.env_name} && ' \
@@ -86,7 +92,16 @@ class BaseDetector(ABC):
         if cmd_result.returncode != 0:
             print(f"Error occurred with return code {cmd_result.returncode}")
             print(cmd_result.stderr)
-        return cmd_result.stdout
+
+        print(cmd_result.stdout)
+        self.post_inference()
+
+        return cmd_result.returncode
+
+    def post_inference(self):
+        """ Post-processing after inference
+        """
+        pass
 
     @property
     @abstractmethod
@@ -105,4 +120,5 @@ class BaseDetector(ABC):
         Should save the visualization in the self.viz_folder
         """
         pass
+
 

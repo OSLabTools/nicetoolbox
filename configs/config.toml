@@ -6,9 +6,11 @@ annotation_interval = 1
 git_hash = "<git_hash>"
 number_of_frames = 100
 
+
+
 [io]
 video_folder = "<pis_folder_path>/PIS_ID_000/IOI/compressed_25/withAudio"
-calibration_file = "<pis_folder_path>/GazeInterpersonalSynchrony/Data_gaze_estimation_sent_to_Xucong/CameraCalibrationParameters/camera_params_all_cameras.json"
+calibration_file = "<pis_folder_path>/PIS_ID_000/Calibration/rescaled25/camera_params_calibio_2020-08-11.json"
 out_folder = "<pis_folder_path>/experiments/<yyyymmdd>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
 method_out_folder = "<out_folder>/<method_name>/method_output"
@@ -23,11 +25,11 @@ names = ["mmpose"]
 
 [methods.nodding_pigeon]
 input_data_format = "segments"
-camera_ids = [1, 2]
+camera_names = ["cam1", "cam2"]
 
 [methods.ethXgaze]
 input_data_format = "frames"
-camera_ids = [1, 2]
+camera_ids = ["cam1", "cam2"]
 shape_predictor_filename = "<methods_folder_path>/ethXgaze/ethXgaze/modules/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/face_model.txt"
 pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
@@ -35,7 +37,7 @@ camera_id = 2
 
 [methods.xgaze_3cams]
 input_data_format = "frames"
-camera_ids = [1, 2, 3, 4]
+camera_names = ["cam1", "cam2", "cam3", "cam4"]
 env_name = "venv:env"
 shape_predictor_filename = "<pwd>/detectors/gaze/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<pwd>/detectors/gaze/xgaze_3cams/face_model.txt"
@@ -43,14 +45,14 @@ pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_
 face_detector_filename = "<pwd>/detectors/gaze/xgaze_3cams/mmod_human_face_detector.dat"
 
 [methods.mmpose]
-input_data_format = "video"
+input_data_format = "frames"
 camera_ids = [3, 4]
+camera_names = ["cam3", "cam4"]
 algorithm = "hrnetw48"
-framework = "mmpose"
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
-resolution = [1400, 980] # ToDo - after implement bbox intersection calculation, get rid of this
+resolution = [1000, 700] # ToDo - after implement bbox intersection calculation, get rid of this
 
 [methods.mmpose.hrnetw48]
 pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
@@ -59,3 +61,10 @@ detection_config = "C:\\Users\\oslab\\Documents\\mmpose\\demo\\mmdetection_cfg\\
 detection_checkpoint = "C:\\Users\\oslab\\Documents\\mmpose_0.27\\configs\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
+
+[features]
+names = ["kinematics"]
+
+[features.kinematics]
+input_detector_name = "mmpose"
+input_algorithm_name = "hrnetw48"

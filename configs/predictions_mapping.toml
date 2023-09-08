@@ -1,0 +1,54 @@
+[human_pose]
+[human_pose.coco_wholebody]
+[human_pose.coco_wholebody.keypoints_index]
+[human_pose.coco_wholebody.keypoints_index.body]
+"nose" = 0
+"left_eye" =  1
+"right_eye" = 2
+"left_ear" = 3
+"right_ear" = 4
+"left_shoulder" = 5
+"right_shoulder" = 6
+"left_elbow" = 7
+"right_elbow" = 8
+"left_wrist" = 9
+"right_wrist" = 10
+"left_hip" = 11
+"right_hip" = 12
+"left_knee" = 13
+"right_knee" = 14
+"left_ankle" = 15
+"right_ankle" = 16
+[human_pose.coco_wholebody.keypoints_index.foot]
+"left_bigtoe" =  17
+"left_smalltoe" = 18
+"left_heel" = 19
+"right_bigtoe" = 20
+"right_smalltoe" = 21
+"right_heel" = 22
+[human_pose.coco_wholebody.keypoints_index.face]
+"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39] #exclusivelast element, i.e. 40
+"right_eyebrow" = [40,41,42,43,44]
+"left_eyebrow" = [45,46,47,48,49]
+"nose_up" = [50,51,52,53]
+"nose_down" = [54,55,56,57,58]
+"right_eye" = [59,60,61,62,63,64]
+"left_eye" = [65,66,67,68,69,70]
+"mouth" = [71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90]
+[human_pose.coco_wholebody.keypoints_index.hand]
+"left_hand" = [91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111]
+"right_hand" = [112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132]
+[human_pose.coco_wholebody.bodypart_index]
+"head" = [0,1,2,3,4]
+"upper_body" = [5,6,7,8,9,10]  # Indices of keypoints belonging to the upper body
+"lower_body" = [11,12,13,14,15,16]
+
+
+
+
+
+
+
+
+
+
