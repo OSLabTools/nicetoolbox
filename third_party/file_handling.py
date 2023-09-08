@@ -3,6 +3,7 @@
 """
 
 import h5py
+import toml
 
 
 def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
@@ -38,3 +39,13 @@ def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
             if index:
                 for i, index_key in enumerate(index):
                     dataset.attrs[index_key] = i
+
+
+def load_config(config_file):
+    if config_file.endswith('toml'):
+        config = toml.load(config_file)
+    else:
+        raise NotImplementedError(
+                f"config_file type {config_file} is not supported currently. "
+                f"Implemented is toml.")
+    return config

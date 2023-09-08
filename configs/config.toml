@@ -12,10 +12,11 @@ calibration_file = "<pis_folder_path>/GazeInterpersonalSynchrony/Data_gaze_estim
 out_folder = "<pis_folder_path>/experiments/<yyyymmdd>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
 method_out_folder = "<out_folder>/<method_name>/method_output"
-method_visualization_folder = "<out_folder>/<method_name>/method_visualization"
-method_additional_output_folder = "<out_folder>/<method_name>/method_additionals"
+method_visualization_folder = "<out_folder>/<method_name>/visualization"
+method_additional_output_folder = "<out_folder>/<method_name>/additional_output"
 method_tmp_folder = "<tmp_folder>/<method_name>"
 method_final_result_folder = "<out_folder>/<method_name>"
+code_folder = "<pwd>"
 
 [methods]
 names = ["mmpose"]
@@ -32,9 +33,10 @@ face_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/face_model.txt"
 pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
 camera_id = 2
 
-[methods.xgaze_3cam]
+[methods.xgaze_3cams]
 input_data_format = "frames"
 camera_ids = [1, 2, 3, 4]
+env_name = "venv:env"
 shape_predictor_filename = "<pwd>/detectors/gaze/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<pwd>/detectors/gaze/xgaze_3cams/face_model.txt"
 pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
@@ -45,7 +47,7 @@ input_data_format = "video"
 camera_ids = [3, 4]
 algorithm = "hrnetw48"
 framework = "mmpose"
-env_name = "openmmlab"
+env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
 resolution = [1400, 980] # ToDo - after implement bbox intersection calculation, get rid of this

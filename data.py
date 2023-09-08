@@ -24,6 +24,7 @@ class Data:
         # TODO later: add caching for tmp folder
 
         self.tmp_folder = io.get_output_folder(self.name, 'tmp')
+        self.code_folder = config['io']['code_folder']
 
         # collect which data slices and formats are required
         self.data_formats = set()
@@ -50,6 +51,20 @@ class Data:
 
         # LOAD CALIBRATION
         self.calibration = self.load_calibration(io.get_calibration_file())
+
+    def get_inference_path(self, detector_name):
+        filepath = os.path.join(self.code_folder, 'third_party', detector_name,
+                                'inference.py')
+        #assert os.path.exists(filepath), f"detector inference file {filepath}" \
+        #                                 f" does not exist!"
+        return filepath
+
+    def get_venv_path(self, detector_name, env_name):
+        filepath = os.path.join(self.code_folder, 'third_party', detector_name,
+                                f'{env_name}/bin/activate')
+        assert os.path.exists(filepath), f"detector inference file {filepath}" \
+                                         f" does not exist!"
+        return filepath
 
     def load_calibration(self, calibration_file):
         fid = open(calibration_file)

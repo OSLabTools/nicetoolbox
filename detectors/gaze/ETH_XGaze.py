@@ -7,7 +7,7 @@
 import os
 import json
 from ethXgaze import run_ethXgaze
-from detectors.gaze.xgaze_3cams.utils import get_cam_para_studio
+from third_party.xgaze_3cams.xgaze_3cams.utils import get_cam_para_studio
 
 from detectors.base_detector import BaseDetector
 

@@ -22,7 +22,7 @@ from configs.config_handler import Configuration
 all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
         ethXgaze=ETHXGaze,
-        xgaze_3cam=XGaze3cams,
+        xgaze_3cams=XGaze3cams,
         mmpose=PoseDetector,
 )
 
@@ -103,8 +103,8 @@ def main():
             if 'algorithm' in method_config.keys():
                 method_config.update(method_config[method_config['algorithm']])
 
-            detector = all_methods[method_name](method_config, io)
-            detector.inference(data)
+            detector = all_methods[method_name](method_config, io, data)
+            detector.run_inference()
 
             detector.visualization(data)
 
