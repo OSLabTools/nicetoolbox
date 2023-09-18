@@ -6,7 +6,7 @@ git_hash = "<git_hash>"
 # the inout video is processed into 'frames', 'segments' and 'snippets'
 video_length = 180  # in frames, relevant for all
 video_start = 60  # in frames, relevant for all
-video_skip_frames = 10  # relevant for frames only
+video_skip_frames = false  # relevant for frames only
 annotation_interval = 1  # in seconds, length of segments
 
 

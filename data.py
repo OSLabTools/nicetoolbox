@@ -45,7 +45,8 @@ class Data:
         self.video_folder = io.get_input_folder()
         self.video_length = config['video_length']
         self.video_start = config['video_start']
-        self.video_skip_frames = config['video_skip_frames']
+        self.video_skip_frames = None if config['video_skip_frames'] is False \
+            else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
         self.segments_list = None
         self.frames_list = None
@@ -193,7 +194,7 @@ class Data:
                     for n in file_names]
 
         elif data_format == 'frames':
-            skip = self.video_skip_frames
+            skip = 1 if not self.video_skip_frames else self.video_skip_frames
             file_names = [f"%05d.png" % (start + x * skip)
                           for x in range(start, end, skip)]
             for camera_name in camera_names:
