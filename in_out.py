@@ -9,12 +9,16 @@ import copy
 
 class IO:
     def __init__(self, config, method_names):
-        self.video_folder = config['video_folder']
-        self.calibration_file = config['calibration_file']
-
         self.out_folder = config['out_folder']
         os.makedirs(self.out_folder, exist_ok=True)
         self.tmp_folder = config['tmp_folder']
+
+        self.video_folder = config['video_folder']
+        self.calibration_file = config['calibration_file']
+        if config['process_data_to'] == 'tmp_folder':
+            self.data_folder = self.tmp_folder
+        elif config['process_data_to'] == 'data_folder':
+            self.data_folder = config['data_folder']
 
         self.method_names = method_names
         self.method_out_folder = config['method_out_folder']
@@ -34,6 +38,9 @@ class IO:
 
     def get_calibration_file(self):
         return self.calibration_file
+
+    def get_data_folder(self):
+        return self.data_folder
 
     def get_output_folder(self, name, token):
         if any([m_name in name for m_name in self.method_names]):

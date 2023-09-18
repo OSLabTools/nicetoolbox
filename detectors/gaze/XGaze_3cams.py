@@ -22,10 +22,10 @@ class XGaze3cams(BaseDetector):
         """
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
-        assert data.all_camera_ids == set(config['camera_ids']), \
-            f"camera_ids do not match! all loaded cameras = " \
-            f"'{data.all_camera_ids}' and {self.name} requires cameras " \
-            f"'{config['camera_ids']}'."
+        assert data.all_camera_names == set(config['camera_names']), \
+            f"camera_names do not match! all loaded cameras = " \
+            f"'{data.all_camera_names}' and {self.name} requires cameras " \
+            f"'{config['camera_names']}'."
         config['frames_list'] = data.frames_list
         config['frame_indices_list'] = data.frame_indices_list
 

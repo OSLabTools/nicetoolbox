@@ -28,6 +28,7 @@ class BaseDetector(ABC):
         config['result_folder'] = io.get_output_folder(self.name, 'result')
         self.viz_folder = io.get_output_folder(self.name, 'visualization')
 
+        config['behavior'] = self.behavior
         config['calibration'] = data.calibration
 
         # save this method config that will be given to the third party detector

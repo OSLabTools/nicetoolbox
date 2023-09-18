@@ -32,16 +32,6 @@ class ETHXGaze(BaseDetector):
     def data_initialization(self):
         self.data_initialization_frames()
 
-    def load_calibration(self):
-        fid = open(self.calibration_file)
-        cam_file_content = json.load(fid)
-        fid.close()
-
-        cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
-            cam_file_content, self.settings['camera_id'])
-
-        return cam_matrix, cam_distor, cam_rotation
-
     def inference(self):
         """Run inference of the method on the pre-loaded image
 

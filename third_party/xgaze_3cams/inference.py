@@ -3,18 +3,19 @@ import sys
 import cv2
 import numpy as np
 
-from xgaze_3cams.gaze_estimator import GazeEstimator
-from xgaze_3cams.utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
-from xgaze_3cams.landmarks import get_landmarks_1
+sys.path.append("./xgaze_3cams/xgaze_3cams")
+from gaze_estimator import GazeEstimator
+from utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
+from landmarks import get_landmarks_1
 
-from ..file_handling import load_config
+from file_handling import load_config, save_to_hdf5
 
 
 def main(config):
     """ Run inference of the method on the pre-loaded image
     """
 
-    print('RUNNING xgaze_3cams!')
+    print('\n\n\t RUNNING xgaze_3cams!')
 
     # check that the data was created
     assert config['frames_list'] is not None, \
@@ -26,11 +27,11 @@ def main(config):
                        mutual='mutual_gaze',
                        averted='gaze_averted')
 
-    detections = dict(name=config['name'], values=[])
-
     gaze_estimator = GazeEstimator(
             config['face_model_filename'],
             config['pretrained_model_filename'])
+
+    results_sub1, results_sub2 = [], []
 
     ## read images
     for frame_files, frame_id in zip(config['frames_list'], config['frame_indices_list']):
@@ -39,7 +40,7 @@ def main(config):
         sub_1_landmarks = []  # all landmarks for that frame
         sub_2_landmarks = []  # all landmarks for that frame
         # get the landmarks
-        for frame_file, cam_id in zip(frame_files, config['all_camera_ids']):
+        for frame_file, cam_id in zip(frame_files, config['camera_ids']):
             image = cv2.imread(frame_file)
             images.append(image)
 
@@ -60,7 +61,7 @@ def main(config):
                 landmarks = sub_1_landmarks
             else:
                 landmarks = sub_2_landmarks
-            for cam_id in config['all_camera_ids']:
+            for cam_id in config['camera_ids']:
                 if landmarks[cam_id - 1] is None:
                     continue
                 image = images[cam_id - 1]
@@ -85,12 +86,14 @@ def main(config):
             gaze_world = np.mean(gaze_world, axis=0).reshape((-1, 3))
             if sub_id == 1:
                 gaze_world_sub_1 = gaze_world
+                results_sub1.append(gaze_world.flatten())
             else:
                 gaze_world_sub_2 = gaze_world
+                results_sub2.append(gaze_world.flatten())
 
         # visualization on each image, project the gaze back to each cam to draw the gaze direction
         is_debug = False
-        for cam_id in config['all_camera_ids']:
+        for cam_id in config['camera_ids']:
             image = images[cam_id - 1]
             cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                     config['calibration'], cam_id, image)
@@ -124,7 +127,12 @@ def main(config):
                     config['out_folder'], f'cam{cam_id}_{file_name}')
             cv2.imwrite(save_file_name, image)
 
-    return gaze_world_sub_1, gaze_world_sub_2
+    save_to_hdf5(
+            [np.array(results_sub1), np.array(results_sub2)],
+            ['personL', 'personR'],
+            os.path.join(config['result_folder'], f"{config['behavior']}.hdf5"),
+            index=[]
+    )
 
 
 if __name__ == '__main__':

@@ -57,6 +57,9 @@ class PoseDetector(BaseDetector):
             f"'{data.all_camera_ids}' and {self.name} requires cameras " \
             f"'{config['camera_ids']}'.")
 
+        config['input_data_folder'] = data.create_symlink_input_folder(
+                config['input_data_format'], config['camera_names'])
+
         config['frames_list'] = self.frame_list
         config['frame_indices_list'] = data.frame_indices_list
         config['person_threshold'] = self.person_threshold
@@ -71,7 +74,6 @@ class PoseDetector(BaseDetector):
         super().__init__(config, io, data)
         self.result_folder = config['result_folder']
         self.calibration = config['calibration']
-
 
     def visualization(self, data):
         """
