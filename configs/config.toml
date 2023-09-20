@@ -61,8 +61,8 @@ resolution = [1000, 700] # ToDo - after implement bbox intersection calculation,
 [methods.mmpose.hrnetw48]
 pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
 pose_checkpoint = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
-detection_config = "C:\\Users\\oslab\\Documents\\mmpose\\demo\\mmdetection_cfg\\faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "C:\\Users\\oslab\\Documents\\mmpose_0.27\\configs\\faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+detection_config = "./third_party/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
+detection_checkpoint = "./third_party/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 

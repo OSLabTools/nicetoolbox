@@ -92,17 +92,30 @@ class Data:
             if not os.path.isfile(file):
                 data_exists = False
 
+        # initialize data lists
+        self.frames_list = []
+        self.segments_list = []
+        self.snippets_list = []
+
         if data_exists:
             print(f"DATA FOUND in '{self.data_folder}'!")
+
+            frame_indices_list = set()
+            for filename in data_list:
+                if 'frames' in filename:
+                    self.frames_list.append(filename)
+                    frame_indices_list.add(int(os.path.basename(filename)[:-4]))
+                elif 'segments' in filename:
+                    self.segments_list.append(filename)
+                elif 'snippets' in filename:
+                    self.snippets_list.append(filename)
+            self.frame_indices_list = list(frame_indices_list)
         else:
             print(f"DATA NOT EXISTING OR INCOMPLETE! Creating data in "
                   f"'{self.data_folder}'!")
 
-            self.frames_list = []
-            self.segments_list = []
-            self.snippets_list = []
             for video_file in video_files:
-                camera_name_indices = [name in video_file for name in
+                camera_name_indices = [name in video_file.lower() for name in
                                       list(self.all_camera_names)]
                 if not any(camera_name_indices):
                     continue
@@ -121,6 +134,10 @@ class Data:
                             self.video_length,
                             self.video_skip_frames
                     )
+                    assert len(frame_indices_list) == self.video_length, \
+                        f"ERROR. len(frame_indices_list) = " \
+                        f"{len(frame_indices_list)} and self.video_length = " \
+                        f"{self.video_length}"
 
                     if self.frame_indices_list is None:
                         self.frame_indices_list = frame_indices_list
@@ -195,8 +212,7 @@ class Data:
 
         elif data_format == 'frames':
             skip = 1 if not self.video_skip_frames else self.video_skip_frames
-            file_names = [f"%05d.png" % (start + x * skip)
-                          for x in range(start, end, skip)]
+            file_names = [f"%05d.png" % x for x in range(start, end, skip)]
             for camera_name in camera_names:
                 inputs_list += [
                     os.path.join(self.data_folder, camera_name, 'frames', n)

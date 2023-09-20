@@ -39,7 +39,7 @@ class PoseDetector(BaseDetector):
         self.person_threshold = (config["resolution"][
             0]) / 2 * 0.80  # multiply 0.80 bec. rarely one person's bbox cross the x/2
         #input
-        self.tmp_folder = io.get_all_tmp_folders()[0]
+        self.data_folder = io.get_data_folder()
         self.camera_folders = self.get_camera_data()
         #output
         self.main_out = io.get_output_folder('config', 'output')
@@ -52,10 +52,11 @@ class PoseDetector(BaseDetector):
 
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
-        log_ut.assert_and_log(data.all_camera_ids == set(config['camera_ids']), \
-            f"camera_ids do not match! all loaded cameras = " \
-            f"'{data.all_camera_ids}' and {self.name} requires cameras " \
-            f"'{config['camera_ids']}'.")
+        log_ut.assert_and_log(data.all_camera_names == set(config['camera_names']),
+                              f"camera_names do not match! all loaded cameras = " \
+                              f"'{data.all_camera_names}' and {self.name} requires cameras " \
+                              f"'{config['camera_names']}'."
+)
 
         config['input_data_folder'] = data.create_symlink_input_folder(
                 config['input_data_format'], config['camera_names'])
@@ -64,7 +65,7 @@ class PoseDetector(BaseDetector):
         config['frame_indices_list'] = data.frame_indices_list
         config['person_threshold'] = self.person_threshold
         config['camera_folders'] = self.camera_folders
-        config['tmp_folder'] = self.tmp_folder
+        config['data_folder'] = self.data_folder
         config['intermediate_results'] = self.intermediate_results
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
@@ -202,6 +203,6 @@ class PoseDetector(BaseDetector):
     def get_camera_data(self):
         in_camera = {}
         for camera in self.camera_names:
-            camera_folder = os.path.join(self.tmp_folder, camera)
+            camera_folder = os.path.join(self.data_folder, camera)
             in_camera[camera] = camera_folder
         return in_camera
