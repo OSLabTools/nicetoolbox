@@ -3,3 +3,5 @@ opencv-python
 face_alignment==1.3.4
 torch
 torchvision
+h5py==3.9.0
+toml

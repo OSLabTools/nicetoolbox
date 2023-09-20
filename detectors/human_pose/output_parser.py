@@ -1,8 +1,7 @@
 import os
 import numpy as np
 from abc import ABC, abstractmethod
-import oslab_utils.config as cfg
-import oslab_utils.filehandling as fh
+import third_party.file_handling as fh
 
 
 KEYPOINT_MAPPING_PATH = "./configs/predictions_mapping.yml"
@@ -34,7 +33,7 @@ class BaseParser(ABC):
         The index of the keypoint/keypoint group.
 
         """
-        keypoint_mapping_config = cfg.load_config(KEYPOINT_MAPPING_PATH)
+        keypoint_mapping_config = fh.load_config(KEYPOINT_MAPPING_PATH)
         return keypoint_mapping_config["human_pose"][self.keypoint_type][bodypart][keypoint_name]
 
     def get_number_of_keypoints(self, input_file):

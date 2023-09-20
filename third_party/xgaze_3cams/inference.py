@@ -2,8 +2,11 @@ import os
 import sys
 import cv2
 import numpy as np
+import re
 
-sys.path.append("./xgaze_3cams/xgaze_3cams")
+sys.path.append("./third_party/xgaze_3cams/xgaze_3cams")
+sys.path.append("./third_party")
+print(sys.path)
 from gaze_estimator import GazeEstimator
 from utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
 from landmarks import get_landmarks_1
@@ -22,25 +25,34 @@ def main(config):
         f"{config['name']}: Please specify 'input_data_format: frames' in " \
         f"config. Currently it is {config['input_data_format']}."
 
-    label_names = dict(AatB='AlookatB',
-                       BatA='BlookatA',
-                       mutual='mutual_gaze',
-                       averted='gaze_averted')
-
     gaze_estimator = GazeEstimator(
             config['face_model_filename'],
             config['pretrained_model_filename'])
 
-    results_sub1, results_sub2 = [], []
+    # re-organize input data
+    n_cams = len(config['camera_names'])
+    n_frames = len(config['frames_list']) // n_cams
+    frames_list = np.array(sorted(config['frames_list'])
+                           ).reshape(n_cams, n_frames).T
+    frames_list = [list(l) for l in frames_list]
 
+    # convert camera_names to camera_ids
+    camera_ids = []
+    for cam_name in config['camera_names']:
+        cam_id = [int(x) for x in re.findall(r'\d+', cam_name)]
+        assert len(cam_id) == 1, f"ERROR: invalid camera_name '{cam_name}'!"
+        camera_ids.append(cam_id[0])
+
+    results_sub1, results_sub2 = [], []
     ## read images
-    for frame_files, frame_id in zip(config['frames_list'], config['frame_indices_list']):
+    for frame_files, frame_id in zip(frames_list, config['frame_indices_list']):
         images = []  # all images for that frame
         file_paths = []  # all image file path for that frame
         sub_1_landmarks = []  # all landmarks for that frame
         sub_2_landmarks = []  # all landmarks for that frame
+
         # get the landmarks
-        for frame_file, cam_id in zip(frame_files, config['camera_ids']):
+        for frame_file, cam_id in zip(frame_files, camera_ids):
             image = cv2.imread(frame_file)
             images.append(image)
 
@@ -61,7 +73,7 @@ def main(config):
                 landmarks = sub_1_landmarks
             else:
                 landmarks = sub_2_landmarks
-            for cam_id in config['camera_ids']:
+            for cam_id in camera_ids:
                 if landmarks[cam_id - 1] is None:
                     continue
                 image = images[cam_id - 1]
@@ -93,7 +105,7 @@ def main(config):
 
         # visualization on each image, project the gaze back to each cam to draw the gaze direction
         is_debug = False
-        for cam_id in config['camera_ids']:
+        for cam_id in camera_ids:
             image = images[cam_id - 1]
             cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                     config['calibration'], cam_id, image)

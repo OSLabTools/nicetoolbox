@@ -4,8 +4,7 @@ import numpy as np
 import random
 import logging
 import detectors.human_pose.output_parser as parser
-import oslab_utils.filehandling as fh
-import oslab_utils.logging_utils as log_ut
+import third_party.file_handling as fh
 
 
 
@@ -62,13 +61,13 @@ def compare_data_values_with_saved_json(predictions_folder,intermediate_results_
                     person = person)
 
                 # Compare the data at the random index between JSON and HDF5
-                log_ut.assert_and_log(np.allclose(xy_json, xy_data, atol=1e5), "Data MISMATCH!")
+                fh.assert_and_log(np.allclose(xy_json, xy_data, atol=1e5), "Data MISMATCH!")
 
                 filename_in_data = fh.get_attribute_by_index(index_of_random_filename,
                                                                               os.path.join(intermediate_results_folder,
                                                                                            hdf5_file), person)
                 # Compare the data at the random index between JSON and HDF5
-                log_ut.assert_and_log(os.path.basename(filename_in_data).split('.')[0] == random_filename.split('.')[0], "Filenames MISMATCH!")
+                fh.assert_and_log(os.path.basename(filename_in_data).split('.')[0] == random_filename.split('.')[0], "Filenames MISMATCH!")
         i += 1
     logging.info("2d Data MATCH!")
     logging.info("Filenames MATCH!")

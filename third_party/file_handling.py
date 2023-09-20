@@ -1,9 +1,12 @@
 """
 
 """
-
+import logging
+import sys
 import h5py
 import toml
+import json
+import numpy as np
 
 
 def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
@@ -49,3 +52,69 @@ def load_config(config_file):
                 f"config_file type {config_file} is not supported currently. "
                 f"Implemented is toml.")
     return config
+
+
+def assert_and_log(condition, message):
+    try:
+        assert condition, message
+    except AssertionError as e:
+        logging.error(f"Assertion failed: {e}")
+        sys.exit(1)
+
+
+def load_json_file(json_path):
+    with open(json_path, 'r') as file:
+        data = json.load(file)
+        return data
+
+
+def read_hdf5(path):
+    """Read data from hdf5 file.
+
+    Parameters
+    ----------
+    path: the path of hdf5 file
+
+    Returns
+    -------
+    A list holds the data of each group
+    """
+    data = []
+    try:
+        with h5py.File(path, 'r') as f:
+            for group in f.keys():
+                data.append(np.array(f[group]["data"]))
+        return data
+    except ValueError: #ToDo debug
+        print("MemoryError: Not enough memory to load data.")
+        return None
+
+
+def get_ordered_attributes(dset):
+    """ Function to get data attributes in the correct order
+
+    Parameters
+    ----------
+    dset: dataset
+
+    Returns
+    -------
+
+    """
+    attr_dict = {}
+    for attr_name, attr_value in dset.attrs.items():
+        attr_dict[attr_value] = attr_name
+    ordered_attrs = [attr_dict[i] for i in sorted(attr_dict.keys())]
+    return ordered_attrs
+
+
+def get_attribute_by_index(index, hdf5_file_path, group_name):
+    with h5py.File(hdf5_file_path, 'r') as f:
+        # Get the dataset
+        dset = f[f"{group_name}/data"]
+
+        # Iterate over all attributes to find the attribute name corresponding to the given index
+        for attr_name, attr_value in dset.attrs.items():
+            if attr_value == index:
+                return attr_name
+    return None

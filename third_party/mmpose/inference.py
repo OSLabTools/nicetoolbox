@@ -7,6 +7,7 @@ import output_sanity_checks as sc
 import tests.test_data as test_data
 import logging
 
+
 def convert_output_to_numpy(data, multi_person, person_threshold):
     num_frames = len(data)
     num_keypoints = len(
@@ -37,12 +38,7 @@ def convert_output_to_numpy(data, multi_person, person_threshold):
         predictions_data = [person_result]
     return predictions_data
 
-def assert_and_log(condition, message):
-    try:
-        assert condition, message
-    except AssertionError as e:
-        logging.error(f"Assertion failed: {e}")
-        sys.exit(1)
+
 
 def main(config):
     """ Run inference of the method on the pre-loaded image
@@ -62,19 +58,19 @@ def main(config):
     camera_output = {}
     for camera_name in config["camera_names"]:
         logging.info(f'Camera - {camera_name}')
-        camera_folder = config["camera_folders"][camera_name]
+        camera_folder = os.path.join(config["input_data_folder"], camera_name)
 
-        assert_and_log(os.path.exists(camera_folder), f"Data folder for camera: {camera_name} could not find")
+        fh.assert_and_log(os.path.exists(camera_folder), f"Data folder for camera: {camera_name} could not find")
 
 
-        camera_frames_list = [f for sublist in config["frames_list"] for f in sublist if camera_name in f] #since each frame inside a list
-
-        try:
-            assert len(camera_frames_list)==len(os.listdir(camera_folder)), \
-                f"Different number of frames in frames list and frames under {camera_folder}"
-        except AssertionError as e:
-            logging.error(f"Assertion failed: {e}")
-            sys.exit(1)
+        # camera_frames_list = [f for sublist in config["frames_list"] for f in sublist if camera_name in f] #since each frame inside a list
+        #
+        # try:
+        #     assert len(camera_frames_list)==len(os.listdir(camera_folder)), \
+        #         f"Different number of frames in frames list and frames under {camera_folder}"
+        # except AssertionError as e:
+        #     logging.error(f"Assertion failed: {e}")
+        #     sys.exit(1)
 
         #inference_log = os.path.join(config["method_tmp_folder"], "inference_log.txt") # ToDo add inference log
         # inference
@@ -95,7 +91,7 @@ def main(config):
         camera_output[camera_name] = person_results_list
 
         # check person data shape
-        assert_and_log(
+        fh.assert_and_log(
             person_results_list[0].shape == person_results_list[1].shape,
             f"Shape mismatch: Shapes for personL and personR are not the same.")
 
@@ -106,7 +102,7 @@ def main(config):
         #  save as hdf5 file
         save_file_name = os.path.join(config["intermediate_results"],
                                       f"algorithm_predictions_{camera_name}.hdf5")
-        fh.save_to_hdf5(person_results_list, ["personL", "personR"], save_file_name, index=camera_frames_list)
+        fh.save_to_hdf5(person_results_list, ["personL", "personR"], save_file_name, index=os.listdir(camera_folder))
 
     # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
     sc.compare_data_values_with_saved_json(
