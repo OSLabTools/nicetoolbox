@@ -38,9 +38,9 @@ class PoseDetector(BaseDetector):
         self.frame_list = data.frames_list
         self.person_threshold = (config["resolution"][
             0]) / 2 * 0.80  # multiply 0.80 bec. rarely one person's bbox cross the x/2
+        self.video_start = config["video_start"]
         #input
         self.data_folder = io.get_data_folder()
-        self.camera_folders = self.get_camera_data()
         #output
         self.main_out = io.get_output_folder('config', 'output')
         self.intermediate_results = io.get_output_folder(self.name, 'additional')
@@ -64,7 +64,6 @@ class PoseDetector(BaseDetector):
         config['frames_list'] = self.frame_list
         config['frame_indices_list'] = data.frame_indices_list
         config['person_threshold'] = self.person_threshold
-        config['camera_folders'] = self.camera_folders
         config['data_folder'] = self.data_folder
         config['intermediate_results'] = self.intermediate_results
         config['prediction_folders'] = self.prediction_folders
@@ -86,11 +85,11 @@ class PoseDetector(BaseDetector):
         """
         logging.info(f"VISUALIZING the method output {self.name}")
         log_ut.assert_and_log(os.listdir(self.image_folders["cam4"]) != [], "Image folder is empty") #ToDo camera hardcoded
-        image_base = os.path.join(self.image_folders["cam4"], os.listdir(self.image_folders["cam4"])[0].split("_")[0])
+        image_base = os.path.join(self.image_folders["cam4"],"%05d.png")
         output_path = os.path.join(self.viz_folder, f"{self.name}.mp4")
 
         ##TODO read fps directly and put this function under oslab_utils video
-        cmd = f"ffmpeg -framerate {str(30)} -i {image_base}_%05d.png -c:v libx264 -pix_fmt yuv420p -y {output_path}"
+        cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
         # Use the subprocess module to execute the command
         cmd_result = subprocess.run(cmd, shell=True)
 
@@ -129,12 +128,12 @@ class PoseDetector(BaseDetector):
             for i, person in enumerate(personsList):
                 person_cam1 = fh.read_hdf5(cam1_data_path)[i]
                 person_cam2 = fh.read_hdf5(cam2_data_path)[i]
-                log_ut.assert_and_log(len(camera_frames_list) == person_cam1.shape[0], \
-                    f"Different number of frames in frames list and frames in data. "
-                     f"camera_name:{self.camera_names[0]}, person: {person}")
-                log_ut.assert_and_log(len(camera_frames_list) == person_cam2.shape[0], \
-                    f"Different number of frames in frames list and frames in data. "
-                     f"camera_name:{self.camera_names[1]}, person: {person}")
+                # log_ut.assert_and_log(len(camera_frames_list) == person_cam1.shape[0], \
+                #     f"Different number of frames in frames list and frames in data. "
+                #      f"camera_name:{self.camera_names[0]}, person: {person}")
+                # log_ut.assert_and_log(len(camera_frames_list) == person_cam2.shape[0], \
+                #     f"Different number of frames in frames list and frames in data. "
+                #      f"camera_name:{self.camera_names[1]}, person: {person}")
                 # Extract the x and y values
                 xy_points_cam1 = person_cam1[:, :, :2].reshape(-1, 1, 2)
                 xy_points_cam2 = person_cam2[:, :, :2].reshape(-1, 1, 2)

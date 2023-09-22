@@ -4,12 +4,10 @@
 
 git_hash = "<git_hash>"
 # the inout video is processed into 'frames', 'segments' and 'snippets'
-video_length = 180  # in frames, relevant for all
-video_start = 60  # in frames, relevant for all
+video_length = 500  # in frames, relevant for all
+video_start = 1000  # in frames, relevant for all
 video_skip_frames = false  # relevant for frames only
 annotation_interval = 1  # in seconds, length of segments
-
-
 
 [io]
 PIS_ID = "PIS_ID_000"
@@ -67,8 +65,13 @@ keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
 [features]
-names = ["kinematics"]
+names = ["kinematics", "proximity"]
 
 [features.kinematics]
+input_detector_name = "mmpose"
+input_algorithm_name = "hrnetw48"
+
+[features.proximity]
+used_keypoint = ["nose"] # if the list is more than one keypoint, the midpoint
 input_detector_name = "mmpose"
 input_algorithm_name = "hrnetw48"

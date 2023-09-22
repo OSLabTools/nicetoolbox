@@ -43,7 +43,7 @@ def convert_output_to_numpy(data, multi_person, person_threshold):
 def main(config):
     """ Run inference of the method on the pre-loaded image
     """
-    logging.basicConfig(filename=config['log'], level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename=config['log'], level=logging.INFO, format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
     logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
     # create inferencer object
     inferencer = MMPoseInferencer(

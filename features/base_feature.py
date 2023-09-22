@@ -4,6 +4,7 @@ A template class for Detectors.
 
 import os
 import logging
+import data
 from abc import ABC, abstractmethod
 from oslab_utils.config import save_config
 import oslab_utils.logging_utils as log_ut
@@ -31,6 +32,7 @@ class BaseFeature(ABC):
         log_ut.assert_and_log(len(input_file_list) != 0, f"Input file could not find.")
         log_ut.assert_and_log(len(input_file_list) == 1, f"There is more than one input file")
         self.input_file = os.path.join(self.input_folder, input_file_list[0])
+        self.input_data_folder = config['input_data_folder']
 
         #output folders
         self.result_folder = io.get_output_folder(self.name, 'result')

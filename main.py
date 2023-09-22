@@ -95,7 +95,7 @@ def main():
             io.get_output_folder('config', 'output'))
 
     #initialize log
-    log_path = os.path.join(io.get_output_folder('config', 'output'), "application_.log")
+    log_path = os.path.join(io.get_output_folder('config', 'output'), "ISA-Tool.log")
     log_ut.setup_logging(log_path, level=logging.INFO)
 
     # -> clean up all /tmp/ even if the code crashes or triggers an assertion
@@ -110,10 +110,9 @@ def main():
             method_config = copy.deepcopy(config['methods'][method_name])
             if 'algorithm' in method_config.keys():
                 method_config.update(method_config[method_config['algorithm']])
-
+            method_config["video_start"] = config["video_start"]
             detector = all_methods[method_name](method_config, io, data)
             inference_returncode = detector.run_inference()
-
             log_ut.assert_and_log(inference_returncode == 0, f"INFERENCE Pipeline {method_name} - FAILURE - See method log for details")
             logging.info(f"INFERENCE Pipeline {method_name} - SUCCESS - See method log for details")
             detector.visualization(data)
@@ -126,6 +125,8 @@ def main():
             input_detector_name = config['features'][feature_name]['input_detector_name']
             feature_config.update(config['methods'][input_detector_name])
             feature_config["input_name"] = input_detector_name
+            feature_config["input_data_folder"] = data.create_symlink_input_folder(
+                config['methods'][input_detector_name]['input_data_format'], config['methods'][input_detector_name]['camera_names']) ## ToDo is there a better way to get this name?
             if 'input_algorithm_name' in feature_config.keys():
                 input_algorithm_name = config['features'][feature_name]['input_algorithm_name']
                 feature_config.update(config['methods'][input_detector_name][input_algorithm_name])

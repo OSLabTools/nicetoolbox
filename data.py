@@ -5,8 +5,11 @@
 import os
 import glob
 import json
+import logging
 from oslab_utils.video import equal_splits_by_frames, get_fps, \
     read_segments_list_from_file, split_into_frames, cut_length
+import oslab_utils.system as oslab_sys
+
 
 
 class Data:
@@ -250,9 +253,20 @@ class Data:
                 else:
                     indices = [filename.find(name) for name in camera_names]
                     cam_name = filename[max(indices):]
-                    cam_name = cam_name[: cam_name.find('/')]
+                    os_type = oslab_sys.detect_os_type()
+                    if os_type == "linux":
+                        cam_name = cam_name[: cam_name.find('/')]
+                    elif os_type == "windows":
+                        cam_name = cam_name[: cam_name.find('\\')]
+                    else:
+                        logging.error("Unknown os type in create_symlink_input_folder")
                     os.symlink(filename,
                                os.path.join(data_folder, cam_name,
                                             os.path.basename(filename)))
 
+            # #assertion
+            # for camera_name in camera_names:
+            #     camera_path = os.path.join(data_folder, camera_name)
+            #     log_ut.assert_and_log(os.listdir(camera_path)!=[], f"Symlink input folder is empty {camera_name}")
+            #     os.rmdir(data_folder)
         return data_folder

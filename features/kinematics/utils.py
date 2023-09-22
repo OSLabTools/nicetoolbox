@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ PART_MAPPING = {
     "Rhand": {'color': '#B19CD9', 'size': 8, 'indices': list(range(113, 134))} #pastel lavender
 }
 
-def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list, output_folder):
+def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder):
     """
        Visualizes the sum of movements by body part across frames for each person.
 
@@ -42,55 +43,37 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list, output_f
         ax.set_title(f'Sum of Movements by Body Part Across Frames ({people_names[i]})')
         ax.set_xlabel('Frame Index')
         ax.set_ylabel('Sum of Movements')
+        ax.set_ylim(global_min, global_max)
         ax.legend()
 
     # Save the plot
     plt.savefig(os.path.join(output_folder, 'sum_of_motion_magnitude_by_bodypart.png'), dpi=500)
 
 
-def frame_with_linegraph(frame, data, categories, current_frame):
+def frame_with_linegraph(frame, data, categories, current_frame, global_min, global_max):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
-    num_person = len(data)
+
     log_ut.assert_and_log(len(data) == 2, f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
-    dataL = data[0]
-    dataR = data[1]
+    dataL, dataR = data
 
-    fig, (axL, axR) = plt.subplots(1, num_person, figsize=(10, 4))
-
-    # Set black background
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(10, 4))
     fig.patch.set_facecolor('black')
-    axL.set_facecolor('black')
-    axR.set_facecolor('black')
 
     colors = ['#98FB98', '#FFB347', '#DDA0DD', '#ADD8E6']
-    # '#ADD8E6', '#FFB6C1', '#FFD700'
-    linesL = []
-    # Plot data for PersonL up to the current frame
-    for j, category in enumerate(categories):
-        line, = axL.plot(dataL[:current_frame + 1, j], label=category, color = colors[j])
-        linesL.append(line)
-    axL.set_title('PersonL', color='white')
 
+    for ax, d, title in zip([axL, axR], [dataL, dataR], ['PersonL', 'PersonR']):
+        for j, category in enumerate(categories):
+            ax.plot(d[:current_frame + 1, j], label=category, color=colors[j])
+        ax.set_title(title, color='white')
+        ax.legend()
+        ax.set_facecolor('black')
 
-    # Plot data for PersonR up to the current frame
-    for j, category in enumerate(categories):
-        axR.plot(dataR[:current_frame + 1, j], label=category, color = colors[j])
-    axR.set_title('PersonR', color='white')
-    axR.legend()
+    columns = len(categories) // 3 + (len(categories) % 3 > 0)
 
-
-    # Determine global min and max for y-axis
-    global_min = min(dataL.min(), dataR.min())
-    global_max = max(dataL.max(), dataR.max())
-
-    # Set the same y-axis limits for both subplots
-    axL.set_ylim(global_min, global_max)
-    axR.set_ylim(global_min, global_max)
-
-    # Adjusting x axis
     for ax in [axL, axR]:
         ax.set_xlim(0, dataL.shape[0])
-        ax.set_xticks(range(dataL.shape[0]+1))
+        ax.set_ylim(global_min, global_max)
+        ax.set_xticks(range(dataL.shape[0] + 1))
         ax.tick_params(axis='both', colors='white')
         ax.spines['bottom'].set_color('white')
         ax.spines['left'].set_color('white')
@@ -99,46 +82,38 @@ def frame_with_linegraph(frame, data, categories, current_frame):
 
     plt.subplots_adjust(bottom=0.20)
 
-    # Placing a single legend for both graphs
-    columns = len(categories) // 3 + (len(categories) % 3 > 0)
-    leg  = plt.legend(linesL, categories, loc='upper center', bbox_to_anchor=(1.0, 0.8), ncol=columns,
-               facecolor='black')
+    leg = plt.legend(loc='upper center', bbox_to_anchor=(1.0, 0.8), ncol=columns, facecolor='black')
     for text in leg.get_texts():
         text.set_color("white")
 
-
-    # Convert the Matplotlib figure to an image
     canvas = FigureCanvas(fig)
     canvas.draw()
     graph_img = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
     graph_img = graph_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    #graph_img = cv2.resize(graph_img, (frame.shape[1], frame.shape[0]))
-
     plt.close(fig)
 
-    # Combine the frame with the graph image
     combined_img = cv2.vconcat([frame, graph_img])
-
     return combined_img
 
 
-def create_video_evolving_linegraphs(frames_data_list, data, categories, output_folder):
-    # Read frames
-    frames = [cv2.imread(f) for f in frames_data_list]
+def create_video_evolving_linegraphs(frames_data_list, data, categories, global_min, global_max,output_folder):
 
-    # Generate a combined image for the first frame to get dimensions
-    sample_combined_img = frame_with_linegraph(frames[0], data, categories, 0)
+    # Get a sample image to determine video dimensions
+    sample_frame = cv2.imread(frames_data_list[0])
+    sample_combined_img = frame_with_linegraph(sample_frame, data, categories, 0, global_min, global_max)
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
     output_path = os.path.join(output_folder, 'movement_score_on_video.mp4')
-    out = cv2.VideoWriter(output_path, fourcc, 1.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
+    out = cv2.VideoWriter(output_path, fourcc, 30.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
 
-    # Now write the combined images to the video
-    for i, frame in enumerate(frames):
-        if i == 0:  #because there is no movement score for first frame
+    for i, frame_path in enumerate(frames_data_list):
+        frame = cv2.imread(frame_path)
+        if i % 100 == 0:
+            logging.info(f"Image ind: {i}")
+        if i == 0:  # because there is no movement score for the first frame
             out.write(frame)
         else:
-            combined = frame_with_linegraph(frame, data, categories, i-1) # i-1 bec movement score data starts from 2nd frame
+            combined = frame_with_linegraph(frame, data, categories, i-1, global_min, global_max)  # i-1 because movement score data starts from the 2nd frame
             out.write(combined)
     out.release()
 

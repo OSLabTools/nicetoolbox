@@ -31,9 +31,7 @@ class Kinematics(BaseFeature):
         self.camera_names = config["camera_names"]
         self.bodyparts_list =  list(self.predictions_mapping['bodypart_index'].keys())
         # will be used during visualizations
-        self.frames_data = os.path.join(
-            io.get_all_tmp_folders()[0],
-            [f for f in os.listdir(io.get_all_tmp_folders()[0]) if self.camera_names[1] in f][0])
+        self.frames_data = os.path.join(self.input_data_folder,self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
 
 
@@ -58,11 +56,11 @@ class Kinematics(BaseFeature):
             # Compute the Euclidean distance for each keypoint between adjacent frames
             motion_magnitude = np.linalg.norm(differences, axis=-1)
             ## Standardized
-            motion_magnitude_mean = np.mean(motion_magnitude, axis=0)
-            motion_magnitude_std = np.std(motion_magnitude, axis=0)
-            standardized_magnitudes = (motion_magnitude - motion_magnitude_mean) / motion_magnitude_std
+            # motion_magnitude_mean = np.mean(motion_magnitude, axis=0)
+            # motion_magnitude_std = np.std(motion_magnitude, axis=0)
+            # standardized_magnitudes = (motion_magnitude - motion_magnitude_mean) / motion_magnitude_std
 
-            person_data_list_motion.append(standardized_magnitudes)
+            person_data_list_motion.append(motion_magnitude)
             person_data_list_velocity_per_frame.append(differences)
 
             # save results
@@ -72,21 +70,24 @@ class Kinematics(BaseFeature):
         fh.save_to_hdf5(person_data_list_velocity_per_frame, groups_list=["personL", "personR"], output_file=filepath_velocity_per_frame)
         #calculate sum of movement per bodypart
         sum_of_motion_per_bodypart = self.post_compute(person_data_list_motion)
-
         return sum_of_motion_per_bodypart
 
 
     def visualization(self, data):
         """
-
         Parameters
         ----------
         data: class
             a class instance that stores all input file locations
         """
         logging.info(f"VISUALIZING the method output {self.name}")
-        kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(data, self.bodyparts_list, self.viz_folder)
-        kinematics_utils.create_video_evolving_linegraphs(self.frames_data_list, data, self.bodyparts_list, self.viz_folder)
+        # Determine global_min and global_max - define y-lims of graphs
+        global_min = min(data[0].min(), data[1].min())
+        global_max = max(data[0].max(), data[1].max())
+        kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
+            data, self.bodyparts_list, global_min, global_max, self.viz_folder)
+        kinematics_utils.create_video_evolving_linegraphs(
+            self.frames_data_list, data, self.bodyparts_list, global_min, global_max, self.viz_folder)
 
 
     def post_compute(self, distance_data):
@@ -94,13 +95,11 @@ class Kinematics(BaseFeature):
             calculate sum of movement per bodypart
         """
         person_data_list = []
-        for person in distance_data:
-
-            num_bodypart = len(self.bodyparts_list)
-            result = np.zeros((4, num_bodypart))
+        for person_data in distance_data:
+            result = np.zeros((person_data.shape[0], len(self.bodyparts_list)))
 
             for i, indices in enumerate(self.predictions_mapping['bodypart_index'].values()):
-                result[:, i] = person[:, indices].sum(axis=1)
+                result[:, i] = person_data[:, indices].mean(axis=1)
 
             person_data_list.append(result)
         log_ut.assert_and_log(person_data_list[0].shape == person_data_list[1].shape, f"Shape mismatch: Shapes for personL and personR are not the same.")
