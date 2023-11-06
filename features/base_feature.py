@@ -27,23 +27,37 @@ class BaseFeature(ABC):
         """
 
         # input folder of the feature is the result folder of detector
-        self.input_folder = io.get_output_folder(config['input_name'], 'result')
-        input_file_list = [f for f in os.listdir(self.input_folder) if ".hdf5" in f]
-        log_ut.assert_and_log(len(input_file_list) != 0, f"Input file could not find.")
-        log_ut.assert_and_log(len(input_file_list) == 1, f"There is more than one input file")
-        self.input_file = os.path.join(self.input_folder, input_file_list[0])
-        self.input_data_folder = config['input_data_folder']
+        self.input_folders = [io.get_output_folder(name, 'result')
+                              for name in config['input_detector_names']]
+        self.input_files = []
+        for input_folder in self.input_folders:
+            input_file = self.get_input(os.listdir(input_folder), ".hdf5")
+            self.input_files.append(os.path.join(input_folder, input_file))
+            #input_file_list = [f for f in os.listdir(input_folder) if ".hdf5" in f]
+            #log_ut.assert_and_log(len(input_file_list) != 0, f"Input file could not find.")
+            #log_ut.assert_and_log(len(input_file_list) == 1, f"There is more than one input file")
+            #self.input_files.append(os.path.join(input_folder, input_file_list[0]))
+
+        #self.input_data_folder = config['input_data_folder']
 
         #output folders
         self.result_folder = io.get_output_folder(self.name, 'result')
         self.viz_folder = io.get_output_folder(self.name, 'visualization')
 
         # save this method config
-        self.config_path = os.path.join(io.get_output_folder(self.name, 'tmp'),
+        self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
                                         f'run_config.toml')
 
         save_config(config, self.config_path)
         logging.info(f"STARTING Computing - {self.name}")
+
+    def get_input(self, input_list, token):
+        detected = [f for f in input_list if token in f]
+        log_ut.assert_and_log(len(detected) != 0,
+                              f"Input file could not find.")
+        log_ut.assert_and_log(len(detected) == 1,
+                              f"There is more than one input file")
+        return detected[0]
 
     def __str__(self):
         """ description of the class instance for printing

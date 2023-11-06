@@ -35,6 +35,7 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
     if num_people == 1:
         axs = [axs]
 
+    delta = (global_max - global_min) * 0.025
     # Iterate through the data list and the array of subplots to fill in data
     for i, (ax, data) in enumerate(zip(axs, data)):
         for j, body_part in enumerate(bodyparts_list):
@@ -43,7 +44,7 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
         ax.set_title(f'Sum of Movements by Body Part Across Frames ({people_names[i]})')
         ax.set_xlabel('Frame Index')
         ax.set_ylabel('Sum of Movements')
-        ax.set_ylim(global_min, global_max)
+        ax.set_ylim(global_min - delta, global_max + delta)
         ax.legend()
 
     # Save the plot
@@ -95,15 +96,21 @@ def frame_with_linegraph(frame, data, categories, current_frame, global_min, glo
     return combined_img
 
 
-def create_video_evolving_linegraphs(frames_data_list, data, categories, global_min, global_max,output_folder):
+def create_video_evolving_linegraphs(
+        frames_data_list, data, categories, global_min, global_max,
+        output_folder, file_name=None, video_fps=30.0):
 
     # Get a sample image to determine video dimensions
     sample_frame = cv2.imread(frames_data_list[0])
     sample_combined_img = frame_with_linegraph(sample_frame, data, categories, 0, global_min, global_max)
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
-    output_path = os.path.join(output_folder, 'movement_score_on_video.mp4')
-    out = cv2.VideoWriter(output_path, fourcc, 30.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
+    if file_name is None:
+        output_path = os.path.join(output_folder, 'movement_score_on_video.mp4')
+    else:
+        output_path = os.path.join(output_folder, f'{file_name}.mp4')
+
+    out = cv2.VideoWriter(output_path, fourcc, video_fps, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
 
     for i, frame_path in enumerate(frames_data_list):
         frame = cv2.imread(frame_path)

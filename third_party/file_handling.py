@@ -54,6 +54,11 @@ def load_config(config_file):
     return config
 
 
+def save_toml(dic, file_path):
+    with open(file_path, 'w') as file:
+        string = toml.dump(dic, file)
+
+
 def assert_and_log(condition, message):
     try:
         assert condition, message

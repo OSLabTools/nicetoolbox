@@ -7,7 +7,7 @@ git_hash = "<git_hash>"
 video_length = 2010  # in frames, relevant for all
 video_start = 2700  # in frames, relevant for all
 video_skip_frames = false  # relevant for frames only
-annotation_interval = 1  # in seconds, length of segments
+annotation_interval = 2  # in seconds, length of segments
 
 [io]
 PIS_ID = "PIS_ID_04"
@@ -25,11 +25,12 @@ method_final_result_folder = "<out_folder>/<method_name>"
 code_folder = "<pwd>"
 
 [methods]
-names = ["mmpose"]
+names = ["mmpose", "xgaze_3cams", "emoca"]
 
 [methods.nodding_pigeon]
 input_data_format = "segments"
 camera_names = ["cam1", "cam2"]
+env_name = "venv:env"
 
 [methods.ethXgaze]
 input_data_format = "frames"
@@ -64,19 +65,27 @@ detection_checkpoint = "./third_party/mmpose/configs/faster_rcnn_r50_fpn_1x_coco
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
+[methods.emoca]
+input_data_format = "frames"
+camera_names = ["cam1", "cam2"]
+camera_descr = ["personL", "personR"]
+env_name = "venv:env"
+
 [features]
 names = ["kinematics", "proximity", "leaning"]
 
 [features.kinematics]
-input_detector_name = "mmpose"
-input_algorithm_name = "hrnetw48"
+input_detector_names = ["mmpose_hrnetw48"]
 
 [features.proximity]
 used_keypoints = ["nose"] # if the list is more than one keypoint, the midpoint
-input_detector_name = "mmpose"
-input_algorithm_name = "hrnetw48"
+input_detector_names = ["mmpose_hrnetw48"]
 
 [features.leaning]
 used_keypoints = [["left_shoulder", "right_shoulder"], ["left_hip", "right_hip"], ["left_knee", "right_knee"]]
 input_detector_name = "mmpose"
 input_algorithm_name = "hrnetw48"
+
+[features.gazeDistance]
+input_detector_names = ["xgaze_3cams", "mmpose_hrnetw48"]
+keypoint_mapping = "coco_wholebody"

@@ -142,8 +142,7 @@ def main(config):
     save_to_hdf5(
             [np.array(results_sub1), np.array(results_sub2)],
             ['personL', 'personR'],
-            os.path.join(config['result_folder'], f"{config['behavior']}.hdf5"),
-            index=[]
+            os.path.join(config['result_folder'], f"{config['behavior']}.hdf5")
     )
 
 

@@ -16,7 +16,7 @@ class ETHXGaze(BaseDetector):
     """Class to setup and run existing computer vision research code.
     """
     name = 'ETH-XGaze'
-    behavior = 'gaze'
+    behavior = 'gazeDistance'
 
     def __init__(self, settings) -> None:
         """InitializeMethod class.

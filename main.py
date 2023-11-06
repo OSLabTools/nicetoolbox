@@ -14,10 +14,13 @@ from oslab_utils.in_out import create_tmp_folder
 from oslab_utils.annotations import CustomEaf
 
 #from detectors.nodding.noddingpigeon import NoddingPigeon
-#from detectors.gaze.ETH_XGaze import ETHXGaze
-#from detectors.gaze.XGaze_3cams import XGaze3cams
+#from detectors.gazeDistance.ETH_XGaze import ETHXGaze
+from detectors.gaze.XGaze_3cams import XGaze3cams
 from detectors.human_pose.pose_detector import PoseDetector
+from detectors.facial_expression.emoca import Emoca
 from features.kinematics.kinematics import Kinematics
+from features.proximity.proximity import Kinematics as Proximity
+from features.gazeDistance.gazeDistance import GazeDistance
 from configs.config_handler import Configuration
 import oslab_utils.logging_utils as log_ut
 
@@ -25,11 +28,14 @@ import oslab_utils.logging_utils as log_ut
 all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
 #        ethXgaze=ETHXGaze,
-#        xgaze_3cams=XGaze3cams,
+        xgaze_3cams=XGaze3cams,
         mmpose=PoseDetector,
+        emoca=Emoca,
 )
 
-all_features = dict(kinematics=Kinematics)
+all_features = dict(kinematics=Kinematics,
+                    proximity=Proximity,
+                    gazeDistance=GazeDistance)
 
 # def run(settings, Model, data, eaf):
 #     """Main function to run the method
@@ -73,6 +79,14 @@ all_features = dict(kinematics=Kinematics)
 #           f"\tSaved results to '{eaf.out_file}'.\n\n")
 
 
+def flatten_dict(dictionary):
+    output_dict = copy.deepcopy(dictionary)
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            del output_dict[key]
+    return output_dict
+
+
 def main():
     # CONFIG
     config_abstract_file = "configs/config.toml"
@@ -88,7 +102,10 @@ def main():
     # # run validity checks that these annotations were not done before
 
     # IO
-    io = IO(config['io'], config['methods']['names'] + config['features']['names'])
+    io = IO(config['io'],
+            config['methods']['names'] + config['features']['names'] +
+            [config['features'][name]['input_detector_names']
+             for name in config['features']['names']])
 
     # save experiment configs
     config_handler.save_experiment_config(
@@ -107,9 +124,9 @@ def main():
         # RUN detectors
         for method_name in config['methods']['names']:
             # prepare the part of the config relevant for the detector
-            method_config = copy.deepcopy(config['methods'][method_name])
+            method_config = flatten_dict(config['methods'][method_name])
             if 'algorithm' in method_config.keys():
-                method_config.update(method_config[method_config['algorithm']])
+                method_config.update(config['methods'][method_name][method_config['algorithm']])
             method_config["video_start"] = config["video_start"]
             detector = all_methods[method_name](method_config, io, data)
             inference_returncode = detector.run_inference()
@@ -121,19 +138,10 @@ def main():
         for feature_name in config['features']['names']:
             # prepare the part of the config relevant for the feature
             feature_config = copy.deepcopy(config['features'][feature_name])
-            # add its detector config as well
-            input_detector_name = config['features'][feature_name]['input_detector_name']
-            feature_config.update(config['methods'][input_detector_name])
-            feature_config["input_name"] = input_detector_name
-            feature_config["input_data_folder"] = data.create_symlink_input_folder(
-                config['methods'][input_detector_name]['input_data_format'], config['methods'][input_detector_name]['camera_names']) ## ToDo is there a better way to get this name?
-            if 'input_algorithm_name' in feature_config.keys():
-                input_algorithm_name = config['features'][feature_name]['input_algorithm_name']
-                feature_config.update(config['methods'][input_detector_name][input_algorithm_name])
-                feature_config["input_name"] = f'{feature_config["input_name"]}_{input_algorithm_name}'
             feature = all_features[feature_name](feature_config, io)
             feature_data = feature.compute()
             feature.visualization(feature_data)
+            logging.info(f"Finished feature '{feature_name}'.")
 
         # create ELAN annotation file
 

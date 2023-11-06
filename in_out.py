@@ -7,6 +7,16 @@ import glob
 import copy
 
 
+def flatten_list(input_list):
+    if isinstance(input_list, str):
+        return [input_list]
+    elif isinstance(input_list, list):
+        output_list = []
+        for item in input_list:
+            output_list += flatten_list(item)
+        return output_list
+
+
 class IO:
     def __init__(self, config, method_names):
         self.out_folder = config['out_folder']
@@ -20,7 +30,7 @@ class IO:
         elif config['process_data_to'] == 'data_folder':
             self.data_folder = config['data_folder']
 
-        self.method_names = method_names
+        self.method_names = list(set(flatten_list(method_names)))
         self.method_out_folder = config['method_out_folder']
         self.method_visualization_folder = config['method_visualization_folder']
         self.method_additional_output_folder = config['method_additional_output_folder']

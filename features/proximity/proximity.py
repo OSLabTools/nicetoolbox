@@ -28,18 +28,26 @@ class Proximity(BaseFeature):
         """
         # then, call the base class init
         super().__init__(config, io)
-        self.predictions_mapping = cfg.load_config("./configs/predictions_mapping.toml")["human_pose"][config["keypoint_mapping"]]
-        self.camera_names = config["camera_names"]
+
+        pose_results_folder = self.get_input(self.input_folders, 'pose')
+        pose_config = cfg.load_config(os.path.join(pose_results_folder,
+                                                        'run_config.toml'))
+        self.predictions_mapping = \
+            cfg.load_config("./configs/predictions_mapping.toml")[
+                "human_pose"][pose_config["keypoint_mapping"]]
+        self.camera_names = pose_config["camera_names"]
 
         # will be used during visualizations
-        self.frames_data = os.path.join(self.input_data_folder,self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
+        self.frames_data = os.path.join(pose_config['input_data_folder'], self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
         self.used_keypoints = config["used_keypoints"]
         # proximity index
         for keypoint in self.used_keypoints:
-            log_ut.assert_and_log(keypoint not in [self.predictions_mapping["keypoints_index"]["body"].keys()],
+            log_ut.assert_and_log(keypoint in self.predictions_mapping["keypoints_index"]["body"].keys(),
                                   f"Given used_keypoint could not find in predictions_mapping {keypoint}")
-        self.keypoint_index = [self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in config["used_keypoints"]]
+        self.keypoint_index = \
+            [self.predictions_mapping["keypoints_index"]["body"][keypoint]
+             for keypoint in self.used_keypoints]
 
 
     def compute(self):
@@ -52,7 +60,7 @@ class Proximity(BaseFeature):
         The proximity measure - The euclidean distance between the two person's body (one location on body)
 
         """
-        data = fh.read_hdf5(self.input_file)
+        data = fh.read_hdf5(self.input_files[0])
         personL = data[0]
         personR = data[1]
         proximity_data_list = []

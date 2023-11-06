@@ -56,7 +56,7 @@ class PoseDetector(BaseDetector):
                               f"camera_names do not match! all loaded cameras = " \
                               f"'{data.all_camera_names}' and {self.name} requires cameras " \
                               f"'{config['camera_names']}'."
-)
+                              )
 
         config['input_data_folder'] = data.create_symlink_input_folder(
                 config['input_data_format'], config['camera_names'])
@@ -89,7 +89,7 @@ class PoseDetector(BaseDetector):
         output_path = os.path.join(self.viz_folder, f"{self.name}.mp4")
 
         ##TODO read fps directly and put this function under oslab_utils video
-        cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
+        cmd = f"ffmpeg -framerate {str(3)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
         # Use the subprocess module to execute the command
         cmd_result = subprocess.run(cmd, shell=True)
 
@@ -122,6 +122,7 @@ class PoseDetector(BaseDetector):
             camera_frames_list = [os.path.basename(f).split(".")[0] for sublist in self.frame_list for f in sublist if
                                   self.camera_names[0] in f]  # since each frame inside a list
             prediction_files = [os.path.join(self.intermediate_results,f) for f in os.listdir(self.intermediate_results) if "hdf5" in f]
+            print(prediction_files)
             cam1_data_path = [f for f in prediction_files if self.camera_names[0] in f][0]
             cam2_data_path = [f for f in prediction_files if self.camera_names[1] in f][0]
             person_data_list = []

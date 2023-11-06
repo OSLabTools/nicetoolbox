@@ -9,6 +9,7 @@ from oslab_utils.system import detect_os_type
 from oslab_utils.config import save_config
 import oslab_utils.filehandling as fh
 
+
 class BaseDetector(ABC):
     """Class to setup and run existing computer vision research code.
     """
@@ -32,7 +33,7 @@ class BaseDetector(ABC):
         config['calibration'] = data.calibration
 
         # save this method config that will be given to the third party detector
-        self.config_path = os.path.join(io.get_output_folder(self.name, 'tmp'),
+        self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
                                         'run_config.toml')
 
         save_config(config, self.config_path)
@@ -46,7 +47,8 @@ class BaseDetector(ABC):
         # specify the virtual environment for the third party method/detector
         self.venv, self.env_name = config['env_name'].split(':')
         if self.venv == 'venv':
-            self.env_name = data.get_venv_path(self.name, self.env_name)
+            name = self.name.split('_')[0] if self.env_name.startswith('mmpose') else self.name
+            self.env_name = data.get_venv_path(name, self.env_name)
 
     def __str__(self):
         """ description of the class instance for printing
@@ -71,7 +73,8 @@ class BaseDetector(ABC):
                 command = f'cmd "/c conda activate {self.env_name} && ' \
                           f'python {self.script_path} {self.config_path}"'
             elif os_type == "linux":
-                command = f"conda activate {self.env_name} && " \
+                command = f"conda init bash && source ~/.bashrc && " \
+                          f"conda activate {self.env_name} && " \
                           f"python {self.script_path} {self.config_path}"
 
         elif self.venv == 'venv':
@@ -88,7 +91,8 @@ class BaseDetector(ABC):
                   f"Detector not running.")
 
         # run in terminal/cmd
-        cmd_result = subprocess.run(command, capture_output=True, text=True)
+        # TODO: check whether the following works on Windows
+        cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
 
         if cmd_result.returncode != 0:
             print(f"Error occurred with return code {cmd_result.returncode}")

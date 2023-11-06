@@ -12,3 +12,6 @@ output/
 configs/machine_specific_paths.toml
 *.tex~
 *.bib~
+
+third_party/emoca/emoca/assets
+third_party/emoca/emoca/image_output

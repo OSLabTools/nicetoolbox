@@ -27,11 +27,18 @@ class Kinematics(BaseFeature):
         """
         # then, call the base class init
         super().__init__(config, io)
-        self.predictions_mapping = cfg.load_config("./configs/predictions_mapping.toml")["human_pose"][config["keypoint_mapping"]]
-        self.camera_names = config["camera_names"]
+
+        pose_results_folder = self.get_input(self.input_folders, 'pose')
+        pose_config = cfg.load_config(os.path.join(pose_results_folder,
+                                                        'run_config.toml'))
+        self.predictions_mapping = \
+            cfg.load_config("./configs/predictions_mapping.toml")[
+                "human_pose"][pose_config["keypoint_mapping"]]
+        self.camera_names = pose_config["camera_names"]
         self.bodyparts_list =  list(self.predictions_mapping['bodypart_index'].keys())
+
         # will be used during visualizations
-        self.frames_data = os.path.join(self.input_data_folder,self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
+        self.frames_data = os.path.join(pose_config['input_data_folder'], self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
 
 
@@ -39,7 +46,7 @@ class Kinematics(BaseFeature):
         """
             Calculate euclidean distance between adjacent frames - how changed from t to t-1 - first frame will be empty
         """
-        data = fh.read_hdf5(self.input_file)
+        data = fh.read_hdf5(self.input_files[0])
         person_data_list_motion = []
         person_data_list_velocity_per_frame = []
         for person in data:
