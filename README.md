@@ -151,6 +151,17 @@ python gdl_apps/EmotionRecognition/demos/test_emotion_recognition_on_images.py -
 ```
 
 
+### Active Speaker Detector
+
+```
+cd third_party/active_speaker
+python3.8 -m venv env
+source env/bin/activate
+python -m pip install -r requirements.txt
+cd -
+```
+
+
 ## Documentation
 
 Using 

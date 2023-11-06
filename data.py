@@ -172,7 +172,7 @@ class Data:
 
                 if 'snippets' in self.data_formats:
                     os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
-                    out_name = f's{self.video_start}_e' \
+                    out_name = f'{camera_name}_s{self.video_start}_e' \
                                f'{self.video_start + self.video_length}'
                     # cut video to the required number of frames
                     out_video_file = cut_length(
@@ -198,8 +198,8 @@ class Data:
 
         inputs_list = []
         if data_format == 'snippets':
-            file_name = f"s{start}_e{end}.{input_format}"
             for camera_name in camera_names:
+                file_name = f"{camera_name}_s{start}_e{end}.{input_format}"
                 inputs_list.append(os.path.join(
                         self.data_folder, camera_name, 'snippets', file_name))
 

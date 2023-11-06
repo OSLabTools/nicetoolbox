@@ -25,7 +25,7 @@ method_final_result_folder = "<out_folder>/<method_name>"
 code_folder = "<pwd>"
 
 [methods]
-names = ["mmpose", "xgaze_3cams", "emoca"]
+names = ["active_speaker"]
 
 [methods.nodding_pigeon]
 input_data_format = "segments"
@@ -70,6 +70,23 @@ input_data_format = "frames"
 camera_names = ["cam1", "cam2"]
 camera_descr = ["personL", "personR"]
 env_name = "venv:env"
+
+[methods.active_speaker]
+input_data_format = "snippets"
+camera_names = ["cam3", "cam4"]
+camera_descr = ["personL", "personR"]
+env_name = "venv:env"
+ASC_model_weights = './third_party/active_speaker/checkpoints/SPELL_audiovisual_feature_extraction_checkpoints/resnet18-tsm-aug.pth'
+ASC_model_name = 'resnet18-tsm-aug'
+# Two options for the edge connection mode.
+# 'csi': Connect the nodes only with the same identities across the frames.
+# 'cdi': Connect different identities across the frames.
+graph_ec_mode = 'csi'
+graph_time_span = 90
+graph_tau = 0.9
+evaluation_type = 'AVA_ASD'
+GraViT_model = './third_party/active_speaker/checkpoints/SPELL_ASD_default/ckpt_best.pt'
+GraViT_config = './third_party/active_speaker/checkpoints/SPELL_ASD_default/cfg.yaml'
 
 [features]
 names = ["kinematics", "proximity", "leaning"]

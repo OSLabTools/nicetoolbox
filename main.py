@@ -18,6 +18,7 @@ from oslab_utils.annotations import CustomEaf
 from detectors.gaze.XGaze_3cams import XGaze3cams
 from detectors.human_pose.pose_detector import PoseDetector
 from detectors.facial_expression.emoca import Emoca
+from detectors.active_speaker.speaking_detector import SPELL
 from features.kinematics.kinematics import Kinematics
 from features.proximity.proximity import Kinematics as Proximity
 from features.gazeDistance.gazeDistance import GazeDistance
@@ -31,6 +32,7 @@ all_methods = dict(
         xgaze_3cams=XGaze3cams,
         mmpose=PoseDetector,
         emoca=Emoca,
+        active_speaker=SPELL
 )
 
 all_features = dict(kinematics=Kinematics,
