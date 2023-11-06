@@ -31,6 +31,7 @@ class BaseDetector(ABC):
 
         config['behavior'] = self.behavior
         config['calibration'] = data.calibration
+        config['subjects_descr'] = io.subjects_descr
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),

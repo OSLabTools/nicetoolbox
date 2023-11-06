@@ -10,11 +10,9 @@ video_skip_frames = false  # relevant for frames only
 annotation_interval = 2  # in seconds, length of segments
 
 [io]
-PIS_ID = "PIS_ID_04"
-video_folder = "<pis_folder_path>/<PIS_ID>/IOI/compressed_25/withAudio"
-calibration_file = "<pis_folder_path>/<PIS_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
+dataset_name = "ours"
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
-data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<PIS_ID>"
+data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<participant_ID>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
 out_folder = "<pis_folder_path>/experiments/<yyyymmdd>"
 method_out_folder = "<out_folder>/<method_name>/method_output"
@@ -24,24 +22,44 @@ method_tmp_folder = "<tmp_folder>/<method_name>"
 method_final_result_folder = "<out_folder>/<method_name>"
 code_folder = "<pwd>"
 
+[datasets.ours]
+participant_ID = "PIS_ID_04"
+video_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
+calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
+cam_front = 'cam4'
+cam_top = 'cam3'
+cam_face1 = 'cam1'
+cam_face2 = 'cam2'
+subjects_descr = ["personL", "personR"]  # implies there are 2 people visible in the video
+
+[datasets.mpi_inf_3dhp]
+participant_ID = "S1"
+video_folder = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/Seq1/imageSequence"
+calibration_file = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/Seq1/camera.calibration"
+cam_front = 'video_8'
+cam_top = 'video_5'
+cam_face1 = ''
+cam_face2 = ''
+subjects_descr = ["person"]  # implies that the video shows a single person
+
 [methods]
 names = ["active_speaker"]
 
 [methods.nodding_pigeon]
 input_data_format = "segments"
-camera_names = ["cam1", "cam2"]
+camera_names = ["<cam_face1>", "<cam_face2>"]
 env_name = "venv:env"
 
 [methods.ethXgaze]
 input_data_format = "frames"
-camera_names = ["cam1", "cam2"]
+camera_names = ["<cam_face1>", "<cam_face2>"]
 shape_predictor_filename = "<methods_folder_path>/ethXgaze/ethXgaze/modules/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/face_model.txt"
 pretrained_model_filename = "<methods_folder_path>/ethXgaze/ethXgaze/ckpt/epoch_24_ckpt.pth.tar"
 
 [methods.xgaze_3cams]
 input_data_format = "frames"
-camera_names = ["cam1", "cam2", "cam3", "cam4"]
+camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
 env_name = "venv:env"
 shape_predictor_filename = "<pwd>/third_party/xgaze_3cams/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<pwd>/third_party/xgaze_3cams/xgaze_3cams/face_model.txt"
@@ -50,12 +68,13 @@ face_detector_filename = "<pwd>/third_party/xgaze_3cams/xgaze_3cams/mmod_human_f
 
 [methods.mmpose]
 input_data_format = "frames"
-camera_names = ["cam3", "cam4"]
+camera_names = ["<cam_top>", "<cam_front>"]
 algorithm = "hrnetw48"
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
 resolution = [1000, 700] # ToDo - after implement bbox intersection calculation, get rid of this
+device = 'cpu'
 
 [methods.mmpose.hrnetw48]
 pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
@@ -67,14 +86,12 @@ min_detection_confidence = 0.5
 
 [methods.emoca]
 input_data_format = "frames"
-camera_names = ["cam1", "cam2"]
-camera_descr = ["personL", "personR"]
+camera_names = ["<cam_face1>", "<cam_face2>"]
 env_name = "venv:env"
 
 [methods.active_speaker]
 input_data_format = "snippets"
-camera_names = ["cam3", "cam4"]
-camera_descr = ["personL", "personR"]
+camera_names = ["<cam_top>", "<cam_front>"]
 env_name = "venv:env"
 ASC_model_weights = './third_party/active_speaker/checkpoints/SPELL_audiovisual_feature_extraction_checkpoints/resnet18-tsm-aug.pth'
 ASC_model_name = 'resnet18-tsm-aug'
@@ -100,8 +117,7 @@ input_detector_names = ["mmpose_hrnetw48"]
 
 [features.leaning]
 used_keypoints = [["left_shoulder", "right_shoulder"], ["left_hip", "right_hip"], ["left_knee", "right_knee"]]
-input_detector_name = "mmpose"
-input_algorithm_name = "hrnetw48"
+input_detector_names = ["mmpose_hrnetw48"]
 
 [features.gazeDistance]
 input_detector_names = ["xgaze_3cams", "mmpose_hrnetw48"]

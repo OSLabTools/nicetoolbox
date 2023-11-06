@@ -46,7 +46,7 @@ class Kinematics(BaseFeature):
         """
             Calculate euclidean distance between adjacent frames - how changed from t to t-1 - first frame will be empty
         """
-        data = fh.read_hdf5(self.input_files[0])
+        data, _ = fh.read_hdf5(self.input_files[0])
         person_data_list_motion = []
         person_data_list_velocity_per_frame = []
         for person in data:

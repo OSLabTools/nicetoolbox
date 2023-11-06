@@ -61,19 +61,19 @@ class PoseDetector(BaseDetector):
         config['input_data_folder'] = data.create_symlink_input_folder(
                 config['input_data_format'], config['camera_names'])
 
-        config['frames_list'] = self.frame_list
         config['frame_indices_list'] = data.frame_indices_list
         config['person_threshold'] = self.person_threshold
         config['data_folder'] = self.data_folder
         config['intermediate_results'] = self.intermediate_results
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
-        config['log'] = self.log
+        config['log_file'] = self.log
 
         # then, call the base class init
         super().__init__(config, io, data)
         self.result_folder = config['result_folder']
         self.calibration = config['calibration']
+        self.subjects_descr = io.subjects_descr
 
     def visualization(self, data):
         """
@@ -99,7 +99,6 @@ class PoseDetector(BaseDetector):
         else:
             logging.error(f"VISUALIZATION {self.name} - FAILURE - Video file was not created")
 
-
     def post_inference(self):
         """
         The triangulation pipeline that first gets the pose estimation results (2d points) of each person
@@ -117,18 +116,22 @@ class PoseDetector(BaseDetector):
         if len(self.camera_names) > 1:
             logging.info("COMPUTING 3d position of the keypoints...")
 
-            personsList = ["personL", "personR"]  # ToDo - hardcoded
-
             camera_frames_list = [os.path.basename(f).split(".")[0] for sublist in self.frame_list for f in sublist if
-                                  self.camera_names[0] in f]  # since each frame inside a list
+                                  self.camera_names[0] in f]  # since each frame inside a list #ToDo read from camera_folder
             prediction_files = [os.path.join(self.intermediate_results,f) for f in os.listdir(self.intermediate_results) if "hdf5" in f]
             print(prediction_files)
             cam1_data_path = [f for f in prediction_files if self.camera_names[0] in f][0]
             cam2_data_path = [f for f in prediction_files if self.camera_names[1] in f][0]
+            cam1_data, _ = fh.read_hdf5(cam1_data_path)
+            cam2_data, _ = fh.read_hdf5(cam2_data_path)
+
+            log_ut.assert_and_log(
+                len(cam1_data) == len(cam2_data) == len(self.subjects_descr),
+                "Loaded prediction results differ in the number of persons.")
             person_data_list = []
-            for i, person in enumerate(personsList):
-                person_cam1 = fh.read_hdf5(cam1_data_path)[i]
-                person_cam2 = fh.read_hdf5(cam2_data_path)[i]
+            for i in range(len(self.subjects_descr)):
+                person_cam1 = cam1_data[i]
+                person_cam2 = cam2_data[i]
                 # log_ut.assert_and_log(len(camera_frames_list) == person_cam1.shape[0], \
                 #     f"Different number of frames in frames list and frames in data. "
                 #      f"camera_name:{self.camera_names[0]}, person: {person}")
@@ -159,18 +162,21 @@ class PoseDetector(BaseDetector):
                 # print(reshaped_3D_points[0, :5, :])
                 person_data_list.append(reshaped_3D_points)
 
-            # check person data shape
-            log_ut.assert_and_log(person_data_list[0].shape == person_data_list[
-                1].shape, f"Shape mismatch: Shapes for personL and personR are not the same.")
+            if len(self.subjects_descr) == 2:
+                # check person data shape
+                log_ut.assert_and_log(person_data_list[0].shape == person_data_list[
+                    1].shape, f"Shape mismatch: Shapes for personL and personR are not the same.")
 
             # check if any [0,0,0] prediction
             for person_data in person_data_list:
                 test_data.check_zeros(person_data)
             # save results
             filepath = os.path.join(self.result_folder, f"{self.name}_3d.hdf5")
-            fh.save_to_hdf5(person_data_list, groups_list=personsList, output_file=filepath, index = camera_frames_list)
+            fh.save_to_hdf5(person_data_list, groups_list=self.subjects_descr,
+                            output_file=filepath, index=camera_frames_list)
 
             # check 3d data values
+            # TODO: this check works only for videos with 2 subjects?
             utils.compare_saved3d_data_values_with_triangulation_through_json(
                 self.prediction_folders,
                 self.result_folder,

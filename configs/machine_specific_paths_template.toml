@@ -1,11 +1,12 @@
 # This is a template file, do not add your paths here.
-# Create a local copy called 'machine_specific_paths.toml' and edit that one.
-# The 'machine_specific_paths.toml' is added to the '.gitignore'.
+# Create a local copy of this file called 'machine_specific_paths.toml' and
+# edit that one. The 'machine_specific_paths.toml' is added to the '.gitignore'.
 #
-# If you copied data from /ps/project/pis/ to local, and preserved the folder 
-# structure, you can use 'pis_folder_path' for easy local-remote interchange.
-# Otherwise, you can specify local input and output folders.
-pis_folder_path = ''
-local_output_path = ''
+# Please copy the needed data from /ps/project/pis/ to your local, while
+# preserving the folder structure. Add the path to 'pis_folder_path' for easy
+# local-remote interchange.
+pis_folder_path = ''  # e.g. "/is/sg2/cschmitt/pis"
+datasets_folder_path = ''  # e.g. "/is/sg2/cschmitt/datasets"
+methods_folder_path = ''
 
 # TODO: add a assertion for the case that the machine_specific_paths toml is empty

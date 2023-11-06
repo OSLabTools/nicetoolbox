@@ -22,6 +22,7 @@ class IO:
         self.out_folder = config['out_folder']
         os.makedirs(self.out_folder, exist_ok=True)
         self.tmp_folder = config['tmp_folder']
+        self.subjects_descr = config['subjects_descr']
 
         self.video_folder = config['video_folder']
         self.calibration_file = config['calibration_file']
@@ -81,4 +82,10 @@ class IO:
         elif name == 'config':
             if token == 'output':
                 return self.out_folder
+
+        else:
+            raise NotImplementedError(
+                    f"IO return output folder: Name '{name}' unknown! "
+                    f"Supported are 'data', 'config', and method_names: "
+                    f"{self.method_names}.")
 

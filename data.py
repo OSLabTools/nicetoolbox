@@ -6,6 +6,7 @@ import os
 import glob
 import json
 import logging
+import numpy as np
 from oslab_utils.video import equal_splits_by_frames, get_fps, \
     read_segments_list_from_file, split_into_frames, cut_length
 import oslab_utils.system as oslab_sys
@@ -60,7 +61,8 @@ class Data:
         self.data_initialization()
 
         # LOAD CALIBRATION
-        self.calibration = self.load_calibration(io.get_calibration_file())
+        self.calibration = self.load_calibration(io.get_calibration_file(),
+                                                 config['io']['dataset_name'])
 
     def get_inference_path(self, detector_name):
         filepath = os.path.join(self.code_folder, 'third_party', detector_name,
@@ -76,10 +78,86 @@ class Data:
                                          f" does not exist!"
         return filepath
 
-    def load_calibration(self, calibration_file):
-        fid = open(calibration_file)
-        calib = json.load(fid)
-        fid.close()
+    def load_calibration(self, calibration_file, dataset_name):
+        if dataset_name == 'ours':
+            fid = open(calibration_file)
+            loaded_calib = json.load(fid)
+            fid.close()
+            calib = dict((key, value) for key, value in loaded_calib
+                         if key in self.all_camera_names)
+
+        elif dataset_name == 'mpi_inf_3dhp':
+            def eval_string(string):
+                if string.isdigit():
+                    return int(string)
+                elif '.' in string:
+                    return float(string)
+                else:
+                    return string
+
+            def load_dict_from_textfile(filepath):
+                file = open(filepath, 'r')
+                _ = file.readline()
+                lines = file.readlines()
+                file.close()
+
+                d = {}
+                current_key = None
+                for line in lines:
+                    line = line.removesuffix('\n')
+                    if line.startswith('name'):
+                        line = line.removeprefix('name')
+                        line_parts = [l for l in line.split(' ') if l != '']
+                        assert len(line_parts) == 1, \
+                            f"Loading dict from textfile failed."
+                        current_key = line_parts[0]
+                        d.update({current_key: {}})
+
+                    elif line.startswith(' '):
+                        assert current_key is not None, \
+                            f"Loading dict from textfile failed."
+                        line = line.strip(' ')
+                        line_parts = [eval_string(l) for l in line.split(' ') if l != '']
+                        d[current_key].update({line_parts[0]: line_parts[1:]})
+
+                    else:
+                        raise NotImplementedError(
+                                "Loading dict from textfile failed.")
+
+                return d
+
+            def create_projection_matrix(int_matrix, ext_matrix):
+                """
+                The function takes intrinsics and extrinsic matrices of the camera as input
+                and calculates the projection matrix
+                :param int_matrix: intrinsic matrix of the camera (3x3)
+                :param ext_matrix: extrinsic matrix of the camera (3x4)
+                :return: projection matrix (3x4)
+                """
+                projection_matrix = np.matmul(int_matrix, ext_matrix)
+                return projection_matrix
+
+            loaded_dict = load_dict_from_textfile(calibration_file)
+            calib = {}
+            for camera in self.all_camera_names:
+                idx = camera[-1]
+                K = np.array(loaded_dict[idx]['intrinsic']).reshape(4, 4)
+                Rt = np.array(loaded_dict[idx]['extrinsic']).reshape(4, 4)
+                calib.update({camera: dict(
+                        camera_name=camera,
+                        image_size=loaded_dict[idx]['size'],
+                        intrinsic_matrix=K[:3, :3].tolist(),
+                        distortions=[0, 0, 0, 0],
+                        rotation_matrix=Rt[:3, :3].tolist(),
+                        translation=Rt[2:3, :3].tolist(),
+                        extrinsics_matrix=Rt[:3].tolist(),
+                        projection_matrix=create_projection_matrix(
+                                K[:3, :3], Rt[:3]).tolist()
+                )})
+
+        else:
+            raise NotImplementedError(f"Loading camaera calibration for dataset"
+                                      f" '{dataset_name}' is not implemented.")
         return calib
 
     def data_initialization(self):

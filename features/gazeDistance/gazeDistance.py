@@ -50,8 +50,10 @@ class GazeDistance(BaseFeature):
         """
             Calculate euclidean distance between adjacent frames - how changed from t to t-1 - first frame will be empty
         """
-        gaze_p1, gaze_p2 = fh.read_hdf5(self.get_input(self.input_files, "gaze"))
-        keypoints_p1, keypoints_p2 = fh.read_hdf5(self.get_input(self.input_files, "pose"))
+        gaze_data, _ = fh.read_hdf5(self.get_input(self.input_files, "gaze"))
+        gaze_p1, gaze_p2 = gaze_data
+        keypoints_data, _ = fh.read_hdf5(self.get_input(self.input_files, "pose"))
+        keypoints_p1, keypoints_p2 = keypoints_data
 
         head_p1 = keypoints_p1[:, self.face_keypoints].mean(axis=1)
         head_p2 = keypoints_p2[:, self.face_keypoints].mean(axis=1)

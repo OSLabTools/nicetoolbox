@@ -20,7 +20,7 @@ from detectors.human_pose.pose_detector import PoseDetector
 from detectors.facial_expression.emoca import Emoca
 from detectors.active_speaker.speaking_detector import SPELL
 from features.kinematics.kinematics import Kinematics
-from features.proximity.proximity import Kinematics as Proximity
+from features.proximity.proximity import Proximity
 from features.gazeDistance.gazeDistance import GazeDistance
 from configs.config_handler import Configuration
 import oslab_utils.logging_utils as log_ut

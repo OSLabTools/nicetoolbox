@@ -60,7 +60,7 @@ class Proximity(BaseFeature):
         The proximity measure - The euclidean distance between the two person's body (one location on body)
 
         """
-        data = fh.read_hdf5(self.input_files[0])
+        data, _ = fh.read_hdf5(self.input_files[0])
         personL = data[0]
         personR = data[1]
         proximity_data_list = []

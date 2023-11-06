@@ -8,14 +8,14 @@ import tests.test_data as test_data
 import logging
 
 
-def convert_output_to_numpy(data, multi_person, person_threshold):
+def convert_output_to_numpy(data, num_persons, person_threshold):
     num_frames = len(data)
     num_keypoints = len(
         data[0]["predictions"][0][0]['keypoints'])  # results[0] first frame: ["predictions"][0][0] first person
     num_estimations = len(data[0]["predictions"][0][0]['keypoints'][0]) + 1  # x, y, [z], and confidence_score
     logging.info(f"frames: {num_frames}, keypoints: {num_keypoints}, estimations: {num_estimations}")
 
-    if multi_person:
+    if num_persons == 2:
         personL_result = np.zeros((num_frames, num_keypoints, num_estimations))
         personR_result = np.zeros((num_frames, num_keypoints, num_estimations))
 
@@ -28,7 +28,7 @@ def convert_output_to_numpy(data, multi_person, person_threshold):
                     for j, (keypoint, score) in enumerate(zip(person['keypoints'], person['keypoint_scores'])):
                         personR_result[i, j] = [keypoint[0], keypoint[1], score]
         predictions_data = [personL_result, personR_result]
-    else:
+    elif num_persons == 1:
         person_result = np.zeros((num_frames, num_keypoints, num_estimations))
         for i, frame in enumerate(data):
             for j, (keypoint, score) in enumerate(zip(
@@ -36,6 +36,10 @@ def convert_output_to_numpy(data, multi_person, person_threshold):
                     frame['predictions'][0][0]['keypoint_scores'])):
                 person_result[i, j] = [keypoint[0], keypoint[1], score]
         predictions_data = [person_result]
+    else:
+        raise NotImplementedError(
+                "MMPose post-inference results conversion is not implemeted "
+                "yet for scenes with no or 3 or more people.")
     return predictions_data
 
 
@@ -43,7 +47,7 @@ def convert_output_to_numpy(data, multi_person, person_threshold):
 def main(config):
     """ Run inference of the method on the pre-loaded image
     """
-    logging.basicConfig(filename=config['log'], level=logging.INFO, format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
+    logging.basicConfig(filename=config['log_file'], level=logging.INFO, format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
     logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
     # create inferencer object
     inferencer = MMPoseInferencer(
@@ -52,7 +56,7 @@ def main(config):
         det_model=config["detection_config"],
         det_weights=config["detection_checkpoint"],
         det_cat_ids=[0],  # the category id of 'human' class
-        device='cuda:0'
+        device=config['device']
     )
     pass
     camera_output = {}
@@ -87,13 +91,14 @@ def main(config):
             results = [r for r in result_generator]
         ### convert results to numpy array
         # output personL, personR
-        person_results_list = convert_output_to_numpy(results,config["save_images"],  config["person_threshold"])
+        person_results_list = convert_output_to_numpy(results, len(config["subjects_descr"]),  config["person_threshold"])
         camera_output[camera_name] = person_results_list
 
-        # check person data shape
-        fh.assert_and_log(
-            person_results_list[0].shape == person_results_list[1].shape,
-            f"Shape mismatch: Shapes for personL and personR are not the same.")
+        if len(config["subjects_descr"]) == 2:
+            # check person data shape
+            fh.assert_and_log(
+                person_results_list[0].shape == person_results_list[1].shape,
+                f"Shape mismatch: Shapes for personL and personR are not the same.")
 
         #check if any [0,0,0] prediction
         for person_results in person_results_list:
@@ -102,7 +107,8 @@ def main(config):
         #  save as hdf5 file
         save_file_name = os.path.join(config["intermediate_results"],
                                       f"algorithm_predictions_{camera_name}.hdf5")
-        fh.save_to_hdf5(person_results_list, ["personL", "personR"], save_file_name, index=os.listdir(camera_folder))
+        fh.save_to_hdf5(person_results_list, config["subjects_descr"],
+                        save_file_name, index=os.listdir(camera_folder))
 
     # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
     # sc.compare_data_values_with_saved_json(

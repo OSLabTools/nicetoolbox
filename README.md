@@ -84,6 +84,14 @@ conda install -c conda-forge pyparsing
 conda install -c conda-forge six
 conda install -c conda-forge toml
 ```
+update Nov 2nd: before installing MMPose, I needed to install first:
+```
+conda install -c conda-forge webencodings
+conda install -c conda-forge attrs
+conda install -c conda-forge toml
+conda install -c conda-forge tensorboard
+conda install -c conda-forge gdown
+```
 
 #### Installation on Linux using venv: -- NOT WORKING
 ```

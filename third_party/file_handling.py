@@ -87,12 +87,14 @@ def read_hdf5(path):
     data = []
     try:
         with h5py.File(path, 'r') as f:
+            group_names = list(f.keys())
             for group in f.keys():
                 data.append(np.array(f[group]["data"]))
-        return data
+        return data, group_names
     except ValueError: #ToDo debug
         print("MemoryError: Not enough memory to load data.")
         return None
+
 
 
 def get_ordered_attributes(dset):

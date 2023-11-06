@@ -14,6 +14,11 @@ class Configuration:
         self.machine_specifics = load_config(machine_specifics_file)
         self.machine_specifics.update(dict(pwd=os.getcwd()))
 
+        # add dataset settings
+        dataset_name = self.config_abstract['io']['dataset_name']
+        self.config_abstract['io'].update(self.config_abstract['datasets'][dataset_name])
+        del self.config_abstract['datasets']
+
         # fill placeholders
         self.config = config_fill_auto(self.config_abstract)
         self.localized_config = config_fill_placeholders(

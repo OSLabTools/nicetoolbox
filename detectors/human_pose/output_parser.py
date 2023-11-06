@@ -103,7 +103,7 @@ class HDF5Parser(BaseParser):
         pass
 
     def get_keypoint_location(self, input_file, frame_index, keypoint_index, person, xyz = False):
-        hdf5_data = fh.read_hdf5(input_file)
+        hdf5_data, _ = fh.read_hdf5(input_file)
         if person == "personL":
             data = hdf5_data[0]
         else:
