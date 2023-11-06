@@ -82,13 +82,12 @@ class Kinematics(BaseFeature):
         """
         logging.info(f"VISUALIZING the method output {self.name}")
         # Determine global_min and global_max - define y-lims of graphs
-        global_min = min(data[0].min(), data[1].min())
-        global_max = max(data[0].max(), data[1].max())
+        global_min = min(data[0].min(), data[1].min()) - 0.05
+        global_max = max(data[0].max(), data[1].max()) + 0.05
         kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
             data, self.bodyparts_list, global_min, global_max, self.viz_folder)
-        kinematics_utils.create_video_evolving_linegraphs(
-            self.frames_data_list, data, self.bodyparts_list, global_min, global_max, self.viz_folder)
-
+        # kinematics_utils.create_video_evolving_linegraphs(
+        #     self.frames_data_list, data, self.bodyparts_list, global_min, global_max, self.viz_folder)
 
     def post_compute(self, distance_data):
         """

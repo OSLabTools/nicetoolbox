@@ -65,7 +65,6 @@ def frame_with_linegraph(frame, data, categories, current_frame, global_min, glo
         for j, category in enumerate(categories):
             ax.plot(d[:current_frame + 1, j], label=category, color=colors[j])
         ax.set_title(title, color='white')
-        ax.legend()
         ax.set_facecolor('black')
 
     columns = len(categories) // 3 + (len(categories) % 3 > 0)

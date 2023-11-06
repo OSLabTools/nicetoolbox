@@ -4,15 +4,15 @@
 
 git_hash = "<git_hash>"
 # the inout video is processed into 'frames', 'segments' and 'snippets'
-video_length = 500  # in frames, relevant for all
-video_start = 1000  # in frames, relevant for all
+video_length = 2010  # in frames, relevant for all
+video_start = 2700  # in frames, relevant for all
 video_skip_frames = false  # relevant for frames only
 annotation_interval = 1  # in seconds, length of segments
 
 [io]
-PIS_ID = "PIS_ID_000"
+PIS_ID = "PIS_ID_04"
 video_folder = "<pis_folder_path>/<PIS_ID>/IOI/compressed_25/withAudio"
-calibration_file = "<pis_folder_path>/<PIS_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-11.json"
+calibration_file = "<pis_folder_path>/<PIS_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
 data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<PIS_ID>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
@@ -65,13 +65,18 @@ keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
 [features]
-names = ["kinematics", "proximity"]
+names = ["kinematics", "proximity", "leaning"]
 
 [features.kinematics]
 input_detector_name = "mmpose"
 input_algorithm_name = "hrnetw48"
 
 [features.proximity]
-used_keypoint = ["nose"] # if the list is more than one keypoint, the midpoint
+used_keypoints = ["nose"] # if the list is more than one keypoint, the midpoint
+input_detector_name = "mmpose"
+input_algorithm_name = "hrnetw48"
+
+[features.leaning]
+used_keypoints = [["left_shoulder", "right_shoulder"], ["left_hip", "right_hip"], ["left_knee", "right_knee"]]
 input_detector_name = "mmpose"
 input_algorithm_name = "hrnetw48"

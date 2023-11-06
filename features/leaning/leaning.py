@@ -6,15 +6,15 @@ from features.base_feature import BaseFeature
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
 import oslab_utils.logging_utils as log_ut
-import features.proximity.utils as pro_utils
+import features.leaning.utils as lean_utils
 import tests.test_data as test_data
 
 
-class Proximity(BaseFeature):
+class Leaning(BaseFeature):
     """
     """
-    name = 'proximity'
-    behavior = 'interaction'
+    name = 'leaning'
+    behavior = 'Forward-Backward-lean'
 
     def __init__(self, config, io):
         """ Initialize Movement class.
@@ -39,7 +39,8 @@ class Proximity(BaseFeature):
         for keypoint in self.used_keypoints:
             log_ut.assert_and_log(keypoint not in [self.predictions_mapping["keypoints_index"]["body"].keys()],
                                   f"Given used_keypoint could not find in predictions_mapping {keypoint}")
-        self.keypoint_index = [self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in config["used_keypoints"]]
+
+        self.keypoint_index = [[self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair] for keypoint_pair in config["used_keypoints"]]
 
 
     def compute(self):
@@ -53,62 +54,58 @@ class Proximity(BaseFeature):
 
         """
         data = fh.read_hdf5(self.input_file)
-        personL = data[0]
-        personR = data[1]
-        proximity_data_list = []
+        leaning_data_list = []
 
-        if len(self.keypoint_index) == 1:
-            # Calculate the Euclidean distance for the selected keypoints between object_a and object_b for each frame
-            proximity_score = np.linalg.norm(personL[:, self.keypoint_index[0], :] - personR[:, self.keypoint_index[0], :], axis=-1)
-            proximity_data_list.append(proximity_score)
-        elif len(self.keypoint_index) > 2:
-            # Calculate the average coordinates for the selected keypoints in both objects for each frame
-            average_coords_L = np.mean(personL[:, self.keypoint_index, :], axis=1)
-            average_coords_R = np.mean(personR[:, self.keypoint_index, :], axis=1)
+        for person_data in data:
+            midpoints = []
+            # Calculate midpoints of the specified pairs
+            for pair in self.keypoint_index:
+                kp1 = person_data[:, pair[0], :]
+                kp2 = person_data[:, pair[1], :]
+                midpoint = (kp1 + kp2) / 2.0
+                midpoints.append(np.array(midpoint))
 
-            # Calculate the Euclidean distance between the average coordinates for each frame
-            proximity_score = np.linalg.norm(average_coords_L - average_coords_R, axis=-1)
-            proximity_data_list.append(proximity_score)
+            # Calculate the angles between midpoints
+            leaning_data = lean_utils.calculate_angle_btw_three_points(midpoints)
+            leaning_gradient = np.gradient(leaning_data)
+            merged_data = np.concatenate(leaning_data, leaning_gradient).reshape(-1,2)
+            leaning_data_list.append(merged_data)
+            print(merged_data)
 
-        else:
-            logging.error("Compute proximity function - unkonown structure ")
-            raise ValueError("Compute proximity function - unkonown structure ")
+        filepath = os.path.join(self.result_folder, "leaning.hdf5")
+        fh.save_to_hdf5(leaning_data_list, groups_list=["personL", "personR"], output_file=filepath)
 
-        # save results
-        filepath = os.path.join(self.result_folder, "proximity.hdf5")
-        fh.save_to_hdf5(proximity_data_list, groups_list=["dyad"], output_file=filepath)
-
-        return proximity_data_list
+        return leaning_data_list
 
 
     def visualization(self, data):
         """
-
         Parameters
         ----------
         data: class
             a class instance that stores all input file locations
         """
         logging.info(f"VISUALIZING the feature output {self.name}")
-        pro_utils.visualize_proximity_score(data, self.viz_folder, self.used_keypoints)
-        # # Determine global_min and global_max - define y-lims of graphs
-        # global_min = data[0].min() + 0.5
-        # global_max = data[0].max() - 0.5
-        # # Get a sample image to determine video dimensions
-        # sample_frame = cv2.imread(self.frames_data_list[0])
-        # sample_combined_img = pro_utils.frame_with_linegraph(sample_frame, data, 0, global_min, global_max)
+        lean_utils.visualize_lean_in_out_per_person(data, self.viz_folder)
+        # Determine global_min and global_max - define y-lims of graphs
+        # global_min = data[0].min()
+        # global_max = data[0].max()
+        # num_of_frames = data[0].shape[0]
+        #
+        # fig, canvas, axL, axR = lean_utils.create_video_canvas(num_of_frames, global_min, global_max)
         # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
-        # output_path = os.path.join(self.viz_folder, 'proximity_score_on_video.mp4')
-        # out = cv2.VideoWriter(output_path, fourcc, 30.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
+        # output_path = os.path.join(self.viz_folder, 'leaning_angle_on_video.mp4')
+        # out = cv2.VideoWriter(output_path, fourcc, 30.0, (640, 320+240))
         #
         # for i, frame_path in enumerate(self.frames_data_list):
-        #     frame = cv2.imread(frame_path)
+        #     frame = cv2.resize(cv2.imread(frame_path), (640,320))
         #     if i % 100 == 0:
         #         logging.info(f"Image ind: {i}")
         #     else:
-        #         combined = pro_utils.frame_with_linegraph(frame, data, i, global_min, global_max)
+        #         combined = lean_utils.frame_with_linegraph(frame, i, data, fig, canvas, axL, axR)
         #         out.write(combined)
         # out.release()
+
 
     def post_compute(self, distance_data):
         pass
