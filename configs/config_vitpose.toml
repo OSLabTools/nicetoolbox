@@ -4,8 +4,8 @@
 
 git_hash = "<git_hash>"
 # the inout video is processed into 'frames', 'segments' and 'snippets'
-video_length = 1000  # in frames, relevant for all ##900
-video_start = 4000   # in frames, relevant for all  ##14400
+video_length = 33300  # in frames, relevant for all ##900
+video_start = 0   # in frames, relevant for all  ##14400
 video_skip_frames = false  # relevant for frames only
 annotation_interval = 2  # in seconds, length of segments
 
@@ -23,9 +23,9 @@ method_final_result_folder = "<out_folder>/<method_name>"
 code_folder = "<pwd>"
 
 [datasets.ours]
-participant_ID = "PIS_ID_04"
+participant_ID = "PIS_ID_000"
 video_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
-calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
+calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-11.json"
 cam_front = 'cam4'
 cam_top = 'cam3'
 cam_face1 = 'cam1'
@@ -69,19 +69,19 @@ face_detector_filename = "<pwd>/third_party/xgaze_3cams/xgaze_3cams/mmod_human_f
 [methods.mmpose]
 input_data_format = "frames"
 camera_names = ["<cam_top>", "<cam_front>"]
-algorithm = "hrnetw48"
+algorithm = "vitpose"
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
 resolution = [1000, 700] # ToDo - after implement bbox intersection calculation, get rid of this
 device = "cuda:0"
-filtered = true
+filtered = true #use falsed if you run for evaluation
 window_length = 11
 polyorder = 2
 
-[methods.mmpose.hrnetw48]
-pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
-pose_checkpoint = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
+[methods.mmpose.vitpose]
+pose_config = "./third_party/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192.py"
+pose_checkpoint = "https://download.openmmlab.com/mmpose/v1/body_2d_keypoint/topdown_heatmap/coco/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
 detection_config = "./third_party/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
 detection_checkpoint = "./third_party/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 keypoint_mapping = "coco_wholebody"
@@ -112,16 +112,16 @@ GraViT_config = './third_party/active_speaker/checkpoints/SPELL_ASD_default/cfg.
 names = ["kinematics", "proximity", "leaning"]
 
 [features.kinematics]
-input_detector_names = ["mmpose_hrnetw48"]
+input_detector_names = ["mmpose_vitpose"]
 
 [features.proximity]
 used_keypoints = ["nose"] # if the list is more than one keypoint, the midpoint
-input_detector_names = ["mmpose_hrnetw48"]
+input_detector_names = ["mmpose_vitpose"]
 
 [features.leaning]
 used_keypoints = [["left_shoulder", "right_shoulder"], ["left_hip", "right_hip"], ["left_knee", "right_knee"]]
-input_detector_names = ["mmpose_hrnetw48"]
+input_detector_names = ["mmpose_vitpose"]
 
 [features.gazeDistance]
-input_detector_names = ["xgaze_3cams", "mmpose_hrnetw48"]
+input_detector_names = ["xgaze_3cams", "mmpose_vitpose"]
 keypoint_mapping = "coco_wholebody"

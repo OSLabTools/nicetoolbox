@@ -33,15 +33,13 @@ def calculate_angle_btw_three_points(data):
     angles_deg = np.degrees(angles_rad)
     return angles_deg
 
-def visualize_lean_in_out_per_person(hip_angle_person_list, output_folder):
-    num_people = len(hip_angle_person_list)
-    people_names = ["PersonL", "PersonR"]  # TODO-hardcoded
-    fig, axes = plt.subplots(num_people, 2, figsize=(10, 8))
+def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_folder):
+    log_ut.assert_and_log(len(hip_angle_person_list)==len(person_list), "Number of subjects and data shape mismatch!")
+    fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
 
-    for i in range(2):
-        print(hip_angle_person_list[0][:,i])
-        axes[0,i].plot(hip_angle_person_list[0][:,i], label=f'Leaning Angle')
-        axes[1,i].plot(hip_angle_person_list[1][:,i], label=f'Derivative of Leaning Angle')
+    for i in range(len(person_list)):
+        axes[0,i].plot(hip_angle_person_list[i][:,0], label=f'Leaning Angle')
+        axes[1,i].plot(hip_angle_person_list[i][:,1], label=f'Derivative of Leaning Angle')
 
     # Set labels and legends for each subplot
     axes[0,0].set_xlabel('FrameNo')
@@ -53,11 +51,15 @@ def visualize_lean_in_out_per_person(hip_angle_person_list, output_folder):
     axes[1,1].set_xlabel('FrameNo')
     axes[1,0].set_ylabel('AxisAngle')
     axes[1,1].set_ylabel('Gradient of AxisAngle')
+    axes[0, 0].set_ylim(25, 90)
+    axes[0, 1].set_ylim(25, 90)
+    axes[1, 0].set_ylim(-10,10)
+    axes[1, 1].set_ylim(-10,10)
 
     # Adjust layout and show the plots
     plt.tight_layout()
     # Save the plot
-    plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees ({people_names[i]})')
+    plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees ({person_list[i]})')
 
     plt.savefig(os.path.join(output_folder, 'leaning_angle_graph.png'), dpi=500)
 

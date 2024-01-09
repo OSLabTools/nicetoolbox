@@ -42,8 +42,6 @@ def convert_output_to_numpy(data, num_persons, person_threshold):
                 "yet for scenes with no or 3 or more people.")
     return predictions_data
 
-
-
 def main(config):
     """ Run inference of the method on the pre-loaded image
     """
@@ -55,7 +53,7 @@ def main(config):
         pose2d_weights=config["pose_checkpoint"],
         det_model=config["detection_config"],
         det_weights=config["detection_checkpoint"],
-        det_cat_ids=[0],  # the category id of 'human' class
+        det_cat_ids=[0], # the category id of 'human' class
         device=config['device']
     )
     pass

@@ -51,6 +51,7 @@ pip install -U openmim
 mim install mmengine
 k# Install MMDetection
 mim install "mmdet>=3.0.0"
+mim install "mmpretrain>=1.0.0rc8"  ## required for Vitpose
 
 # 4. Build MMPOSE from source
 git clone https://github.com/open-mmlab/mmpose.git
@@ -113,6 +114,13 @@ pip install -v -e .
 python -m mim install "mmpose>=1.1.0"
 ```
 
+### **Update** MMPose to be able to use Vitpose
+pip install mmpretrain
+
+changed line 61 in pose config from mmcls.VisionTransformer to mmpretrain.VisionTransformer
+
+update the mmpose:
+mim install "mmpose>=1.1.0"
 
 ### Gaze Detector
 

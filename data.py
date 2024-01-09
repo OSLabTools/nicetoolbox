@@ -83,7 +83,7 @@ class Data:
             fid = open(calibration_file)
             loaded_calib = json.load(fid)
             fid.close()
-            calib = dict((key, value) for key, value in loaded_calib
+            calib = dict((key, value) for key, value in loaded_calib.items()
                          if key in self.all_camera_names)
 
         elif dataset_name == 'mpi_inf_3dhp':

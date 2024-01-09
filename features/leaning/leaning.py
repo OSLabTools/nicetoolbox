@@ -28,19 +28,27 @@ class Leaning(BaseFeature):
         """
         # then, call the base class init
         super().__init__(config, io)
-        self.predictions_mapping = cfg.load_config("./configs/predictions_mapping.toml")["human_pose"][config["keypoint_mapping"]]
-        self.camera_names = config["camera_names"]
+
+        pose_results_folder = self.get_input(self.input_folders, 'pose')
+        pose_config = cfg.load_config(os.path.join(pose_results_folder,
+                                                   'run_config.toml'))
+
+        self.predictions_mapping = cfg.load_config("./configs/predictions_mapping.toml")[
+                "human_pose"][pose_config["keypoint_mapping"]]
+        self.camera_names = pose_config["camera_names"]
 
         # will be used during visualizations
-        self.frames_data = os.path.join(self.input_data_folder,self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
+        self.frames_data = os.path.join(pose_config['input_data_folder'],self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
         self.used_keypoints = config["used_keypoints"]
-        # proximity index
-        for keypoint in self.used_keypoints:
-            log_ut.assert_and_log(keypoint not in [self.predictions_mapping["keypoints_index"]["body"].keys()],
-                                  f"Given used_keypoint could not find in predictions_mapping {keypoint}")
+        self.subjects_descr = io.subjects_descr
+        # leaning index
+        for pair in self.used_keypoints:
+            for keypoint in pair:
+                log_ut.assert_and_log(keypoint in self.predictions_mapping["keypoints_index"]["body"].keys(),
+                                      f"Given used_keypoint could not find in predictions_mapping {keypoint}")
 
-        self.keypoint_index = [[self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair] for keypoint_pair in config["used_keypoints"]]
+        self.keypoint_index = [[self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair] for keypoint_pair in self.used_keypoints]
 
 
     def compute(self):
@@ -53,9 +61,8 @@ class Leaning(BaseFeature):
         The proximity measure - The euclidean distance between the two person's body (one location on body)
 
         """
-        data = fh.read_hdf5(self.input_file)
+        data, _ = fh.read_hdf5(self.input_files[0])
         leaning_data_list = []
-
         for person_data in data:
             midpoints = []
             # Calculate midpoints of the specified pairs
@@ -68,15 +75,12 @@ class Leaning(BaseFeature):
             # Calculate the angles between midpoints
             leaning_data = lean_utils.calculate_angle_btw_three_points(midpoints)
             leaning_gradient = np.gradient(leaning_data)
-            merged_data = np.concatenate(leaning_data, leaning_gradient).reshape(-1,2)
+            merged_data = np.vstack((leaning_data, leaning_gradient)).T
             leaning_data_list.append(merged_data)
-            print(merged_data)
 
         filepath = os.path.join(self.result_folder, "leaning.hdf5")
-        fh.save_to_hdf5(leaning_data_list, groups_list=["personL", "personR"], output_file=filepath)
-
+        fh.save_to_hdf5(leaning_data_list, groups_list=self.subjects_descr, output_file=filepath)
         return leaning_data_list
-
 
     def visualization(self, data):
         """
@@ -86,7 +90,7 @@ class Leaning(BaseFeature):
             a class instance that stores all input file locations
         """
         logging.info(f"VISUALIZING the feature output {self.name}")
-        lean_utils.visualize_lean_in_out_per_person(data, self.viz_folder)
+        lean_utils.visualize_lean_in_out_per_person(data, self.subjects_descr, self.viz_folder)
         # Determine global_min and global_max - define y-lims of graphs
         # global_min = data[0].min()
         # global_max = data[0].max()

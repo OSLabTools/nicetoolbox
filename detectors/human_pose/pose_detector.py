@@ -4,6 +4,7 @@
 import os
 import numpy as np
 import logging
+import scipy.signal as signal
 from detectors.base_detector import BaseDetector
 import detectors.human_pose.utils as utils
 import oslab_utils.triangulation as tri
@@ -11,6 +12,7 @@ import oslab_utils.filehandling as fh
 import subprocess
 import tests.test_data as test_data
 import oslab_utils.logging_utils as log_ut
+from detectors.human_pose.filters import SGFilter
 
 
 class PoseDetector(BaseDetector):
@@ -48,7 +50,10 @@ class PoseDetector(BaseDetector):
         self.prediction_folders = self.get_prediction_folders(make_dirs=True)
         self.image_folders = self.get_image_folders(make_dirs=config["save_images"])
         self.log = os.path.join(self.main_out, f"{self.name}_inference.log")
-
+        self.filtered = config["filtered"]
+        if self.filtered:
+            self.filter_window_length = config["window_length"]
+            self.filter_polyorder = config["polyorder"]
 
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
@@ -89,7 +94,7 @@ class PoseDetector(BaseDetector):
         output_path = os.path.join(self.viz_folder, f"{self.name}.mp4")
 
         ##TODO read fps directly and put this function under oslab_utils video
-        cmd = f"ffmpeg -framerate {str(3)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
+        cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
         # Use the subprocess module to execute the command
         cmd_result = subprocess.run(cmd, shell=True)
 
@@ -119,7 +124,6 @@ class PoseDetector(BaseDetector):
             camera_frames_list = [os.path.basename(f).split(".")[0] for sublist in self.frame_list for f in sublist if
                                   self.camera_names[0] in f]  # since each frame inside a list #ToDo read from camera_folder
             prediction_files = [os.path.join(self.intermediate_results,f) for f in os.listdir(self.intermediate_results) if "hdf5" in f]
-            print(prediction_files)
             cam1_data_path = [f for f in prediction_files if self.camera_names[0] in f][0]
             cam2_data_path = [f for f in prediction_files if self.camera_names[1] in f][0]
             cam1_data, _ = fh.read_hdf5(cam1_data_path)
@@ -159,8 +163,15 @@ class PoseDetector(BaseDetector):
 
                 # reshape 3d array
                 reshaped_3D_points = person_data_3d.T.reshape(person_cam1.shape[0], person_cam1.shape[1], 3)
-                # print(reshaped_3D_points[0, :5, :])
-                person_data_list.append(reshaped_3D_points)
+
+                ## Apply filter
+                if self.filtered == True:
+                    logging.info("APPLYING filtering...")
+                    filter = SGFilter(self.filter_window_length, self.filter_polyorder)
+                    smooth_data = filter.apply(reshaped_3D_points)
+                    person_data_list.append(smooth_data)
+                else:
+                    person_data_list.append(reshaped_3D_points)
 
             if len(self.subjects_descr) == 2:
                 # check person data shape
@@ -177,12 +188,12 @@ class PoseDetector(BaseDetector):
 
             # check 3d data values
             # TODO: this check works only for videos with 2 subjects?
-            utils.compare_saved3d_data_values_with_triangulation_through_json(
-                self.prediction_folders,
-                self.result_folder,
-                self.camera_names,
-                self.calibration,
-                self.person_threshold)
+            # utils.compare_saved3d_data_values_with_triangulation_through_json(
+            #     self.prediction_folders,
+            #     self.result_folder,
+            #     self.camera_names,
+            #     self.calibration,
+            #     self.person_threshold)
 
             return person_data_list
         else:
