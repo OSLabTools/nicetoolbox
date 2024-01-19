@@ -5,6 +5,7 @@ A template class for Detectors.
 import os
 from abc import ABC, abstractmethod
 import subprocess
+import logging
 from oslab_utils.system import detect_os_type
 from oslab_utils.config import save_config
 import oslab_utils.filehandling as fh
@@ -24,6 +25,9 @@ class BaseDetector(ABC):
         io: class
             a class instance that handles in-output folders
         """
+        # log file
+        config['log_file'], config['log_level'] = io.get_log_file_level()
+
         # output folders for inference and visualizations
         config['out_folder'] = io.get_output_folder(self.name, 'output')
         config['result_folder'] = io.get_output_folder(self.name, 'result')
@@ -32,12 +36,14 @@ class BaseDetector(ABC):
         config['behavior'] = self.behavior
         config['calibration'] = data.calibration
         config['subjects_descr'] = io.subjects_descr
+        self.subjects_descr = io.subjects_descr
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
                                         'run_config.toml')
 
         save_config(config, self.config_path)
+        self.conda_path = io.get_conda_path()
 
         # get the path of the third party inference script
         if "mmpose" in self.name:
@@ -49,7 +55,7 @@ class BaseDetector(ABC):
         self.venv, self.env_name = config['env_name'].split(':')
         if self.venv == 'venv':
             name = self.name.split('_')[0] if self.env_name.startswith('mmpose') else self.name
-            self.env_name = data.get_venv_path(name, self.env_name)
+            self.venv_path = data.get_venv_path(name, self.env_name)
 
     def __str__(self):
         """ description of the class instance for printing
@@ -74,17 +80,19 @@ class BaseDetector(ABC):
                 command = f'cmd "/c conda activate {self.env_name} && ' \
                           f'python {self.script_path} {self.config_path}"'
             elif os_type == "linux":
+                conda_path = os.path.join(self.conda_path, 'bin/activate')
+                python_path = os.path.join(self.conda_path, 'envs', self.env_name, 'bin/python')
                 command = f"conda init bash && source ~/.bashrc && " \
-                          f"conda activate {self.env_name} && " \
-                          f"python {self.script_path} {self.config_path}"
+                          f"{conda_path} {self.env_name} && " \
+                          f"{python_path} {self.script_path} {self.config_path}"
 
         elif self.venv == 'venv':
             # create terminal command
             if os_type == 'windows':
-                command = f'cmd "/c source {self.env_name} && ' \
+                command = f'cmd "/c source {self.venv_path} && ' \
                           f'python {self.script_path} {self.config_path}"'
             elif os_type == "linux":
-                command = f"source {self.env_name} && " \
+                command = f"source {self.venv_path} && " \
                           f"python {self.script_path} {self.config_path}"
 
         else:
@@ -96,10 +104,8 @@ class BaseDetector(ABC):
         cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
 
         if cmd_result.returncode != 0:
-            print(f"Error occurred with return code {cmd_result.returncode}")
-            print(cmd_result.stderr)
+            logging.error(f"Error occurred with return code {cmd_result.returncode}")
 
-        print(cmd_result.stdout)
         self.post_inference()
 
         return cmd_result.returncode

@@ -3,6 +3,7 @@ import sys
 import cv2
 import numpy as np
 import re
+import logging
 
 sys.path.append("./third_party/xgaze_3cams/xgaze_3cams")
 sys.path.append("./third_party")
@@ -18,7 +19,11 @@ def main(config):
     """ Run inference of the method on the pre-loaded image
     """
 
-    print('\n\n\t RUNNING xgaze_3cams!')
+    # initialize logger
+    logging.basicConfig(filename=config['log_file'], level=config['log_level'],
+                        format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
+    logging.info('\n\nRUNNING gaze detection xgaze_3cams!')
+
 
     # check that the data was created
     assert config['frames_list'] is not None, \
@@ -31,8 +36,14 @@ def main(config):
 
     # re-organize input data
     n_cams = len(config['camera_names'])
-    n_frames = len(config['frames_list']) // n_cams
-    frames_list = np.array(sorted(config['frames_list'])
+    if len(np.array(config['frames_list']).shape) == 2:
+        assert np.array(config['frames_list']).shape[1] == n_cams, \
+            "config['frames_list' has unknown shape!"
+        frames_list = np.array(config['frames_list']).flatten()
+    else:
+        frames_list = config['frames_list']
+    n_frames = len(frames_list) // n_cams
+    frames_list = np.array(sorted(frames_list)
                            ).reshape(n_cams, n_frames).T
     frames_list = [list(l) for l in frames_list]
 
@@ -144,6 +155,8 @@ def main(config):
             ['personL', 'personR'],
             os.path.join(config['result_folder'], f"{config['behavior']}.hdf5")
     )
+
+    logging.info('\nGaze detection xgaze_3cams COMPLETED!')
 
 
 if __name__ == '__main__':

@@ -45,6 +45,7 @@ class GazeDistance(BaseFeature):
             [os.path.join(gaze_detector_output_folder, f)
              for f in os.listdir(gaze_detector_output_folder) if 'cam4' in f]
         ]
+        logging.info(f"Feature {self.name} initialized.")
 
     def compute(self):
         """
@@ -63,10 +64,12 @@ class GazeDistance(BaseFeature):
 
         filepath = os.path.join(self.result_folder, "distance_face.hdf5")
         fh.save_to_hdf5([distance_p1, distance_p2],
-                        groups_list=["personL", "personR"],
+                        groups_list=self.subjects_descr,
                         output_file=filepath)
 
         look_at = self.post_compute(np.stack((distance_p1, distance_p2), axis=0))
+
+        logging.info(f"Computation of feature {self.name} completed.")
         return np.stack((distance_p1, distance_p2), axis=0), *look_at
 
     def visualization(self, data):
@@ -77,7 +80,8 @@ class GazeDistance(BaseFeature):
         data: class
             a class instance that stores all input file locations
         """
-        logging.info(f"VISUALIZING the method output {self.name}")
+        logging.info(f"Visualizing the method output {self.name}."
+                     f"This may take longer due to the evolving linegraph video creation.")
 
         distances, look_at, mutual = data
 
@@ -94,13 +98,16 @@ class GazeDistance(BaseFeature):
         input_data = np.concatenate((distances, look_at, mutual), axis=2)
         categories = ["face", "gaze fixed", "mutual gaze"]
         kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
-            input_data, categories, global_min, global_max, self.viz_folder)
+            input_data, categories, global_min, global_max, self.viz_folder,
+            self.subjects_descr)
         kinematics_utils.create_video_evolving_linegraphs(
             self.pose_detector_file_list[0], input_data, categories, global_min,
                 global_max, self.viz_folder, 'distance_face_cam3', 3.0)
         kinematics_utils.create_video_evolving_linegraphs(
             self.pose_detector_file_list[1], input_data, categories, global_min,
                 global_max, self.viz_folder, 'distance_face_cam4', 3.0)
+
+        logging.info(f"Visualization of feature {self.name} completed.")
 
     def post_compute(self, distances_face):
         """

@@ -50,6 +50,7 @@ class Leaning(BaseFeature):
 
         self.keypoint_index = [[self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair] for keypoint_pair in self.used_keypoints]
 
+        logging.info(f"Feature {self.name} initialized.")
 
     def compute(self):
         """ Compute the euclidean distance between the keypoint coord of personL and personR
@@ -80,6 +81,8 @@ class Leaning(BaseFeature):
 
         filepath = os.path.join(self.result_folder, "leaning.hdf5")
         fh.save_to_hdf5(leaning_data_list, groups_list=self.subjects_descr, output_file=filepath)
+
+        logging.info(f"Computation of feature {self.name} completed.")
         return leaning_data_list
 
     def visualization(self, data):
@@ -89,7 +92,7 @@ class Leaning(BaseFeature):
         data: class
             a class instance that stores all input file locations
         """
-        logging.info(f"VISUALIZING the feature output {self.name}")
+        logging.info(f"Visualizing the feature output {self.name}")
         lean_utils.visualize_lean_in_out_per_person(data, self.subjects_descr, self.viz_folder)
         # Determine global_min and global_max - define y-lims of graphs
         # global_min = data[0].min()
@@ -110,6 +113,7 @@ class Leaning(BaseFeature):
         #         out.write(combined)
         # out.release()
 
+        logging.info(f"Visualization of feature {self.name} completed.")
 
     def post_compute(self, distance_data):
         pass

@@ -14,7 +14,7 @@ PART_MAPPING = {
     "Rhand": {'color': '#B19CD9', 'size': 8, 'indices': list(range(113, 134))} #pastel lavender
 }
 
-def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder):
+def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder, people_names=["PersonL", "PersonR"]):
     """
        Visualizes the sum of movements by body part across frames for each person.
 
@@ -22,12 +22,11 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
     ----------
     data: list
     List of numpy arrays. Each array represents data for a person. Rows are frames and columns are body parts.
+    people_names: list
+    Names of people for each dataset in the data list
        """
     # Number of people (numpy arrays) in the list
     num_people = len(data)
-
-    # Names of people for each dataset in the data list
-    people_names = ["PersonL", "PersonR"]  #TODO-hardcoded
 
     fig, axs = plt.subplots(num_people, 1, figsize=(10, 15))
 

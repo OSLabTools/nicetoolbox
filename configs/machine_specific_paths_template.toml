@@ -8,5 +8,6 @@
 pis_folder_path = ''  # e.g. "/is/sg2/cschmitt/pis"
 datasets_folder_path = ''  # e.g. "/is/sg2/cschmitt/datasets"
 methods_folder_path = ''
+conda_path = ''  # where your conda (miniconda or anaconda) is installed
 
 # TODO: add a assertion for the case that the machine_specific_paths toml is empty

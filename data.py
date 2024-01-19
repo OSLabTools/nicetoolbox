@@ -10,7 +10,8 @@ import numpy as np
 from oslab_utils.video import equal_splits_by_frames, get_fps, \
     read_segments_list_from_file, split_into_frames, cut_length
 import oslab_utils.system as oslab_sys
-
+import oslab_utils.video as vid
+import oslab_utils.check_and_exception as exc
 
 
 class Data:
@@ -24,61 +25,153 @@ class Data:
         config : dict
             some configurations/settings dictionary
         """
-
+        logging.info("Start data loading and processing.")
         # TODO later: add caching for tmp folder
 
+        # check given data-config
+        self.check_config(config)
+
+        # collect all required file/folder paths
+        self.data_folder = io.get_data_folder()
         self.tmp_folder = io.get_output_folder(self.name, 'tmp')
         self.code_folder = config['io']['code_folder']
-
-        # collect which data slices and formats are required
-        self.data_formats = set()
-        self.all_camera_names = set()
-        for detector in config['methods']['names']:
-            assert 'input_data_format' in config['methods'][detector].keys(), \
-                f"Please specify the key 'input_data_format' for detector " \
-                f"'{detector}'. Options are 'segments', 'frames', and 'snippets'." #ToDo detector specific assert?
-            assert config['methods'][detector]['input_data_format'] in ["frames", "segments", "snippets"], \
-                f"Unsupported input data format in " \
-                f"'{detector}'. Options are 'segments', 'frames', and 'snippets'."
-            self.data_formats.add(config['methods'][detector]['input_data_format'])
-            assert 'camera_names' in config['methods'][detector].keys(), \
-                f"Please create the key 'camera_names' for detector '{detector}'."
-            self.all_camera_names.update(config['methods'][detector]['camera_names'])
-
-        # DATA INITIALIZATION
         self.video_folder = io.get_input_folder()
+
+        # collect data details from config
         self.video_length = config['video_length']
         self.video_start = config['video_start']
         self.video_skip_frames = None if config['video_skip_frames'] is False \
             else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
+
+        # collect which data slices and formats are required
+        self.data_formats = set()
+        self.all_camera_names = set()
+        for detector in config['methods']['names']:
+            self.data_formats.add(config['methods'][detector]['input_data_format'])
+            self.all_camera_names.update(config['methods'][detector]['camera_names'])
+        if '' in self.all_camera_names:
+            self.all_camera_names.remove('')
         self.segments_list = None
         self.frames_list = None
         self.frame_indices_list = None
         self.snippets_list = None
 
-        self.data_folder = io.get_data_folder()
+        # DATA INITIALIZATION
         self.data_initialization()
 
         # LOAD CALIBRATION
         self.calibration = self.load_calibration(io.get_calibration_file(),
                                                  config['io']['dataset_name'])
 
+        logging.info("Data loading and processing finished.")
+
     def get_inference_path(self, detector_name):
         filepath = os.path.join(self.code_folder, 'third_party', detector_name,
                                 'inference.py')
-        #assert os.path.exists(filepath), f"detector inference file {filepath}" \
-        #                                 f" does not exist!"
+        try:
+            exc.file_exists(filepath)
+        except FileNotFoundError:
+            logging.exception(
+                f"Detector inference file {filepath} does not exist!")
+            raise
         return filepath
 
     def get_venv_path(self, detector_name, env_name):
         filepath = os.path.join(self.code_folder, 'third_party', detector_name,
                                 f'{env_name}/bin/activate')
-        assert os.path.exists(filepath), f"detector inference file {filepath}" \
-                                         f" does not exist!"
+        try:
+            exc.file_exists(filepath)
+        except FileNotFoundError:
+            logging.exception(
+                f"Virtual environment file {filepath} for detector = "
+                f"'{detector_name}' does not exist!")
+            raise
         return filepath
 
+    def check_config(self, config):
+        for detector in config['methods']['names']:
+            try:
+                config['methods'][detector]['input_data_format']
+            except KeyError:
+                # ToDo detector specific assert?
+                logging.exception(
+                    f"Please specify the key 'input_data_format' for detector "
+                    f"'{detector}'. Options are 'segments', 'frames', and "
+                    f"'snippets'.")
+                raise
+            try:
+                exc.check_options(
+                        config['methods'][detector]['input_data_format'],
+                        str, ["frames", "segments", "snippets"])
+            except (TypeError, ValueError):
+                logging.exception(
+                    f"Unsupported 'input data format' in '{detector}'. "
+                    f"Options are 'segments', 'frames', and 'snippets'.")
+                raise
+            try:
+                config['methods'][detector]['camera_names']
+            except KeyError:
+                logging.exception(
+                    f"Please create the key 'camera_names' for detector "
+                    f"'{detector}'.")
+                raise
+
+            # ensure that the detector runs on the given dataset
+            if 'exclude_datasets' in config['methods'][detector].keys():
+                if config['io']['dataset_name'] in config['methods'][detector]['exclude_datasets']:
+                    logging.warning(f"Detector {detector} excludes dataset {config['io']['dataset_name']}. "
+                                    f"Removing the detector from the methods to be run.")
+                    config['methods']['names'].remove(detector)
+
+        # check video details
+        video_files = sorted(glob.glob(os.path.join(config['io']['video_folder'], '*')))
+        total_frames = 0
+        for video_file in video_files:
+            total_frames = max(total_frames,
+                               vid.get_number_of_frames(video_file))
+
+        try:
+            exc.check_value_bounds(config['video_start'], int, object_min=0,
+                                   object_max=total_frames - 1)
+        except (TypeError, ValueError):
+            logging.exception(f"Invalid argument for video_start.")
+            raise
+        try:
+            exc.check_value_bounds(
+                config['video_length'], int,
+                object_max=total_frames - config['video_start'])
+        except (TypeError, ValueError):
+            logging.exception(f"Invalid argument for video_length.")
+            raise
+        try:
+            exc.check_value_bounds(config['annotation_interval'], int,
+                                   object_min=0, object_max=total_frames)
+        except (TypeError, ValueError):
+            logging.exception(f"Invalid argument for annotation_interval.")
+            raise
+        try:
+            if not isinstance(config['video_skip_frames'], bool):
+                exc.check_value_bounds(
+                    config['video_skip_frames'], int, object_min=1,
+                    object_max=config['video_length'])
+        except (TypeError, ValueError):
+            logging.exception(f"Invalid argument for video_skip_frames.")
+            raise
+
+        # frames_per_segment = self.annotation_interval * get_fps(
+        #                             video_files[0])
+        # total_frames (60) > frames_per_split (60)
+
     def load_calibration(self, calibration_file, dataset_name):
+        try:
+            exc.check_options(dataset_name, str, ['ours', 'mpi_inf_3dhp'])
+        except (TypeError, ValueError):
+            logging.exception(
+                f"Loading camera calibration for dataset '{dataset_name}' is "
+                f"not implemented.")
+            raise NotImplementedError
+
         if dataset_name == 'ours':
             fid = open(calibration_file)
             loaded_calib = json.load(fid)
@@ -155,9 +248,6 @@ class Data:
                                 K[:3, :3], Rt[:3]).tolist()
                 )})
 
-        else:
-            raise NotImplementedError(f"Loading camaera calibration for dataset"
-                                      f" '{dataset_name}' is not implemented.")
         return calib
 
     def data_initialization(self):
@@ -179,7 +269,7 @@ class Data:
         self.snippets_list = []
 
         if data_exists:
-            print(f"DATA FOUND in '{self.data_folder}'!")
+            logging.info(f"DATA FOUND in '{self.data_folder}'!")
 
             frame_indices_list = set()
             for filename in data_list:
@@ -192,7 +282,7 @@ class Data:
                     self.snippets_list.append(filename)
             self.frame_indices_list = list(frame_indices_list)
         else:
-            print(f"DATA NOT EXISTING OR INCOMPLETE! Creating data in "
+            logging.info(f"DATA NOT EXISTING OR INCOMPLETE! Creating data in "
                   f"'{self.data_folder}'!")
 
             for video_file in video_files:
@@ -263,6 +353,8 @@ class Data:
                     # read result list
                     self.snippets_list.append(out_video_file)
 
+            logging.info(f"DATA creation completed.")
+
     def get_inputs_list(self, data_format, camera_names):
         input_formats = [name in '_'.join(os.listdir(self.video_folder)) for
                          name in ['mp4', 'avi']]
@@ -326,7 +418,7 @@ class Data:
             # create symbolic links
             for filename in file_list:
                 if not os.path.exists(filename):
-                    print(f"WARNING! file '{filename}' does not exist!")
+                    logging.warning(f"WARNING! file '{filename}' does not exist!")
 
                 else:
                     indices = [filename.find(name) for name in camera_names]

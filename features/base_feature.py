@@ -25,6 +25,7 @@ class BaseFeature(ABC):
         io: class
             a class instance that handles in-output folders
         """
+        logging.info(f"\n\nSTARTING feature {self.name}.")
 
         # input folder of the feature is the result folder of detector
         self.input_folders = [io.get_output_folder(name, 'result')
@@ -44,12 +45,13 @@ class BaseFeature(ABC):
         self.result_folder = io.get_output_folder(self.name, 'result')
         self.viz_folder = io.get_output_folder(self.name, 'visualization')
 
+        self.subjects_descr = io.subjects_descr
+
         # save this method config
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
                                         f'run_config.toml')
 
         save_config(config, self.config_path)
-        logging.info(f"STARTING Computing - {self.name}")
 
     def get_input(self, input_list, token):
         detected = [f for f in input_list if token in f]

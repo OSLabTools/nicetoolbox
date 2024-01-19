@@ -36,31 +36,27 @@ def calculate_angle_btw_three_points(data):
 def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_folder):
     log_ut.assert_and_log(len(hip_angle_person_list)==len(person_list), "Number of subjects and data shape mismatch!")
     fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
+    axes = axes.reshape(2, len(person_list))
+    plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees '
+              f'({person_list})')
 
     for i in range(len(person_list)):
-        axes[0,i].plot(hip_angle_person_list[i][:,0], label=f'Leaning Angle')
-        axes[1,i].plot(hip_angle_person_list[i][:,1], label=f'Derivative of Leaning Angle')
+        axes[0, i].plot(hip_angle_person_list[i][:, 0], label=f'Leaning Angle {person_list[i]}')
+        axes[1, i].plot(hip_angle_person_list[i][:, 1], label=f'Derivative of Leaning Angle {person_list[i]}')
 
-    # Set labels and legends for each subplot
-    axes[0,0].set_xlabel('FrameNo')
-    axes[0,0].set_ylabel('AxisAngle')
-    axes[0,1].set_ylabel('Gradient of AxisAngle')
-    axes[0,0].legend()
-    axes[0,1].legend()
+        # Set labels and legends for each subplot
+        axes[0, i].set_xlabel('FrameNo')
+        axes[1, i].set_xlabel('FrameNo')
+        axes[0, i].set_ylabel('AxisAngle')
+        axes[1, i].set_ylabel('Gradient of AxisAngle')
+        axes[0, i].legend()
+        axes[1, i].legend()
+        axes[0, i].set_ylim(25, 120)
+        axes[1, i].set_ylim(-10,10)
 
-    axes[1,1].set_xlabel('FrameNo')
-    axes[1,0].set_ylabel('AxisAngle')
-    axes[1,1].set_ylabel('Gradient of AxisAngle')
-    axes[0, 0].set_ylim(25, 90)
-    axes[0, 1].set_ylim(25, 90)
-    axes[1, 0].set_ylim(-10,10)
-    axes[1, 1].set_ylim(-10,10)
-
-    # Adjust layout and show the plots
+    # Adjust layout
     plt.tight_layout()
     # Save the plot
-    plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees ({person_list[i]})')
-
     plt.savefig(os.path.join(output_folder, 'leaning_angle_graph.png'), dpi=500)
 
 def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):

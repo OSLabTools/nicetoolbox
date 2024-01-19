@@ -5,6 +5,8 @@
 import os
 import glob
 import copy
+import logging
+import oslab_utils.check_and_exception as exc
 
 
 def flatten_list(input_list):
@@ -19,17 +21,23 @@ def flatten_list(input_list):
 
 class IO:
     def __init__(self, config, method_names):
+        # create folders
         self.out_folder = config['out_folder']
-        os.makedirs(self.out_folder, exist_ok=True)
         self.tmp_folder = config['tmp_folder']
-        self.subjects_descr = config['subjects_descr']
-
-        self.video_folder = config['video_folder']
-        self.calibration_file = config['calibration_file']
         if config['process_data_to'] == 'tmp_folder':
             self.data_folder = self.tmp_folder
         elif config['process_data_to'] == 'data_folder':
             self.data_folder = config['data_folder']
+        self.create_folders()
+
+        # check the given io-config
+        self.check_config(config)
+
+        # get the relevant config entries
+        self.subjects_descr = config['subjects_descr']
+        self.video_folder = config['video_folder']
+        self.calibration_file = config['calibration_file']
+        self.conda_path = config['conda_path']
 
         self.method_names = list(set(flatten_list(method_names)))
         self.method_out_folder = config['method_out_folder']
@@ -37,6 +45,8 @@ class IO:
         self.method_additional_output_folder = config['method_additional_output_folder']
         self.method_tmp_folder = config['method_tmp_folder']
         self.method_final_result_folder = config['method_final_result_folder']
+
+        self.log_level = logging.DEBUG
 
     def get_all_tmp_folders(self):
         method_tmp_folders = [
@@ -50,8 +60,14 @@ class IO:
     def get_calibration_file(self):
         return self.calibration_file
 
+    def get_log_file_level(self):
+        return os.path.join(self.out_folder, "ISA-Tool.log"), self.log_level
+
     def get_data_folder(self):
         return self.data_folder
+
+    def get_conda_path(self):
+        return self.conda_path
 
     def get_output_folder(self, name, token):
         if any([m_name in name for m_name in self.method_names]):
@@ -89,3 +105,66 @@ class IO:
                     f"Supported are 'data', 'config', and method_names: "
                     f"{self.method_names}.")
 
+    def create_folders(self):
+        # create the output and data folders
+        try:
+            os.makedirs(self.out_folder, exist_ok=True)
+        except OSError:
+            logging.exception("Failed creating the output folder.")
+            raise
+        try:
+            os.makedirs(self.data_folder, exist_ok=True)
+        except OSError:
+            logging.exception("Failed creating the data folder.")
+            raise
+
+    def check_config(self, config):
+        # check the given calibration file and video folder
+        try:
+            f = open(config['calibration_file'])
+            f.close()
+        except OSError:
+            logging.exception("Failed loading the calibration file.")
+            raise
+        try:
+            _ = os.listdir(config['video_folder'])
+        except OSError:
+            logging.exception(
+                f"The given video folder is not an accessible directory.")
+            raise
+
+        # check the config['process_data_to'] input
+        try:
+            exc.check_options(config['process_data_to'], str,
+                              ['tmp_folder', 'data_folder'])
+        except (TypeError, ValueError):
+                logging.exception(
+                    f"Unsupported 'process_data_to' in io. "
+                    f"Valid options are 'tmp_folder' and 'data_folder'.")
+                raise
+
+        # check all given method output folders
+        def check_base_folder(folder_name, token, description):
+            try:
+                exc.check_token_in_filepath(folder_name, token, description)
+            except ValueError:
+                logging.exception("The given method input folder is invalid.")
+                raise
+
+            base = folder_name.split(token)[0][:-1]
+            try:
+                _ = os.listdir(base)
+            except OSError:
+                logging.exception(f"'{base}' is not an accessible directory.")
+                raise
+
+        check_base_folder(config['method_out_folder'], '<method_name>',
+                          'method_out_folder')
+        check_base_folder(config['method_visualization_folder'], '<method_name>',
+                          'method_visualization_folder')
+        check_base_folder(config['method_additional_output_folder'],
+                          '<method_name>', 'method_additional_output_folder')
+        check_base_folder(config['method_final_result_folder'], '<method_name>',
+                          'method_final_result_folder')
+        check_base_folder(config['method_tmp_folder'], 'tmp',
+                          'method_tmp_folder')

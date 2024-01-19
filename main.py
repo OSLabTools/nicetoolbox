@@ -21,6 +21,7 @@ from detectors.facial_expression.emoca import Emoca
 from detectors.active_speaker.speaking_detector import SPELL
 from features.kinematics.kinematics import Kinematics
 from features.proximity.proximity import Proximity
+from features.leaning.leaning import Leaning
 from features.gazeDistance.gazeDistance import GazeDistance
 from configs.config_handler import Configuration
 import oslab_utils.logging_utils as log_ut
@@ -37,7 +38,8 @@ all_methods = dict(
 
 all_features = dict(kinematics=Kinematics,
                     proximity=Proximity,
-                    gazeDistance=GazeDistance)
+                    gazeDistance=GazeDistance,
+                    leaning=Leaning)
 
 # def run(settings, Model, data, eaf):
 #     """Main function to run the method
@@ -90,62 +92,76 @@ def flatten_dict(dictionary):
 
 
 def main():
-    # CONFIG
-    config_abstract_file = "configs/config.toml"
-    machine_specifics_file = "configs/machine_specific_paths.toml"
-    config_handler = Configuration(config_abstract_file, machine_specifics_file)
-    config = config_handler.get_localized_config()
+    # temporary LOG
+    log_setup = log_ut.LoggingSetup(
+        os.path.join(os.getcwd(), 'ISA-Tool.log'), logging.DEBUG)
+    with log_setup.tmp_logging():
 
-    # # ANNOTATIONS
-    # # create an ELAN annotation file - an EAF file
-    # eaf = CustomEaf(config['git_hash'],
-    #                 config['video_file'],
-    #                 config['out_folder'])
-    # # run validity checks that these annotations were not done before
+        # CONFIG
+        config_abstract_file = "configs/config.toml"
+        machine_specifics_file = "configs/machine_specific_paths.toml"
+        config_handler = Configuration(config_abstract_file, machine_specifics_file)
+        config = config_handler.get_localized_config()
 
-    # IO
-    io = IO(config['io'],
-            config['methods']['names'] + config['features']['names'] +
-            [config['features'][name]['input_detector_names']
-             for name in config['features']['names']])
+        # IO
+        io = IO(config['io'],
+                config['methods']['names'] + config['features']['names'] +
+                [config['features'][name]['input_detector_names']
+                 for name in config['features']['names']])
+
+        # update LOG
+        log_setup.log_path, _ = io.get_log_file_level()
+        match config['run_mode']:
+            case "experiment":
+                log_setup.log_level = logging.INFO
+            case "development":
+                log_setup.log_level = logging.INFO
+            case "production":
+                log_setup.log_level = logging.ERROR
+        io.log_level = log_setup.log_level
+
+
+    # check config consistency
+    config_handler.check_config_consistency(
+            io.get_output_folder('config', 'output'))
 
     # save experiment configs
     config_handler.save_experiment_config(
             io.get_output_folder('config', 'output'))
 
-    #initialize log
-    log_path = os.path.join(io.get_output_folder('config', 'output'), "ISA-Tool.log")
-    log_ut.setup_logging(log_path, level=logging.INFO)
-
     # -> clean up all /tmp/ even if the code crashes or triggers an assertion
-    with create_tmp_folder(io.get_all_tmp_folders()):
+    #with create_tmp_folder(io.get_all_tmp_folders()):
 
-        # DATA preparation
-        data = Data(config, io)
+    # DATA preparation
+    data = Data(config, io)
 
-        # RUN detectors
-        for method_name in config['methods']['names']:
-            # prepare the part of the config relevant for the detector
-            method_config = flatten_dict(config['methods'][method_name])
-            if 'algorithm' in method_config.keys():
-                method_config.update(config['methods'][method_name][method_config['algorithm']])
-            method_config["video_start"] = config["video_start"]
-            detector = all_methods[method_name](method_config, io, data)
-            inference_returncode = detector.run_inference()
-            log_ut.assert_and_log(inference_returncode == 0, f"INFERENCE Pipeline {method_name} - FAILURE - See method log for details")
-            logging.info(f"INFERENCE Pipeline {method_name} - SUCCESS - See method log for details")
-            detector.visualization(data)
+    # RUN detectors
+    for method_name in config['methods']['names']:
+        # prepare the part of the config relevant for the detector
+        method_config = flatten_dict(config['methods'][method_name])
+        if 'algorithm' in method_config.keys():
+            method_config.update(config['methods'][method_name][
+                                     method_config['algorithm']])
+        method_config["video_start"] = config["video_start"]
+        detector = all_methods[method_name](method_config, io, data)
+        inference_returncode = detector.run_inference()
+        log_ut.assert_and_log(inference_returncode == 0,
+                              f"INFERENCE Pipeline {method_name} - "
+                              f"FAILURE - See method log for details")
+        logging.info(f"INFERENCE Pipeline {method_name} - "
+                     f"SUCCESS - See method log for details")
+        detector.visualization(data)
 
-        # RUN feature extractions pipeline
-        for feature_name in config['features']['names']:
-            # prepare the part of the config relevant for the feature
-            feature_config = copy.deepcopy(config['features'][feature_name])
-            feature = all_features[feature_name](feature_config, io)
-            feature_data = feature.compute()
-            feature.visualization(feature_data)
-            logging.info(f"Finished feature '{feature_name}'.")
+    # RUN feature extractions pipeline
+    for feature_name in config['features']['names']:
+        # prepare the part of the config relevant for the feature
+        feature_config = copy.deepcopy(config['features'][feature_name])
+        feature = all_features[feature_name](feature_config, io)
+        feature_data = feature.compute()
+        feature.visualization(feature_data)
+        logging.info(f"\nFinished feature '{feature_name}'.")
 
-        # create ELAN annotation file
+    # create ELAN annotation file
 
 
 if __name__ == '__main__':

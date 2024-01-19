@@ -49,7 +49,6 @@ class PoseDetector(BaseDetector):
         self.method_out_folder = io.get_output_folder(self.name, 'output')
         self.prediction_folders = self.get_prediction_folders(make_dirs=True)
         self.image_folders = self.get_image_folders(make_dirs=config["save_images"])
-        self.log = os.path.join(self.main_out, f"{self.name}_inference.log")
         self.filtered = config["filtered"]
         if self.filtered:
             self.filter_window_length = config["window_length"]
@@ -57,28 +56,26 @@ class PoseDetector(BaseDetector):
 
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
-        log_ut.assert_and_log(data.all_camera_names == set(config['camera_names']),
-                              f"camera_names do not match! all loaded cameras = " \
-                              f"'{data.all_camera_names}' and {self.name} requires cameras " \
-                              f"'{config['camera_names']}'."
-                              )
+        #log_ut.assert_and_log(data.all_camera_names == set(config['camera_names']),
+        #                      f"camera_names do not match! all loaded cameras = " \
+        #                      f"'{data.all_camera_names}' and {self.name} requires cameras " \
+        #                      f"'{config['camera_names']}'."
+        #                      )
 
         config['input_data_folder'] = data.create_symlink_input_folder(
                 config['input_data_format'], config['camera_names'])
 
-        config['frame_indices_list'] = data.frame_indices_list
+        #config['frame_indices_list'] = data.frame_indices_list
         config['person_threshold'] = self.person_threshold
         config['data_folder'] = self.data_folder
         config['intermediate_results'] = self.intermediate_results
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
-        config['log_file'] = self.log
 
         # then, call the base class init
         super().__init__(config, io, data)
         self.result_folder = config['result_folder']
         self.calibration = config['calibration']
-        self.subjects_descr = io.subjects_descr
 
     def visualization(self, data):
         """
@@ -89,17 +86,22 @@ class PoseDetector(BaseDetector):
             a class instance that stores all input file locations
         """
         logging.info(f"VISUALIZING the method output {self.name}")
-        log_ut.assert_and_log(os.listdir(self.image_folders["cam4"]) != [], "Image folder is empty") #ToDo camera hardcoded
-        image_base = os.path.join(self.image_folders["cam4"],"%05d.png")
-        output_path = os.path.join(self.viz_folder, f"{self.name}.mp4")
 
-        ##TODO read fps directly and put this function under oslab_utils video
-        cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
-        # Use the subprocess module to execute the command
-        cmd_result = subprocess.run(cmd, shell=True)
+        success = True
+        for camera in self.camera_names:
+            log_ut.assert_and_log(os.listdir(self.image_folders[camera]) != [], "Image folder is empty") #ToDo camera hardcoded
+            image_base = os.path.join(self.image_folders[camera],"%05d.png")
+            output_path = os.path.join(self.viz_folder, f"{self.name}_{camera}.mp4")
 
-        log_ut.assert_and_log(cmd_result.returncode == 0, f"FFMPEG video creation failed. Return code {cmd_result.returncode}")
-        if os.path.isfile(output_path):
+            ##TODO read fps directly and put this function under oslab_utils video
+            cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
+            # Use the subprocess module to execute the command
+            cmd_result = subprocess.run(cmd, shell=True)
+
+            success *= 1 if os.path.isfile(output_path) else 0
+            log_ut.assert_and_log(cmd_result.returncode == 0, f"FFMPEG video creation failed. Return code {cmd_result.returncode}")
+
+        if success:
             logging.info(f"VISUALIZATION {self.name} - SUCCESS")
         else:
             logging.error(f"VISUALIZATION {self.name} - FAILURE - Video file was not created")

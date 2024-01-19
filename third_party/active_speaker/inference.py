@@ -15,9 +15,9 @@ def main(config):
     """ Run inference of the method on the pre-loaded image
     """
     # initialize logger
-    logging.basicConfig(filename=config['log_file'], level=logging.INFO,
+    logging.basicConfig(filename=config['log_file'], level=config['log_level'],
                         format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
-    logging.info('RUNNING active speaker detection!')
+    logging.info('\n\nRUNNING active speaker detection!')
 
     # check that the data was created
     fh.assert_and_log(config['snippets_list'] is not None,
@@ -36,9 +36,10 @@ def main(config):
     # detect active speaker
     evaluate(config)
 
-    logging.info('Active speaker detection finished!')
+    logging.info('\nActive speaker detection COMPLETED!')
 
 
 if __name__ == '__main__':
-    config = fh.load_config('/is/sg2/cschmitt/pis/experiments/20231027/active_speaker/run_config.toml')
+    config_path = sys.argv[1]
+    config = fh.load_config(config_path)
     main(config)

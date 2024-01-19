@@ -16,6 +16,11 @@ from third_party.emoca.emoca.gdl.datasets.AffectNetDataModule import AffectNetEx
 
 
 def main(config):
+    # initialize logger
+    logging.basicConfig(filename=config['log_file'], level=config['log_level'],
+                        format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
+    logging.info('\n\nRUNNING facial expression detection emoca!')
+
     path_to_models = get_path_to_assets() / "EmotionRecognition" / "face_reconstruction_based"
     model_name = 'EMOCA-emorec'
 
@@ -49,11 +54,15 @@ def main(config):
                      in ['valence', 'arousal', 'expr_classification']], axis=0)
             expressions[camera_name].append(expression)
             save_images(batch, output, out_folder)
+        # save bboxes to file
+        fh.save_toml(
+            dataset.bboxes,
+            os.path.join(config["result_folder"], f"bboxes_{camera_name}.toml"))
 
     #  save as hdf5 file
     fh.save_to_hdf5(
             [np.array(expressions[cam]) for cam in config["camera_names"]],
-            config["camera_descr"],
+            config["subjects_descr"],
             os.path.join(config["result_folder"], f"expressions.hdf5"),
             index=os.listdir(input_folder)
     )
@@ -63,6 +72,8 @@ def main(config):
                  [expr.name.lower() for expr in AffectNetExpressions]
              },
             os.path.join(config["result_folder"], f"expressions.toml"))
+
+    logging.info('\nFacial expression detection emoca COMPLETED!')
 
 
 if __name__ == '__main__':

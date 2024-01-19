@@ -49,6 +49,7 @@ class Proximity(BaseFeature):
             [self.predictions_mapping["keypoints_index"]["body"][keypoint]
              for keypoint in self.used_keypoints]
 
+        logging.info(f"Feature {self.name} initialized.")
 
     def compute(self):
         """ Compute the euclidean distance between the keypoint coord of personL and personR
@@ -61,6 +62,12 @@ class Proximity(BaseFeature):
 
         """
         data, _ = fh.read_hdf5(self.input_files[0])
+
+        if len(data) != 2:
+            logging.error("The number of persons in the video is != 2. "
+                          "Proximity can not be calculated. Skipping.")
+            return None
+
         personL = data[0]
         personR = data[1]
         proximity_data_list = []
@@ -86,8 +93,8 @@ class Proximity(BaseFeature):
         filepath = os.path.join(self.result_folder, "proximity.hdf5")
         fh.save_to_hdf5(proximity_data_list, groups_list=["dyad"], output_file=filepath)
 
+        logging.info(f"Computation of feature {self.name} completed.")
         return proximity_data_list
-
 
     def visualization(self, data):
         """
@@ -97,26 +104,28 @@ class Proximity(BaseFeature):
         data: class
             a class instance that stores all input file locations
         """
-        logging.info(f"VISUALIZING the feature output {self.name}")
-        pro_utils.visualize_proximity_score(data, self.viz_folder, self.used_keypoints)
-        # # Determine global_min and global_max - define y-lims of graphs
-        # global_min = data[0].min() + 0.5
-        # global_max = data[0].max() - 0.5
-        # # Get a sample image to determine video dimensions
-        # sample_frame = cv2.imread(self.frames_data_list[0])
-        # sample_combined_img = pro_utils.frame_with_linegraph(sample_frame, data, 0, global_min, global_max)
-        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
-        # output_path = os.path.join(self.viz_folder, 'proximity_score_on_video.mp4')
-        # out = cv2.VideoWriter(output_path, fourcc, 30.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
-        #
-        # for i, frame_path in enumerate(self.frames_data_list):
-        #     frame = cv2.imread(frame_path)
-        #     if i % 100 == 0:
-        #         logging.info(f"Image ind: {i}")
-        #     else:
-        #         combined = pro_utils.frame_with_linegraph(frame, data, i, global_min, global_max)
-        #         out.write(combined)
-        # out.release()
+        if data is not None:
+            logging.info(f"Visualizing the feature output {self.name}")
+            pro_utils.visualize_proximity_score(data, self.viz_folder, self.used_keypoints)
+            # # Determine global_min and global_max - define y-lims of graphs
+            # global_min = data[0].min() + 0.5
+            # global_max = data[0].max() - 0.5
+            # # Get a sample image to determine video dimensions
+            # sample_frame = cv2.imread(self.frames_data_list[0])
+            # sample_combined_img = pro_utils.frame_with_linegraph(sample_frame, data, 0, global_min, global_max)
+            # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
+            # output_path = os.path.join(self.viz_folder, 'proximity_score_on_video.mp4')
+            # out = cv2.VideoWriter(output_path, fourcc, 30.0, (sample_combined_img.shape[1], sample_combined_img.shape[0]))
+            #
+            # for i, frame_path in enumerate(self.frames_data_list):
+            #     frame = cv2.imread(frame_path)
+            #     if i % 100 == 0:
+            #         logging.info(f"Image ind: {i}")
+            #     else:
+            #         combined = pro_utils.frame_with_linegraph(frame, data, i, global_min, global_max)
+            #         out.write(combined)
+            # out.release()
+            logging.info(f"Visualization of feature {self.name} completed.")
 
     def post_compute(self, distance_data):
         pass

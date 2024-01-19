@@ -1,4 +1,32 @@
-# Template Detector
+# ISA - Tool
+
+
+<span style="color:red">
+Important: Please update your local machine_specific_path.toml file! 
+Add the `conda_path` - See instructions below in `Getting started`.
+</span>
+
+
+## Getting Started
+
+First, please create a local file `configs/machine_specific_path.toml` by
+copy-pasting and renaming the file `configs/machine_specific_path_template.toml`.
+Note: the `machine_specific_path.toml` - file is part of the `.gitignore` and 
+will not be pushed to git as it contains all file and folder locations that 
+are specific to your local machine. 
+
+Edit the `machine_specific_path.toml` - file, by specifying the following:
+- `pis_folder_path`: Please copy all needed data from the network path 
+`/ps/project/pis/` to your local, while preserving the folder structure. 
+Add this local path here for easy local-remote interchange.
+- `datasets_folder_path`: The path on your local machine where the datasets
+that you want to run the ISA-Tool on are stored.
+- `methods_folder_path`: The path to your local folder that contains all third
+party methods and their checkpoints -- TODO: move all assets to keeper and 
+update installation files/instructions.
+- `conda_path`: The path of your conda installation. E.g., for me, this is   
+`/is/sg2/cschmitt/source/anaconda3`. On your system, open a command line and 
+type `which conda` to help find this path.
 
 
 ## Installation
@@ -297,4 +325,102 @@ shape: [num_annotation/num_segments, [starttime, endtime, label]]\
 BOARD_SIZE = (12, 9)
 SQUARE_SIZE = 60 mm
 DICT_5X5
+
+
+
+## Development vs. Production
+
+[On assertions in Python from RealPython](https://realpython.com/python-assert-statement/)
+
+*The goal of assertion should be to uncover programmers’ errors rather 
+than users’ errors.*
+*A proper use of assertions is to inform developers about unrecoverable errors 
+in a program. Assertions shouldn’t signal an expected error, like a 
+FileNotFoundError, where a user can take a corrective action and try again.*
+
+*Assertions are great during development, but in production, they can affect the 
+code’s performance. 
+Assertions take time to run, and they consume memory, so it’s advisable to 
+disable them in production.*
+
+Normal mode is typically the mode that you use during development (indicated by 
+the build-in constant `__debug__ = True`), while optimized mode is what you 
+should use in production (here, `__debug__ = False`).
+In production mode, set `__debug__ = False` by running python with `-0` or `-00`
+options or setting the `PYTHONOPTIMIZE` environment variable:
+- `python -0` or `PYTHONOPTIMIZE=1`: remove the assert statements and any code 
+that you’ve explicitly introduced under a conditional targeting `__debug__`. 
+- `python -00` or `PYTHONOPTIMIZE=2`: Same as `-0` and also discards docstrings.
+
+
+### Set class attributes correctly
+
+To prevent the user from giving wrong/unsupported values to a class attribute, 
+you can turn the attribute into a managed attribute using the `@property` 
+decorator.
+Managed attribute provide `setter` and `getter` methods. These are called 
+whenever the class changes or retrieves the value of the attribute.
+This way, you can move the validation code for the attribute to the `setter`
+method, see the example from [RealPython](https://realpython.com/python-assert-statement/#running-python-with-the-o-or-oo-options):
+```
+class Circle:
+   def __init__(self, radius):
+       self.radius = radius
+
+   @property
+   def radius(self):
+       return self._radius
+
+   @radius.setter
+   def radius(self, value):
+       if value < 0:
+           raise ValueError("positive radius expected")
+       self._radius = value
+```
+
+
+### Data validation
+
+Instead of testing user input using an assertion, implement a conditional in
+the function that raises an error for a wrong input. Then wrap any call to this
+function in a `try ... except` block to catch the error and return an 
+informative message to the user.
+
+Make the assertion much more descriptive/verbose by specifying which error
+and exception is raised, e..g., `ValueError`.
+
+
+### Exceptions & Logging: When to raise an exception?
+
+From the 
+[Python docs](https://docs.python.org/3/howto/logging.html#exceptions-raised-during-logging):
+*The logging package is designed to swallow exceptions which occur while logging 
+in production.* 
+
+*SystemExit and KeyboardInterrupt exceptions are never swallowed. 
+Other exceptions which occur during the `emit()` method of a Handler subclass 
+are passed to its `handleError()` method. The default implementation of 
+`handleError()` in Handler checks to see if a module-level variable, 
+`raiseExceptions`, is set. If set, a traceback is printed to `sys.stderr`. 
+If not set, the exception is swallowed.*
+
+*The default value of raiseExceptions is True. This is because during 
+development, you typically want to be notified of any exceptions that occur. 
+It’s advised that you set raiseExceptions to False for production usage.*
+
+
+### Error Handling
+
+[Python docs](https://docs.python.org/3/tutorial/errors.html)
+*There are (at least) two distinguishable kinds of errors: syntax errors and 
+exceptions.*
+
+- Syntax errors denote parsing errors, due to invalid syntax.
+- *Errors detected during execution are called exceptions. Even if a statement 
+or expression is syntactically correct, it may cause an error when an attempt is 
+made to execute it.*
+
+One can handle exceptions by implementing `try ... except` statements. 
+
+
 

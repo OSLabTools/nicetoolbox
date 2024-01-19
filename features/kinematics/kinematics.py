@@ -41,6 +41,7 @@ class Kinematics(BaseFeature):
         self.frames_data = os.path.join(pose_config['input_data_folder'], self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
 
+        logging.info(f"Feature {self.name} initialized.")
 
     def compute(self):
         """
@@ -73,10 +74,16 @@ class Kinematics(BaseFeature):
             # save results
         filepath_movement= os.path.join(self.result_folder, "movement.hdf5")
         filepath_velocity_per_frame = os.path.join(self.result_folder, "velocity_per_frame.hdf5")
-        fh.save_to_hdf5(person_data_list_motion, groups_list=["personL", "personR"], output_file=filepath_movement)
-        fh.save_to_hdf5(person_data_list_velocity_per_frame, groups_list=["personL", "personR"], output_file=filepath_velocity_per_frame)
+        fh.save_to_hdf5(person_data_list_motion,
+                        groups_list=self.subjects_descr,
+                        output_file=filepath_movement)
+        fh.save_to_hdf5(person_data_list_velocity_per_frame,
+                        groups_list=self.subjects_descr,
+                        output_file=filepath_velocity_per_frame)
         #calculate sum of movement per bodypart
         sum_of_motion_per_bodypart = self.post_compute(person_data_list_motion)
+
+        logging.info(f"Computation of feature {self.name} completed.")
         return sum_of_motion_per_bodypart
 
 
@@ -89,12 +96,15 @@ class Kinematics(BaseFeature):
         """
         logging.info(f"VISUALIZING the method output {self.name}")
         # Determine global_min and global_max - define y-lims of graphs
-        global_min = min(data[0].min(), data[1].min()) - 0.05
-        global_max = max(data[0].max(), data[1].max()) + 0.05
+        global_min = np.array(data).min() - 0.05
+        global_max = np.array(data).max() + 0.05
         kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
-            data, self.bodyparts_list, global_min, global_max, self.viz_folder)
+            data, self.bodyparts_list, global_min, global_max, self.viz_folder,
+            self.subjects_descr)
         # kinematics_utils.create_video_evolving_linegraphs(
         #     self.frames_data_list, data, self.bodyparts_list, global_min, global_max, self.viz_folder)
+
+        logging.info(f"Visualization of feature {self.name} completed.")
 
     def post_compute(self, distance_data):
         """
@@ -108,7 +118,11 @@ class Kinematics(BaseFeature):
                 result[:, i] = person_data[:, indices].mean(axis=1)
 
             person_data_list.append(result)
-        log_ut.assert_and_log(person_data_list[0].shape == person_data_list[1].shape, f"Shape mismatch: Shapes for personL and personR are not the same.")
+
+        if len(person_data_list) == 2:
+            log_ut.assert_and_log(
+                person_data_list[0].shape == person_data_list[1].shape,
+                f"Shape mismatch: Shapes for personL and personR are not the same.")
 
         #check if any [0,0,0] prediction
         for person_results in person_data_list:

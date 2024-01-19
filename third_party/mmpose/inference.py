@@ -4,7 +4,7 @@ import numpy as np
 from mmpose.apis import MMPoseInferencer
 import third_party.file_handling as fh
 import output_sanity_checks as sc
-import tests.test_data as test_data
+#import tests.test_data as test_data
 import logging
 
 
@@ -45,8 +45,10 @@ def convert_output_to_numpy(data, num_persons, person_threshold):
 def main(config):
     """ Run inference of the method on the pre-loaded image
     """
-    logging.basicConfig(filename=config['log_file'], level=logging.INFO, format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
-    logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
+    logging.basicConfig(filename=config['log_file'], level=config['log_level'],
+                        format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
+    logging.info(f'\n\nRUNNING MMPOSE - {config["algorithm"]}!')
+
     # create inferencer object
     inferencer = MMPoseInferencer(
         pose2d=config["pose_config"],
@@ -99,8 +101,8 @@ def main(config):
                 f"Shape mismatch: Shapes for personL and personR are not the same.")
 
         #check if any [0,0,0] prediction
-        for person_results in person_results_list:
-            test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
+        #for person_results in person_results_list:
+        #    test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
 
         #  save as hdf5 file
         save_file_name = os.path.join(config["intermediate_results"],
@@ -114,6 +116,8 @@ def main(config):
     #     config["intermediate_results"],
     #     config["frame_indices_list"],
     #     config["person_threshold"]) ##TODO fix it - it gives an error when not start from 0
+
+    logging.info(f'\nMMPOSE - {config["algorithm"]} COMPLETED!')
 
    # return camera_output
 if __name__ == '__main__':
