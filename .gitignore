@@ -8,6 +8,7 @@ doc/_build/*
 output/
 **/envs/
 **/env/
+**/*.pth
 
 configs/machine_specific_paths.toml
 *.tex~

@@ -3,7 +3,7 @@ REM -- Check for virtual environment installation --
 REM -- python -m pip install virtualenv
 
 REM -- Create virtual environment --
-python -m venv envs
+C:\Users\oslab\AppData\Local\Programs\Python\Python310\python.exe -m venv envs
 
 REM -- Activate virtual environment --
 call envs\Scripts\activate
