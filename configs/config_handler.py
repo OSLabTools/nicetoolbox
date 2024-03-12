@@ -5,6 +5,7 @@
 import os
 import glob
 import logging
+import copy
 from oslab_utils.logging_utils import log_configs
 from oslab_utils.config import config_fill_auto, config_fill_placeholders, load_config
 import oslab_utils.check_and_exception as exc
@@ -12,6 +13,24 @@ import oslab_utils.check_and_exception as exc
 
 def get_top_level_dict(dictionary):
     return {k: v for k, v in dictionary.items() if not isinstance(v, dict)}
+
+
+def flatten_list(input_list):
+    if isinstance(input_list, str):
+        return [input_list]
+    elif isinstance(input_list, list):
+        output_list = []
+        for item in input_list:
+            output_list += flatten_list(item)
+        return output_list
+
+
+def flatten_dict(dictionary):
+    output_dict = copy.deepcopy(dictionary)
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            del output_dict[key]
+    return output_dict
 
 
 def compare_configs(config1, config2, log_fct=print, config_names=''):
@@ -30,31 +49,115 @@ def compare_configs(config1, config2, log_fct=print, config_names=''):
         log_fct(f"Configs {config_names} contain different values for keys "
                 f"'{keys_different_values}!")
 
+    return len(non_shared_keys) != 0, len(keys_different_values) != 0
+
 
 class Configuration:
-    def __init__(self, config_abstract_file, machine_specifics_file):
+    def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
-        self.config_abstract = load_config(config_abstract_file)
-        self.machine_specifics = load_config(machine_specifics_file)
-        self.machine_specifics.update(dict(pwd=os.getcwd()))
+        self.run_config = load_config(run_config_file)
+        self.detector_config = load_config(detector_config_file)
+        self.machine_specific_config = load_config(machine_specifics_file)
+        self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
-        #
-        self.check_config()
+        dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
+        self.dataset_config = load_config(dataset_config_file)
 
-        # add dataset settings
-        dataset_name = self.config_abstract['io']['dataset_name']
-        self.config_abstract['io'].update(self.config_abstract['datasets'][dataset_name])
-        del self.config_abstract['datasets']
+        self.current_data_config = None
 
+        #self.check_config()
+
+    def localize(self, config, fill_io=True, fill_data=False):
         # fill placeholders
-        self.config = config_fill_auto(self.config_abstract)
-        self.localized_config = config_fill_placeholders(
-                self.config, self.machine_specifics)
-        self.localized_config = config_fill_placeholders(
-                self.localized_config, self.localized_config['io'])
-        config_level_one = get_top_level_dict(self.localized_config)
-        self.localized_config = config_fill_placeholders(
-                self.localized_config, config_level_one)
+        config = config_fill_auto(config)
+        config = config_fill_placeholders(config, self.machine_specific_config)
+        if fill_io:
+            config = config_fill_placeholders(config, self.get_io_config())
+        if fill_data:
+            config = config_fill_placeholders(config, self.current_data_config)
+        config = config_fill_placeholders(config, config)
+        return config
+
+
+        #config = config_fill_placeholders(config, self.localized_config['io'])
+        #config_level_one = get_top_level_dict(self.localized_config)
+        #self.localized_config = config_fill_placeholders(
+        #        self.localized_config, config_level_one)
+
+    #def get_localized_config(self):
+    #    return self.localized_config
+
+    def get_io_config(self):
+        match self.run_config['run_mode']:
+            case "experiment":
+                log_level = logging.INFO
+            case "development":
+                log_level = logging.INFO
+            case "production":
+                log_level = logging.ERROR
+        self.run_config['io']['log_level'] = log_level
+
+        return self.localize(self.run_config['io'], fill_io=False)
+
+    def get_dataset_configs(self):
+        for dataset_name, dataset_dict in self.run_config['run'].items():
+            if not isinstance(dataset_dict, dict):
+                continue
+
+            for video_config in dataset_dict['videos']:
+                video_config.update(dataset_name=dataset_name)
+                video_config.update(self.dataset_config[dataset_name])
+                video_config.update(self.get_io_config())
+
+                self.current_data_config = self.localize(video_config)
+
+                yield self.current_data_config, dataset_dict['methods'], dataset_dict['features']
+
+    def get_method_configs(self, method_names):
+        for method_name in method_names:
+            method_config = flatten_dict(self.detector_config['methods'][method_name])
+
+            if 'algorithm' in method_config.keys():
+                method_config.update(
+                    self.detector_config['methods'][method_name][method_config['algorithm']])
+
+            yield self.localize(method_config, fill_data=True), method_name
+
+    def get_feature_configs(self, feature_names):
+        for feature_name in feature_names:
+            feature_config = copy.deepcopy(self.detector_config['features'][feature_name])
+
+            yield feature_config, feature_name
+
+    def save_experiment_config(self, output_folder):
+        # save all experiment configurations
+        log_configs(dict(run_config=self.run_config,
+                         detector_config=self.detector_config,
+                         machine_specific_config=self.machine_specific_config),
+                    output_folder,
+                    file_name=f"config_<time>")
+
+    def get_all_detector_names(self):
+        methods = list(self.detector_config['methods'].keys())
+        features = list(self.detector_config['features'].keys())
+        feature_methods= [
+            self.detector_config['features'][name]['input_detector_names'] for name in features]
+        return list(set(flatten_list(methods + features + feature_methods)))
+
+    def get_all_camera_names(self, method_names):
+        all_camera_names = set()
+        detector_config = self.localize(self.detector_config, fill_data=True)
+        for detector in method_names:
+            all_camera_names.update(detector_config['methods'][detector]['camera_names'])
+        if '' in all_camera_names:
+            all_camera_names.remove('')
+        return all_camera_names
+        
+    def get_all_input_data_formats(self, method_names):
+        data_formats = set()
+        for detector in method_names:
+            data_formats.add(self.detector_config['methods'][detector]['input_data_format'])
+        return data_formats
 
     def check_config(self):
         try:
@@ -73,17 +176,26 @@ class Configuration:
                 "with environment variable 'PYTHONOPTIMIZE=1' or, "
                 "equivalently, 'python -0' option for optimized performance.")
 
+        # TODO check detector and feature names - do dict entries exist
 
+        # TODO check whether needed detectors ran before features
 
-    def get_localized_config(self):
-        return self.localized_config
-
-    def save_experiment_config(self, output_folder):
-        # save all experiment configurations
-        log_configs(dict(config=self.config,
-                         machine_specifics=self.machine_specifics),
-                    output_folder,
-                    file_name=f"config_<time>")
+        # TODO check cameras per detector - if not set, update config and remove these
+            
+        # check dataset_config            
+        # check the given calibration file and video folder
+        try:
+            f = open(self.dataset_config['calibration_file'])
+            f.close()
+        except (KeyError, OSError):
+            logging.exception("Failed loading the calibration file.")
+            raise
+        try:
+            _ = os.listdir(self.dataset_config['video_folder'])
+        except OSError:
+            logging.exception(
+                f"The given video folder is not an accessible directory.")
+            raise
 
     def check_config_consistency(self, folder):
         match self.localized_config['run_mode']:
@@ -105,8 +217,8 @@ class Configuration:
                                 logging.error, config_names)
 
                 # compare machine specifics
-                compare_configs(saved_config['machine_specifics'],
-                                self.machine_specifics, logging.info,
+                compare_configs(saved_config['machine_specific_config'],
+                                self.machine_specific_config, logging.info,
                                 config_names)
 
                 # compare io

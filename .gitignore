@@ -5,6 +5,8 @@ __pycache__
 
 doc/_build/*
 
+assets/
+assets/
 output/
 **/envs/
 **/env/

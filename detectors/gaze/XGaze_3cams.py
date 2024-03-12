@@ -30,10 +30,11 @@ class XGaze3cams(BaseDetector):
         """
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
-        assert data.all_camera_names == set(config['camera_names']), \
-            f"camera_names do not match! all loaded cameras = " \
-            f"'{data.all_camera_names}' and {self.name} requires cameras " \
-            f"'{config['camera_names']}'."
+
+        # assert data.all_camera_names == set(config['camera_names']), \
+        #     f"camera_names do not match! all loaded cameras = " \
+        #     f"'{data.all_camera_names}' and {self.name} requires cameras " \
+        #     f"'{config['camera_names']}'."
         config['frames_list'] = data.frames_list
         config['frame_indices_list'] = data.frame_indices_list
 
@@ -41,6 +42,8 @@ class XGaze3cams(BaseDetector):
         super().__init__(config, io, data)
 
         self.camera_names = config['camera_names']
+        while '' in self.camera_names:
+            self.camera_names.remove('')
         self.method_out_folder = config['out_folder']
 
     def visualization(self, data):
@@ -49,7 +52,7 @@ class XGaze3cams(BaseDetector):
             for cam in self.camera_names]
         log_ut.assert_and_log(
             np.all([len(l) != 0 for l in frames_lists]),
-            f"emoca visualization: no frames found for at least one camera "
+            f"XGaze3cams visualization: no frames found for at least one camera "
             f"'{self.camera_names}' in '{self.method_out_folder}'.")
         log_ut.assert_and_log(
             np.all([len(frames_lists[0]) == len(l) for l in frames_lists[1:]]),

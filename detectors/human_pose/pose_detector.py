@@ -40,7 +40,7 @@ class PoseDetector(BaseDetector):
         self.frame_list = data.frames_list
         self.person_threshold = (config["resolution"][
             0]) / 2 * 0.80  # multiply 0.80 bec. rarely one person's bbox cross the x/2
-        self.video_start = config["video_start"]
+        self.video_start = data.video_start
         #input
         self.data_folder = io.get_data_folder()
         #output

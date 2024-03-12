@@ -35,8 +35,8 @@ class BaseDetector(ABC):
 
         config['behavior'] = self.behavior
         config['calibration'] = data.calibration
-        config['subjects_descr'] = io.subjects_descr
-        self.subjects_descr = io.subjects_descr
+        config['subjects_descr'] = data.subjects_descr
+        self.subjects_descr = data.subjects_descr
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
@@ -103,12 +103,12 @@ class BaseDetector(ABC):
         # TODO: check whether the following works on Windows
         cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
 
-        if cmd_result.returncode != 0:
-            logging.error(f"Error occurred with return code {cmd_result.returncode}")
+        if cmd_result.returncode == 0:
+            logging.info(f"INFERENCE Pipeline - SUCCESS.")
+        else:
+            logging.error(f"INFERENCE Pipeline - ERROR occurred with return code {cmd_result.returncode}")
 
         self.post_inference()
-
-        return cmd_result.returncode
 
     def post_inference(self):
         """ Post-processing after inference

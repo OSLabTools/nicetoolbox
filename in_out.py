@@ -9,20 +9,23 @@ import logging
 import oslab_utils.check_and_exception as exc
 
 
-def flatten_list(input_list):
-    if isinstance(input_list, str):
-        return [input_list]
-    elif isinstance(input_list, list):
-        output_list = []
-        for item in input_list:
-            output_list += flatten_list(item)
-        return output_list
-
-
 class IO:
-    def __init__(self, config, method_names):
+    def __init__(self, config):
         # create folders
         self.out_folder = config['out_folder']
+        try:
+            os.makedirs(self.out_folder, exist_ok=True)
+        except OSError:
+            logging.exception("Failed creating the output folder.")
+            raise
+
+        self.log_level = config['log_level']
+
+    def get_log_file_level(self):
+        return os.path.join(self.out_folder, "ISA-Tool.log"), self.log_level
+
+    def initialization(self, config, method_names):
+        self.out_sub_folder = config['out_sub_folder']
         self.tmp_folder = config['tmp_folder']
         if config['process_data_to'] == 'tmp_folder':
             self.data_folder = self.tmp_folder
@@ -34,19 +37,17 @@ class IO:
         self.check_config(config)
 
         # get the relevant config entries
-        self.subjects_descr = config['subjects_descr']
+        # self.subjects_descr = config['subjects_descr']
         self.video_folder = config['video_folder']
         self.calibration_file = config['calibration_file']
         self.conda_path = config['conda_path']
 
-        self.method_names = list(set(flatten_list(method_names)))
+        self.method_names = method_names
         self.method_out_folder = config['method_out_folder']
         self.method_visualization_folder = config['method_visualization_folder']
         self.method_additional_output_folder = config['method_additional_output_folder']
         self.method_tmp_folder = config['method_tmp_folder']
         self.method_final_result_folder = config['method_final_result_folder']
-
-        self.log_level = logging.DEBUG
 
     def get_all_tmp_folders(self):
         method_tmp_folders = [
@@ -59,9 +60,6 @@ class IO:
 
     def get_calibration_file(self):
         return self.calibration_file
-
-    def get_log_file_level(self):
-        return os.path.join(self.out_folder, "ISA-Tool.log"), self.log_level
 
     def get_data_folder(self):
         return self.data_folder
@@ -97,7 +95,7 @@ class IO:
 
         elif name == 'config':
             if token == 'output':
-                return self.out_folder
+                return self.out_sub_folder
 
         else:
             raise NotImplementedError(
@@ -106,12 +104,13 @@ class IO:
                     f"{self.method_names}.")
 
     def create_folders(self):
-        # create the output and data folders
+        # create output folders
         try:
-            os.makedirs(self.out_folder, exist_ok=True)
+            os.makedirs(self.out_sub_folder, exist_ok=True)
         except OSError:
             logging.exception("Failed creating the output folder.")
             raise
+        # create the data folders
         try:
             os.makedirs(self.data_folder, exist_ok=True)
         except OSError:
@@ -119,20 +118,6 @@ class IO:
             raise
 
     def check_config(self, config):
-        # check the given calibration file and video folder
-        try:
-            f = open(config['calibration_file'])
-            f.close()
-        except OSError:
-            logging.exception("Failed loading the calibration file.")
-            raise
-        try:
-            _ = os.listdir(config['video_folder'])
-        except OSError:
-            logging.exception(
-                f"The given video folder is not an accessible directory.")
-            raise
-
         # check the config['process_data_to'] input
         try:
             exc.check_options(config['process_data_to'], str,

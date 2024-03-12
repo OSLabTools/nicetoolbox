@@ -2,12 +2,19 @@
 
 
 <span style="color:red">
-Important: Please update your local machine_specific_path.toml file! 
-Add the `conda_path` - See instructions below in `Getting started`.
+Important: Please download the assets/ folder from KEEPER - See instructions 
+below in `Getting started` and `1. Download assets`.
 </span>
 
 
 ## Getting Started
+
+### 1. Download assets
+
+Assets are uploaded to [keeper](https://keeper.mpdl.mpg.de/d/a9f91e7e60e84da69fc0/).
+Please download the folder an put it in `isa-tool/assets`.
+
+### 2. Configure machine_specific_paths
 
 First, please create a local file `configs/machine_specific_path.toml` by
 copy-pasting and renaming the file `configs/machine_specific_path_template.toml`.

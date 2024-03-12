@@ -4,6 +4,7 @@
 import copy
 import logging
 import os
+import glob
 import subprocess
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ from features.kinematics.kinematics import Kinematics
 from features.proximity.proximity import Proximity
 from features.leaning.leaning import Leaning
 from features.gazeDistance.gazeDistance import GazeDistance
-from configs.config_handler import Configuration
+import configs.config_handler as confh
 import oslab_utils.logging_utils as log_ut
 
 
@@ -41,128 +42,116 @@ all_features = dict(kinematics=Kinematics,
                     gazeDistance=GazeDistance,
                     leaning=Leaning)
 
-# def run(settings, Model, data, eaf):
-#     """Main function to run the method
-#
-#     Parameters
-#     ----------
-#     settings : _type_
-#         _description_
-#
-#     Returns
-#     -------
-#     _type_
-#         _description_
-#     """
-#
-#     # create method instance
-#     Detector = Model(settings)
-#
-#     # not allow to create multiple annotations with equal (author, annotator,
-#     # tier) as pympi.Elan.Eaf overrides existing annotations while adding new
-#     # timeslots -> unwanted behavior
-#     assert not (eaf.adocument['AUTHOR'] == settings['git_hash'] and
-#             Detector.behavior in eaf.get_tier_names() and
-#             eaf.get_parameters_for_tier(Detector.behavior)['ANNOTATOR']
-#             == Detector.name), \
-#         f"for author/git-hash '{settings['git_hash']}', " \
-#         f"annotator/method '{Detector.name}' has annotated " \
-#         f"tier/behavior '{Detector.behavior}' already."
-#
-#     # run method
-#     detections = Detector.inference(data)
-#
-#     ### save results
-#     # add tier for nodding detection
-#     eaf.add_detection(detections['values'], Detector.name)
-#
-#     # save eaf instance to file
-#     eaf.save()
-#
-#     print(f"\n\nSuccessfully ran '{Detector.name}'! \n"
-#           f"\tSaved results to '{eaf.out_file}'.\n\n")
-
-
-def flatten_dict(dictionary):
-    output_dict = copy.deepcopy(dictionary)
-    for key, value in dictionary.items():
-        if isinstance(value, dict):
-            del output_dict[key]
-    return output_dict
-
 
 def main():
-    # temporary LOG
-    log_setup = log_ut.LoggingSetup(
-        os.path.join(os.getcwd(), 'ISA-Tool.log'), logging.DEBUG)
-    with log_setup.tmp_logging():
+    # CONFIG I
+    run_config_file = "configs/run_file.toml"
+    detector_config_file = "configs/detectors_config.toml"
+    machine_specifics_file = "configs/machine_specific_paths.toml"
+    config_handler = confh.Configuration(run_config_file, detector_config_file, machine_specifics_file)
 
-        # CONFIG
-        config_abstract_file = "configs/config.toml"
-        machine_specifics_file = "configs/machine_specific_paths.toml"
-        config_handler = Configuration(config_abstract_file, machine_specifics_file)
-        config = config_handler.get_localized_config()
+    # IO
+    io = IO(config_handler.get_io_config())
 
-        # IO
-        io = IO(config['io'],
-                config['methods']['names'] + config['features']['names'] +
-                [config['features'][name]['input_detector_names']
-                 for name in config['features']['names']])
-
-        # update LOG
-        log_setup.log_path, _ = io.get_log_file_level()
-        match config['run_mode']:
-            case "experiment":
-                log_setup.log_level = logging.INFO
-            case "development":
-                log_setup.log_level = logging.INFO
-            case "production":
-                log_setup.log_level = logging.ERROR
-        io.log_level = log_setup.log_level
-
-
+    # LOGGING
+    log_ut.setup_logging(*io.get_log_file_level())
+    
+    # CONFIG II
     # check config consistency
-    config_handler.check_config_consistency(
-            io.get_output_folder('config', 'output'))
+    #config_handler.check_config_consistency(
+    #        io.get_output_folder('config', 'output'))
 
     # save experiment configs
-    config_handler.save_experiment_config(
-            io.get_output_folder('config', 'output'))
+    #config_handler.save_experiment_config(
+    #        io.get_output_folder('config', 'output'))
 
-    # -> clean up all /tmp/ even if the code crashes or triggers an assertion
-    #with create_tmp_folder(io.get_all_tmp_folders()):
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # RUNNING
+    for (dataset_config, method_names, feature_names) in config_handler.get_dataset_configs():
+        logging.info(f"RUNNING {dataset_config['dataset_name']} and {dataset_config['participant_ID']}")
 
-    # DATA preparation
-    data = Data(config, io)
+        # IO
+        io.initialization(
+            dataset_config, config_handler.get_all_detector_names())
 
-    # RUN detectors
-    for method_name in config['methods']['names']:
-        # prepare the part of the config relevant for the detector
-        method_config = flatten_dict(config['methods'][method_name])
-        if 'algorithm' in method_config.keys():
-            method_config.update(config['methods'][method_name][
-                                     method_config['algorithm']])
-        method_config["video_start"] = config["video_start"]
-        detector = all_methods[method_name](method_config, io, data)
-        inference_returncode = detector.run_inference()
-        log_ut.assert_and_log(inference_returncode == 0,
-                              f"INFERENCE Pipeline {method_name} - "
-                              f"FAILURE - See method log for details")
-        logging.info(f"INFERENCE Pipeline {method_name} - "
-                     f"SUCCESS - See method log for details")
-        detector.visualization(data)
+        # DATA preparation
+        data = Data(
+            dataset_config, io, 
+            config_handler.get_all_input_data_formats(method_names),
+            config_handler.get_all_camera_names(method_names)
+            )
 
-    # RUN feature extractions pipeline
-    for feature_name in config['features']['names']:
-        # prepare the part of the config relevant for the feature
-        feature_config = copy.deepcopy(config['features'][feature_name])
-        feature = all_features[feature_name](feature_config, io)
-        feature_data = feature.compute()
-        feature.visualization(feature_data)
-        logging.info(f"\nFinished feature '{feature_name}'.")
+        # RUN detectors
+        for (method_config, method_name) in config_handler.get_method_configs(method_names):
+            detector = all_methods[method_name](method_config, io, data)
+            detector.run_inference()
+            detector.visualization(data)
+            logging.info(f"\nFinished method '{method_name}'.")
 
-    # create ELAN annotation file
+        # RUN feature extractions pipeline
+        for (feature_config, feature_name) in config_handler.get_feature_configs(feature_names):
+            feature = all_features[feature_name](feature_config, io)
+            feature_data = feature.compute()
+            feature.visualization(feature_data)
+            logging.info(f"\nFinished feature '{feature_name}'.")
+
+
+def sync_dataset_configs(filename='dataset_properties.toml'):
+    def listdir_absolut_paths(path):
+        return [name for name in os.listdir(path)
+                if os.path.isdir(os.path.join(path, name))]
+
+    def get_user_input(text, options):
+        valid_user_input = False
+        while not valid_user_input:
+            user_input = input(text)
+            valid_user_input = user_input in options
+
+        return user_input
+
+    machine_specifics_file = "configs/machine_specific_paths.toml"
+    machine_config = confh.load_config(machine_specifics_file)
+    local_dataset_path = machine_config['datasets_folder_path']
+    remote_dataset_path = machine_config['remote_datasets_folder_path']
+
+    local_dataset_names = set(listdir_absolut_paths(local_dataset_path))
+    remote_dataset_names = set(listdir_absolut_paths(remote_dataset_path))
+    dataset_names_cut = local_dataset_names.intersection(remote_dataset_names)
+
+    for dataset_name in dataset_names_cut:
+        print(f"\nSynchronizing dataset {dataset_name}...")
+        remote_file = os.path.join(remote_dataset_path, dataset_name, filename)
+        if not os.path.exists(remote_file):
+            print(f"{dataset_name}: Found no {filename} file.")
+            continue
+
+        local_file = os.path.join(local_dataset_path, dataset_name, filename)
+        copy_remote = False
+        if not os.path.exists(local_file):
+            print(f"{dataset_name}: File {filename} was found on the remote "
+                  f"but not locally.")
+            user_input = get_user_input("Copy it (y/n)?", ['y', 'n'])
+            copy_remote = user_input == 'y'
+
+        else:
+            remote = confh.load_config(remote_file)
+            local = confh.load_config(local_file)
+            keys_differ, values_differ = confh.compare_configs(
+                    remote, local, log_fct=print, config_names=filename)
+            if keys_differ or values_differ:
+                print(f"{dataset_name}: Detected differences in the remote "
+                      f"and local {filename} files.")
+                user_input = get_user_input("Update the local file (y/n)?", ['y', 'n'])
+                copy_remote = user_input == 'y'
+            else:
+                print(f"{dataset_name}: remote & local files {filename} match.")
+
+        if copy_remote:
+            os.system(f'cp {remote_file} {os.path.dirname(local_file)}')
+
+    print(f"\nSynchronization completed.\n")
 
 
 if __name__ == '__main__':
+    #sync_dataset_configs()
     main()

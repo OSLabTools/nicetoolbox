@@ -6,6 +6,7 @@ import os
 import glob
 import json
 import logging
+import cv2
 import numpy as np
 from oslab_utils.video import equal_splits_by_frames, get_fps, \
     read_segments_list_from_file, split_into_frames, cut_length
@@ -17,7 +18,7 @@ import oslab_utils.check_and_exception as exc
 class Data:
     name = 'data'
 
-    def __init__(self, config, io) -> None:
+    def __init__(self, config, io, data_formats, all_camera_names) -> None:
         """InitializeMethod class.
 
         Parameters
@@ -29,12 +30,12 @@ class Data:
         # TODO later: add caching for tmp folder
 
         # check given data-config
-        self.check_config(config)
+        #self.check_config(config)
 
         # collect all required file/folder paths
         self.data_folder = io.get_data_folder()
         self.tmp_folder = io.get_output_folder(self.name, 'tmp')
-        self.code_folder = config['io']['code_folder']
+        self.code_folder = config['code_folder']
         self.video_folder = io.get_input_folder()
 
         # collect data details from config
@@ -43,15 +44,11 @@ class Data:
         self.video_skip_frames = None if config['video_skip_frames'] is False \
             else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
+        self.subjects_descr = config['subjects_descr']
 
         # collect which data slices and formats are required
-        self.data_formats = set()
-        self.all_camera_names = set()
-        for detector in config['methods']['names']:
-            self.data_formats.add(config['methods'][detector]['input_data_format'])
-            self.all_camera_names.update(config['methods'][detector]['camera_names'])
-        if '' in self.all_camera_names:
-            self.all_camera_names.remove('')
+        self.data_formats = data_formats
+        self.all_camera_names = all_camera_names
         self.segments_list = None
         self.frames_list = None
         self.frame_indices_list = None
@@ -62,7 +59,7 @@ class Data:
 
         # LOAD CALIBRATION
         self.calibration = self.load_calibration(io.get_calibration_file(),
-                                                 config['io']['dataset_name'])
+                                                 config['dataset_name'])
 
         logging.info("Data loading and processing finished.")
 
@@ -242,6 +239,7 @@ class Data:
                         intrinsic_matrix=K[:3, :3].tolist(),
                         distortions=[0, 0, 0, 0],
                         rotation_matrix=Rt[:3, :3].tolist(),
+                        rvec=cv2.Rodrigues(Rt[:3, :3])[0],
                         translation=Rt[2:3, :3].tolist(),
                         extrinsics_matrix=Rt[:3].tolist(),
                         projection_matrix=create_projection_matrix(
