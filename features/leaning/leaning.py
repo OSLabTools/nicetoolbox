@@ -16,7 +16,7 @@ class Leaning(BaseFeature):
     name = 'leaning'
     behavior = 'Forward-Backward-lean'
 
-    def __init__(self, config, io):
+    def __init__(self, config, io, data):
         """ Initialize Movement class.
 
         Parameters
@@ -27,7 +27,7 @@ class Leaning(BaseFeature):
             a class instance that handles in-output folders
         """
         # then, call the base class init
-        super().__init__(config, io)
+        super().__init__(config, io, data)
 
         pose_results_folder = self.get_input(self.input_folders, 'pose')
         pose_config = cfg.load_config(os.path.join(pose_results_folder,
@@ -41,7 +41,7 @@ class Leaning(BaseFeature):
         self.frames_data = os.path.join(pose_config['input_data_folder'],self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
         self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
         self.used_keypoints = config["used_keypoints"]
-        self.subjects_descr = io.subjects_descr
+
         # leaning index
         for pair in self.used_keypoints:
             for keypoint in pair:

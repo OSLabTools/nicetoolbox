@@ -18,27 +18,27 @@ git_hash = "<git_hash>"
 # - video_skip_frames (bool) is relevant for frames only
 # - annotation_interval (int) in seconds, length of segments
 
-[run.ours]
-methods = ["mmpose", "xgaze_3cams", "active_speaker", "emoca"]
-features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
-videos = [
-    {participant_ID = "PIS_ID_04", video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2}
-]
+#[run.ours]
+#methods = ["mmpose", "xgaze_3cams", "active_speaker", "emoca"]
+#features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
+#videos = [
+#    {participant_ID = "PIS_ID_04", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2}
+#]
 
 [run.mpi_inf_3dhp]
 methods = ["mmpose"]
 features = ["kinematics" , "proximity", "leaning"]
 videos = [
-    {participant_ID = "S1", video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
-    {participant_ID = "S2", video_start = 50, video_length = 20, video_skip_frames = false, annotation_interval = 2}
+    {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
+    {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
 ]
-
+# TODO CARO: add sequence_ID to isa-tool!!
 
 [io]
 experiment_name = "<yyyymmdd>_new_run_file"
 out_folder = "<pis_folder_path>/experiments/<experiment_name>"
 out_sub_folder = "<out_folder>/<dataset_name>_<participant_ID>_s<video_start>_l<video_length>"
-dataset_config = "<datasets_folder_path>/dataset_properties.toml"
+dataset_config = "configs/dataset_properties.toml"
 assets = "<code_folder>/assets"
 
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'

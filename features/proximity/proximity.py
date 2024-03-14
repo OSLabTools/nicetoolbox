@@ -16,7 +16,7 @@ class Proximity(BaseFeature):
     name = 'proximity'
     behavior = 'interaction'
 
-    def __init__(self, config, io):
+    def __init__(self, config, io, data):
         """ Initialize Movement class.
 
         Parameters
@@ -27,7 +27,7 @@ class Proximity(BaseFeature):
             a class instance that handles in-output folders
         """
         # then, call the base class init
-        super().__init__(config, io)
+        super().__init__(config, io, data)
 
         pose_results_folder = self.get_input(self.input_folders, 'pose')
         pose_config = cfg.load_config(os.path.join(pose_results_folder,

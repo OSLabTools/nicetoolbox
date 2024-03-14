@@ -24,6 +24,9 @@ class IO:
     def get_log_file_level(self):
         return os.path.join(self.out_folder, "ISA-Tool.log"), self.log_level
 
+    def get_config_file(self):
+        return self.out_folder
+
     def initialization(self, config, method_names):
         self.out_sub_folder = config['out_sub_folder']
         self.tmp_folder = config['tmp_folder']
@@ -37,7 +40,6 @@ class IO:
         self.check_config(config)
 
         # get the relevant config entries
-        # self.subjects_descr = config['subjects_descr']
         self.video_folder = config['video_folder']
         self.calibration_file = config['calibration_file']
         self.conda_path = config['conda_path']

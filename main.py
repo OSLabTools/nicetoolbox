@@ -62,8 +62,7 @@ def main():
     #        io.get_output_folder('config', 'output'))
 
     # save experiment configs
-    #config_handler.save_experiment_config(
-    #        io.get_output_folder('config', 'output'))
+    config_handler.save_experiment_config(io.get_config_file())
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # RUNNING
@@ -90,7 +89,7 @@ def main():
 
         # RUN feature extractions pipeline
         for (feature_config, feature_name) in config_handler.get_feature_configs(feature_names):
-            feature = all_features[feature_name](feature_config, io)
+            feature = all_features[feature_name](feature_config, io, data)
             feature_data = feature.compute()
             feature.visualization(feature_data)
             logging.info(f"\nFinished feature '{feature_name}'.")

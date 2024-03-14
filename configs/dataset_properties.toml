@@ -1,0 +1,34 @@
+
+# Local copy in your dataset folder
+
+[ours]
+participant_IDs = ["PIS_ID_000", "PIS_ID_02", "PIS_ID_03", "PIS_ID_04", "PIS_ID_05"] # ...
+cam_front = 'cam4'
+cam_top = 'cam3'
+cam_face1 = 'cam1'
+cam_face2 = 'cam2'
+subjects_descr = ["personL", "personR"]  # implies there are 2 people visible in the video
+metric_types = ['point_cloud_metrics', 'goekces metrics']
+annot_types = ["daya labels"]
+keypoints = 'coco_wholebody'
+path_to_annots = "/dayas annots todo"
+path_to_calibs = "todo"
+video_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
+calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
+
+
+[mpi_inf_3dhp]
+participant_IDs = ["S1", "S2", "S3", "S4"] # ...
+cam_front = 'video_8'
+cam_top = 'video_5'
+cam_face1 = ''
+cam_face2 = ''
+subjects_descr = ["person"]  # implies that the video shows a single person
+metric_type = ['point_cloud_metrics', 'goekces metrics']
+annot_types = ['keypoints'] # ["3d_keypoints", "2d_keypoints"]
+keypoints = 'human36m'
+path_to_annots = "<datasets_folder_path>/mpi_inf_3dhp/annotations_cams_5_8.npz"
+path_to_calibs = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/<sequence_ID>/camera.calibration"
+video_folder = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/Seq1/imageSequence"
+calibration_file = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/Seq1/camera.calibration"
+

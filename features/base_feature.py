@@ -15,7 +15,7 @@ class BaseFeature(ABC):
     Class to setup and run follow-up computations. Input is always the output of any detector
     """
 
-    def __init__(self, config, io) -> None:
+    def __init__(self, config, io, data) -> None:
         """InitializeMethod class.
 
         Parameters
@@ -45,7 +45,7 @@ class BaseFeature(ABC):
         self.result_folder = io.get_output_folder(self.name, 'result')
         self.viz_folder = io.get_output_folder(self.name, 'visualization')
 
-        self.subjects_descr = io.subjects_descr
+        self.subjects_descr = data.subjects_descr
 
         # save this method config
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
