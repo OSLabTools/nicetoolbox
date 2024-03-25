@@ -38,7 +38,7 @@ def compare_saved3d_data_values_with_triangulation_through_json(prediction_folde
     while i < 5:
         camera1_path = prediction_folders[camera_names[0]]
         camera2_path=prediction_folders[camera_names[1]]
-        filelist_cam1 = os.listdir(camera1_path)
+        filelist_cam1 = sorted(os.listdir(camera1_path))
         # Randomly select a filename
         random_filename_cam1 = random.choice(filelist_cam1)
         # get file from each camera
@@ -47,7 +47,7 @@ def compare_saved3d_data_values_with_triangulation_through_json(prediction_folde
         # Find the index of the randomly selected filename
         index_of_random_filename = filelist_cam1.index(random_filename_cam1)
         # get the name of hdf5 file
-        hdf5_file = [f for f in os.listdir(results_folder) if "3d" in f][0]
+        hdf5_file = [f for f in sorted(os.listdir(results_folder)) if "3d" in f][0]
         mmpose_parser = MMPoseParser("coco_wholebody")  # TODO get framework name
         number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path_cam1)
         # find the keypoint location in original json

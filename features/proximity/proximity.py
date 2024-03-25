@@ -39,7 +39,7 @@ class Proximity(BaseFeature):
 
         # will be used during visualizations
         self.frames_data = os.path.join(pose_config['input_data_folder'], self.camera_names[1]) ##ToDo select camera4 using camera_names[1] hardcoded
-        self.frames_data_list = [os.path.join(self.frames_data, f) for f in os.listdir(self.frames_data)]
+        self.frames_data_list = [os.path.join(self.frames_data, f) for f in sorted(os.listdir(self.frames_data))]
         self.used_keypoints = config["used_keypoints"]
         # proximity index
         for keypoint in self.used_keypoints:

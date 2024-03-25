@@ -14,7 +14,19 @@ keypoints = 'coco_wholebody'
 path_to_annots = "/dayas annots todo"
 path_to_calibs = "todo"
 video_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
-calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/camera_params_calibio_2020-08-12.json"
+calibration_filename = ""
+calibration_file = "<pis_folder_path>/<participant_ID>/Calibration/rescaled25/<calibration_filename>"
+[ours.calibration_file_mapping]
+"PIS_ID_000" = "camera_params_calibio_2020-08-11.json"
+'PIS_ID_02' = 'camera_params_calibio_2020-08-11.json'
+'PIS_ID_03' = 'camera_params_calibio_2020-08-11.json'
+'PIS_ID_04' = 'camera_params_calibio_2020-08-12.json'
+'PIS_ID_05' = 'camera_params_calibio_2020-08-12.json'
+'PIS_ID_06' = 'camera_params_calibio_2020-08-12.json'
+'PIS_ID_07' = 'camera_params_calibio_2020-08-12.json'
+'PIS_ID_08' = 'camera_params_calibio_2020-08-12.json'
+'PIS_ID_09' = 'camera_params_calibio_2020-08-13.json'
+'PIS_ID_666' = 'camera_params_calibio_2020-08-13.json'
 
 
 [mpi_inf_3dhp]

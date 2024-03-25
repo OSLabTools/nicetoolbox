@@ -64,7 +64,7 @@ def main(config):
             [np.array(expressions[cam]) for cam in config["camera_names"]],
             config["subjects_descr"],
             os.path.join(config["result_folder"], f"expressions.hdf5"),
-            index=os.listdir(input_folder)
+            index=sorted(os.listdir(input_folder))
     )
     fh.save_toml(
             {'expression_names':

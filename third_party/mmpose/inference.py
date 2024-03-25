@@ -108,7 +108,7 @@ def main(config):
         save_file_name = os.path.join(config["intermediate_results"],
                                       f"algorithm_predictions_{camera_name}.hdf5")
         fh.save_to_hdf5(person_results_list, config["subjects_descr"],
-                        save_file_name, index=os.listdir(camera_folder))
+                        save_file_name, index=sorted(os.listdir(camera_folder)))
 
     # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
     # sc.compare_data_values_with_saved_json(

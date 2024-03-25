@@ -9,6 +9,7 @@ import logging
 from oslab_utils.system import detect_os_type
 from oslab_utils.config import save_config
 import oslab_utils.filehandling as fh
+import oslab_utils.system as system
 
 
 class BaseDetector(ABC):
@@ -100,8 +101,11 @@ class BaseDetector(ABC):
                   f"Detector not running.")
 
         # run in terminal/cmd
-        # TODO: check whether the following works on Windows
-        cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
+        if system.detect_os_type() == 'windows':
+            cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True)
+        else:
+            cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
+
 
         if cmd_result.returncode == 0:
             logging.info(f"INFERENCE Pipeline - SUCCESS.")

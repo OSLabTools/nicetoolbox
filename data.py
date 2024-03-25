@@ -354,7 +354,7 @@ class Data:
             logging.info(f"DATA creation completed.")
 
     def get_inputs_list(self, data_format, camera_names):
-        input_formats = [name in '_'.join(os.listdir(self.video_folder)) for
+        input_formats = [name in '_'.join(sorted(os.listdir(self.video_folder))) for
                          name in ['mp4', 'avi']]
         assert sum(input_formats) == 1, \
             f"Multiple or no valid input format found in " \

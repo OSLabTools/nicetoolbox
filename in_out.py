@@ -140,7 +140,7 @@ class IO:
 
             base = folder_name.split(token)[0][:-1]
             try:
-                _ = os.listdir(base)
+                _ = sorted(os.listdir(base))
             except OSError:
                 logging.exception(f"'{base}' is not an accessible directory.")
                 raise

@@ -35,14 +35,14 @@ def compare_data_values_with_saved_json(predictions_folder,intermediate_results_
     while i < 5:
         for camera_name in camera_list:
             camera_folder = predictions_folder[camera_name]
-            filelist = os.listdir(camera_folder)
+            filelist = sorted(os.listdir(camera_folder))
             # Randomly select a filename
             random_filename = random.choice(filelist)
             random_filename_path = os.path.join(camera_folder, random_filename)
             # Find the index of the randomly selected filename
             index_of_random_filename = filelist.index(random_filename)
             # get the name of hdf5 file
-            hdf5_file = [f for f in os.listdir(intermediate_results_folder) if camera_name in f][0]
+            hdf5_file = [f for f in sorted(os.listdir(intermediate_results_folder)) if camera_name in f][0]
             mmpose_parser = parser.MMPoseParser("coco_wholebody")  # TODO get framework name
             number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path)
 

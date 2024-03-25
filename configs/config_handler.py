@@ -62,8 +62,8 @@ class Configuration:
 
         dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
         self.dataset_config = load_config(dataset_config_file)
-
         self.current_data_config = None
+
 
         #self.check_config()
 
@@ -107,10 +107,12 @@ class Configuration:
             for video_config in dataset_dict['videos']:
                 video_config.update(dataset_name=dataset_name)
                 video_config.update(self.dataset_config[dataset_name])
+                if 'calibration_file_mapping' in video_config.keys():
+                    video_config['calibration_filename'] = video_config['calibration_file_mapping'][video_config['participant_ID']]
+                print(video_config['calibration_file'])
                 video_config.update(self.get_io_config())
-
                 self.current_data_config = self.localize(video_config)
-
+                print(self.current_data_config['calibration_file'])
                 yield self.current_data_config, dataset_dict['methods'], dataset_dict['features']
 
     def get_method_configs(self, method_names):
@@ -153,7 +155,7 @@ class Configuration:
         if '' in all_camera_names:
             all_camera_names.remove('')
         return all_camera_names
-        
+
     def get_all_input_data_formats(self, method_names):
         data_formats = set()
         for detector in method_names:
@@ -192,7 +194,7 @@ class Configuration:
             logging.exception("Failed loading the calibration file.")
             raise
         try:
-            _ = os.listdir(self.dataset_config['video_folder'])
+            _ = sorted(os.listdir(self.dataset_config['video_folder']))
         except OSError:
             logging.exception(
                 f"The given video folder is not an accessible directory.")

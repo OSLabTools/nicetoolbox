@@ -125,7 +125,7 @@ class PoseDetector(BaseDetector):
 
             camera_frames_list = [os.path.basename(f).split(".")[0] for sublist in self.frame_list for f in sublist if
                                   self.camera_names[0] in f]  # since each frame inside a list #ToDo read from camera_folder
-            prediction_files = [os.path.join(self.intermediate_results,f) for f in os.listdir(self.intermediate_results) if "hdf5" in f]
+            prediction_files = [os.path.join(self.intermediate_results,f) for f in sorted(os.listdir(self.intermediate_results)) if "hdf5" in f]
             cam1_data_path = [f for f in prediction_files if self.camera_names[0] in f][0]
             cam2_data_path = [f for f in prediction_files if self.camera_names[1] in f][0]
             cam1_data, _ = fh.read_hdf5(cam1_data_path)

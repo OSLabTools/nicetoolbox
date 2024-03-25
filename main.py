@@ -31,15 +31,15 @@ import oslab_utils.logging_utils as log_ut
 all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
 #        ethXgaze=ETHXGaze,
-        xgaze_3cams=XGaze3cams,
-        mmpose=PoseDetector,
-        emoca=Emoca,
-        active_speaker=SPELL
+#        xgaze_3cams=XGaze3cams,
+        mmpose=PoseDetector
+#        emoca=Emoca,
+#        active_speaker=SPELL
 )
 
 all_features = dict(kinematics=Kinematics,
                     proximity=Proximity,
-                    gazeDistance=GazeDistance,
+                    #gazeDistance=GazeDistance,
                     leaning=Leaning)
 
 
@@ -97,7 +97,7 @@ def main():
 
 def sync_dataset_configs(filename='dataset_properties.toml'):
     def listdir_absolut_paths(path):
-        return [name for name in os.listdir(path)
+        return [name for name in sorted(os.listdir(path))
                 if os.path.isdir(os.path.join(path, name))]
 
     def get_user_input(text, options):

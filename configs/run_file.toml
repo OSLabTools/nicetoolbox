@@ -19,10 +19,12 @@ git_hash = "<git_hash>"
 # - annotation_interval (int) in seconds, length of segments
 
 #[run.ours]
-#methods = ["mmpose", "xgaze_3cams", "active_speaker", "emoca"]
-#features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
+#methods = ["mmpose"]
+#features = ["proximity", "leaning", "kinematics"]
 #videos = [
-#    {participant_ID = "PIS_ID_04", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2}
+#    {participant_ID = "PIS_ID_04", sequence_ID='Seq1', video_start = 0, video_length = 20, video_skip_frames = false, annotation_interval = 2},
+#    {participant_ID = "PIS_ID_05", sequence_ID='Seq1', video_start = 50, video_length = 20, video_skip_frames = false, annotation_interval = 2}
+#
 #]
 
 [run.mpi_inf_3dhp]
