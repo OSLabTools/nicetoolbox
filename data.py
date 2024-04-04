@@ -239,13 +239,17 @@ class Data:
                         intrinsic_matrix=K[:3, :3].tolist(),
                         distortions=[0, 0, 0, 0],
                         rotation_matrix=Rt[:3, :3].tolist(),
-                        rvec=cv2.Rodrigues(Rt[:3, :3])[0],
-                        translation=Rt[2:3, :3].tolist(),
+                        rvec=cv2.Rodrigues(Rt[:3, :3])[0].tolist(),
+                        translation = Rt[:3, -1].reshape(-1, 1).tolist(),
                         extrinsics_matrix=Rt[:3].tolist(),
                         projection_matrix=create_projection_matrix(
                                 K[:3, :3], Rt[:3]).tolist()
                 )})
 
+        #calib_file = os.path.join(self.data_folder, "mpi_inf_3dhp_calib_params.json")  ## TODO need to be added subject and seq if will be saved here
+        #with open(calib_file, "w") as file:
+        #    json.dump(calib, file)
+        #file.close()
         return calib
 
     def data_initialization(self):
