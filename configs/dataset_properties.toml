@@ -8,6 +8,7 @@ cam_top = 'cam3'
 cam_face1 = 'cam1'
 cam_face2 = 'cam2'
 subjects_descr = ["personL", "personR"]  # implies there are 2 people visible in the video
+cam_sees_subjects = {cam1 = [0], cam2 = [1], cam3 = [0, 1], cam4 = [0, 1]}  # order subjects f.l.t.r., indices from subjects_descr, start with 0
 metric_types = ['point_cloud_metrics', 'goekces metrics']
 annot_types = ["daya labels"]
 keypoints = 'coco_wholebody'
@@ -36,7 +37,8 @@ cam_top = 'video_5'
 cam_face1 = ''
 cam_face2 = ''
 subjects_descr = ["person"]  # implies that the video shows a single person
-metric_type = ['point_cloud_metrics', 'goekces metrics']
+cam_sees_subjects = {video_5 = [0], video_8 = [0]}
+metric_type = ['point_cloud_metrics', 'keypoint_metrics']
 annot_types = ['keypoints'] # ["3d_keypoints", "2d_keypoints"]
 keypoints = 'human36m'
 path_to_annots = "<datasets_folder_path>/mpi_inf_3dhp/annotations.npz"

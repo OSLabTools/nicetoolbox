@@ -31,7 +31,7 @@ import oslab_utils.logging_utils as log_ut
 all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
 #        ethXgaze=ETHXGaze,
-#        xgaze_3cams=XGaze3cams,
+        xgaze_3cams=XGaze3cams,
         mmpose=PoseDetector
 #        emoca=Emoca,
 #        active_speaker=SPELL
@@ -39,7 +39,7 @@ all_methods = dict(
 
 all_features = dict(kinematics=Kinematics,
                     proximity=Proximity,
-                    #gazeDistance=GazeDistance,
+                    gazeDistance=GazeDistance,
                     leaning=Leaning)
 
 

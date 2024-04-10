@@ -78,13 +78,18 @@ def main(config, debug=False):
 
             # loop over the cameras and predict the gaze for each in 2d
             for image, landmarks, cam_name in zip(images, landmarks_frame_id, camera_names):
-                if landmarks is None:
+
+                # is this subject visible in the camera? and were landmarks predicted?
+                if sub_id not in config['cam_sees_subjects'][cam_name] or landmarks is None:
                     continue
+                # where to find this subject 'sub_id' in camera 'cam_name'
+                sub_cam_id = config['cam_sees_subjects'][cam_name].index(sub_id)
+                
                 cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                         config['calibration'], cam_name, image)
                 pred_gaze = gaze_estimator.gaze_estimation(
                         image,
-                        landmarks[sub_id],
+                        landmarks[sub_cam_id],
                         cam_matrix,
                         cam_distor
                 )
@@ -103,18 +108,21 @@ def main(config, debug=False):
         for image, landmarks, cam_name, file_path in (
                 zip(images, landmarks_frame_id, camera_names, file_paths)):
             
-            if landmarks is not None:                
+            if landmarks is not None: 
                 cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                         config['calibration'], cam_name, image)
 
                 for sub_id in range(n_subjects):
-                    if landmarks[sub_id] is None:
+                    if sub_id not in config['cam_sees_subjects'][cam_name]:
                         continue
+
+                    # where to find this subject 'sub_id' in camera 'cam_name'
+                    sub_cam_id = config['cam_sees_subjects'][cam_name].index(sub_id)
 
                     # convert the gaze to current camera coordinate system
                     gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
                     draw_gaze_dir = vector_to_pitchyaw(gaze_cam).reshape(-1)
-                    face_center = np.mean(landmarks[sub_id], axis=0)
+                    face_center = np.mean(landmarks[sub_cam_id], axis=0)
                     draw_gaze(image,
                               draw_gaze_dir,
                               thickness=2,

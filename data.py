@@ -45,6 +45,7 @@ class Data:
             else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
         self.subjects_descr = config['subjects_descr']
+        self.cam_sees_subjects = config['cam_sees_subjects']
 
         # collect which data slices and formats are required
         self.data_formats = data_formats
@@ -276,6 +277,7 @@ class Data:
             frame_indices_list = set()
             for filename in data_list:
                 if 'frames' in filename:
+                    #TODO!! inconsistency in self.frames_list shape
                     self.frames_list.append(filename)
                     frame_indices_list.add(int(os.path.basename(filename)[:-4]))
                 elif 'segments' in filename:

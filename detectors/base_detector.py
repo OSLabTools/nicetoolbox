@@ -38,6 +38,7 @@ class BaseDetector(ABC):
         config['calibration'] = data.calibration
         config['subjects_descr'] = data.subjects_descr
         self.subjects_descr = data.subjects_descr
+        config['cam_sees_subjects'] = data.cam_sees_subjects
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
@@ -109,10 +110,10 @@ class BaseDetector(ABC):
 
         if cmd_result.returncode == 0:
             logging.info(f"INFERENCE Pipeline - SUCCESS.")
+            self.post_inference()
+
         else:
             logging.error(f"INFERENCE Pipeline - ERROR occurred with return code {cmd_result.returncode}")
-
-        self.post_inference()
 
     def post_inference(self):
         """ Post-processing after inference
