@@ -30,18 +30,27 @@ env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
 resolution = [1000, 700] # ToDo - after implement bbox intersection calculation, get rid of this
-device = "cuda:0"
+device = "cuda:0" #cuda:0
 filtered = true
-window_length = 11
+window_length = 5
 polyorder = 2
 
 [methods.mmpose.hrnetw48]
 pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
-pose_checkpoint = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
+pose_checkpoint = "<assets>/mmpose/configs/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
 detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
 detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
+
+[methods.mmpose.vitpose]
+pose_config = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192.py"
+pose_checkpoint = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
+detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
+detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+keypoint_mapping = "coco_wholebody"
+min_detection_confidence = 0.5
+
 
 [methods.emoca]
 input_data_format = "frames"

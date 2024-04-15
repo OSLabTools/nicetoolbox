@@ -35,6 +35,23 @@ update installation files/instructions.
 `/is/sg2/cschmitt/source/anaconda3`. On your system, open a command line and 
 type `which conda` to help find this path.
 
+### 3. Install the necessary libraries (in Linux)
+
+The installation script (installation/install_all: 
+1. Setup isa-tool environment
+2. Setup conda environment for Openmmlab (pose detector)
+3. Setup venv environment for Gaze Detector
+
+How-to:
+Open a terminal and navigate to main directory where isa-tool then type the followings into terminal
+
+```
+git clone https://gitlab.tuebingen.mpg.de/cschmitt/isa-tool.git 
+git clone https://gitlab.tuebingen.mpg.de/cschmitt/oslab_utils.git
+cd isa-tool/installation
+chmod +x installation_all.sh # to add executable permission to the script
+./install_all.sh # to install all necessary libraries
+```
 
 ## Installation
 
