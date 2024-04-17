@@ -80,10 +80,15 @@ def main(config, debug=False):
             for image, landmarks, cam_name in zip(images, landmarks_frame_id, camera_names):
 
                 # is this subject visible in the camera? and were landmarks predicted?
-                if sub_id not in config['cam_sees_subjects'][cam_name] or landmarks is None:
+                subjects_by_cam = config['cam_sees_subjects'][cam_name]
+                if (landmarks is None) or (sub_id not in subjects_by_cam) or (len(landmarks) != len(subjects_by_cam)):
                     continue
                 # where to find this subject 'sub_id' in camera 'cam_name'
-                sub_cam_id = config['cam_sees_subjects'][cam_name].index(sub_id)
+                sub_cam_id = subjects_by_cam.index(sub_id)
+
+                # DEBUGGING
+                # for p in landmarks[0]:
+                #     image[p.astype(int)[1], p.astype(int)[0]] = [0, 0, 255]
                 
                 cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                         config['calibration'], cam_name, image)
@@ -108,7 +113,7 @@ def main(config, debug=False):
         for image, landmarks, cam_name, file_path in (
                 zip(images, landmarks_frame_id, camera_names, file_paths)):
             
-            if landmarks is not None: 
+            if (landmarks is not None) and (len(landmarks) == len(config['cam_sees_subjects'][cam_name])): 
                 cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
                         config['calibration'], cam_name, image)
 
