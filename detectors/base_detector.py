@@ -92,7 +92,7 @@ class BaseDetector(ABC):
         elif self.venv == 'venv':
             # create terminal command
             if os_type == 'windows':
-                command = f'cmd "/c source {self.venv_path} && ' \
+                command = f'cmd "/c {self.venv_path} && ' \
                           f'python {self.script_path} {self.config_path}"'
             elif os_type == "linux":
                 command = f"source {self.venv_path} && " \
@@ -101,6 +101,7 @@ class BaseDetector(ABC):
         else:
             print(f"WARNING! venv '{self.venv}' is not known. "
                   f"Detector not running.")
+
         # run in terminal/cmd
         if system.detect_os_type() == 'windows':
             cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True)
@@ -115,7 +116,7 @@ class BaseDetector(ABC):
         else:
             logging.error(f"INFERENCE Pipeline - ERROR occurred with return code {cmd_result.returncode}")
             logging.error(f"INFERENCE Pipeline - ERROR: {cmd_result.stderr}")
-            logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
+        logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
 
     def post_inference(self):
         """ Post-processing after inference

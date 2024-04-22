@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import oslab_utils.logging_utils as log_ut
 
 def visualize_proximity_score(data, output_folder, keypoint):
     plt.clf()
@@ -26,7 +25,9 @@ def visualize_proximity_score(data, output_folder, keypoint):
 def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
 
-    log_ut.assert_and_log(len(data) == 1, f"The data shape is wrong. Data should be given as into a list")
+    if len(data)!=1:
+        logging.error("The data shape is wrong. Data should be given as into a list")
+
     data = data[0]
     fig, ax = plt.subplots(1, 1, figsize=(20, 4))
     fig.patch.set_facecolor('black')

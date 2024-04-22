@@ -13,6 +13,7 @@ from oslab_utils.video import equal_splits_by_frames, get_fps, \
 import oslab_utils.system as oslab_sys
 import oslab_utils.video as vid
 import oslab_utils.check_and_exception as exc
+import shutil
 
 
 class Data:
@@ -76,8 +77,13 @@ class Data:
         return filepath
 
     def get_venv_path(self, detector_name, env_name):
-        filepath = os.path.join(self.code_folder, 'third_party', detector_name,
-                                f'{env_name}/bin/activate')
+        os_type = oslab_sys.detect_os_type()
+        if os_type == "linux":
+            filepath = os.path.join(self.code_folder, 'third_party', detector_name,
+                                    f'{env_name}/bin/activate')
+        elif os_type == "windows":
+            filepath = os.path.join(self.code_folder, 'third_party', detector_name,env_name, 'Scripts', 'activate')
+        print(filepath)
         try:
             exc.file_exists(filepath)
         except FileNotFoundError:
@@ -434,9 +440,16 @@ class Data:
                         cam_name = cam_name[: cam_name.find('\\')]
                     else:
                         logging.error("Unknown os type in create_symlink_input_folder")
-                    os.symlink(filename,
-                               os.path.join(data_folder, cam_name,
-                                            os.path.basename(filename)))
+
+                    try:
+                        ## TODO: DEbugging runner symlink -- temporarily deactiated symlink creation
+
+                        os.symlink(filename,
+                                   os.path.join(data_folder, cam_name,
+                                                os.path.basename(filename)))
+
+                    except OSError as e:
+                        logging.error(f"Error creating symlink: {e}")
 
             # #assertion
             # for camera_name in camera_names:

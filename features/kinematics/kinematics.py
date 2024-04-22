@@ -4,9 +4,8 @@ import logging
 from features.base_feature import BaseFeature
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
-import oslab_utils.logging_utils as log_ut
 import features.kinematics.utils as kinematics_utils
-import tests.test_data as test_data
+import oslab_utils.check_and_exception as check
 
 
 class Kinematics(BaseFeature):
@@ -120,13 +119,12 @@ class Kinematics(BaseFeature):
             person_data_list.append(result)
 
         if len(person_data_list) == 2:
-            log_ut.assert_and_log(
-                person_data_list[0].shape == person_data_list[1].shape,
-                f"Shape mismatch: Shapes for personL and personR are not the same.")
+            if person_data_list[0].shape != person_data_list[1].shape:
+                logging.error(f"Shape mismatch: Shapes for personL and personR are not the same.")
 
         #check if any [0,0,0] prediction
         for person_results in person_data_list:
-            test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
+            check.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
 
         return person_data_list
 

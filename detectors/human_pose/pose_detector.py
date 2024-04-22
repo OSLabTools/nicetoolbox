@@ -10,8 +10,7 @@ import detectors.human_pose.utils as utils
 import oslab_utils.triangulation as tri
 import oslab_utils.filehandling as fh
 import subprocess
-import tests.test_data as test_data
-import oslab_utils.logging_utils as log_ut
+import oslab_utils.check_and_exception as check
 from detectors.human_pose.filters import SGFilter
 
 
@@ -89,7 +88,9 @@ class PoseDetector(BaseDetector):
 
         success = True
         for camera in self.camera_names:
-            log_ut.assert_and_log(os.listdir(self.image_folders[camera]) != [], "Image folder is empty") #ToDo camera hardcoded
+            if os.listdir(self.image_folders[camera]) == []:
+                logging.error("Image folder is empty")
+
             image_base = os.path.join(self.image_folders[camera],"%05d.png")
             output_path = os.path.join(self.viz_folder, f"{self.name}_{camera}.mp4")
 
@@ -97,9 +98,10 @@ class PoseDetector(BaseDetector):
             cmd = f"ffmpeg -framerate {str(30)} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
             # Use the subprocess module to execute the command
             cmd_result = subprocess.run(cmd, shell=True)
+            if cmd_result.returncode != 0:
+                logging.error(f"FFMPEG video creation failed. Return code {cmd_result.returncode}")
 
             success *= 1 if os.path.isfile(output_path) else 0
-            log_ut.assert_and_log(cmd_result.returncode == 0, f"FFMPEG video creation failed. Return code {cmd_result.returncode}")
 
         if success:
             logging.info(f"VISUALIZATION {self.name} - SUCCESS")
@@ -131,9 +133,9 @@ class PoseDetector(BaseDetector):
             cam1_data, _ = fh.read_hdf5(cam1_data_path)
             cam2_data, _ = fh.read_hdf5(cam2_data_path)
 
-            log_ut.assert_and_log(
-                len(cam1_data) == len(cam2_data) == len(self.subjects_descr),
-                "Loaded prediction results differ in the number of persons.")
+            if len(cam1_data) != len(cam2_data) != len(self.subjects_descr):
+                logging.error("Loaded prediction results differ in the number of persons.")
+
             person_data_list = []
             for i in range(len(self.subjects_descr)):
                 person_cam1 = cam1_data[i]
@@ -177,12 +179,12 @@ class PoseDetector(BaseDetector):
 
             if len(self.subjects_descr) == 2:
                 # check person data shape
-                log_ut.assert_and_log(person_data_list[0].shape == person_data_list[
-                    1].shape, f"Shape mismatch: Shapes for personL and personR are not the same.")
+                if person_data_list[0].shape != person_data_list[1].shape:
+                    logging.error(f"Shape mismatch: Shapes for personL and personR are not the same.")
 
             # check if any [0,0,0] prediction
             for person_data in person_data_list:
-                test_data.check_zeros(person_data)
+                check.check_zeros(person_data)
             # save results
             filepath = os.path.join(self.result_folder, f"{self.name}_3d.hdf5")
             fh.save_to_hdf5(person_data_list, groups_list=self.subjects_descr,

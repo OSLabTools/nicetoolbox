@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import oslab_utils.logging_utils as log_ut
 
 
 def calculate_angle_btw_three_points(data):
@@ -34,7 +33,8 @@ def calculate_angle_btw_three_points(data):
     return angles_deg
 
 def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_folder):
-    log_ut.assert_and_log(len(hip_angle_person_list)==len(person_list), "Number of subjects and data shape mismatch!")
+    if len(hip_angle_person_list)!=len(person_list):
+        logging.error("Number of subjects and data shape mismatch!")
     fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
     axes = axes.reshape(2, len(person_list))
     plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees '
@@ -62,7 +62,8 @@ def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_
 def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
     colors = ['#98FB98', '#FFB347', '#DDA0DD', '#ADD8E6']
-    log_ut.assert_and_log(len(data) == 2, f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
+    if len(data) != 2:
+        logging.error(f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
     dataL, dataR = data
     axL.clear()
     axR.clear()

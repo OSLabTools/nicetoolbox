@@ -5,10 +5,7 @@ import cv2
 from features.base_feature import BaseFeature
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
-import oslab_utils.logging_utils as log_ut
 import features.proximity.utils as pro_utils
-import tests.test_data as test_data
-
 
 class Proximity(BaseFeature):
     """
@@ -43,8 +40,8 @@ class Proximity(BaseFeature):
         self.used_keypoints = config["used_keypoints"]
         # proximity index
         for keypoint in self.used_keypoints:
-            log_ut.assert_and_log(keypoint in self.predictions_mapping["keypoints_index"]["body"].keys(),
-                                  f"Given used_keypoint could not find in predictions_mapping {keypoint}")
+            if keypoint not in self.predictions_mapping["keypoints_index"]["body"].keys():
+                logging.error(f"Given used_keypoint could not find in predictions_mapping {keypoint}")
         self.keypoint_index = \
             [self.predictions_mapping["keypoints_index"]["body"][keypoint]
              for keypoint in self.used_keypoints]

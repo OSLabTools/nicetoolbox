@@ -1,11 +1,14 @@
 import os
 import sys
 import numpy as np
-from mmpose.apis import MMPoseInferencer
-import third_party.file_handling as fh
-import output_sanity_checks as sc
-#import tests.test_data as test_data
 import logging
+from mmpose.apis import MMPoseInferencer
+
+sys.path.append("./third_party/mmpose")
+sys.path.append("./third_party")
+import file_handling as fh
+#import output_sanity_checks as sc
+#import tests.test_data as test_data
 
 
 def convert_output_to_numpy(data, num_persons, person_threshold):
@@ -63,9 +66,10 @@ def main(config):
     for camera_name in config["camera_names"]:
         logging.info(f'Camera - {camera_name}')
         camera_folder = os.path.join(config["input_data_folder"], camera_name)
+        logging.info(f'Camera folder- {camera_folder}')
 
-        fh.assert_and_log(os.path.exists(camera_folder), f"Data folder for camera: {camera_name} could not find")
-
+        if not os.path.exists(camera_folder):
+            logging.error(f"Data folder for camera: {camera_name} could not find")
 
         # camera_frames_list = [f for sublist in config["frames_list"] for f in sublist if camera_name in f] #since each frame inside a list
         #
@@ -78,6 +82,8 @@ def main(config):
 
         #inference_log = os.path.join(config["method_tmp_folder"], "inference_log.txt") # ToDo add inference log
         # inference
+        # Load the image
+        
         if config["save_images"]:
             result_generator = inferencer(camera_folder,
                                           pred_out_dir=config["prediction_folders"][camera_name],
@@ -96,9 +102,8 @@ def main(config):
 
         if len(config["subjects_descr"]) == 2:
             # check person data shape
-            fh.assert_and_log(
-                person_results_list[0].shape == person_results_list[1].shape,
-                f"Shape mismatch: Shapes for personL and personR are not the same.")
+            if person_results_list[0].shape == person_results_list[1].shape:
+                logging.error(f"Shape mismatch: Shapes for personL and personR are not the same.")
 
         #check if any [0,0,0] prediction
         #for person_results in person_results_list:

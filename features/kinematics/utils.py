@@ -4,7 +4,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-import oslab_utils.logging_utils as log_ut
 
 PART_MAPPING = {
     "body": {'color': '#AEC6CF', 'size': 12, 'indices': list(range(0, 17))}, #pastel Blue
@@ -53,7 +52,8 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
 def frame_with_linegraph(frame, data, categories, current_frame, global_min, global_max):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
 
-    log_ut.assert_and_log(len(data) == 2, f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
+    if len(data) != 2:
+        logging.error(f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
     dataL, dataR = data
 
     fig, (axL, axR) = plt.subplots(1, 2, figsize=(10, 4))
