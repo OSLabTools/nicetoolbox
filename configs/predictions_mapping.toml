@@ -19,7 +19,6 @@
 "right_knee" = 14
 "left_ankle" = 15
 "right_ankle" = 16
-[human_pose.coco_wholebody.keypoints_index.foot]
 "left_bigtoe" =  17
 "left_smalltoe" = 18
 "left_heel" = 19

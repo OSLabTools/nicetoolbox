@@ -116,7 +116,7 @@ class BaseDetector(ABC):
         else:
             logging.error(f"INFERENCE Pipeline - ERROR occurred with return code {cmd_result.returncode}")
             logging.error(f"INFERENCE Pipeline - ERROR: {cmd_result.stderr}")
-        logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
+            logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
 
     def post_inference(self):
         """ Post-processing after inference

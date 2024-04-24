@@ -43,7 +43,7 @@ def convert_output_to_numpy(data, num_persons, person_threshold):
         raise NotImplementedError(
                 "MMPose post-inference results conversion is not implemeted "
                 "yet for scenes with no or 3 or more people.")
-    return predictions_data, ['keypoint_0', 'keypoint_1', 'score']
+    return predictions_data, ['coordinate_x', 'coordinate_y', 'confidence_score']
 
 def main(config):
     """ Run inference of the method on the pre-loaded image
@@ -97,6 +97,7 @@ def main(config):
                                           pred_out_dir=config["prediction_folders"][camera_name],
                                           show=False)
             results = [r for r in result_generator]
+
         ### convert results to numpy array
         # output personL, personR
         person_results_list, data_descr = convert_output_to_numpy(results, len(config["subjects_descr"]),  config["person_threshold"])
@@ -118,8 +119,9 @@ def main(config):
 
         if len(config["subjects_descr"]) == 2:
             # check person data shape
-            if person_results_list[0].shape == person_results_list[1].shape:
-                logging.error(f"Shape mismatch: Shapes for personL and personR are not the same.")
+            if person_results_list[0].shape != person_results_list[1].shape:
+                logging.error(f"Shape mismatch: Shapes for personL {person_results_list[0].shape} "
+                              f"and personR are not the same. {person_results_list[1].shape}")
 
         #check if any [0,0,0] prediction
         #for person_results in person_results_list:

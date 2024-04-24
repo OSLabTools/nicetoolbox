@@ -13,6 +13,7 @@ from oslab_utils.video import equal_splits_by_frames, get_fps, \
 import oslab_utils.system as oslab_sys
 import oslab_utils.video as vid
 import oslab_utils.check_and_exception as exc
+import oslab_utils.in_out as ut_in_out
 import shutil
 
 
@@ -455,45 +456,55 @@ class Data:
         data_folder = os.path.join(
                 self.data_folder, 'symlink_input_folders', folder_name)
 
-        if not os.path.isdir(data_folder):
-            # create all folders and subfolders
-            os.makedirs(data_folder, exist_ok=True)
-            for camera_name in camera_names:
-                os.makedirs(os.path.join(data_folder, camera_name), exist_ok=True)
+        # get the list of needed input files
+        input_format = self.get_input_format(camera_names)
+        source_file_list = self.get_inputs_list(input_format, data_format, camera_names)
 
-            # get the list of needed input files
-            input_format = self.get_input_format(camera_names)
-            file_list = self.get_inputs_list(input_format, data_format, camera_names)
+        # Check if the data folder & symlinks inside is already exists.
+        if os.path.isdir(data_folder):
+            logging.info(f"Data folder is found'{data_folder}' - Checking if the symlinks are valid")
+            existing_symlink_list = ut_in_out.list_files_under_root(data_folder)
+            if len(source_file_list) != len(existing_symlink_list):
+                logging.info(f"Checking data folder - Number of files in the existing data folder does not match. "
+                             f"New symlinks will be created")
+                # delete already existing symlinks
+                ut_in_out.delete_files_into_list(existing_symlink_list)
+            #check if the first file into list is a valid file
+            elif not os.path.isfile(existing_symlink_list[0]):
+                logging.info(f"Checking data folder - Symlink is not valid New symlinks will be created")
+                # delete already existing symlinks
+                ut_in_out.delete_files_into_list(existing_symlink_list)
+            else:
+                logging.info(f"Symlinks are found in {data_folder}")
+                return data_folder
 
-            # create symbolic links
-            for filename in file_list:
-                if not os.path.exists(filename):
-                    logging.warning(f"WARNING! file '{filename}' does not exist!")
+        # create all folders and subfolders
+        os.makedirs(data_folder, exist_ok=True)
+        for camera_name in camera_names:
+            os.makedirs(os.path.join(data_folder, camera_name), exist_ok=True)
 
+        # create symbolic links
+        logging.info(f"Creating symlinks under {data_folder}")
+        for source_file in source_file_list:
+            if not os.path.exists(source_file):
+                logging.warning(f"WARNING! data file '{source_file}' does not exist!")
+
+            else:
+                indices = [source_file.find(name) for name in camera_names]
+                cam_name = source_file[max(indices):]
+                os_type = oslab_sys.detect_os_type()
+                if os_type == "linux":
+                    cam_name = cam_name[: cam_name.find('/')]
+                elif os_type == "windows":
+                    cam_name = cam_name[: cam_name.find('\\')]
                 else:
-                    indices = [filename.find(name) for name in camera_names]
-                    cam_name = filename[max(indices):]
-                    os_type = oslab_sys.detect_os_type()
-                    if os_type == "linux":
-                        cam_name = cam_name[: cam_name.find('/')]
-                    elif os_type == "windows":
-                        cam_name = cam_name[: cam_name.find('\\')]
-                    else:
-                        logging.error("Unknown os type in create_symlink_input_folder")
+                    logging.error("Unknown os type in create_symlink_input_folder")
 
-                    try:
-                        ## TODO: DEbugging runner symlink -- temporarily deactiated symlink creation
+                try:
+                    os.symlink(source_file,
+                               os.path.join(data_folder, cam_name,
+                                            os.path.basename(source_file)))
+                except OSError as e:
+                    logging.error(f"Error creating symlink: {e}")
 
-                        os.symlink(filename,
-                                   os.path.join(data_folder, cam_name,
-                                                os.path.basename(filename)))
-
-                    except OSError as e:
-                        logging.error(f"Error creating symlink: {e}")
-
-            # #assertion
-            # for camera_name in camera_names:
-            #     camera_path = os.path.join(data_folder, camera_name)
-            #     log_ut.assert_and_log(os.listdir(camera_path)!=[], f"Symlink input folder is empty {camera_name}")
-            #     os.rmdir(data_folder)
         return data_folder

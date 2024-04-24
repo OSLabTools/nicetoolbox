@@ -20,6 +20,9 @@ echo "ISA-Tool Environment setup completed successfully."
 echo "Setting up Python virtual environment for third_party/xgaze_3cams..."
 python3.10 -m venv third_party/xgaze_3cams/env
 source third_party/xgaze_3cams/env/bin/activate
+#install correct torch
+pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+
 
 echo "Installing requirements for third_party/xgaze_3cams..."
 python -m pip install -r third_party/xgaze_3cams/requirements.txt

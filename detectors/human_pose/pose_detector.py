@@ -71,6 +71,7 @@ class PoseDetector(BaseDetector):
         config['intermediate_results'] = self.intermediate_results
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
+        #config['threshold'] = self.threshold
 
         # then, call the base class init
         super().__init__(config, io, data)
@@ -179,7 +180,8 @@ class PoseDetector(BaseDetector):
             if len(self.subjects_descr) == 2:
                 # check person data shape
                 if person_data_list[0].shape != person_data_list[1].shape:
-                    logging.error(f"Shape mismatch: Shapes for personL and personR are not the same.")
+                    logging.error(f"Shape mismatch: Shapes for personL {person_data_list[0].shape} "
+                                  f"and personR are not the same. {person_data_list[1].shape}")
 
             # check if any [0,0,0] prediction
             for person_data in person_data_list:

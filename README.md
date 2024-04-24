@@ -35,157 +35,50 @@ update installation files/instructions.
 `/is/sg2/cschmitt/source/anaconda3`. On your system, open a command line and 
 type `which conda` to help find this path.
 
-### 3. Install the necessary libraries (in Linux)
+### 3. Installation
 
-The installation script (installation/install_all: 
+1. Clone the Isa-tool and oslab_utils (if not already installed) repositories and navigate into Isa-tool:
+```
+git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git
+git clone https://gitlab.tuebingen.mpg.de/cschmitt/oslab_utils.git 
+cd isa-tool/
+```
+2. (in Linux) Install the necessary libraries 
+
+<span style="color:red">
+**Important - Prerequisites:**
+</span>
+
+1. Python 3.10
+2. Conda is installed
+3. Cuda 11.8
+
+The installation scripts presume that Conda, CUDA 11.8, and Python 3.10 are already installed on your system. 
+Installation via Conda is mandatory because of oepnmmlab installation (pose detector).
+However, if you wish to use different versions of Python and CUDA, 
+you can modify the corresponding lines in the installation files.
+
+The installation script (installation/install_all): 
 1. Setup isa-tool environment
 2. Setup conda environment for Openmmlab (pose detector)
 3. Setup venv environment for Gaze Detector
 
-How-to:
+**How-to:**
+
 Open a terminal and navigate to main directory where isa-tool then type the followings into terminal
 
 ```
-git clone https://gitlab.tuebingen.mpg.de/cschmitt/isa-tool.git 
-git clone https://gitlab.tuebingen.mpg.de/cschmitt/oslab_utils.git
 cd isa-tool/installation
 chmod +x installation_all.sh # to add executable permission to the script
 ./install_all.sh # to install all necessary libraries
 ```
+4. (in Windows) Install the necessary libraries 
+#TODO - update env_setup.bat file & update the README file 
 
-## Installation
-
-1. Clone the repository and navigate into it:
-```
-git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git
-cd isa-tool/
-```
-2. (Recommended) Create and activate a virtual environment and install the 
-`requirements.txt`:
-```
-# using conda
-conda create --name isa-tool python=3.10 -y
-conda activate isa-tool
-## install requirements.txt
-
-# using venv
-python3.10 -m venv envs/isa-tool
-source envs/isa-tool/bin/activate
-python -m pip install -r requirements.txt
-```
-
-3. Install additional virtual environments for the third-party codes, as 
+5. Install additional virtual environments for the third-party codes, as 
 described next.
 
-    TODO: update `env_setup.bat` and `install.sh` scripts to do all following 
-steps automated.
-
-
-### Pose Detector
-
-Create a new virtual environment, either using conda `openmmlab` or venv 
-`third_party/mmpose/env`. Install the packages listed in 
-`third_party/mmpose/requirements.txt`. Additionally, we need to install 
-[MMPose](https://mmpose.readthedocs.io/en/latest/installation.html):
-
-#### Installing MMPose on Windows using conda:
-```
-# 1. Create conda environment
-conda create --name openmmlab python=3.8 -y
-conda activate openmmlab
-## install requirements.txt?
-
-# 2. Install pytorch
-pip install torch==1.10.2+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-
-# 3. Install MMEngine and MMCV using MIM
-pip install -U openmim
-mim install mmengine
-k# Install MMDetection
-mim install "mmdet>=3.0.0"
-mim install "mmpretrain>=1.0.0rc8"  ## required for Vitpose
-
-# 4. Build MMPOSE from source
-git clone https://github.com/open-mmlab/mmpose.git
-cd mmpose
-pip install -r requirements.txt
-pip install -v -e .    
-```
-Notes: 
-"-v" means verbose, or more output
-"-e" means installing a project in editable mode,
-thus any local modifications made to the code will take effect without reinstallation.
-
-#### Installation on Linux using conda:
-```
-conda create --name openmmlab python=3.8 -y
-conda activate openmmlab
-conda install pytorch torchvision -c pytorch
-
-# install MMPose
-pip install -U openmim
-pip install mmengine
-mim install "mmcv>=2.0.1"
-mim install "mmdet>=3.1.0"
-git clone https://github.com/open-mmlab/mmpose.git
-cd third_party/mmpose/mmpose/
-pip install -r requirements.txt 
-pip install -e .
-
-# further packages needed
-conda install -c conda-forge pyparsing
-conda install -c conda-forge six
-conda install -c conda-forge toml
-```
-update Nov 2nd: before installing MMPose, I needed to install first:
-```
-conda install -c conda-forge webencodings
-conda install -c conda-forge attrs
-conda install -c conda-forge toml
-conda install -c conda-forge tensorboard
-conda install -c conda-forge gdown
-```
-
-#### Installation on Linux using venv: -- NOT WORKING
-```
-python -m venv third_party/mmpose/env
-source third_party/mmpose/env/bin/activate
-python -m pip install -r third_party/mmpose/requirements.txt
-python -m pip install torch==2.0.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-
-python -m pip install -U openmim
-python -m mim install mmengine
-python -m mim install "mmdet>=3.0.0"
-
-# build MMPose from source
-git clone https://github.com/open-mmlab/mmpose.git
-cd mmpose
-pip install -r requirements.txt
-pip install -v -e .
-# instead, install directly:
-python -m mim install "mmpose>=1.1.0"
-```
-
-### **Update** MMPose to be able to use Vitpose
-pip install mmpretrain
-
-changed line 61 in pose config from mmcls.VisionTransformer to mmpretrain.VisionTransformer
-
-update the mmpose:
-mim install "mmpose>=1.1.0"
-
-### Gaze Detector
-
-Create a new virtual environment, again, using conda or venv. Install the 
-packages listed in `third_party/xgaze_3cams/requirements.txt`. For example:
-```
-python -m venv third_party/xgaze_3cams/env
-source third_party/xgaze_3cams/env/bin/activate
-python -m pip install -r third_party/xgaze_3cams/requirements.txt
-```
-
-
-### Facial Expression Detection
+5.1. **Facial Expression Detection**
 
 ```
 python3.10 -m venv third_party/emoca/env
@@ -194,7 +87,7 @@ python -m pip install -r third_party/emoca/requirements.txt
 python -m pip install --no-index --no-cache-dir pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu117_pyt1131/download.html
 ```
 
-#### Checkpoints
+**Checkpoints**
 ```
 bash pull_submodules.sh
 cd emoca/gdl_apps/EmotionRecognition/demos/
@@ -213,13 +106,13 @@ Alternative: Download a minimal `assets` folder from
 `ISA_Data_Share/14_MVP/data/emoca` and paste it to 
 `isa-tool/third_party/emoca/emoca/assets`.
 
-#### Testing
+**Testing**
 ``` 
 python gdl_apps/EmotionRecognition/demos/test_emotion_recognition_on_images.py --modeltype 3dmm --model_name EMOCA-emorec
 ```
 
 
-### Active Speaker Detector
+5.2. **Active Speaker Detector**
 
 ```
 cd third_party/active_speaker
@@ -228,8 +121,6 @@ source env/bin/activate
 python -m pip install -r requirements.txt
 cd -
 ```
-
-
 ## Documentation
 
 Using 
@@ -258,7 +149,6 @@ cd _build/latex/
 pdflatex detector.tex
 ```
 
-
 ## Testing
 
 Following examples from [ASPP 2019](https://github.com/cscmt/testing_debugging_profiling/tree/master).
@@ -273,7 +163,6 @@ pytest -v
 ```
 All test functions that start with `test_` are automatically detected by pytest. We collect them in the `./tests/` folder.
 Example tests are given in `./tests/test_main.py`.
-
 
 ## Gitlab CI
 
@@ -311,6 +200,7 @@ sudo apt install python3.8-venv
 ```
 Now these `requirements.txt` double the requirements specified in `pyproject.toml`. This is bad. TO FIX!
 
+
 ## Collaboration
 
 ### Components
@@ -346,7 +236,86 @@ shape: [num_frames, label]\
 shape: [num_frames, num_emotions/num_categories, confidence scores]\
 shape: [num_annotation/num_segments, [starttime, endtime, label]]\
 
-### Calibration Mapping
+## Calibration 
+
+### Calibration file
+Calibration parameters for all cameras were provided as a nested dictionary (saved as `camera_params_...json`).
+
+**Example:**
+
+```json
+{
+  "cam4": {
+    "camera_name": "cam4",
+    "image_size": [1000, 700],
+    "intrinsic_matrix": [
+      [1193.6641930950077, 0.0, 503.77365693839107],
+      [0.0, 1193.410339778219, 352.12891433016244],
+      [0.0, 0.0, 1.0]
+    ],
+    "distortions": [-0.1412521384983322, 0.14702510007618264, 0.00010429739735286396, -0.0004644593818576435],
+    "rvec": [0.0, 0.0, 0.0],
+    "rotation_matrix": [
+      [1.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+      [0.0, 0.0, 1.0]
+    ],
+    "translation": [[0.0], [0.0], [0.0]],
+    "extrinsics_matrix": [
+      [1.0, 0.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0, 0.0],
+      [0.0, 0.0, 1.0, 0.0]
+    ],
+    "projection_matrix": [
+      [1193.6641930950077, 0.0, 503.77365693839107, 0.0],
+      [0.0, 1193.410339778219, 352.12891433016244, 0.0],
+      [0.0, 0.0, 1.0, 0.0]
+    ]
+  },
+  "cam3": {
+    // camera parameters...
+  }, 
+   "cam2": {
+    // camera parameters...
+  }
+}
+```
+### Calibration parameters
+
+1. **camera_name (str):** the name of the camera, same as dict key
+
+2. **image_size (list):** the width and the height of the image that the camera captures. The list format is [image_width, image_height]
+
+3. **intrinsics_matrix (list-of-lists):** This matrix, also known as the camera matrix, contains intrinsic parameters of the camera. 
+The list format is: [[fx,s,cx],[0,fy,cy],[0,0,1]]. It is structured as follows: 
+- fx/fy: focal length (if fx/fy is not specified, f=fx, fy=fx*ar) 
+- s skewness, mostly 0
+- cx/cy: principle points
+
+4. **distortions (list):**  the distortion coefficients which correct for lens distortion in the captured images. 
+These coefficients follow the OpenCV model and usually include [k1, k2, p1, p2, k3] 
+- k1, k2, k3 : Radial distortion coefficients.
+- p1, p2: Tangential distortion coefficients.
+
+5. **rvec (list):** rotation vector - cv2.rodrigues(rotation_matrix) - a 3-element vector, a compact representation of rotation matrix. 
+Its direction represents the axis of rotation and whose magnitude represents the angle of rotation in radians. also known as axis-angle representation.
+
+6. **rotation_matrix (list-of-lists):** 3x3 rotation matrix - cv2.rodrigues(rvec)
+
+7. **translation (list-of-lists):** the translation of the camera from the origin of the coordinate system. 
+
+8. **extrinsics_matrix (list-of-lists):** This is a 3x4 matrix that combines the rotation matrix and translation vector 
+to describe the camera's position and orientation in space. It is optained by stacking rotation matrix with tranlsation vector: [R|t]
+
+9. **projection_matrix (list-of-lists):** 4x4 matrix that projects 3D points in the camera's coordinate system into 2D points in the image coordinate system. 
+It is obtained by multiplying the intrinsic matrix by the extrinsic matrix: np.matmul(intrinsic_matrix, extrinsic_matrix)
+
+The extrinsic parameters represent a rigid transformation from 3-D world coordinate system to the 3-D camera’s coordinate system. 
+The intrinsic parameters represent a projective transformation from the 3-D camera’s coordinates into the 2-D image coordinates.
+For more information, see https://de.mathworks.com/help/vision/ug/camera-calibration.html
+
+
+### Calibration Mapping (Dyadic_Communication dataset)
 ```
 {
     'PIS_ID_000':'2020-08-11',
@@ -362,12 +331,10 @@ shape: [num_annotation/num_segments, [starttime, endtime, label]]\
     'PIS_ID_666': '2020-08-13'
 }
 ```
-### Used ChAruCo Calibration Board
+### Used ChAruCo Calibration Board (Dyadic_Communication dataset)
 BOARD_SIZE = (12, 9)
 SQUARE_SIZE = 60 mm
 DICT_5X5
-
-
 
 ## Development vs. Production
 

@@ -10,6 +10,8 @@ source ../third_party/xgaze_3cams/env/bin/activate
 
 # Install dependencies in the virtual environment
 echo "Installing requirements for third_party/xgaze_3cams..."
+pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 python -m pip install -r ../third_party/xgaze_3cams/requirements.txt
 
 echo "XGaze Environment setup completed successfully."
+
