@@ -40,8 +40,8 @@ class IO:
         self.check_config(config)
 
         # get the relevant config entries
-        self.video_folder = config['video_folder']
-        self.calibration_file = config['calibration_file']
+        self.data_input_folder = config['data_input_folder']
+        self.calibration_file = config['path_to_calibrations']
         self.conda_path = config['conda_path']
 
         self.method_names = method_names
@@ -58,7 +58,7 @@ class IO:
         return [self.tmp_folder, *method_tmp_folders]
 
     def get_input_folder(self):
-        return self.video_folder
+        return self.data_input_folder
 
     def get_calibration_file(self):
         return self.calibration_file

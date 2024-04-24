@@ -32,7 +32,7 @@ class BaseFeature(ABC):
                               for name in config['input_detector_names']]
         self.input_files = []
         for input_folder in self.input_folders:
-            input_file = self.get_input(sorted(os.listdir(input_folder)), ".hdf5")
+            input_file = self.get_input(sorted(os.listdir(input_folder)), ".npz")
             self.input_files.append(os.path.join(input_folder, input_file))
             #input_file_list = [f for f in os.listdir(input_folder) if ".hdf5" in f]
             #log_ut.assert_and_log(len(input_file_list) != 0, f"Input file could not find.")

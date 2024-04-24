@@ -18,7 +18,7 @@ git_hash = "<git_hash>"
 # - video_skip_frames (bool) is relevant for frames only
 # - annotation_interval (int) in seconds, length of segments
 
-# [run.ours]
+[run.dyadic_communication]
 methods = ["xgaze_3cams", "mmpose"]
 features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
 videos = [
@@ -33,7 +33,6 @@ videos = [
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
 ]
-# TODO CARO: add sequence_ID to isa-tool!!
 
 [io]
 experiment_name = "<yyyymmdd>_new_run_file"

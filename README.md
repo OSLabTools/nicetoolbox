@@ -313,6 +313,23 @@ Now these `requirements.txt` double the requirements specified in `pyproject.tom
 
 ## Collaboration
 
+### Components
+
+Each component as folder plus -- entities within the `.npz` file.
+
+- hand_joints      -- 2d, 3d, bounding_box
+- body_joints      -- 2d, 3d, bounding_box
+- face_landmarks   -- 2d, 3d, bounding_box
+- gaze_individual  -- vector, head_avg, bounding_box, (2d / 3d?)
+- gaze_interaction -- look_at, mutual, gaze_head_distance
+- kinematics       -- displacement_body, velocity_body, displacement_face, velocity_face
+- leaning          -- body_angle
+- proximity        -- body_distance
+
+Inside each folder, save results in `<algorithm>.npz` - one file per detector/feature.
+The toolkit behind each algorithm is defined within the detector_config, not necessarily in the file/folder names. 
+
+
 ### Naming conventions
 - Group names: 
 personL, personR, dyad

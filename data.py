@@ -37,9 +37,11 @@ class Data:
         self.data_folder = io.get_data_folder()
         self.tmp_folder = io.get_output_folder(self.name, 'tmp')
         self.code_folder = config['code_folder']
-        self.video_folder = io.get_input_folder()
+        self.data_input_folder = io.get_input_folder()
 
         # collect data details from config
+        self.participant_ID = config['participant_ID']
+        self.sequence_ID = config['sequence_ID']
         self.video_length = config['video_length']
         self.video_start = config['video_start']
         self.video_skip_frames = None if config['video_skip_frames'] is False \
@@ -129,9 +131,10 @@ class Data:
                     config['methods']['names'].remove(detector)
 
         # check video details
-        video_files = sorted(glob.glob(os.path.join(config['io']['video_folder'], '*')))
+        data_input_files = sorted(glob.glob(os.path.join(config['io']['data_input_folder'], '*')))
         total_frames = 0
-        for video_file in video_files:
+        # TODO update to data_input_files instead of video_files
+        for video_file in data_input_files:
             total_frames = max(total_frames,
                                vid.get_number_of_frames(video_file))
 
@@ -169,209 +172,38 @@ class Data:
 
     def load_calibration(self, calibration_file, dataset_name):
         try:
-            exc.check_options(dataset_name, str, ['ours', 'mpi_inf_3dhp'])
+            exc.check_options(dataset_name, str, ['dyadic_communication', 'mpi_inf_3dhp'])
         except (TypeError, ValueError):
             logging.exception(
                 f"Loading camera calibration for dataset '{dataset_name}' is "
                 f"not implemented.")
             raise NotImplementedError
 
-        if dataset_name == 'ours':
-            fid = open(calibration_file)
-            loaded_calib = json.load(fid)
-            fid.close()
-            calib = dict((key, value) for key, value in loaded_calib.items()
-                         if key in self.all_camera_names)
+        if self.sequence_ID == '':
+            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.participant_ID].item()
+        else:
+            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.participant_ID + '_' + self.sequence_ID].item()
 
-        elif dataset_name == 'mpi_inf_3dhp':
-            def eval_string(string):
-                if string.isdigit():
-                    return int(string)
-                elif '.' in string:
-                    return float(string)
-                else:
-                    return string
+        calib = dict((key, value) for key, value in loaded_calib.items()
+                        if key in self.all_camera_names)
 
-            def load_dict_from_textfile(filepath):
-                file = open(filepath, 'r')
-                _ = file.readline()
-                lines = file.readlines()
-                file.close()
-
-                d = {}
-                current_key = None
-                for line in lines:
-                    line = line.removesuffix('\n')
-                    if line.startswith('name'):
-                        line = line.removeprefix('name')
-                        line_parts = [l for l in line.split(' ') if l != '']
-                        assert len(line_parts) == 1, \
-                            f"Loading dict from textfile failed."
-                        current_key = line_parts[0]
-                        d.update({current_key: {}})
-
-                    elif line.startswith(' '):
-                        assert current_key is not None, \
-                            f"Loading dict from textfile failed."
-                        line = line.strip(' ')
-                        line_parts = [eval_string(l) for l in line.split(' ') if l != '']
-                        d[current_key].update({line_parts[0]: line_parts[1:]})
-
-                    else:
-                        raise NotImplementedError(
-                                "Loading dict from textfile failed.")
-
-                return d
-
-            def create_projection_matrix(int_matrix, ext_matrix):
-                """
-                The function takes intrinsics and extrinsic matrices of the camera as input
-                and calculates the projection matrix
-                :param int_matrix: intrinsic matrix of the camera (3x3)
-                :param ext_matrix: extrinsic matrix of the camera (3x4)
-                :return: projection matrix (3x4)
-                """
-                projection_matrix = np.matmul(int_matrix, ext_matrix)
-                return projection_matrix
-
-            loaded_dict = load_dict_from_textfile(calibration_file)
-            calib = {}
-            for camera in self.all_camera_names:
-                idx = camera[-1]
-                K = np.array(loaded_dict[idx]['intrinsic']).reshape(4, 4)
-                Rt = np.array(loaded_dict[idx]['extrinsic']).reshape(4, 4)
-                calib.update({camera: dict(
-                        camera_name=camera,
-                        image_size=loaded_dict[idx]['size'],
-                        intrinsic_matrix=K[:3, :3].tolist(),
-                        distortions=[0, 0, 0, 0],
-                        rotation_matrix=Rt[:3, :3].tolist(),
-                        rvec=cv2.Rodrigues(Rt[:3, :3])[0].tolist(),
-                        translation = Rt[:3, -1].reshape(-1, 1).tolist(),
-                        extrinsics_matrix=Rt[:3].tolist(),
-                        projection_matrix=create_projection_matrix(
-                                K[:3, :3], Rt[:3]).tolist()
-                )})
-
-        #calib_file = os.path.join(self.data_folder, "mpi_inf_3dhp_calib_params.json")  ## TODO need to be added subject and seq if will be saved here
-        #with open(calib_file, "w") as file:
-        #    json.dump(calib, file)
-        #file.close()
         return calib
 
-    def data_initialization(self):
-        # detect all video input files
-        video_files = sorted(glob.glob(os.path.join(self.video_folder, '*')))
-
-        data_list = []
-        for data_format in self.data_formats:
-            data_list += self.get_inputs_list(data_format, self.all_camera_names)
-
-        data_exists = True
-        for file in data_list:
-            if not os.path.isfile(file):
-                data_exists = False
-
-        # initialize data lists
-        self.frames_list = []
-        self.segments_list = []
-        self.snippets_list = []
-
-        if data_exists:
-            logging.info(f"DATA FOUND in '{self.data_folder}'!")
-
-            frame_indices_list = set()
-            for filename in data_list:
-                if 'frames' in filename:
-                    #TODO!! inconsistency in self.frames_list shape
-                    self.frames_list.append(filename)
-                    frame_indices_list.add(int(os.path.basename(filename)[:-4]))
-                elif 'segments' in filename:
-                    self.segments_list.append(filename)
-                elif 'snippets' in filename:
-                    self.snippets_list.append(filename)
-            self.frame_indices_list = list(frame_indices_list)
-        else:
-            logging.info(f"DATA NOT EXISTING OR INCOMPLETE! Creating data in "
-                  f"'{self.data_folder}'!")
-
-            for video_file in video_files:
-                camera_name_indices = [name in video_file.lower() for name in
-                                      list(self.all_camera_names)]
-                if not any(camera_name_indices):
-                    continue
-                camera_name = list(self.all_camera_names)[camera_name_indices.index(True)]
-
-                # split video into frames
-                data_folder = os.path.join(self.data_folder, camera_name)
-                os.makedirs(data_folder, exist_ok=True)
-
-                if 'frames' in self.data_formats:
-                    os.makedirs(os.path.join(data_folder, 'frames'), exist_ok=True)
-                    frames_list, frame_indices_list = split_into_frames(
-                            video_file,
-                            os.path.join(data_folder, 'frames/'),
-                            self.video_start,
-                            self.video_length,
-                            self.video_skip_frames
-                    )
-                    assert len(frame_indices_list) == self.video_length, \
-                        f"ERROR. len(frame_indices_list) = " \
-                        f"{len(frame_indices_list)} and self.video_length = " \
-                        f"{self.video_length}"
-
-                    if self.frame_indices_list is None:
-                        self.frame_indices_list = frame_indices_list
-                        self.frames_list = [[f] for f in frames_list]
-                    else:
-                        for n, (i_old, i_new, f) in enumerate(zip(
-                                self.frame_indices_list, frame_indices_list,
-                                frames_list)):
-                            assert i_old == i_new, \
-                                "Frame indices of different cameras do not match!"
-                            self.frames_list[n].append(f)
-
-                if 'segments' in self.data_formats:
-                    os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
-
-                    # calculate frames per annotation interval
-                    frames_per_segment = self.annotation_interval * get_fps(
-                            video_files[0])
-
-                    # split video into segments of length annotation_interval
-                    self.segments_list = equal_splits_by_frames(
-                            video_file,
-                            os.path.join(data_folder, 'segments/'),
-                            frames_per_segment,
-                            keep_last_split=False,
-                            start_frame=self.video_start,
-                            number_of_frames=self.video_length
-                    )
-
-                if 'snippets' in self.data_formats:
-                    os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
-                    out_name = f'{camera_name}_s{self.video_start}_e' \
-                               f'{self.video_start + self.video_length}'
-                    # cut video to the required number of frames
-                    out_video_file = cut_length(
-                            video_file,
-                            os.path.join(data_folder, f'snippets/{out_name}'),
-                            start_frame=self.video_start,
-                            number_of_frames=self.video_length
-                    )
-
-                    # read result list
-                    self.snippets_list.append(out_video_file)
-
-            logging.info(f"DATA creation completed.")
-
-    def get_inputs_list(self, data_format, camera_names):
-        input_formats = [name in '_'.join(sorted(os.listdir(self.video_folder))) for
-                         name in ['mp4', 'avi']]
-        assert sum(input_formats) == 1, \
-            f"Multiple or no valid input format found in " \
-            f"'{self.video_folder}'. {input_formats} for ['mp4', 'avi']."
-        input_format = ['mp4', 'avi'][input_formats.index(True)]
+    def get_input_format(self, camera_names):
+        example_input_folder = self.data_input_folder.replace('<camera_name>', next(iter(camera_names)))
+        input_formats = [name in '_'.join(sorted(os.listdir(example_input_folder))) for
+                        name in ['.mp4', '.avi', '.png', '.jpg', '.jpeg']]
+        if sum(input_formats) != 1:
+            exc.error_log_and_raise(
+                ValueError, 
+                'Reading input data', 
+                f"Multiple or no valid input format found in '{self.data_input_folder}'." \
+                f"Found '{input_formats}', valid are ['mp4', 'avi']."
+                )
+        input_format = ['mp4', 'avi', 'png', 'jpg', 'jpeg'][input_formats.index(True)]
+        return input_format
+        
+    def get_inputs_list(self, input_format, data_format, camera_names):
 
         start = self.video_start
         end = self.video_start + self.video_length
@@ -384,7 +216,7 @@ class Data:
                         self.data_folder, camera_name, 'snippets', file_name))
 
         elif data_format == 'segments':
-            video_files = sorted(glob.glob(os.path.join(self.video_folder, '*')))
+            video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
             step = self.annotation_interval * get_fps(video_files[0])
             file_names = [f"s{s}_e{s + step}.{input_format}"
                           for s in range(start, end, step)]
@@ -402,6 +234,213 @@ class Data:
                     for n in file_names]
 
         return inputs_list
+
+    def data_initialization(self):
+        # find data input format
+        input_format = self.get_input_format(self.all_camera_names)
+
+        # create a list of all input files required to run isa-tool given the current run_config.toml
+        data_list = []
+        for data_format in self.data_formats:
+            data_list += self.get_inputs_list(input_format, data_format, self.all_camera_names)
+
+        # check whether all required data exists already
+        data_exists = True
+        for file in data_list:
+            if not os.path.isfile(file):
+                data_exists = False
+
+        # initialize data lists
+        self.frames_list = []
+        self.segments_list = []
+        self.snippets_list = []
+
+        if data_exists:
+            logging.info(f"DATA FOUND in '{self.data_folder}'!")
+
+            frames_list = []
+            frame_indices_list = set()
+            for filename in data_list:
+                if 'frames' in filename:
+                    frames_list.append(filename)
+                    frame_indices_list.add(int(os.path.basename(filename)[:-4]))
+                elif 'segments' in filename:
+                    self.segments_list.append(filename)
+                elif 'snippets' in filename:
+                    self.snippets_list.append(filename)
+
+            self.frame_indices_list = list(frame_indices_list)
+            for camera_name in sorted(self.all_camera_names):
+                cam_frames = sorted([file for file in frames_list if camera_name in file])
+                self.frames_list.append(cam_frames)
+            self.frames_list = [l.tolist() for l in np.array(self.frames_list).T]
+
+        else:
+            logging.info(f"DATA NOT EXISTING OR INCOMPLETE! Creating data in "
+                  f"'{self.data_folder}'!")
+
+            if input_format in ['avi', 'mp4']:
+                self.create_inputs_from_video()
+            elif input_format in ['png', 'jpg', 'jpeg']:
+                self.create_inputs_from_frames(input_format)
+
+            logging.info(f"DATA creation completed.")
+
+    def create_inputs_from_video(self):
+        # detect all video input files
+        video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
+
+        for video_file in video_files:
+            camera_name_indices = [name in video_file.lower() for name in
+                                    list(self.all_camera_names)]
+            if not any(camera_name_indices):
+                continue
+            camera_name = list(self.all_camera_names)[camera_name_indices.index(True)]
+
+            # split video into frames
+            data_folder = os.path.join(self.data_folder, camera_name)
+            os.makedirs(data_folder, exist_ok=True)
+
+            if 'frames' in self.data_formats:
+                os.makedirs(os.path.join(data_folder, 'frames'), exist_ok=True)
+                frames_list, frame_indices_list = split_into_frames(
+                        video_file,
+                        os.path.join(data_folder, 'frames/'),
+                        self.video_start,
+                        self.video_length,
+                        self.video_skip_frames
+                )
+                assert len(frame_indices_list) == self.video_length, \
+                    f"ERROR. len(frame_indices_list) = " \
+                    f"{len(frame_indices_list)} and self.video_length = " \
+                    f"{self.video_length}"
+
+                if self.frame_indices_list is None:
+                    self.frame_indices_list = frame_indices_list
+                    self.frames_list = [[f] for f in frames_list]
+                else:
+                    for n, (i_old, i_new, f) in enumerate(zip(
+                            self.frame_indices_list, frame_indices_list,
+                            frames_list)):
+                        assert i_old == i_new, \
+                            "Frame indices of different cameras do not match!"
+                        self.frames_list[n].append(f)
+
+            if 'segments' in self.data_formats:
+                os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
+
+                # calculate frames per annotation interval
+                frames_per_segment = self.annotation_interval * get_fps(
+                        video_files[0])
+
+                # split video into segments of length annotation_interval
+                self.segments_list = equal_splits_by_frames(
+                        video_file,
+                        os.path.join(data_folder, 'segments/'),
+                        frames_per_segment,
+                        keep_last_split=False,
+                        start_frame=self.video_start,
+                        number_of_frames=self.video_length
+                )
+
+            if 'snippets' in self.data_formats:
+                os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
+                out_name = f'{camera_name}_s{self.video_start}_e' \
+                            f'{self.video_start + self.video_length}'
+                # cut video to the required number of frames
+                out_video_file = cut_length(
+                        video_file,
+                        os.path.join(data_folder, f'snippets/{out_name}'),
+                        start_frame=self.video_start,
+                        number_of_frames=self.video_length
+                )
+
+                # read result list
+                self.snippets_list.append(out_video_file)
+
+    def create_inputs_from_frames(self, input_format):
+
+        frames_list = []
+        frame_indices_list = set()
+        for camera_name in self.all_camera_names:
+            # define frames input folder
+            frames_input_folder = self.data_input_folder.replace('<camera_name>', camera_name)
+            input_frame_paths = sorted(glob.glob(os.path.join(frames_input_folder, f"*.{input_format}")))
+            
+            # guess for number of characters in filename base
+            n_filename_chars = len(os.path.basename(input_frame_paths[0]).split('.')[0])
+            filename_template = f"%0{n_filename_chars}d.{input_format}"
+
+            # split video into frames
+            data_folder = os.path.join(self.data_folder, camera_name)
+            os.makedirs(data_folder, exist_ok=True)
+
+            if 'frames' in self.data_formats:
+                os.makedirs(os.path.join(data_folder, 'frames'), exist_ok=True)
+                camera_frames_list = []
+
+                skip = self.video_skip_frames if self.video_skip_frames is not None else 1
+                for frame_idx in range(self.video_start, self.video_start + self.video_length, skip):
+
+                    input_frame_indices = np.where([filename_template % frame_idx in path for path in input_frame_paths])[0]
+                    if len(input_frame_indices) != 1:
+                        exc.error_log_and_raise(
+                            NotImplementedError, 
+                            'Create input data from frames.',
+                            f"Detected dataset filename convention '{filename_template}', not applicable for " \
+                            f"camera name '{camera_name}' and frame index '{frame_idx}'."
+                            )
+                    input_frame_idx = input_frame_indices[0]
+
+                    in_framename = input_frame_paths[input_frame_idx]
+                    out_filename = os.path.join(data_folder, 'frames', "%05d.png" % frame_idx)
+
+                    if not os.path.exists(out_filename):
+                        # create system link
+                        os.symlink(in_framename, out_filename)
+
+                    # update class attributes frame_list and frame_indices_list
+                    frame_indices_list.add(frame_idx)
+                    camera_frames_list.append(out_filename)
+
+                frames_list.append(camera_frames_list)
+
+            if 'segments' in self.data_formats:
+                raise NotImplementedError
+                os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
+
+                # calculate frames per annotation interval
+                frames_per_segment = self.annotation_interval * get_fps(
+                        video_files[0])
+
+                # split video into segments of length annotation_interval
+                self.segments_list = equal_splits_by_frames(
+                        video_file,
+                        os.path.join(data_folder, 'segments/'),
+                        frames_per_segment,
+                        keep_last_split=False,
+                        start_frame=self.video_start,
+                        number_of_frames=self.video_length
+                )
+
+            if 'snippets' in self.data_formats:
+                raise NotImplementedError
+                os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
+                out_name = f'{camera_name}_s{self.video_start}_e' \
+                            f'{self.video_start + self.video_length}'
+                # cut video to the required number of frames
+                out_video_file = cut_length(
+                        video_file,
+                        os.path.join(data_folder, f'snippets/{out_name}'),
+                        start_frame=self.video_start,
+                        number_of_frames=self.video_length
+                )
+
+                # read result list
+                self.snippets_list.append(out_video_file)
+
+        self.frame_indices_list = list(frame_indices_list)
+        self.frames_list = np.array(frames_list).T
 
     def create_symlink_input_folder(self, data_format, camera_names):
         # define folder structure and naming
@@ -423,7 +462,8 @@ class Data:
                 os.makedirs(os.path.join(data_folder, camera_name), exist_ok=True)
 
             # get the list of needed input files
-            file_list = self.get_inputs_list(data_format, camera_names)
+            input_format = self.get_input_format(camera_names)
+            file_list = self.get_inputs_list(input_format, data_format, camera_names)
 
             # create symbolic links
             for filename in file_list:

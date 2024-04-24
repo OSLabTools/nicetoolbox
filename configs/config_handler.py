@@ -7,7 +7,7 @@ import glob
 import logging
 import copy
 from oslab_utils.logging_utils import log_configs
-from oslab_utils.config import config_fill_auto, config_fill_placeholders, load_config
+import oslab_utils.config as cfg
 import oslab_utils.check_and_exception as exc
 
 
@@ -55,13 +55,13 @@ def compare_configs(config1, config2, log_fct=print, config_names=''):
 class Configuration:
     def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
-        self.run_config = load_config(run_config_file)
-        self.detector_config = load_config(detector_config_file)
-        self.machine_specific_config = load_config(machine_specifics_file)
+        self.run_config = cfg.load_config(run_config_file)
+        self.detector_config = cfg.load_config(detector_config_file)
+        self.machine_specific_config = cfg.load_config(machine_specifics_file)
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
         dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
-        self.dataset_config = load_config(dataset_config_file)
+        self.dataset_config = cfg.load_config(dataset_config_file)
         self.current_data_config = None
 
 
@@ -69,13 +69,13 @@ class Configuration:
 
     def localize(self, config, fill_io=True, fill_data=False):
         # fill placeholders
-        config = config_fill_auto(config)
-        config = config_fill_placeholders(config, self.machine_specific_config)
+        config = cfg.config_fill_auto(config)
+        config = cfg.config_fill_placeholders(config, self.machine_specific_config)
         if fill_io:
-            config = config_fill_placeholders(config, self.get_io_config())
+            config = cfg.config_fill_placeholders(config, self.get_io_config())
         if fill_data:
-            config = config_fill_placeholders(config, self.current_data_config)
-        config = config_fill_placeholders(config, config)
+            config = cfg.config_fill_placeholders(config, self.current_data_config)
+        config = cfg.config_fill_placeholders(config, config)
         return config
 
 
@@ -107,12 +107,8 @@ class Configuration:
             for video_config in dataset_dict['videos']:
                 video_config.update(dataset_name=dataset_name)
                 video_config.update(self.dataset_config[dataset_name])
-                if 'calibration_file_mapping' in video_config.keys():
-                    video_config['calibration_filename'] = video_config['calibration_file_mapping'][video_config['participant_ID']]
-                print(video_config['calibration_file'])
                 video_config.update(self.get_io_config())
                 self.current_data_config = self.localize(video_config)
-                print(self.current_data_config['calibration_file'])
                 yield self.current_data_config, dataset_dict['methods'], dataset_dict['features']
 
     def get_method_configs(self, method_names):
@@ -212,7 +208,7 @@ class Configuration:
             for saved_config_file in saved_config_files:
                 config_names = f'current and loaded ' \
                                f'({os.path.basename(saved_config_file)})'
-                saved_config = load_config(saved_config_file)
+                saved_config = cfg.load_config(saved_config_file)
 
                 # compare top level dicts
                 compare_configs(get_top_level_dict(saved_config['config']),

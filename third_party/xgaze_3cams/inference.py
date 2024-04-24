@@ -6,12 +6,13 @@ import re
 import logging
 
 sys.path.append("./third_party/xgaze_3cams/xgaze_3cams")
+sys.path.append("./third_party/xgaze_3cams")
 sys.path.append("./third_party")
 from gaze_estimator import GazeEstimator
 from utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
 #print(sys.path)
 import xgaze_3cams.landmarks as lm
-from file_handling import load_config, save_to_hdf5
+import file_handling as fh
 
 
 def main(config, debug=False):
@@ -50,6 +51,7 @@ def main(config, debug=False):
             config['face_model_filename'],
             config['pretrained_model_filename'])
 
+    frame_indices = set()
     results = np.zeros((n_frames, n_subjects, 3))
     for frame_i, frame_files in enumerate(frames_list):
         images = []  # (n_cams, h, w, 3)
@@ -144,16 +146,26 @@ def main(config, debug=False):
                     config['out_folder'], f'{cam_name}_{file_name}')
             cv2.imwrite(save_file_name, image)
 
-    save_to_hdf5(
-            results.transpose(1, 0, 2),
-            config['subjects_descr'],
-            os.path.join(config['result_folder'], f"{config['behavior']}.hdf5")
-    )
+            frame_indices.add(file_name.strip('.png').strip('.jpg').strip('.jpeg'))
+
+    #  save as npz file
+    out_dict = {
+        '3d': results[None].transpose(2, 0, 1, 3),
+        'data_description': dict(
+            axis0=config["subjects_descr"],
+            axis1=None,
+            axis2=sorted(list(frame_indices)),
+            axis3='vector_3d'
+        )
+    }
+    save_file_name = os.path.join(config["result_folder"], f"xgaze_3cams.npz")
+    np.savez_compressed(save_file_name, **out_dict)
 
     logging.info('\nGaze detection xgaze_3cams COMPLETED!')
 
 
 if __name__ == '__main__':
     config_path = sys.argv[1]
-    config = load_config(config_path)
+    #config_path = '/is/sg2/cschmitt/pis/experiments/20240423/dyadic_communication_PIS_ID_000_s17_l15/xgaze_3cams/run_config.toml'
+    config = fh.load_config(config_path)
     main(config)

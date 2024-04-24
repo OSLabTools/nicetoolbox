@@ -43,7 +43,7 @@ def convert_output_to_numpy(data, num_persons, person_threshold):
         raise NotImplementedError(
                 "MMPose post-inference results conversion is not implemeted "
                 "yet for scenes with no or 3 or more people.")
-    return predictions_data
+    return predictions_data, ['keypoint_0', 'keypoint_1', 'score']
 
 def main(config):
     """ Run inference of the method on the pre-loaded image
@@ -62,7 +62,9 @@ def main(config):
         device=config['device']
     )
     pass
-    camera_output = {}
+    camera_output = []
+    frame_indices = None
+    data_description = None
     for camera_name in config["camera_names"]:
         logging.info(f'Camera - {camera_name}')
         camera_folder = os.path.join(config["input_data_folder"], camera_name)
@@ -97,8 +99,22 @@ def main(config):
             results = [r for r in result_generator]
         ### convert results to numpy array
         # output personL, personR
-        person_results_list = convert_output_to_numpy(results, len(config["subjects_descr"]),  config["person_threshold"])
-        camera_output[camera_name] = person_results_list
+        person_results_list, data_descr = convert_output_to_numpy(results, len(config["subjects_descr"]),  config["person_threshold"])
+        camera_output.append(np.stack(person_results_list))
+
+        # data description
+        if data_description is not None:
+            assert data_descr == data_description, f"Inference MMPose: Inconsistent data description!"
+        else:
+            data_description = data_descr
+
+        # get frame indices
+        frame_inds = sorted(os.listdir(os.path.join(config['input_data_folder'], camera_name)))
+        frame_inds = [s.strip('.png').strip('.jpg').strip('.jpeg') for s in frame_inds]
+        if frame_indices is not None:
+            assert frame_indices == frame_inds
+        else:
+            frame_indices = frame_inds
 
         if len(config["subjects_descr"]) == 2:
             # check person data shape
@@ -109,11 +125,19 @@ def main(config):
         #for person_results in person_results_list:
         #    test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
 
-        #  save as hdf5 file
-        save_file_name = os.path.join(config["intermediate_results"],
-                                      f"algorithm_predictions_{camera_name}.hdf5")
-        fh.save_to_hdf5(person_results_list, config["subjects_descr"],
-                        save_file_name, index=sorted(os.listdir(camera_folder)))
+    #  save as npz file
+    out_dict = {
+        '2d': np.stack(camera_output),
+        'data_description': dict(
+            axis0=config["subjects_descr"],
+            axis1=config["camera_names"],
+            axis2=frame_indices,
+            axis3=config['keypoint_mapping'],
+            axis4=data_description
+        )
+    }
+    save_file_name = os.path.join(config["result_folder"], f"hrnetw48.npz")
+    np.savez_compressed(save_file_name, **out_dict)
 
     # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
     # sc.compare_data_values_with_saved_json(
@@ -124,8 +148,9 @@ def main(config):
 
     logging.info(f'\nMMPOSE - {config["algorithm"]} COMPLETED!')
 
-   # return camera_output
+
 if __name__ == '__main__':
     config_path = sys.argv[1]
+    #config_path = "/is/sg2/cschmitt/pis/experiments/20240423/dyadic_communication_PIS_ID_000_s17_l15/mmpose_hrnetw48/run_config.toml"
     config = fh.load_config(config_path)
     main(config)

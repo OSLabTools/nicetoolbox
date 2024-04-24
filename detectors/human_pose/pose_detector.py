@@ -19,6 +19,7 @@ class PoseDetector(BaseDetector):
     """
     name = 'mmpose'
     behavior = 'keypoints'
+    name2 = 'hrnetw48'
 
     def __init__(self, config, io, data):
         """ Initialize PoseHRNet class.
@@ -125,15 +126,13 @@ class PoseDetector(BaseDetector):
         if len(self.camera_names) > 1:
             logging.info("COMPUTING 3d position of the keypoints...")
 
-            camera_frames_list = [os.path.basename(f).split(".")[0] for sublist in self.frame_list for f in sublist if
-                                  self.camera_names[0] in f]  # since each frame inside a list #ToDo read from camera_folder
-            prediction_files = [os.path.join(self.intermediate_results,f) for f in sorted(os.listdir(self.intermediate_results)) if "hdf5" in f]
-            cam1_data_path = [f for f in prediction_files if self.camera_names[0] in f][0]
-            cam2_data_path = [f for f in prediction_files if self.camera_names[1] in f][0]
-            cam1_data, _ = fh.read_hdf5(cam1_data_path)
-            cam2_data, _ = fh.read_hdf5(cam2_data_path)
+            prediction_file = os.path.join(self.result_folder, f"{self.name2}.npz")
+            prediction = np.load(prediction_file, allow_pickle=True)
+            data_description = prediction['data_description'].item()
+            results_2d = prediction['2d']
+            cam1_data, cam2_data = results_2d[:, 0], results_2d[:, 1]
 
-            if len(cam1_data) != len(cam2_data) != len(self.subjects_descr):
+            if len(results_2d) != len(data_description['axis0']) != len(self.subjects_descr):
                 logging.error("Loaded prediction results differ in the number of persons.")
 
             person_data_list = []
@@ -185,10 +184,14 @@ class PoseDetector(BaseDetector):
             # check if any [0,0,0] prediction
             for person_data in person_data_list:
                 check.check_zeros(person_data)
-            # save results
-            filepath = os.path.join(self.result_folder, f"{self.name}_3d.hdf5")
-            fh.save_to_hdf5(person_data_list, groups_list=self.subjects_descr,
-                            output_file=filepath, index=camera_frames_list)
+
+            # save results 
+            results_dict = {
+                '2d': results_2d,
+                '3d': np.stack(person_data_list)[:, None],
+                'data_description': data_description
+                }
+            np.savez_compressed(prediction_file, **results_dict)
 
             # check 3d data values
             # TODO: this check works only for videos with 2 subjects?
