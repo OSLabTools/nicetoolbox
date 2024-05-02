@@ -22,9 +22,7 @@ git_hash = "<git_hash>"
 methods = ["xgaze_3cams", "mmpose"]
 features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
 videos = [
-   {participant_ID = "PIS_ID_04", sequence_ID='', video_start = 420, video_length = 15, video_skip_frames = false, annotation_interval = 2},
-   {participant_ID = "PIS_ID_05", sequence_ID='', video_start = 450, video_length = 20, video_skip_frames = false, annotation_interval = 2}
-]
+   {participant_ID = "PIS_ID_000", sequence_ID='', video_start = 50, video_length = 10, video_skip_frames = false, annotation_interval = 2}]
 
 [run.mpi_inf_3dhp]
 methods = ["xgaze_3cams", "mmpose"]
@@ -33,6 +31,15 @@ videos = [
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
 ]
+
+#[run.mpi_inf_3dhp]
+#methods = ["xgaze_3cams", "mmpose"]
+#features = ["kinematics" , "proximity", "leaning"]
+#videos = [
+#    {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
+#    {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
+#]
+# TODO CARO: add sequence_ID to isa-tool!!
 
 [io]
 experiment_name = "<yyyymmdd>_new_run_file"

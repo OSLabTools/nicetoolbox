@@ -30,7 +30,7 @@ class SGFilter(BaseFilter):
         self.window_length = window_length
         self.polyorder = polyorder
 
-    def apply(self, data):
+    def apply(self, data, is_3d=False):
         """
         Takes data as an input and apply filter to each dimension of each keypoint separately.
 
@@ -42,11 +42,16 @@ class SGFilter(BaseFilter):
         smoothed data(np array, shape - [#Frames, #Keypoints, XYZ]
         """
         # Create an empty array to store the filtered data
-        smooth_data = np.zeros(data.shape)
-
-        # apply the Savitzky-Golay filter to each dimension (X, Y, Z) of each keypoint
-        for dim in range(data.shape[-1]):
-            for kp in range(data.shape[1]):  # Loop through keypoints
-                smooth_data[:, kp, dim] = signal.savgol_filter(data[:, kp, dim], window_length=self.window_length,
-                                                                 polyorder=2)
-        return smooth_data
+        smooth_data = np.copy(data)
+        for person_idx in range(data.shape[0]):
+            for camera_idx in range(data.shape[1]):
+                # apply the Savitzky-Golay filter to each dimension (X, Y, (Z)) of each keypoint
+                if is_3d:
+                    num_dim = 3
+                else:
+                    num_dim = 2
+                for dim in range(num_dim):
+                    for kp in range(data.shape[3]):  # Loop through keypoints
+                        smooth_data[person_idx, camera_idx, :, kp, dim] = signal.savgol_filter(data[person_idx,camera_idx, :, kp, dim], window_length=self.window_length,
+                                                                         polyorder=self.polyorder)
+                return smooth_data
