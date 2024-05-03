@@ -2,16 +2,16 @@ import os
 import numpy as np
 import logging
 import cv2
-from features.base_feature import BaseFeature
+from feature_detectors.base_feature import BaseFeature
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
-import features.proximity.utils as pro_utils
+import feature_detectors.proximity.utils as pro_utils
 
 class Proximity(BaseFeature):
     """
     """
-    name = 'proximity'
-    behavior = 'interaction'
+    components = ['proximity']
+    algorithm = 'body_distance'
 
     def __init__(self, config, io, data):
         """ Initialize Movement class.
@@ -26,9 +26,11 @@ class Proximity(BaseFeature):
         # then, call the base class init
         super().__init__(config, io, data)
 
-        pose_results_folder = self.get_input(self.input_folders, 'pose')
-        pose_config = cfg.load_config(os.path.join(pose_results_folder,
-                                                        'run_config.toml'))
+        # POSE
+        joints_component, joints_algorithm = [l for l in config['input_detector_names'] 
+                                          if any(['joints' in s for s in l])][0]
+        pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, 'run_config')
+        pose_config = cfg.load_config(os.path.join(pose_config_folder, 'run_config.toml'))
         self.predictions_mapping = \
             cfg.load_config("./configs/predictions_mapping.toml")[
                 "human_pose"][pose_config["keypoint_mapping"]]
@@ -46,7 +48,8 @@ class Proximity(BaseFeature):
             [self.predictions_mapping["keypoints_index"]["body"][keypoint]
              for keypoint in self.used_keypoints]
 
-        logging.info(f"Feature {self.name} initialized.")
+
+        logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
         """ Compute the euclidean distance between the keypoint coord of personL and personR
@@ -58,21 +61,21 @@ class Proximity(BaseFeature):
         The proximity measure - The euclidean distance between the two person's body (one location on body)
 
         """
-        data, _ = fh.read_hdf5(self.input_files[0])
+        joint_data = np.load(self.input_files[0], allow_pickle=True)
+        data = joint_data['3d']
+        data_description = joint_data['data_description'].item()['3d']
 
         if len(data) != 2:
             logging.error("The number of persons in the video is != 2. "
                           "Proximity can not be calculated. Skipping.")
             return None
 
-        personL = data[0]
-        personR = data[1]
-        proximity_data_list = []
+        personL = data[0, 0]
+        personR = data[1, 0]
 
         if len(self.keypoint_index) == 1:
             # Calculate the Euclidean distance for the selected keypoints between object_a and object_b for each frame
             proximity_score = np.linalg.norm(personL[:, self.keypoint_index[0], :] - personR[:, self.keypoint_index[0], :], axis=-1)
-            proximity_data_list.append(proximity_score)
         elif len(self.keypoint_index) > 2:
             # Calculate the average coordinates for the selected keypoints in both objects for each frame
             average_coords_L = np.mean(personL[:, self.keypoint_index, :], axis=1)
@@ -80,18 +83,28 @@ class Proximity(BaseFeature):
 
             # Calculate the Euclidean distance between the average coordinates for each frame
             proximity_score = np.linalg.norm(average_coords_L - average_coords_R, axis=-1)
-            proximity_data_list.append(proximity_score)
 
         else:
             logging.error("Compute proximity function - unkonown structure ")
             raise ValueError("Compute proximity function - unkonown structure ")
 
         # save results
-        filepath = os.path.join(self.result_folder, "proximity.hdf5")
-        fh.save_to_hdf5(proximity_data_list, groups_list=["dyad"], output_file=filepath)
+        out_dict = {
+            'body_distance': np.stack((proximity_score, proximity_score), axis=0)[:, None, :, None],
+            'data_description': {
+                'body_distance': dict(
+                    axis0=self.subjects_descr,
+                    axis1=None,
+                    axis2=data_description['axis2'],
+                    axis3='distance'
+                )
+            }
+        }
+        save_file_path = os.path.join(self.result_folders['proximity'], f"{self.algorithm}.npz")
+        np.savez_compressed(save_file_path, **out_dict)
 
-        logging.info(f"Computation of feature {self.name} completed.")
-        return proximity_data_list
+        logging.info(f"Computation of feature detector for {self.components} completed.")
+        return proximity_score
 
     def visualization(self, data):
         """
@@ -102,7 +115,7 @@ class Proximity(BaseFeature):
             a class instance that stores all input file locations
         """
         if data is not None:
-            logging.info(f"Visualizing the feature output {self.name}")
+            logging.info(f"Visualizing the feature detector output {self.components}.")
             pro_utils.visualize_proximity_score(data, self.viz_folder, self.used_keypoints)
             # # Determine global_min and global_max - define y-lims of graphs
             # global_min = data[0].min() + 0.5
@@ -122,7 +135,7 @@ class Proximity(BaseFeature):
             #         combined = pro_utils.frame_with_linegraph(frame, data, i, global_min, global_max)
             #         out.write(combined)
             # out.release()
-            logging.info(f"Visualization of feature {self.name} completed.")
+            logging.info(f"Visualization of feature detector {self.components} completed.")
 
     def post_compute(self, distance_data):
         pass

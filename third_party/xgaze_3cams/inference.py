@@ -151,14 +151,16 @@ def main(config, debug=False):
     #  save as npz file
     out_dict = {
         '3d': results[None].transpose(2, 0, 1, 3),
-        'data_description': dict(
-            axis0=config["subjects_descr"],
-            axis1=None,
-            axis2=sorted(list(frame_indices)),
-            axis3='vector_3d'
-        )
+        'data_description': {
+            '3d': dict(
+                axis0=config["subjects_descr"],
+                axis1=None,
+                axis2=sorted(list(frame_indices)),
+                axis3=['coordinate_x', 'coordinate_y', 'coordinate_z']
+            )
+        }
     }
-    save_file_name = os.path.join(config["result_folder"], f"xgaze_3cams.npz")
+    save_file_name = os.path.join(config["result_folders"]['gaze_individual'], f"{config['algorithm']}.npz")
     np.savez_compressed(save_file_name, **out_dict)
 
     logging.info('\nGaze detection xgaze_3cams COMPLETED!')

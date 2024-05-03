@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 import logging
 
-from detectors.base_detector import BaseDetector
+from method_detectors.base_detector import BaseDetector
 from oslab_utils.video import frames_to_video
 import oslab_utils.logging_utils as log_ut
 
@@ -16,8 +16,8 @@ import oslab_utils.logging_utils as log_ut
 class Emoca(BaseDetector):
     """Class to setup and run existing computer vision research code.
     """
-    name = 'emoca'
-    behavior = 'facial_expressions'
+    name = 'facial_expressions'
+    algorithm = 'emoca'
 
     def __init__(self, config, io, data) -> None:
         """InitializeMethod class.

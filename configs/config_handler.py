@@ -18,6 +18,8 @@ def get_top_level_dict(dictionary):
 def flatten_list(input_list):
     if isinstance(input_list, str):
         return [input_list]
+    if isinstance(input_list, int):
+        return [input_list]
     elif isinstance(input_list, list):
         output_list = []
         for item in input_list:
@@ -56,14 +58,19 @@ class Configuration:
     def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
         self.run_config = cfg.load_config(run_config_file)
-        self.detector_config = cfg.load_config(detector_config_file)
         self.machine_specific_config = cfg.load_config(machine_specifics_file)
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
+
+        # detector_config
+        self.detector_config = cfg.load_config(detector_config_file)
+        for detector_name, detector_dict in self.detector_config['algorithms'].items():
+            if 'framework' in detector_dict.keys():
+                framework = self.detector_config['frameworks'][detector_dict['framework']]
+                self.detector_config['algorithms'][detector_name].update(framework)
 
         dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
         self.dataset_config = cfg.load_config(dataset_config_file)
         self.current_data_config = None
-
 
         #self.check_config()
 
@@ -104,16 +111,19 @@ class Configuration:
             if not isinstance(dataset_dict, dict):
                 continue
 
+            component_dict = dict((comp, self.run_config['component_algorithm_mapping'][comp]) 
+                                  for comp in dataset_dict['components'])
+
             for video_config in dataset_dict['videos']:
                 video_config.update(dataset_name=dataset_name)
                 video_config.update(self.dataset_config[dataset_name])
                 video_config.update(self.get_io_config())
                 self.current_data_config = self.localize(video_config)
-                yield self.current_data_config, dataset_dict['methods'], dataset_dict['features']
+                yield self.current_data_config, component_dict
 
     def get_method_configs(self, method_names):
         for method_name in method_names:
-            method_config = flatten_dict(self.detector_config['methods'][method_name])
+            method_config = flatten_dict(self.detector_config['algorithms'][method_name])
 
             if 'algorithm' in method_config.keys():
                 method_config.update(
@@ -123,7 +133,7 @@ class Configuration:
 
     def get_feature_configs(self, feature_names):
         for feature_name in feature_names:
-            feature_config = copy.deepcopy(self.detector_config['features'][feature_name])
+            feature_config = copy.deepcopy(self.detector_config['algorithms'][feature_name])
 
             yield feature_config, feature_name
 
@@ -137,25 +147,27 @@ class Configuration:
                     file_name=f"config_<time>")
 
     def get_all_detector_names(self):
-        methods = list(self.detector_config['methods'].keys())
-        features = list(self.detector_config['features'].keys())
+        algorithms = list(self.detector_config['algorithms'].keys())
         feature_methods= [
-            self.detector_config['features'][name]['input_detector_names'] for name in features]
-        return list(set(flatten_list(methods + features + feature_methods)))
+            self.detector_config['algorithms'][name]['input_detector_names'] 
+            for name in algorithms if 'input_detector_names' in self.detector_config['algorithms'][name].keys()]
+        return list(set(flatten_list(algorithms + feature_methods)))
 
-    def get_all_camera_names(self, method_names):
+    def get_all_camera_names(self, algorithm_names):
         all_camera_names = set()
         detector_config = self.localize(self.detector_config, fill_data=True)
-        for detector in method_names:
-            all_camera_names.update(detector_config['methods'][detector]['camera_names'])
+        for detector in algorithm_names:
+            if 'camera_names' in detector_config['algorithms'][detector].keys():
+                all_camera_names.update(detector_config['algorithms'][detector]['camera_names'])
         if '' in all_camera_names:
             all_camera_names.remove('')
         return all_camera_names
 
-    def get_all_input_data_formats(self, method_names):
+    def get_all_input_data_formats(self, algorithm_names):
         data_formats = set()
-        for detector in method_names:
-            data_formats.add(self.detector_config['methods'][detector]['input_data_format'])
+        for detector in algorithm_names:
+            if 'input_data_format' in self.detector_config['algorithms'][detector].keys():
+                data_formats.add(self.detector_config['algorithms'][detector]['input_data_format'])
         return data_formats
 
     def check_config(self):

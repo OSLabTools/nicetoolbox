@@ -9,7 +9,7 @@ def visualize_proximity_score(data, output_folder, keypoint):
     plt.clf()
     plt.figure(figsize=(10, 5))
     # Plot the distances for the average coordinates of the selected keypoints across all frames
-    plt.plot(data[0])
+    plt.plot(data)
     plt.xlabel('Frame Index')
     plt.ylabel('Proximity Score')
     if len(keypoint) == 1:

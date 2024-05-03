@@ -9,15 +9,15 @@ import numpy as np
 from noddingpigeon.inference import predict_video
 from noddingpigeon.video import VideoSegment
 
-from detectors.base_detector import BaseDetector
+from method_detectors.base_detector import BaseDetector
 from oslab_utils.filehandling import save_to_hdf5
 
 
 class NoddingPigeon(BaseDetector):
     """
     """
-    name = 'nodding_pigeon'
-    behavior = 'head'
+    name = 'head'
+    algorithm = 'nodding_pigeon'
     label_names = dict(nodding='nod',
                        turning='shake',
                        stationary='static',
@@ -73,7 +73,7 @@ class NoddingPigeon(BaseDetector):
         save_to_hdf5(results,
                      [cam_pers_map[f"Cam{camera_id}"] + desc
                       for camera_id in self.camera_ids],
-                     os.path.join(self.result_folder, f"{self.behavior}.hdf5"))
+                     os.path.join(self.result_folder, f"{self.algorithm}.hdf5"))
 
     def visualization(self, data):
         pass

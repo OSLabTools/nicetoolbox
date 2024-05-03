@@ -1,19 +1,19 @@
 # This config supports using placeholders.
 # options are, e.g., all keys from your local 'machine_specific_paths.toml'
 
-[methods.nodding_pigeon]
+[algorithms.nodding_pigeon]
 input_data_format = "segments"
 camera_names = ["<cam_face1>", "<cam_face2>"]
 env_name = "venv:env"
 
-[methods.ethXgaze]
+[algorithms.ethXgaze]
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>"]
 shape_predictor_filename = "<assets>/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
 pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
 
-[methods.xgaze_3cams]
+[algorithms.xgaze_3cams]
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
 env_name = "venv:env"
@@ -22,10 +22,9 @@ face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
 pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
 face_detector_filename = "<assets>/xgaze_3cams/mmod_human_face_detector.dat"
 
-[methods.mmpose]
+[frameworks.mmpose]
 input_data_format = "frames"
 camera_names = ["<cam_top>", "<cam_front>"]
-algorithm = "hrnetw48"
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
@@ -35,7 +34,8 @@ filtered = true
 window_length = 5
 polyorder = 2
 
-[methods.mmpose.hrnetw48]
+[algorithms.hrnetw48]
+framework = "mmpose"
 pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
 pose_checkpoint = "<assets>/mmpose/configs/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
 detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
@@ -43,7 +43,8 @@ detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_2020
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
-[methods.mmpose.vitpose]
+[algorithms.vitpose]
+framework = "mmpose"
 pose_config = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192.py"
 pose_checkpoint = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
 detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
@@ -52,12 +53,12 @@ keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
 
-[methods.emoca]
+[algorithms.emoca]
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>"]
 env_name = "venv:env"
 
-[methods.active_speaker]
+[algorithms.active_speaker]
 input_data_format = "snippets"
 camera_names = ["<cam_top>", "<cam_front>"]
 env_name = "venv:env"
@@ -73,17 +74,21 @@ evaluation_type = 'AVA_ASD'
 GraViT_model = '<assets>/active_speaker/checkpoints/SPELL_ASD_default/ckpt_best.pt'
 GraViT_config = '<assets>/active_speaker/checkpoints/SPELL_ASD_default/cfg.yaml'
 
-[features.kinematics]
-input_detector_names = ["mmpose_hrnetw48"]
+# kinematics
+[algorithms.velocity_body]
+input_detector_names = [["body_joints", "hrnetw48"]]
 
-[features.proximity]
+# proximity
+[algorithms.body_distance]
 used_keypoints = ["nose"] # if the list is more than one keypoint, the midpoint
-input_detector_names = ["mmpose_hrnetw48"]
+input_detector_names = [["body_joints", "hrnetw48"]]
 
-[features.leaning]
+# leaning
+[algorithms.body_angle]
 used_keypoints = [["left_shoulder", "right_shoulder"], ["left_hip", "right_hip"], ["left_knee", "right_knee"]]
-input_detector_names = ["mmpose_hrnetw48"]
+input_detector_names = [["body_joints", "hrnetw48"]]
 
-[features.gazeDistance]
-input_detector_names = ["xgaze_3cams", "mmpose_hrnetw48"]
+# gaze_interaction
+[algorithms.gaze_distance]
+input_detector_names = [["gaze_individual", "xgaze_3cams"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"

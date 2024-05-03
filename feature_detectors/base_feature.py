@@ -25,35 +25,37 @@ class BaseFeature(ABC):
         io: class
             a class instance that handles in-output folders
         """
-        logging.info(f"\n\nSTARTING feature {self.name}.")
+        logging.info(f"\n\nSTARTING feature detector for {self.components} and {self.algorithm}.")
 
         # input folder of the feature is the result folder of detector
-        self.input_folders = [io.get_output_folder(name, 'result')
-                              for name in config['input_detector_names']]
-        self.input_files = []
-        for input_folder in self.input_folders:
-            input_file = self.get_input(sorted(os.listdir(input_folder)), ".npz")
-            self.input_files.append(os.path.join(input_folder, input_file))
-            #input_file_list = [f for f in os.listdir(input_folder) if ".hdf5" in f]
-            #log_ut.assert_and_log(len(input_file_list) != 0, f"Input file could not find.")
-            #log_ut.assert_and_log(len(input_file_list) == 1, f"There is more than one input file")
-            #self.input_files.append(os.path.join(input_folder, input_file_list[0]))
-
-        #self.input_data_folder = config['input_data_folder']
+        self.input_folders, self.input_files = [], []
+        for (comp, alg) in config['input_detector_names']:
+            input_folder = io.get_detector_output_folder(comp, alg, 'result')
+            input_file = os.path.join(input_folder, f"{alg}.npz")
+            if not os.path.isfile(input_file):
+                raise FileNotFoundError(f"Feature detector {self.components}: File '{input_file}' does not exist!")
+            self.input_folders.append(input_folder)
+            self.input_files.append(input_file)
 
         #output folders
-        self.result_folder = io.get_output_folder(self.name, 'result')
-        self.viz_folder = io.get_output_folder(self.name, 'visualization')
-
+        main_component = self.components[0]
+        self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, 'output')
+        self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
+        self.result_folders = dict((comp, io.get_detector_output_folder(comp, self.algorithm, 'result')) 
+                                   for comp in self.components)
+        
         self.subjects_descr = data.subjects_descr
 
         # save this method config
-        self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
-                                        f'run_config.toml')
-
+        self.config_path = os.path.join(
+            io.get_detector_output_folder(main_component, self.algorithm, 'run_config'), 
+            'run_config.toml'
+            )
         save_config(config, self.config_path)
 
-    def get_input(self, input_list, token):
+    def get_input(self, input_list, token, listdir=True):
+        if listdir:
+            input_list = sorted(os.listdir(input_list))
         detected = [f for f in input_list if token in f]
         log_ut.assert_and_log(len(detected) != 0,
                               f"Input file could not find.")
@@ -69,8 +71,8 @@ class BaseFeature(ABC):
         str
             all attributes and their values, written in plain text
         """
-        return (f"Instance of class {self.name} \n\t"
-                f"behavior = {self.behavior} \n\t "
+        return (f"Instance of component {self.components} \n\t"
+                f"algorithm = {self.algorithm} \n\t "
                 f"\n\t").join([f"{attr} = {value}" for (attr, value) in self.__dict__.items()])
 
     def compute(self):
@@ -85,13 +87,13 @@ class BaseFeature(ABC):
 
     @property
     @abstractmethod
-    def name(self):
+    def components(self):
         raise NotImplementedError
 
 
     @property
     @abstractmethod
-    def behavior(self):
+    def algorithm(self):
         raise NotImplementedError
 
 

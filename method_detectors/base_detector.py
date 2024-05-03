@@ -30,34 +30,34 @@ class BaseDetector(ABC):
         config['log_file'], config['log_level'] = io.get_log_file_level()
 
         # output folders for inference and visualizations
-        config['out_folder'] = io.get_output_folder(self.name, 'output')
-        config['result_folder'] = io.get_output_folder(self.name, 'result')
-        self.viz_folder = io.get_output_folder(self.name, 'visualization')
+        main_component = self.components[0]
+        config['out_folder'] = io.get_detector_output_folder(main_component, self.algorithm, 'output')
+        self.out_folder = config['out_folder']
+        self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
+        config['result_folders'] = dict((comp, io.get_detector_output_folder(comp, self.algorithm, 'result')) 
+                                   for comp in self.components)
 
-        config['behavior'] = self.behavior
+        config['algorithm'] = self.algorithm
         config['calibration'] = data.calibration
         config['subjects_descr'] = data.subjects_descr
         self.subjects_descr = data.subjects_descr
         config['cam_sees_subjects'] = data.cam_sees_subjects
 
         # save this method config that will be given to the third party detector
-        self.config_path = os.path.join(io.get_output_folder(self.name, 'result'),
-                                        'run_config.toml')
-
+        self.config_path = os.path.join(
+            io.get_detector_output_folder(main_component, self.algorithm, 'run_config'), 
+            'run_config.toml'
+            )
         save_config(config, self.config_path)
-        self.conda_path = io.get_conda_path()
 
-        # get the path of the third party inference script
-        if "mmpose" in self.name:
-            self.script_path = data.get_inference_path("mmpose")
-        else:
-            self.script_path = data.get_inference_path(self.name)
+        self.conda_path = io.get_conda_path()
+        self.framework = config['framework'] if 'framework' in config.keys() else self.algorithm
+        self.script_path = data.get_inference_path(self.framework)
 
         # specify the virtual environment for the third party method/detector
         self.venv, self.env_name = config['env_name'].split(':')
         if self.venv == 'venv':
-            name = self.name.split('_')[0] if self.env_name.startswith('mmpose') else self.name
-            self.venv_path = data.get_venv_path(name, self.env_name)
+            self.venv_path = data.get_venv_path(self.framework, self.env_name)
 
     def __str__(self):
         """ description of the class instance for printing
@@ -67,8 +67,8 @@ class BaseDetector(ABC):
         str
             all attributes and their values, written in plain text
         """
-        return f"Instance of class {self.name} \n\t" \
-               f"behavior = {self.behavior} \n\t" + \
+        return f"Instance of component {self.components} \n\t" \
+               f"algorithm = {self.algorithm} \n\t" + \
                " \n\t".join([f"{attr} = {value}"
                              for (attr, value) in self.__dict__.items()])
 
@@ -125,12 +125,12 @@ class BaseDetector(ABC):
 
     @property
     @abstractmethod
-    def name(self):
+    def components(self):
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def behavior(self):
+    def algorithm(self):
         raise NotImplementedError
 
     @abstractmethod

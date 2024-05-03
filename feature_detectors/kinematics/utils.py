@@ -35,9 +35,9 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
 
     delta = (global_max - global_min) * 0.025
     # Iterate through the data list and the array of subplots to fill in data
-    for i, (ax, data) in enumerate(zip(axs, data)):
+    for i, (ax, dat) in enumerate(zip(axs, data)):
         for j, body_part in enumerate(bodyparts_list):
-            ax.plot(data[:, j], label=body_part)
+            ax.plot(dat[:, j], label=body_part)
 
         ax.set_title(f'Sum of Movements by Body Part Across Frames ({people_names[i]})')
         ax.set_xlabel('Frame Index')

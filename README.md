@@ -219,6 +219,11 @@ Each component as folder plus -- entities within the `.npz` file.
 Inside each folder, save results in `<algorithm>.npz` - one file per detector/feature.
 The toolkit behind each algorithm is defined within the detector_config, not necessarily in the file/folder names. 
 
+Entities in data_description:
+- 'coordinate_x', 'coordinate_y', 'coordinate_z'
+- 'distance', 'angle_deg', 'gradient_angle', 'confidence_score', 'velocity'
+- 'to_face_<subject_descr>', 'look_at_<subject_descr>', 'with_<subject_descr>'
+
 
 ### Naming conventions
 - Group names: 

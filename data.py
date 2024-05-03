@@ -65,6 +65,7 @@ class Data:
         # LOAD CALIBRATION
         self.calibration = self.load_calibration(io.get_calibration_file(),
                                                  config['dataset_name'])
+        self.fps = self.get_fps(config['fps'])
 
         logging.info("Data loading and processing finished.")
 
@@ -95,6 +96,18 @@ class Data:
                 f"'{detector_name}' does not exist!")
             raise
         return filepath
+
+    def get_fps(self, config_fps):
+        input_formats = self.get_input_format(self.all_camera_names)
+        if input_formats in ['mp4', 'avi']:
+            video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
+            fps = get_fps(video_files[0])
+            if fps != config_fps:
+                logging.warning(
+                    f"Detected fps = {fps} does not match fps given in the config = {config_fps}!")
+            return fps
+        else:
+            return config_fps
 
     def check_config(self, config):
         for detector in config['methods']['names']:

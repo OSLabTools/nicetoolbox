@@ -16,6 +16,7 @@ path_to_annotations = "<datasets_folder_path>/dyadic_communication/oslab/annotat
 path_to_calibrations = "<datasets_folder_path>/dyadic_communication/oslab/calibrations.npz"
 data_input_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
 start_frame_index = 0
+fps = 30
 
 
 [mpi_inf_3dhp]
@@ -34,4 +35,5 @@ path_to_annotations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/annotations.npz
 path_to_calibrations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/calibrations.npz"
 data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/<sequence_ID>/<camera_name>"
 start_frame_index = 1
+fps = 50
 

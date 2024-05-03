@@ -9,14 +9,14 @@ import json
 from ethXgaze import run_ethXgaze
 from third_party.xgaze_3cams.xgaze_3cams.utils import get_cam_para_studio
 
-from detectors.base_detector import BaseDetector
+from method_detectors.base_detector import BaseDetector
 
 
 class ETHXGaze(BaseDetector):
     """Class to setup and run existing computer vision research code.
     """
-    name = 'ETH-XGaze'
-    behavior = 'gazeDistance'
+    name = 'gaze_individual'
+    algorithm = 'ETH-XGaze'
 
     def __init__(self, settings) -> None:
         """InitializeMethod class.

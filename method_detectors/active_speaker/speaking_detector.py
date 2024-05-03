@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 import logging
 
-from detectors.base_detector import BaseDetector
+from method_detectors.base_detector import BaseDetector
 from oslab_utils.video import frames_to_video
 import oslab_utils.logging_utils as log_ut
 
@@ -17,7 +17,7 @@ class SPELL(BaseDetector):
     """Class to setup and run existing computer vision research code.
     """
     name = 'active_speaker'
-    behavior = 'active_speaker'
+    algorithm = 'active_speaker'
 
     def __init__(self, config, io, data) -> None:
         """InitializeMethod class.

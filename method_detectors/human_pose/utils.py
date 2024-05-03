@@ -5,7 +5,7 @@ import random
 import cv2
 import logging
 import scipy.interpolate as interp
-from detectors.human_pose.output_parser import MMPoseParser, HDF5Parser
+from method_detectors.human_pose.output_parser import MMPoseParser, HDF5Parser
 import oslab_utils.logging_utils as log_ut
 
 

@@ -10,6 +10,16 @@
 run_mode = "development"  # "experiment", "development", or "production"
 git_hash = "<git_hash>"
 
+[component_algorithm_mapping]
+# each component can be assigned to / run with multiple different algorithms
+gaze_individual = ['xgaze_3cams']
+gaze_interaction = ['gaze_distance']
+body_joints = ['hrnetw48', 'vitpose']
+hand_joints = ['hrnetw48']
+face_landmarks = ['hrnetw48']
+kinematics = ['velocity_body']
+proximity = ['body_distance']
+leaning = ['body_angle']
 
 [run]
 # the inPut video is processed into 'frames', 'segments' and 'snippets'
@@ -19,42 +29,34 @@ git_hash = "<git_hash>"
 # - annotation_interval (int) in seconds, length of segments
 
 [run.dyadic_communication]
-methods = ["xgaze_3cams", "mmpose"]
-features = ["gazeDistance" , "proximity", "leaning", "kinematics"]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics" , "proximity", "leaning"]
 videos = [
-   {participant_ID = "PIS_ID_000", sequence_ID='', video_start = 50, video_length = 10, video_skip_frames = false, annotation_interval = 2}]
+   {participant_ID = "PIS_ID_000", sequence_ID='', video_start = 17, video_length = 15, video_skip_frames = false, annotation_interval = 2},
+   {participant_ID = "PIS_ID_05", sequence_ID='', video_start = 450, video_length = 20, video_skip_frames = false, annotation_interval = 2}
+]
 
 [run.mpi_inf_3dhp]
-methods = ["xgaze_3cams", "mmpose"]
-features = ["kinematics" , "proximity", "leaning"]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics" , "proximity", "leaning"]
 videos = [
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
     {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
 ]
 
-#[run.mpi_inf_3dhp]
-#methods = ["xgaze_3cams", "mmpose"]
-#features = ["kinematics" , "proximity", "leaning"]
-#videos = [
-#    {participant_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2},
-#    {participant_ID = "S1", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2}
-#]
-# TODO CARO: add sequence_ID to isa-tool!!
-
 [io]
-experiment_name = "<yyyymmdd>_new_run_file"
+experiment_name = "<yyyymmdd>"
 out_folder = "<pis_folder_path>/experiments/<experiment_name>"
 out_sub_folder = "<out_folder>/<dataset_name>_<participant_ID>_s<video_start>_l<video_length>"
 dataset_config = "configs/dataset_properties.toml"
 assets = "<code_folder>/assets"
 
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
-data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<participant_ID>"
+data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<participant_ID>_<sequence_ID>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
-method_out_folder = "<out_sub_folder>/<method_name>/method_output"
-method_visualization_folder = "<out_sub_folder>/<method_name>/visualization"
-method_additional_output_folder = "<out_sub_folder>/<method_name>/additional_output"
-method_tmp_folder = "<tmp_folder>/<method_name>"
-method_final_result_folder = "<out_sub_folder>/<method_name>"
+detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
+detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
+detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
+detector_tmp_folder = "<tmp_folder>/<component_name>/<algorithm_name>"
+detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
+detector_final_result_folder = "<out_sub_folder>/<component_name>"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"

@@ -2,17 +2,17 @@ import os
 import numpy as np
 import logging
 import cv2
-from features.base_feature import BaseFeature
+from feature_detectors.base_feature import BaseFeature
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
-import features.leaning.utils as lean_utils
+import feature_detectors.leaning.utils as lean_utils
 
 
 class Leaning(BaseFeature):
     """
     """
-    name = 'leaning'
-    behavior = 'Forward-Backward-lean'
+    components = ['leaning']
+    algorithm = 'body_angle'
 
     def __init__(self, config, io, data):
         """ Initialize Movement class.
@@ -27,9 +27,11 @@ class Leaning(BaseFeature):
         # then, call the base class init
         super().__init__(config, io, data)
 
-        pose_results_folder = self.get_input(self.input_folders, 'pose')
-        pose_config = cfg.load_config(os.path.join(pose_results_folder,
-                                                   'run_config.toml'))
+        # POSE
+        joints_component, joints_algorithm = [l for l in config['input_detector_names'] 
+                                          if any(['joints' in s for s in l])][0]
+        pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, 'run_config')
+        pose_config = cfg.load_config(os.path.join(pose_config_folder, 'run_config.toml'))
 
         self.predictions_mapping = cfg.load_config("./configs/predictions_mapping.toml")[
                 "human_pose"][pose_config["keypoint_mapping"]]
@@ -48,7 +50,7 @@ class Leaning(BaseFeature):
 
         self.keypoint_index = [[self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair] for keypoint_pair in self.used_keypoints]
 
-        logging.info(f"Feature {self.name} initialized.")
+        logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
         """ Compute the euclidean distance between the keypoint coord of personL and personR
@@ -60,7 +62,10 @@ class Leaning(BaseFeature):
         The proximity measure - The euclidean distance between the two person's body (one location on body)
 
         """
-        data, _ = fh.read_hdf5(self.input_files[0])
+        joint_data = np.load(self.input_files[0], allow_pickle=True)
+        data = joint_data['3d'][:, 0]
+        data_description = joint_data['data_description'].item()['3d']
+
         leaning_data_list = []
         for person_data in data:
             midpoints = []
@@ -77,10 +82,22 @@ class Leaning(BaseFeature):
             merged_data = np.vstack((leaning_data, leaning_gradient)).T
             leaning_data_list.append(merged_data)
 
-        filepath = os.path.join(self.result_folder, "leaning.hdf5")
-        fh.save_to_hdf5(leaning_data_list, groups_list=self.subjects_descr, output_file=filepath)
+        # save results
+        out_dict = {
+            'body_angle': np.stack(leaning_data_list, axis=0)[:, None],
+            'data_description': {
+                'body_angle': dict(
+                    axis0=self.subjects_descr,
+                    axis1=None,
+                    axis2=data_description['axis2'],
+                    axis3=['angle_deg', 'gradient_angle']
+                )
+            }
+        }
+        save_file_path = os.path.join(self.result_folders['leaning'], f"{self.algorithm}.npz")
+        np.savez_compressed(save_file_path, **out_dict)
 
-        logging.info(f"Computation of feature {self.name} completed.")
+        logging.info(f"Computation of feature detector for {self.components} completed.")
         return leaning_data_list
 
     def visualization(self, data):
@@ -90,7 +107,7 @@ class Leaning(BaseFeature):
         data: class
             a class instance that stores all input file locations
         """
-        logging.info(f"Visualizing the feature output {self.name}")
+        logging.info(f"Visualizing the feature detector output {self.components}.")
         lean_utils.visualize_lean_in_out_per_person(data, self.subjects_descr, self.viz_folder)
         # Determine global_min and global_max - define y-lims of graphs
         # global_min = data[0].min()
@@ -111,7 +128,7 @@ class Leaning(BaseFeature):
         #         out.write(combined)
         # out.release()
 
-        logging.info(f"Visualization of feature {self.name} completed.")
+        logging.info(f"Visualization of feature detector {self.components} completed.")
 
     def post_compute(self, distance_data):
         pass

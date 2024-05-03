@@ -14,16 +14,16 @@ from data import Data
 from oslab_utils.in_out import create_tmp_folder
 from oslab_utils.annotations import CustomEaf
 
-#from detectors.nodding.noddingpigeon import NoddingPigeon
-#from detectors.gazeDistance.ETH_XGaze import ETHXGaze
-from detectors.gaze.XGaze_3cams import XGaze3cams
-from detectors.human_pose.pose_detector import PoseDetector
-from detectors.facial_expression.emoca import Emoca
-from detectors.active_speaker.speaking_detector import SPELL
-from features.kinematics.kinematics import Kinematics
-from features.proximity.proximity import Proximity
-from features.leaning.leaning import Leaning
-from features.gazeDistance.gazeDistance import GazeDistance
+#from method_detectors.nodding.noddingpigeon import NoddingPigeon
+#from method_detectors.gazeDistance.ETH_XGaze import ETHXGaze
+from method_detectors.gaze.XGaze_3cams import XGaze3cams
+from method_detectors.human_pose.mmpose import HRNetw48, VitPose
+from method_detectors.facial_expression.emoca import Emoca
+from method_detectors.active_speaker.speaking_detector import SPELL
+from feature_detectors.kinematics.kinematics import Kinematics
+from feature_detectors.proximity.proximity import Proximity
+from feature_detectors.leaning.leaning import Leaning
+from feature_detectors.gazeDistance.gazeDistance import GazeDistance
 import configs.config_handler as confh
 import oslab_utils.logging_utils as log_ut
 
@@ -32,15 +32,16 @@ all_methods = dict(
 #        nodding_pigeon=NoddingPigeon,
 #        ethXgaze=ETHXGaze,
         xgaze_3cams=XGaze3cams,
-        mmpose=PoseDetector
+        hrnetw48=HRNetw48,
+        vitpose=VitPose
 #        emoca=Emoca,
 #        active_speaker=SPELL
 )
 
-all_features = dict(kinematics=Kinematics,
-                    proximity=Proximity,
-                    gazeDistance=GazeDistance,
-                    leaning=Leaning)
+all_features = dict(velocity_body=Kinematics,
+                    body_distance=Proximity,
+                    gaze_distance=GazeDistance,
+                    body_angle=Leaning)
 
 
 def main():
@@ -66,8 +67,11 @@ def main():
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # RUNNING
-    for (dataset_config, method_names, feature_names) in config_handler.get_dataset_configs():
+    for (dataset_config, component_dict) in config_handler.get_dataset_configs():
         logging.info(f"RUNNING {dataset_config['dataset_name']} and {dataset_config['participant_ID']}")
+        algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
+        method_names = [alg for alg in algorithm_names if alg in all_methods.keys()]
+        feature_names = [alg for alg in algorithm_names if alg in all_features.keys()]
 
         # IO
         io.initialization(
@@ -76,8 +80,8 @@ def main():
         # DATA preparation
         data = Data(
             dataset_config, io, 
-            config_handler.get_all_input_data_formats(method_names),
-            config_handler.get_all_camera_names(method_names)
+            config_handler.get_all_input_data_formats(algorithm_names),
+            config_handler.get_all_camera_names(algorithm_names)
             )
 
         # RUN detectors

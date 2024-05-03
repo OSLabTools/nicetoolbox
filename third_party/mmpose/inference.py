@@ -247,31 +247,34 @@ def main(config):
         #check if any [0,0,0] prediction
         #for person_results in person_results_list:
         #    test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
-    data_desc = {
-        '2d': {
-            'axis0': config["subjects_descr"],
-            'axis1': config["camera_names"],
-            'axis2': frame_indices,
-            'axis3': config['keypoint_mapping'],
-            'axis4': estimations_data_descr['2d']
-        },
-        'bbox_2d': {
-            'axis0': config["subjects_descr"],
-            'axis1': config["camera_names"],
-            'axis2': frame_indices,
-            'axis3': 'person',
-            'axis4': estimations_data_descr['bbox_2d']
-        }
-    }
 
-    #  save as npz file
-    out_dict = {
-        '2d': np.stack(camera_keypoints_output, axis=1),
-        'bbox_2d': np.stack(camera_bbox_output, axis=1),
-        'data_description': data_desc
-    }
-    save_file_name = os.path.join(config["result_folder"], f"hrnetw48.npz")
-    np.savez_compressed(save_file_name, **out_dict)
+    #  save as npz files
+    for component, result_folder in config["result_folders"].items():
+        indices = config['keypoints_indices'][component]
+
+        data_desc = {
+            '2d': {
+                'axis0': config["subjects_descr"],
+                'axis1': config["camera_names"],
+                'axis2': frame_indices,
+                'axis3': config['keypoints_description'][component],
+                'axis4': estimations_data_descr['2d']
+            },
+            'bbox_2d': {
+                'axis0': config["subjects_descr"],
+                'axis1': config["camera_names"],
+                'axis2': frame_indices,
+                'axis3': 'person',
+                'axis4': estimations_data_descr['bbox_2d']
+            }
+        }
+        out_dict = {
+            '2d': np.stack(camera_keypoints_output, axis=1)[:, :, :, indices],
+            'bbox_2d': np.stack(camera_bbox_output, axis=1),
+            'data_description': data_desc
+        }
+        save_file_name = os.path.join(result_folder, f"{config['algorithm']}.npz")
+        np.savez_compressed(save_file_name, **out_dict)
 
     # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
     # sc.compare_data_values_with_saved_json(
