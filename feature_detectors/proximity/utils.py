@@ -20,7 +20,7 @@ def visualize_proximity_score(data, output_folder, keypoint):
     plt.ylim(1.3, 1.9)
     # Save the plot
     plt.savefig(os.path.join(output_folder, f'proximity_score_{keypoint}.png'), dpi=500)
-    plt.show()
+    
 
 def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""

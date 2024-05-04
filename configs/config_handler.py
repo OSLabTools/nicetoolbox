@@ -139,7 +139,7 @@ class Configuration:
 
     def save_experiment_config(self, output_folder):
         # save all experiment configurations
-        log_configs(dict(run_config=self.run_config,
+        log_configs(dict(run_config=cfg.config_fill_auto(self.run_config),
                          dataset_config=self.dataset_config,
                          detector_config=self.detector_config,
                          machine_specific_config=self.machine_specific_config),

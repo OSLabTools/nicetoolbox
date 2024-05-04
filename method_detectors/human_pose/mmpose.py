@@ -148,19 +148,11 @@ class MMPose(BaseDetector):
             print(f"HAS NAN Values? : {np.isnan(results_2d_interpolated).any()}")
             results_2d_interpolated = utils.interpolate_data(results_2d_interpolated, is_3d=False)
 
-            data_desr_2d_interpolated = {
-                'axis0': data_description['2d']['axis0'],
-                'axis1': data_description['2d']['axis0'],
-                'axis2': data_description['2d']['axis2'],
-                'axis3': data_description['2d']['axis3'],
-                'axis4': data_description['2d']['axis4']
-            }
-            data_description['2d_interpolated'] = data_desr_2d_interpolated
-
+            data_description['2d_interpolated'] = data_description['2d']
             if len(self.camera_names) != 2:
                 if self.filtered:
 
-                    data_description['2d_filtered'] = data_desr_2d_interpolated
+                    data_description['2d_filtered'] = data_description['2d']
                     # save results
                     results_dict = {
                         '2d': results_2d,
