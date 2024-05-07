@@ -110,8 +110,8 @@ class Leaning(BaseFeature):
         logging.info(f"Visualizing the feature detector output {self.components}.")
         lean_utils.visualize_lean_in_out_per_person(data, self.subjects_descr, self.viz_folder)
         # Determine global_min and global_max - define y-lims of graphs
-        # global_min = data[0].min()
-        # global_max = data[0].max()
+        # global_min = np.nanmin(data[0])
+        # global_max = np.nanmax(data[0])
         # num_of_frames = data[0].shape[0]
         #
         # fig, canvas, axL, axR = lean_utils.create_video_canvas(num_of_frames, global_min, global_max)

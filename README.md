@@ -224,7 +224,29 @@ Entities in data_description:
 - 'distance', 'angle_deg', 'gradient_angle', 'confidence_score', 'velocity'
 - 'to_face_<subject_descr>', 'look_at_<subject_descr>', 'with_<subject_descr>'
 
+#### Components outputs
 
+Each `<algorithm>.npz` file contains several output files saved as numpy arrays ('.npy'). 
+All these numpy arrays share a common structure in their first 3 dimension :
+[number_of_subjects, number_of_cameras, number_of_frames]
+
+Output files: 
+ - **body_joints**/**hand_joints**/**face_landmarks**:
+   - 2d: -x/y coordinates of body/hand joints or face landmarks & their confidence score. It saves the raw output of the algorithm 
+     - shape: [..., number_of_bodyjoints, 3] last dimension: 'coordinate_x', 'coordinate_y', 'confidence_score' 
+   - 2d_filtered: if user set filtered true in detectors_config - applied Savitzky-Golay filter to algorithm output. 
+   window_length and polyorder parameters can be adjusted in detectors_config. 
+     - shape - same as 2d results
+   - 2d_interpolated: applied a correction on algorithm output (raw/filtered) -- 
+   the detections with a low confidence score were removed. The missing values were interpolated if the number of consecutive missing value is below 10
+     - shape - same as 2d results
+   - bbox_2d: coordinates of the bounding box of the full body of the subject.
+     - shape: shape: [..., 1, 5] last dimension: 'top_left_x', 'top_left_y', 'bottom_right_x', 'bottom_right_y', 'confidence_score'
+   - 3d: if more than 1 camera, calculates 3d coordinates of the body joints by triangulating two camera views. 
+   Note: using 2d_interpolated results
+     - shape: [..., number_of_bodyjoints, 3] last dimension: 'coordinate_x', 'coordinate_y', 'coordinate_z'
+
+    
 ### Naming conventions
 - Group names: 
 personL, personR, dyad

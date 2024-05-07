@@ -73,8 +73,8 @@ class Kinematics(BaseFeature):
             motion_velocity = motion_magnitude * self.fps
             
             ## Standardized
-            # motion_magnitude_mean = np.mean(motion_magnitude, axis=0)
-            # motion_magnitude_std = np.std(motion_magnitude, axis=0)
+            # motion_magnitude_mean = np.nanmean(motion_magnitude, axis=0)
+            # motion_magnitude_std = np.nanstd(motion_magnitude, axis=0)
             # standardized_magnitudes = (motion_magnitude - motion_magnitude_mean) / motion_magnitude_std
 
             person_data_list_displacement_vector.append(differences)
@@ -114,8 +114,8 @@ class Kinematics(BaseFeature):
         """
         logging.info(f"Visualizing the feature detector output {self.components}.")
         # Determine global_min and global_max - define y-lims of graphs
-        global_min = np.array(data).min() - 0.05
-        global_max = np.array(data).max() + 0.05
+        global_min = np.nanmin(np.array(data)) - 0.05
+        global_max = np.nanmax(np.array(data)) + 0.05
         kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
             data, self.bodyparts_list, global_min, global_max, self.viz_folder,
             self.subjects_descr)
@@ -133,7 +133,7 @@ class Kinematics(BaseFeature):
             result = np.zeros((person_data.shape[0], len(self.bodyparts_list)))
 
             for i, indices in enumerate(self.predictions_mapping['bodypart_index'].values()):
-                result[:, i] = person_data[:, indices, 0].mean(axis=1)
+                result[:, i] = np.nanmean(person_data[:, indices, 0], axis=1)
 
             person_data_list.append(result)
 

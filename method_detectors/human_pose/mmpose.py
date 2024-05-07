@@ -145,7 +145,6 @@ class MMPose(BaseDetector):
             low_confidence_mask = results_2d_interpolated[:, :, :, :, 2] < keypoint_conf_threshold
             # Applying the mask to set the first and second values of num_estimates to NaN where the confidence is low
             results_2d_interpolated[low_confidence_mask, 0:2] = np.nan
-            print(f"HAS NAN Values? : {np.isnan(results_2d_interpolated).any()}")
             results_2d_interpolated = utils.interpolate_data(results_2d_interpolated, is_3d=False)
 
             data_description['2d_interpolated'] = data_description['2d']
@@ -236,9 +235,6 @@ class MMPose(BaseDetector):
                     output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d.T
 
                     reshaped_3D_points = output_data_3d.reshape(person_cam1.shape[0], person_cam1.shape[1], 3)
-                    print(f"shape of reshaped_3D_points: {reshaped_3D_points.shape}")
-                    print(f"First cam interpolated - first 2 frames keypoint 3-9: {results_2d_interpolated[i, 0, :2, 3:9,:]}")
-                    print(f"Second cam interpolated - first 2 frames keypoint 3-9:: {results_2d_interpolated[i, 1, :2, 3:9, :]}")
                     #print(f"3d: {reshaped_3D_points[:2, 3:9, :]}")
 
                     person_data_list.append(reshaped_3D_points)
@@ -258,14 +254,27 @@ class MMPose(BaseDetector):
                         axis4=['coordinate_x', 'coordinate_y', 'coordinate_z']
                     )
                 })
-                results_dict = {
-                    '2d': results_2d,
-                    '2d_interpolated': results_2d_interpolated,
-                    'bbox_2d': results_2d_bbox,
-                    '3d': np.stack(person_data_list)[:, None],
-                    'data_description': data_description
+                if self.filtered:
+                    data_description['2d_filtered'] = data_description['2d']
+                    # save results
+                    results_dict = {
+                        '2d': results_2d,
+                        '2d_filtered': results_2d_filtered,
+                        '2d_interpolated': results_2d_interpolated,
+                        'bbox_2d': results_2d_bbox,
+                        '3d': np.stack(person_data_list)[:, None],
+                        'data_description': data_description
                     }
-                np.savez_compressed(prediction_file, **results_dict)
+                    np.savez_compressed(prediction_file, **results_dict)
+                else:
+                    results_dict = {
+                        '2d': results_2d,
+                        '2d_interpolated': results_2d_interpolated,
+                        'bbox_2d': results_2d_bbox,
+                        '3d': np.stack(person_data_list)[:, None],
+                        'data_description': data_description
+                        }
+                    np.savez_compressed(prediction_file, **results_dict)
 
                 # check 3d data values
                 # TODO: this check works only for videos with 2 subjects?

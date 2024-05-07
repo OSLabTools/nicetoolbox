@@ -7,9 +7,51 @@ from mmpose.apis import MMPoseInferencer
 sys.path.append("./third_party/mmpose")
 sys.path.append("./third_party")
 import file_handling as fh
-import oslab_utils.image_processing as im
 #import output_sanity_checks as sc
 #import tests.test_data as test_data
+
+
+def calculate_iou(box1, box2):
+    """
+    Calculate the Intersection over Union (IoU) of two bounding boxes.
+
+    Parameters
+    ----------
+    box1 : array_like
+        Bounding box, format: [x1, y1, x2, y2] where (x1, y1) is the top-left coordinate and (x2, y2) is the bottom-right coordinate.
+    box2 : array_like
+        Bounding box, format: [x1, y1, x2, y2] where (x1, y1) is the top-left coordinate and (x2, y2) is the bottom-right coordinate.
+
+    Returns
+    -------
+    float
+        The Intersection over Union (IoU) overlap between the two bounding boxes. This is 0 if there is no overlap.
+
+    Notes
+    -----
+        IoU = Area of Overlap / Area of Union
+    """
+    # Determine the coordinates of the intersection rectangle
+    x_left = max(box1[0], box2[0])
+    y_top = max(box1[1], box2[1])
+    x_right = min(box1[2], box2[2])
+    y_bottom = min(box1[3], box2[3])
+
+    # Check if there is no overlap
+    if x_right < x_left or y_bottom < y_top:
+        return 0.0
+
+    # Calculate the area of the intersection rectangle
+    intersection_area = (x_right - x_left) * (y_bottom - y_top)
+
+    # Calculate the area of each bounding box
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # Calculate the Intersection over Union
+    iou = intersection_area / float(box1_area + box2_area - intersection_area)
+    return iou
+
 
 def filter_overlapping_bboxes(bboxes, confidence_scores, overlapping_threshold):
     """
@@ -45,7 +87,7 @@ def filter_overlapping_bboxes(bboxes, confidence_scores, overlapping_threshold):
         for j in range(i + 1, len(bboxes)):
             if j in removed:
                 continue
-            if im.calculate_iou(bboxes[i], bboxes[j]) > overlapping_threshold:
+            if calculate_iou(bboxes[i], bboxes[j]) > overlapping_threshold:
                 # keep the one with the higher confidence score
                 if confidence_scores[i] > confidence_scores[j]:
                     removed.add(j)
@@ -264,7 +306,7 @@ def main(config):
                 'axis0': config["subjects_descr"],
                 'axis1': config["camera_names"],
                 'axis2': frame_indices,
-                'axis3': 'person',
+                'axis3': ['full_body'],
                 'axis4': estimations_data_descr['bbox_2d']
             }
         }

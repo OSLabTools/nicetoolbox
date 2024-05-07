@@ -87,7 +87,6 @@ class Data:
                                     f'{env_name}/bin/activate')
         elif os_type == "windows":
             filepath = os.path.join(self.code_folder, 'third_party', detector_name,env_name, 'Scripts', 'activate')
-        print(filepath)
         try:
             exc.file_exists(filepath)
         except FileNotFoundError:
@@ -454,7 +453,9 @@ class Data:
                 self.snippets_list.append(out_video_file)
 
         self.frame_indices_list = list(frame_indices_list)
-        self.frames_list = np.array(frames_list).T
+        #self.frames_list = np.array(frames_list).T
+        self.frames_list = [list(pair) for pair in zip(*frames_list)]
+
 
     def create_symlink_input_folder(self, data_format, camera_names):
         # define folder structure and naming
