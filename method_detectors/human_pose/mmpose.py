@@ -311,6 +311,22 @@ class MMPose(BaseDetector):
         return in_camera
 
 
+def extract_key_per_value(input_dict):
+    if all(isinstance(l, int) for l in list(input_dict.values())):
+        return list(input_dict.keys())
+    else:
+        return_keys = []
+        for key, value in input_dict.items():
+            if isinstance(value, int):
+                return_keys.append(value)
+            elif isinstance(value, list):
+                for idx, _ in enumerate(value):
+                    return_keys.append(f"{key}_{idx}")
+            else:
+                raise NotImplementedError
+        return return_keys            
+
+
 class HRNetw48(MMPose):
     """
     """
@@ -326,14 +342,10 @@ class HRNetw48(MMPose):
             )
         
         description = dict(
-            body_joints = confh.flatten_list(list(keypoints_indices['body'].keys()) + 
-                                             list(keypoints_indices['foot'].keys())),
-            hand_joints = confh.flatten_list(
-                [[key] * len(val) for key, val in keypoints_indices['hand'].items()]
-                ),
-            face_landmarks = confh.flatten_list(
-                [[key] * len(val) for key, val in keypoints_indices['face'].items()]
-                ),
+            body_joints = confh.flatten_list(extract_key_per_value(keypoints_indices['body']) + 
+                                             extract_key_per_value(keypoints_indices['foot'])),
+            hand_joints = confh.flatten_list(extract_key_per_value(keypoints_indices['hand'])),
+            face_landmarks = confh.flatten_list(extract_key_per_value(keypoints_indices['face'])),
             )
         
         return indices, description
@@ -351,7 +363,7 @@ class VitPose(MMPose):
             )
         
         description = dict(
-            body_joints = confh.flatten_list(list(keypoints_indices['body'].keys()))
+            body_joints = confh.flatten_list(extract_key_per_value(keypoints_indices['body']))
             )
         
         return indices, description

@@ -9,8 +9,8 @@ cam_face1 = 'cam1'
 cam_face2 = 'cam2'
 subjects_descr = ["personL", "personR"]  # implies there are 2 people visible in the video
 cam_sees_subjects = {cam1 = [0], cam2 = [1], cam3 = [0, 1], cam4 = [0, 1]}  # order subjects f.l.t.r., indices from subjects_descr, start with 0
-metric_types = ['point_cloud_metrics', 'goekces metrics']
-annotation_types = ["daya labels"]
+metric_types = ['point_cloud_metrics', 'keypoint_metrics']
+annotation_types = ["none"]
 keypoints = 'coco_wholebody'
 path_to_annotations = "<datasets_folder_path>/dyadic_communication/oslab/annotations.npz"
 path_to_calibrations = "<datasets_folder_path>/dyadic_communication/oslab/calibrations.npz"

@@ -42,7 +42,7 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
         ax.set_title(f'Sum of Movements by Body Part Across Frames ({people_names[i]})')
         ax.set_xlabel('Frame Index')
         ax.set_ylabel('Sum of Movements')
-        ax.set_ylim(global_min - delta, global_max + delta)
+        # ax.set_ylim(global_min - delta, global_max + delta)
         ax.legend()
 
     # Save the plot
@@ -71,7 +71,7 @@ def frame_with_linegraph(frame, data, categories, current_frame, global_min, glo
 
     for ax in [axL, axR]:
         ax.set_xlim(0, dataL.shape[0])
-        ax.set_ylim(global_min, global_max)
+        # ax.set_ylim(global_min, global_max)
         ax.set_xticks(range(dataL.shape[0] + 1))
         ax.tick_params(axis='both', colors='white')
         ax.spines['bottom'].set_color('white')
