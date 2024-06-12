@@ -24,6 +24,7 @@ def convert_npz_to_csv_files(npz_path, output_folder):
         data_desc = data['data_description']
 
         for key in data:
+            print(key)
             if key != "data_description":
                 arr = data[key]
                 data_desc_arr = data_desc.item()[key]
@@ -47,8 +48,9 @@ def convert_npz_to_csv_files(npz_path, output_folder):
                                     f"{data_desc_arr['axis3'][int(idx)]}" for idx in range(len(flat_values))
                                 ]
                             elif arr_dimensions == 5:
+                                last_dim = arr.shape[-1]
                                 column_labels = [
-                                    f"{data_desc_arr['axis3'][idx//3]}_{data_desc_arr['axis4'][int(idx%3)]}" for idx in range(len(flat_values))
+                                    f"{data_desc_arr['axis3'][idx//last_dim]}_{data_desc_arr['axis4'][int(idx%last_dim)]}" for idx in range(len(flat_values))
                                 ]
                             rows.append(flat_values)
                             index_tuples.append((i, j, k))
@@ -71,9 +73,14 @@ def convert_npz_to_csv_files(npz_path, output_folder):
                 df.to_csv(os.path.join(output_folder, output_filename), index=False)
 
 if __name__ == '__main__':
-    VIDEO_FOLDER = r"F:\example_data\example_data\output\functional_test_experiment\mpi_inf_3dhp_S1_s421_l10"
-    OUTPUT_FOLDER = r"F:\example_data\example_data\output\csv_files"
+    VIDEO_FOLDER = "/mnt/84346C42346C3976/pis/example_data/input_data/dyadic_communication/experiments/functional_test_experiment/mpi_inf_3dhp_S1_s421_l10"
+    OUTPUT_FOLDER = r"/mnt/84346C42346C3976/pis/example_data/csv_files"
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    #path = r'F:\example_data\runner_functional_test_experiment\mpi_inf_3dhp_S1_s421_l10\body_joints\hrnetw48.npz'
+    #data = read_npz_file(path)
+    # for key in data:
+    #     print(key)
+    #     print(data[key])
 
     npz_files_list = find_npz_files(VIDEO_FOLDER)
     for file in npz_files_list:

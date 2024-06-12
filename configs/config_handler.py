@@ -54,10 +54,17 @@ def compare_configs(config1, config2, log_fct=print, config_names=''):
     return len(non_shared_keys) != 0, len(keys_different_values) != 0
 
 
+def add_to_filename(filename, addition):
+    filename_split = filename.split('.')
+    filename_split[-2] += addition
+    return ('.').join(filename_split)
+
+
 class Configuration:
     def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
         self.run_config = cfg.load_config(run_config_file)
+        self.run_config_check_file=add_to_filename(run_config_file, '_check')
         self.machine_specific_config = cfg.load_config(machine_specifics_file)
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
@@ -169,6 +176,14 @@ class Configuration:
             if 'input_data_format' in self.detector_config['algorithms'][detector].keys():
                 data_formats.add(self.detector_config['algorithms'][detector]['input_data_format'])
         return data_formats
+
+    def checker(self):
+
+        # check USER INPUT
+        run_config_check = cfg.load_config(self.run_config_check_file)
+        localized_run_config = self.localize(self.run_config)
+        exc.check_user_input_config(localized_run_config, run_config_check, "run_config")
+        logging.info(f"Configuration: user input check finished successfully.")
 
     def check_config(self):
         try:

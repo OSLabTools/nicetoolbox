@@ -62,7 +62,8 @@ def main():
     #config_handler.check_config_consistency(
     #        io.get_output_folder('config', 'output'))
 
-    # save experiment configs
+    # check and save experiment configs
+    config_handler.checker()
     config_handler.save_experiment_config(io.get_config_file())
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

@@ -54,7 +54,7 @@ class GazeDistance(BaseFeature):
         if len(subject_description) < 2:
             return None
 
-        indices = [key == 'face_landmarks' for key in keypoints_description['axis3']]
+        indices = ['face_landmarks' in key for key in keypoints_description['axis3']]
         head = keypoints[:, :, indices].mean(axis=2)
 
         distance_p1 = alg.distance_line_point(head[0], gaze[0], head[1])

@@ -46,7 +46,8 @@ def test_npz_files(folder_pair):
         for key in data_expected:
             if key != "data_description":
                 assert data_runner[key].shape == data_expected[key].shape, f"Shapes differ for {key}: runner - {data_runner[key].shape} vs expected - {data_runner[key].shape}"
-                #differences = data_runner[key] != data_expected[key]
-                #indices_of_differences = np.where(differences)
-                #assert np.sum(differences) == 0, f"There is difference for runner {file_runner} and expected {file_expected} files"
+
+                differences = ~np.isclose(data_runner[key], data_expected[key], atol=0.1, equal_nan=True)
+                indices_of_differences = np.where(differences)
+                assert np.all(~differences), f"There is difference for runner {file_runner} and expected {file_expected} files that exceeds the threshold - Indices of differences: {indices_of_differences}"
 
