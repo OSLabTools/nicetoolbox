@@ -14,9 +14,15 @@ output/
 **/env/
 **/*.pth
 
+doc/release_notes/*.pdf
+**/*.bib
+**/*.aux
+**/*.fls
+**/*.log
+**/*.fdb_latexmk
+**/*.synctex.gz
+
 configs/machine_specific_paths.toml
-*.tex~
-*.bib~
 
 third_party/emoca/emoca/assets
 third_party/emoca/emoca/image_output

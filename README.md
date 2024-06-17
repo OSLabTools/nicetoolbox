@@ -149,6 +149,47 @@ cd _build/latex/
 pdflatex detector.tex
 ```
 
+### Troubleshooting
+
+Very helpful: [Sphinx getting started](https://www.sphinx-doc.org/en/master/tutorial/getting-started.html)
+
+For html:
+- `sphinx-build -M html docs/source/ docs/build/`
+
+For pdfs:
+- `sudo apt install texlive-formats-extra`
+- `sphinx-build -M latexpdf docs/source/ docs/build/`
+- `cd docs/` and `make latexpdf`
+- `pip install --upgrade myst-parser`
+
+If anything went wrong before try `make clean` before running `make html`.
+
+
+Error: `ImportError: cannot import name 'soft_unicode' from 'markupsafe'`. Apparently, newer `markupsafe` versions do not suppport `soft_unicode` anymore.
+```
+sudo apt remove python3-sphinx
+sudo apt autoremove
+
+pip uninstall markupsafe
+pip install markupsafe==2.0.1
+```
+
+
+### Doxygen
+
+[Installation instructions](https://www.doxygen.nl/manual/install.html)
+
+Binaries failed on my machine with the error 
+/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by doxygen)
+
+Instead: download source code and follow instructions. Additionally add
+```
+sudo apt install flex
+sudo apt install bison
+```
+
+
+
 ## Testing
 
 Following examples from [ASPP 2019](https://github.com/cscmt/testing_debugging_profiling/tree/master).

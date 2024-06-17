@@ -31,7 +31,7 @@ class MMPose(BaseDetector):
             a class instance that handles in-output folders
         """
 
-        logging.info(f"STARTING Inference... - {self.components}, {self.algorithm}")
+        logging.info(f"Prepare Inference for '{self.algorithm}' and components {self.components}.")
 
         self.camera_names = config["camera_names"]
         self.video_start = data.video_start
@@ -52,11 +52,11 @@ class MMPose(BaseDetector):
         main_component = self.components[0]
         self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, 'output')
         self.prediction_folders = self.get_prediction_folders(make_dirs=True)
-        self.image_folders = self.get_image_folders(make_dirs=config["save_images"])
+        self.image_folders = self.get_image_folders(make_dirs=config["visualize"])
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
         config['data_folder'] = self.data_folder
-        config['intermediate_results'] = io.get_detector_output_folder(main_component, self.algorithm, 'additional')
+        #config['intermediate_results'] = io.get_detector_output_folder(main_component, self.algorithm, 'additional')
 
         # keypoints mapping
         keypoints_indices = cfg.load_config("./configs/predictions_mapping.toml")[
@@ -68,6 +68,8 @@ class MMPose(BaseDetector):
         super().__init__(config, io, data)
         self.result_folders = config['result_folders']
         self.calibration = config['calibration']
+
+        logging.info(f"Inference Preparation completed.\n")
 
     def get_per_component_keypoint_mapping(self, keypoints_indices):
         pass

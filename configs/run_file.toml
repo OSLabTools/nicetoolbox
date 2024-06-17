@@ -9,6 +9,7 @@
 # "production": all logs but no consistency checks and swallow exceptions
 run_mode = "development"  # "experiment", "development", or "production"
 git_hash = "<git_hash>"
+visualize = false
 
 [component_algorithm_mapping]
 # each component can be assigned to / run with multiple different algorithms

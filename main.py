@@ -5,7 +5,7 @@ import copy
 import logging
 import os
 import glob
-import subprocess
+import argparse
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 
@@ -44,11 +44,8 @@ all_features = dict(velocity_body=Kinematics,
                     body_angle=Leaning)
 
 
-def main():
+def main(run_config_file, detector_config_file, machine_specifics_file):
     # CONFIG I
-    run_config_file = "configs/run_file.toml"
-    detector_config_file = "configs/detectors_config.toml"
-    machine_specifics_file = "configs/machine_specific_paths.toml"
     config_handler = confh.Configuration(run_config_file, detector_config_file, machine_specifics_file)
 
     # IO
@@ -56,6 +53,7 @@ def main():
 
     # LOGGING
     log_ut.setup_logging(*io.get_log_file_level())
+    logging.info(f"\n{'#' * 80}\n\nISA-TOOL STARTED. Saving results to '{io.out_folder}'.\n\n{'#' * 80}\n\n")
     
     # CONFIG II
     # check config consistency
@@ -69,7 +67,8 @@ def main():
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # RUNNING
     for (dataset_config, component_dict) in config_handler.get_dataset_configs():
-        logging.info(f"RUNNING {dataset_config['dataset_name']} and {dataset_config['participant_ID']}")
+        logging.info(f"\n{'=' * 80}\nRUNNING dataset {dataset_config['dataset_name']} and "\
+                     f"{dataset_config['participant_ID']}.\n{'=' * 80}\n\n")
         algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
         method_names = [alg for alg in algorithm_names if alg in all_methods.keys()]
         feature_names = [alg for alg in algorithm_names if alg in all_features.keys()]
@@ -87,17 +86,21 @@ def main():
 
         # RUN detectors
         for (method_config, method_name) in config_handler.get_method_configs(method_names):
+            logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
             detector = all_methods[method_name](method_config, io, data)
             detector.run_inference()
-            detector.visualization(data)
-            logging.info(f"\nFinished method '{method_name}'.")
+            if method_config['visualize']:
+                detector.visualization(data)
+            logging.info(f"FINISHED method '{method_name}'.\n\n")
 
         # RUN feature extractions pipeline
         for (feature_config, feature_name) in config_handler.get_feature_configs(feature_names):
+            logging.info(f"STARTING feature '{feature_name}'.\n{'-' * 80}")
             feature = all_features[feature_name](feature_config, io, data)
             feature_data = feature.compute()
-            feature.visualization(feature_data)
-            logging.info(f"\nFinished feature '{feature_name}'.")
+            if feature_config['visualize']:
+                feature.visualization(feature_data)
+            logging.info(f"FINISHED feature '{feature_name}'.\n\n")
 
 
 def sync_dataset_configs(filename='dataset_properties.toml'):
@@ -157,5 +160,11 @@ def sync_dataset_configs(filename='dataset_properties.toml'):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run_config", default="configs/run_file.toml", type=str, required=False)
+    parser.add_argument("--detectors_config", default="configs/detectors_config.toml", type=str, required=False)
+    parser.add_argument("--machine_specifics", default="configs/machine_specific_paths.toml", type=str, required=False)
+    args = parser.parse_args()
+
     #sync_dataset_configs()
-    main()
+    main(args.run_config, args.detectors_config, args.machine_specifics)

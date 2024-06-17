@@ -10,7 +10,6 @@ sys.path.append("./third_party/xgaze_3cams")
 sys.path.append("./third_party")
 from gaze_estimator import GazeEstimator
 from utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
-#print(sys.path)
 import xgaze_3cams.landmarks as lm
 import file_handling as fh
 
@@ -22,7 +21,7 @@ def main(config, debug=False):
     # initialize logger
     logging.basicConfig(filename=config['log_file'], level=config['log_level'],
                         format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
-    logging.info('\n\nRUNNING gaze detection xgaze_3cams!')
+    logging.info("RUNNING gaze detection 'xgaze_3cams'!")
 
     # check that the data was created
     assert config['frames_list'] is not None, \
@@ -46,7 +45,7 @@ def main(config, debug=False):
     frames_list = [list(l) for l in frames_list]
 
     # start gaze detection
-    logging.info('Gaze detection starting')
+    logging.info('Load gaze estimator and start detection.')
     gaze_estimator = GazeEstimator(
             config['face_model_filename'],
             config['pretrained_model_filename'])
@@ -111,42 +110,49 @@ def main(config, debug=False):
             gaze_world = np.mean(gaze_world, axis=0).reshape((-1, 3))
             results[frame_i][sub_id] = gaze_world.flatten()
 
-        # visualization on each image, project the gaze back to each cam to draw the gaze direction
-        for image, landmarks, cam_name, file_path in (
-                zip(images, landmarks_frame_id, camera_names, file_paths)):
-            
-            if (landmarks is not None) and (len(landmarks) == len(config['cam_sees_subjects'][cam_name])): 
-                cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
-                        config['calibration'], cam_name, image)
+        if config["visualize"]:
+            # visualization on each image, project the gaze back to each cam to draw the gaze direction
+            for image, landmarks, cam_name, file_path in (
+                    zip(images, landmarks_frame_id, camera_names, file_paths)):
+                
+                if (landmarks is not None) and (len(landmarks) == len(config['cam_sees_subjects'][cam_name])): 
+                    cam_matrix, cam_distor, cam_rotation = get_cam_para_studio(
+                            config['calibration'], cam_name, image)
 
-                for sub_id in range(n_subjects):
-                    if sub_id not in config['cam_sees_subjects'][cam_name]:
-                        continue
+                    for sub_id in range(n_subjects):
+                        if sub_id not in config['cam_sees_subjects'][cam_name]:
+                            continue
 
-                    # where to find this subject 'sub_id' in camera 'cam_name'
-                    sub_cam_id = config['cam_sees_subjects'][cam_name].index(sub_id)
+                        # where to find this subject 'sub_id' in camera 'cam_name'
+                        sub_cam_id = config['cam_sees_subjects'][cam_name].index(sub_id)
 
-                    # convert the gaze to current camera coordinate system
-                    gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
-                    draw_gaze_dir = vector_to_pitchyaw(gaze_cam).reshape(-1)
-                    face_center = np.mean(landmarks[sub_cam_id], axis=0)
-                    draw_gaze(image,
-                              draw_gaze_dir,
-                              thickness=2,
-                              color=(0, 0, 255),
-                              position=face_center.astype(int)
-                              )
-                if debug:
-                    cv2.imshow("img_show", image)
-                    cv2.waitKey(0)
+                        # convert the gaze to current camera coordinate system
+                        gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
+                        draw_gaze_dir = vector_to_pitchyaw(gaze_cam).reshape(-1)
+                        face_center = np.mean(landmarks[sub_cam_id], axis=0)
+                        draw_gaze(image,
+                                draw_gaze_dir,
+                                thickness=2,
+                                color=(0, 0, 255),
+                                position=face_center.astype(int)
+                                )
+                    if debug:
+                        cv2.imshow("img_show", image)
+                        cv2.waitKey(0)
 
-            # save the image with gaze direction
-            _, file_name = os.path.split(file_path)
-            save_file_name = os.path.join(
-                    config['out_folder'], f'{cam_name}_{file_name}')
-            cv2.imwrite(save_file_name, image)
+                # save the image with gaze direction
+                _, file_name = os.path.split(file_path)
+                save_file_name = os.path.join(
+                        config['out_folder'], f'{cam_name}_{file_name}')
+                cv2.imwrite(save_file_name, image)
 
-            frame_indices.add(file_name.strip('.png').strip('.jpg').strip('.jpeg'))
+                frame_indices.add(file_name.strip('.png').strip('.jpg').strip('.jpeg'))
+
+        if frame_i % config['log_frame_idx_interval'] == 0:
+            logging.info(f"Finished frame {frame_i} / {n_frames}.")
+
+    if not config["visualize"]:
+        logging.info("Visualization of images turned off.")
 
     #  save as npz file
     out_dict = {
@@ -163,11 +169,11 @@ def main(config, debug=False):
     save_file_name = os.path.join(config["result_folders"]['gaze_individual'], f"{config['algorithm']}.npz")
     np.savez_compressed(save_file_name, **out_dict)
 
-    logging.info('\nGaze detection xgaze_3cams COMPLETED!')
+    logging.info("Gaze detection 'xgaze_3cams' COMPLETED!\n")
 
 
 if __name__ == '__main__':
     config_path = sys.argv[1]
-    #config_path = '/is/sg2/cschmitt/pis/experiments/20240423/dyadic_communication_PIS_ID_000_s17_l15/xgaze_3cams/run_config.toml'
+    #config_path = '/is/sg2/cschmitt/pis/experiments/20240612/dyadic_communication_PIS_ID_000_s17_l100/gaze_individual/xgaze_3cams/run_config.toml'
     config = fh.load_config(config_path)
     main(config)

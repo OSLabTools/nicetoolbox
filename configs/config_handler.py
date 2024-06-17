@@ -131,6 +131,7 @@ class Configuration:
     def get_method_configs(self, method_names):
         for method_name in method_names:
             method_config = flatten_dict(self.detector_config['algorithms'][method_name])
+            method_config['visualize'] = self.run_config['visualize']
 
             if 'algorithm' in method_config.keys():
                 method_config.update(
@@ -141,6 +142,7 @@ class Configuration:
     def get_feature_configs(self, feature_names):
         for feature_name in feature_names:
             feature_config = copy.deepcopy(self.detector_config['algorithms'][feature_name])
+            feature_config['visualize'] = self.run_config['visualize']
 
             yield feature_config, feature_name
 
@@ -180,10 +182,11 @@ class Configuration:
     def checker(self):
 
         # check USER INPUT
+        logging.info(f"Start USER INPUT CHECK.")
         run_config_check = cfg.load_config(self.run_config_check_file)
         localized_run_config = self.localize(self.run_config)
         exc.check_user_input_config(localized_run_config, run_config_check, "run_config")
-        logging.info(f"Configuration: user input check finished successfully.")
+        logging.info(f"User input check finished successfully.\n\n\n")
 
     def check_config(self):
         try:

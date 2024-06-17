@@ -19,6 +19,12 @@ class IO:
             logging.exception("Failed creating the output folder.")
             raise
 
+        try:
+            os.makedirs(os.path.dirname(config['data_folder']), exist_ok=True)
+        except OSError:
+            logging.exception(f"Failed creating the base data folder {config['data_folder']}.")
+            raise
+
         self.log_level = config['log_level']
 
     def get_log_file_level(self):

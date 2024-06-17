@@ -21,6 +21,7 @@ shape_predictor_filename = "<assets>/xgaze_3cams/shape_predictor_68_face_landmar
 face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
 pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
 face_detector_filename = "<assets>/xgaze_3cams/mmod_human_face_detector.dat"
+log_frame_idx_interval = 10
 
 [frameworks.mmpose]
 input_data_format = "frames"

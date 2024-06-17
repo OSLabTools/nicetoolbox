@@ -8,17 +8,17 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 def calculate_angle_btw_three_points(data):
     # Extract the coordinates of A, B, and C for all frames
-    A = data[0]
-    B = data[1]
-    C = data[2]
+    A = data[:, :, :, 0]
+    B = data[:, :, :, 1]
+    C = data[:, :, :, 2]
     # Compute vectors AB and BC for all frames
     AB = B - A
     BC = C - B
 
     # Compute the dot product and magnitudes for all frames
-    dot_product = np.sum(AB * BC, axis=-1)
-    mag_AB = np.linalg.norm(AB, axis=-1)
-    mag_BC = np.linalg.norm(BC, axis=-1)
+    dot_product = np.sum(AB * BC, axis=-1, keepdims=True)
+    mag_AB = np.linalg.norm(AB, axis=-1, keepdims=True)
+    mag_BC = np.linalg.norm(BC, axis=-1, keepdims=True)
 
     # Compute the cosine of the angle
     cos_angle = dot_product / (mag_AB * mag_BC)
@@ -32,17 +32,19 @@ def calculate_angle_btw_three_points(data):
     angles_deg = np.degrees(angles_rad)
     return angles_deg
 
-def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_folder):
-    if len(hip_angle_person_list)!=len(person_list):
+def visualize_lean_in_out_per_person(hip_angle, person_list, output_folder, camera_names=None):
+    if len(hip_angle)!=len(person_list):
         logging.error("Number of subjects and data shape mismatch!")
-    fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
-    axes = axes.reshape(2, len(person_list))
-    plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees '
-              f'({person_list})')
 
-    for i in range(len(person_list)):
-        axes[0, i].plot(hip_angle_person_list[i][:, 0], label=f'Leaning Angle {person_list[i]}')
-        axes[1, i].plot(hip_angle_person_list[i][:, 1], label=f'Derivative of Leaning Angle {person_list[i]}')
+    for camera_idx in range(hip_angle.shape[1]):
+        plt.title(f'Leaning Angle between Midpoint of Shoulders, Hips, and Knees '
+                f'({person_list})')
+        fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
+        axes = axes.reshape(2, len(person_list))
+
+        for i in range(len(person_list)):
+            axes[0, i].plot(hip_angle[i, camera_idx, :, 0], label=f'Leaning Angle {person_list[i]}')
+            axes[1, i].plot(hip_angle[i, camera_idx, :, 1], label=f'Derivative of Leaning Angle {person_list[i]}')
 
         # Set labels and legends for each subplot
         axes[0, i].set_xlabel('FrameNo')
@@ -51,13 +53,14 @@ def visualize_lean_in_out_per_person(hip_angle_person_list, person_list, output_
         axes[1, i].set_ylabel('Gradient of AxisAngle')
         axes[0, i].legend()
         axes[1, i].legend()
-        axes[0, i].set_ylim(25, 120)
-        axes[1, i].set_ylim(-10,10)
+        # axes[0, i].set_ylim(25, 120)
+        # axes[1, i].set_ylim(-10,10)
 
-    # Adjust layout
-    plt.tight_layout()
-    # Save the plot
-    plt.savefig(os.path.join(output_folder, 'leaning_angle_graph.png'), dpi=500)
+        # Adjust layout
+        plt.tight_layout()
+        # Save the plot
+        camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
+        plt.savefig(os.path.join(output_folder, f'leaning_angle_graph_{camera_name}.png'), dpi=500)
 
 def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
     """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""

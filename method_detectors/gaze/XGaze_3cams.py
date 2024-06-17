@@ -28,6 +28,9 @@ class XGaze3cams(BaseDetector):
         config : dict
             some configurations/settings dictionary, here it must contain the key 'image_file'
         """
+
+        logging.info(f"Prepare Inference for '{self.algorithm}' and components {self.components}.")
+
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
 
@@ -39,11 +42,13 @@ class XGaze3cams(BaseDetector):
         config['frame_indices_list'] = data.frame_indices_list
 
         # last, call the the base class init
-        super().__init__(config, io, data)
+        super().__init__(config, io, data, requires_out_folder=config['visualize'])
 
         self.camera_names = config['camera_names']
         while '' in self.camera_names:
             self.camera_names.remove('')
+
+        logging.info(f"Inference Preparation completed.\n")
             
     def visualization(self, data):
         frames_lists = [

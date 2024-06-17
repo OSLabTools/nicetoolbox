@@ -28,7 +28,7 @@ class Data:
         config : dict
             some configurations/settings dictionary
         """
-        logging.info("Start data loading and processing.")
+        logging.info("Start DATA LOADING and processing.")
         # TODO later: add caching for tmp folder
 
         # check given data-config
@@ -49,7 +49,7 @@ class Data:
             else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
         self.subjects_descr = config['subjects_descr']
-        self.cam_sees_subjects = config['cam_sees_subjects']
+        self.camera_mapping = dict((key, config[key]) for key in config.keys() if 'cam_' in key)
 
         # collect which data slices and formats are required
         self.data_formats = data_formats
@@ -67,7 +67,7 @@ class Data:
                                                  config['dataset_name'])
         self.fps = self.get_fps(config['fps'])
 
-        logging.info("Data loading and processing finished.")
+        logging.info("Data loading and processing finished.\n\n")
 
     def get_inference_path(self, detector_name):
         filepath = os.path.join(self.code_folder, 'third_party', detector_name,

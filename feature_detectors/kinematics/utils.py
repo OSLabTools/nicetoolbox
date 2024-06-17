@@ -13,7 +13,7 @@ PART_MAPPING = {
     "Rhand": {'color': '#B19CD9', 'size': 8, 'indices': list(range(113, 134))} #pastel lavender
 }
 
-def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder, people_names=["PersonL", "PersonR"]):
+def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder, people_names=["PersonL", "PersonR"], camera_names=None):
     """
        Visualizes the sum of movements by body part across frames for each person.
 
@@ -24,29 +24,33 @@ def visualize_sum_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_
     people_names: list
     Names of people for each dataset in the data list
        """
+    # data.shape = (#persons, #cameras, #frames, #bodyparts(3))
+
     # Number of people (numpy arrays) in the list
     num_people = len(data)
 
-    fig, axs = plt.subplots(num_people, 1, figsize=(10, 15))
+    for camera_idx in range(data.shape[1]):
+        fig, axs = plt.subplots(num_people, 1, figsize=(10, 15))
 
-    # Ensure axs is a list in case num_people is 1
-    if num_people == 1:
-        axs = [axs]
+        # Ensure axs is a list in case num_people is 1
+        if num_people == 1:
+            axs = [axs]
 
-    delta = (global_max - global_min) * 0.025
-    # Iterate through the data list and the array of subplots to fill in data
-    for i, (ax, dat) in enumerate(zip(axs, data)):
-        for j, body_part in enumerate(bodyparts_list):
-            ax.plot(dat[:, j], label=body_part)
+        delta = (global_max - global_min) * 0.025
+        # Iterate through the data list and the array of subplots to fill in data
+        for i, (ax, dat) in enumerate(zip(axs, data)):
+            for j, body_part in enumerate(bodyparts_list):
+                ax.plot(dat[camera_idx, :, j], label=body_part)
 
-        ax.set_title(f'Sum of Movements by Body Part Across Frames ({people_names[i]})')
-        ax.set_xlabel('Frame Index')
-        ax.set_ylabel('Sum of Movements')
-        # ax.set_ylim(global_min - delta, global_max + delta)
-        ax.legend()
+            ax.set_title(f'Mean of Movements by Body Part Across Frames ({people_names[i]})')
+            ax.set_xlabel('Frame Index')
+            ax.set_ylabel('Mean of Movements')
+            # ax.set_ylim(global_min - delta, global_max + delta)
+            ax.legend()
 
-    # Save the plot
-    plt.savefig(os.path.join(output_folder, 'sum_of_motion_magnitude_by_bodypart.png'), dpi=500)
+        camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
+        # Save the plot
+        plt.savefig(os.path.join(output_folder, f'mean_of_motion_by_bodypart_{camera_name}.png'), dpi=500)
 
 
 def frame_with_linegraph(frame, data, categories, current_frame, global_min, global_max):

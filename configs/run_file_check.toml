@@ -1,5 +1,6 @@
 run_mode = ["experiment", "development", "production"]
 git_hash = 'type:str'
+visualize = 'type:bool'
 
 [component_algorithm_mapping]
 gaze_individual = 'keys:configs/detectors_config.toml:algorithms'

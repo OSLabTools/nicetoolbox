@@ -15,7 +15,7 @@ class BaseFeature(ABC):
     Class to setup and run follow-up computations. Input is always the output of any detector
     """
 
-    def __init__(self, config, io, data) -> None:
+    def __init__(self, config, io, data, requires_out_folder=True) -> None:
         """InitializeMethod class.
 
         Parameters
@@ -25,8 +25,6 @@ class BaseFeature(ABC):
         io: class
             a class instance that handles in-output folders
         """
-        logging.info(f"\n\nSTARTING feature detector for {self.components} and {self.algorithm}.")
-
         # input folder of the feature is the result folder of detector
         self.input_folders, self.input_files = [], []
         for (comp, alg) in config['input_detector_names']:
@@ -38,11 +36,13 @@ class BaseFeature(ABC):
             self.input_files.append(input_file)
 
         #output folders
-        main_component = self.components[0]
-        self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, 'output')
-        self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
         self.result_folders = dict((comp, io.get_detector_output_folder(comp, self.algorithm, 'result')) 
                                    for comp in self.components)
+        main_component = self.components[0]
+        if requires_out_folder:
+            self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, 'output')
+        if config['visualize']:
+            self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
         
         self.subjects_descr = data.subjects_descr
 

@@ -216,7 +216,7 @@ def main(config):
     """
     logging.basicConfig(filename=config['log_file'], level=config['log_level'],
                         format='%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s')
-    logging.info(f'\n\nRUNNING MMPOSE - {config["algorithm"]}!')
+    logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
 
     # create inferencer object
     inferencer = MMPoseInferencer(
@@ -253,7 +253,7 @@ def main(config):
         # Load the image
 
         result_generator = None
-        if config["save_images"]:
+        if config["visualize"]:
             result_generator = inferencer(camera_folder,
                                           pred_out_dir=config["prediction_folders"][camera_name],
                                           show=False,
@@ -325,7 +325,7 @@ def main(config):
     #     config["frame_indices_list"],
     #     config["person_threshold"]) ##TODO fix it - it gives an error when not start from 0
 
-    logging.info(f'\nMMPOSE - {config["algorithm"]} COMPLETED!')
+    logging.info(f'MMPOSE - {config["algorithm"]} COMPLETED!\n')
 
 if __name__ == '__main__':
     config_path = sys.argv[1]

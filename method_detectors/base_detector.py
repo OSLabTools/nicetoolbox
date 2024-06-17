@@ -16,7 +16,7 @@ class BaseDetector(ABC):
     """Class to setup and run existing computer vision research code.
     """
 
-    def __init__(self, config, io, data) -> None:
+    def __init__(self, config, io, data, requires_out_folder=True) -> None:
         """InitializeMethod class.
 
         Parameters
@@ -30,18 +30,20 @@ class BaseDetector(ABC):
         config['log_file'], config['log_level'] = io.get_log_file_level()
 
         # output folders for inference and visualizations
-        main_component = self.components[0]
-        config['out_folder'] = io.get_detector_output_folder(main_component, self.algorithm, 'output')
-        self.out_folder = config['out_folder']
-        self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
         config['result_folders'] = dict((comp, io.get_detector_output_folder(comp, self.algorithm, 'result')) 
                                    for comp in self.components)
+        main_component = self.components[0]
+        if requires_out_folder:
+            config['out_folder'] = io.get_detector_output_folder(main_component, self.algorithm, 'output')
+            self.out_folder = config['out_folder']
+        if config['visualize']:
+            self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, 'visualization')
 
         config['algorithm'] = self.algorithm
         config['calibration'] = data.calibration
         config['subjects_descr'] = data.subjects_descr
         self.subjects_descr = data.subjects_descr
-        config['cam_sees_subjects'] = data.cam_sees_subjects
+        config['cam_sees_subjects'] = data.camera_mapping['cam_sees_subjects']
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(
@@ -106,6 +108,7 @@ class BaseDetector(ABC):
         if system.detect_os_type() == 'windows':
             cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True)
         else:
+            #logging.info(f"Run command '{command}'.")
             cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
 
 

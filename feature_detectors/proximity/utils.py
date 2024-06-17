@@ -5,21 +5,24 @@ import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-def visualize_proximity_score(data, output_folder, keypoint):
-    plt.clf()
-    plt.figure(figsize=(10, 5))
-    # Plot the distances for the average coordinates of the selected keypoints across all frames
-    plt.plot(data)
-    plt.xlabel('Frame Index')
-    plt.ylabel('Proximity Score')
-    if len(keypoint) == 1:
-        title = f'Distance between {keypoint[0]} in PersonL and PersonR'
-    else:
-        title = f'Distance between center of selected keypoints {keypoint} in PersonL and PersonR'
-    plt.title(title)
-    plt.ylim(1.3, 1.9)
-    # Save the plot
-    plt.savefig(os.path.join(output_folder, f'proximity_score_{keypoint}.png'), dpi=500)
+def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
+    for camera_idx in range(data.shape[1]):
+        plt.clf()
+        plt.figure(figsize=(10, 5))
+        # Plot the distances for the average coordinates of the selected keypoints across all frames
+        plt.plot(data[0, camera_idx])
+        plt.xlabel('Frame Index')
+        plt.ylabel('Proximity Score')
+        if len(keypoint) == 1:
+            title = f'Distance between {keypoint[0]} in PersonL and PersonR'
+        else:
+            title = f'Distance between center of selected keypoints {keypoint} in PersonL and PersonR'
+        plt.title(title)
+        # plt.ylim(1.3, 1.9)
+
+        camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
+        # Save the plot
+        plt.savefig(os.path.join(output_folder, f'proximity_score_{keypoint}_{camera_name}.png'), dpi=500)
     
 
 def frame_with_linegraph(frame, data, current_frame, global_min, global_max):

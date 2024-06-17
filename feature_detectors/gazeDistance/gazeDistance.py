@@ -26,7 +26,7 @@ class GazeDistance(BaseFeature):
             a class instance that handles in-output folders
         """
         # then, call the base class init
-        super().__init__(config, io, data)
+        super().__init__(config, io, data, requires_out_folder=False)
 
         # GAZE
         gaze_component, gaze_algorithm = [l for l in config['input_detector_names'] 
@@ -136,7 +136,7 @@ class GazeDistance(BaseFeature):
 
             input_data = np.concatenate((distances, look_at, mutual), axis=-1)[:, 0]
             categories = ["distance_gaze_face", "gaze_look_at", "gaze_mutual"]
-            kinematics_utils.visualize_sum_of_motion_magnitude_by_bodypart(
+            kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
                 input_data, categories, global_min, global_max, self.viz_folder,
                 self.subjects_descr)
             kinematics_utils.create_video_evolving_linegraphs(
