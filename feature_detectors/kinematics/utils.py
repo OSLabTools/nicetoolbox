@@ -13,17 +13,23 @@ PART_MAPPING = {
     "Rhand": {'color': '#B19CD9', 'size': 8, 'indices': list(range(113, 134))} #pastel lavender
 }
 
-def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global_min, global_max, output_folder, people_names=["PersonL", "PersonR"], camera_names=None):
+def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list, global_min, 
+        global_max, output_folder, people_names=["PersonL", "PersonR"], camera_names=None) -> None:
     """
-       Visualizes the sum of movements by body part across frames for each person.
+    Visualizes the mean of motion magnitude by body part across frames for multiple people and cameras.
 
-    Parameters
-    ----------
-    data: list
-    List of numpy arrays. Each array represents data for a person. Rows are frames and columns are body parts.
-    people_names: list
-    Names of people for each dataset in the data list
-       """
+    Args:
+        data (ndarray): The input data array of shape (#persons, #cameras, #frames, #bodyparts(3)).
+        bodyparts_list (list): The list of body parts to visualize.
+        global_min (float): The global minimum value for the y-axis.
+        global_max (float): The global maximum value for the y-axis.
+        output_folder (str): The path to the output folder where the plots will be saved.
+        people_names (list, optional): The list of names for each person. Defaults to ["PersonL", "PersonR"].
+        camera_names (list, optional): The list of names for each camera. Defaults to None.
+
+    Returns:
+        None
+    """
     # data.shape = (#persons, #cameras, #frames, #bodyparts(3))
 
     # Number of people (numpy arrays) in the list
@@ -54,8 +60,23 @@ def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list,  global
 
 
 def frame_with_linegraph(frame, data, categories, current_frame, global_min, global_max):
-    """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
+    """
+    Combines a video frame with the plots for PersonL and PersonR up to the current frame.
 
+    This function takes a video frame and data for two people, and combines the frame with line 
+    graphs of the data up to the current frame.
+
+    Args:
+        frame (numpy.ndarray): The video frame to which the line graphs will be added.
+        data (list of numpy.ndarray): The data to be plotted. Each array represents data for a person.
+        categories (list of str): The categories for the data. Each category corresponds to a line on the graph.
+        current_frame (int): The current frame number. Only data up to this frame will be plotted.
+        global_min (float): The minimum value across all data. Used to set the y-axis limit.
+        global_max (float): The maximum value across all data. Used to set the y-axis limit.
+
+    Returns:
+        combined_img (numpy.ndarray): The video frame combined with the line graphs.
+    """
     if len(data) != 2:
         logging.error(f"The data shape is wrong. Data should be given as a list [dataL, dataR]")
     dataL, dataR = data
@@ -102,7 +123,26 @@ def frame_with_linegraph(frame, data, categories, current_frame, global_min, glo
 def create_video_evolving_linegraphs(
         frames_data_list, data, categories, global_min, global_max,
         output_folder, file_name=None, video_fps=30.0):
+    """
+    Creates a video with evolving line graphs for each frame.
 
+    This function takes a list of frames and data for two people, and creates a video where each 
+    frame is combined with line graphs of the data up to that frame. The line graphs are 
+    color-coded based on categories.
+
+    Args:
+        frames_data_list (list of str): The list of paths to the frames to be included in the video.
+        data (list of numpy.ndarray): The data to be plotted. Each array represents data for a person.
+        categories (list of str): The categories for the data. Each category corresponds to a line on the graph.
+        global_min (float): The minimum value across all data. Used to set the y-axis limit.
+        global_max (float): The maximum value across all data. Used to set the y-axis limit.
+        output_folder (str): The path to the folder where the video will be saved.
+        file_name (str, optional): The name of the output video file. If not provided, defaults to 'movement_score_on_video'.
+        video_fps (float, optional): The frames per second of the output video. Defaults to 30.0.
+
+    Returns:
+        None
+    """
     # Get a sample image to determine video dimensions
     sample_frame = cv2.imread(frames_data_list[0])
     sample_combined_img = frame_with_linegraph(sample_frame, data, categories, 0, global_min, global_max)
@@ -128,15 +168,28 @@ def create_video_evolving_linegraphs(
 
 
 def create_motion_heatmap(frames_data_list, data, output_folder):
+    """
+    Creates a motion heatmap video from a list of frames and corresponding motion data.
+
+    This function reads a list of frames and corresponding motion data, and creates a heatmap for 
+    each frame based on the motion data. The heatmaps are then overlaid on the original frames
+    with a certain transparency to create a motion heatmap video. The video is saved to the 
+    specified output folder.
+
+    Args:
+        frames_data_list (list of str): The list of paths to the frames to be included in the video.
+        data (list of numpy.ndarray): The motion data to be plotted. Each array represents motion data for a frame.
+        output_folder (str): The path to the folder where the video will be saved.
+
+    Returns:
+        None
+    """
     # Read frames
     frames = [cv2.imread(f) for f in frames_data_list]
-
     # Assuming motion_data is a list where each item is a numpy array of shape (height, width, 3)
     # representing the dx, dy, dz for each point in the corresponding frame
     # This data structure might look like: [frame1_data, frame2_data, ...]
-
     heatmapped_frames = []
-
 
     for frame, movement in zip(frames[1:], data):
 

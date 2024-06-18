@@ -12,10 +12,10 @@ class Kinematics(BaseFeature):
     """
     The Kinematics class is a feature detector that computes the kinematics component.
 
-    The Kinematics feature detector accepts the human_pose component (body_joints) as its primary 
-    input, which is computed using the human_pose method detector. The kinematics component of this 
-    feature detector calculates the Euclidean distance between adjacent frames, essentially determining 
-    the velocity of body movement from one frame to the next.
+    The Kinematics feature detector accepts the human_pose component (body_joints) as its 
+    primary input, which is computed using the human_pose method detector. The kinematics 
+    component of this feature detector calculates the Euclidean distance between adjacent 
+    frames, essentially determining the velocity of body movement from one frame to the next.
 
     Attributes:
         components (list): A list containing the name of the component this class is responsible for:
@@ -28,12 +28,6 @@ class Kinematics(BaseFeature):
             original input data.
         bodyparts_list (list): A list containing the names of the body parts.
         fps (int): The frames per second of the input data.
-
-    Methods:
-        __init__(config, io, data): Initializes the Kinematics class.
-        compute(): Computes the kinematics component.
-        visualization(data): Creates visualizations for the computed kinematics component.
-        post_compute(motion_velocity): Calculates the sum of movement per body part.
     """
     components = ['kinematics']
     algorithm = 'velocity_body'
@@ -43,8 +37,8 @@ class Kinematics(BaseFeature):
         Setup input/output folders and data for the Kinematics feature detector.
 
         This method initializes the Kinematics class by setting up the necessary configurations, 
-        input/output handler, and data. It also extracts the joints component and algorithm from the 
-        configuration and prepares the list of body parts. It supports handling of 
+        input/output handler, and data. It also extracts the body_joints component and algorithm from 
+        the configuration and prepares the list of body parts. It supports handling of 
         multiple cameras by loading the camera names from the pose configuration.
 
         Args:
@@ -95,8 +89,8 @@ class Kinematics(BaseFeature):
         - displacement_vector_body_3d: A numpy array containing the computed differences 
             for 3D data.
         - velocity_body_3d: A numpy array containing the computed velocity for 3D data.
-        - data_description: A dictionary containing the data description for each dimension 
-            of any of the above output numpy arrays.        
+        - data_description: A dictionary containing the data description for all of the 
+            above output numpy arrays. See the documentation of the output for more details.        
         
         Returns:
             out_dict (dict): A dictionary containing the above mentioned parts of the 

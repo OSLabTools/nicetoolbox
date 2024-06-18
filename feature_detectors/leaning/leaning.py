@@ -10,19 +10,54 @@ import feature_detectors.leaning.utils as lean_utils
 
 class Leaning(BaseFeature):
     """
+    The Leaning class is a feature detector that computes the leaning component.
+
+    The Leaning feature detector accepts the body_joints component as input, which is computed
+    using the human_pose method detector. The leaning component of this feature detector calculates
+    the angle between the midpoints of specified keypoint pairs on the body. The feature detector
+    outputs the angle and its gradient with respect to the frames/time.
+    
+    Attributes:
+        components (list): List of components associated with the feature detector.
+        algorithm (str): The algorithm used for detecting leaning.
+        predictions_mapping (dict): Mapping of the keypoint names to their indices.
+        camera_names (list): List of camera names.
+        used_keypoints (list): List of keypoint pairs to calculate the leaning index.
+        keypoint_index (list): List of keypoint indices to calculate the leaning index.
+        
+    Args:
+        config (dict): The method-specific configurations dictionary.
+        io (class): A class instance that handles input and output folders.
+        data (class): A class instance that stores all input file locations.
+
+    Methods:
+        compute()
+            Compute the euclidean distance between the keypoint coordinates of personL and personR.
+        visualization(out_dict)
+            Visualize the feature detector output.
+        post_compute(distance_data)
+            Perform post-computation tasks.
     """
+
     components = ['leaning']
     algorithm = 'body_angle'
 
     def __init__(self, config, io, data):
-        """ Initialize Movement class.
+        """
+        Setup input/output folders and data for the Leaning feature detector.
 
-        Parameters
-        ----------
-        config : dict
-            the method-specific configurations dictionary
-        io: class
-            a class instance that handles in-output folders
+        This method initializes the Kinematics class by setting up the necessary configurations, 
+        input/output handler, and data. It extracts the body_joints component and algorithm from 
+        the configuration and prepares the used keypoints and keypoint indices given the predictions
+        mapping.
+
+        Args:
+            config (dict): The method-specific configurations dictionary.
+            io (class): A class instance that handles input and output folders.
+            data (class): A class instance that stores all input file locations.
+
+        Returns:
+            None
         """
         # then, call the base class init
         super().__init__(config, io, data, requires_out_folder=False)
@@ -54,13 +89,23 @@ class Leaning(BaseFeature):
         logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
-        """ Compute the euclidean distance between the keypoint coord of personL and personR
-        index of keypoint(s). If length of index of keypoint(s) list is greater than 1,
-        the midpoint of the keypoints will be used in proximity measure
+        """ 
+        Computes the leaning component.
+        
+        This method calculates the Euclidean distance between the keypoints of personL and 
+        personR. If the length of the keypoint index list is greater than 1, the midpoint of the keypoints will be used in the proximity measure.
+        
+        Therefore, the method first calculates the midpoint of each pair of keypoints, then 
+        computes the angle between these midpoints. The leaning angle is calculated for each 
+        frame, and its gradient with respect to time is also computed.
+        
+        The results are saved in a numpy .npz file with the following structure:
+        - body_angle_2d: A numpy array containing the leaning angle for 2D data.
+        - body_angle_3d: A numpy array containing the leaning angle for 3D data.
+        - data_description: A dictionary containing the data description for the above output numpy arrays. See the documentation of the output for more details.
 
-        Returns
-         -------
-        The proximity measure - The euclidean distance between the two person's body (one location on body)
+        Returns:
+            The proximity measure - The Euclidean distance between the two persons' bodies (one location on the body)
 
         """
         dimensions = ['2d'] if len(self.camera_names) < 2 else ['2d', '3d']
@@ -99,10 +144,18 @@ class Leaning(BaseFeature):
 
     def visualization(self, out_dict):
         """
-        Parameters
-        ----------
-        data: class
-            a class instance that stores all input file locations
+        Creates visualizations for the computed leaning component.
+
+        This method takes the output dictionary of the compute method, extracts the 2D and 3D 
+        body angle data, and calls the visualization utility to create visualizations for each 
+        dimension. 
+
+        Args:
+        out_dict (dict): The output dictionary from the compute method. It contains the 
+            calculated leaning angles and their gradients for each dimension (2D and 3D).
+
+        Returns:
+            None
         """
         logging.info(f"Visualizing the feature detector output {self.components}.")
 

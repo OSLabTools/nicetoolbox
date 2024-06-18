@@ -29,11 +29,6 @@ class GazeDistance(BaseFeature):
                 - gaze_mutual   , boolean array indicating whether the gaze is mutual
         algorithm (str): The name of the algorithm used to compute the components (gaze_interaction).
         gaze_detector_file_list (list): A list of file paths for the gaze detector output.
-
-    Methods:
-        __init__(config, io, data): Initializes the GazeDistance class.
-        compute(): Computes the gaze_interaction component.
-        visualization(data): Creates visualizations for the computed gaze_interaction component.
     """
     
     components = ['gaze_interaction']
@@ -81,11 +76,8 @@ class GazeDistance(BaseFeature):
         - distance_gaze: distances from the gaze (of person A) to the face (of person B), vice versa
         - gaze_look_at: a boolean array indicating whether the gaze is directed at the face
         - gaze_mutual: a boolean array indicating whether the gaze is mutual
-        - data_description: a dictionary containing the axis0, axis1, axis2, and axis3 descriptions.
-            - axis0: subject description
-            - axis1: None
-            - axis2: gaze description
-            - axis3: a list of gaze_interaction descriptions
+        - data_description: A dictionary containing the data description for all of the 
+            above output numpy arrays. See the documentation of the output for more details.
 
         Returns:
             visualization_data (list): A list containing the distances from the gaze to the face,
