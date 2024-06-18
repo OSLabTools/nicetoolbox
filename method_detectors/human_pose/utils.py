@@ -94,7 +94,7 @@ def compare_saved3d_data_values_with_triangulation_through_json(prediction_folde
     logging.info("3d Data MATCH!")
 
 # Function to interpolate missing data using scipy
-def interpolate_data(data, is_3d= True, max_empty=10):
+def interpolate_data(data, is_3d= True, max_empty=10): ## TODO make max_empty 1/3 of FPS
     num_people, num_cameras, num_frames, num_keypoints, _ = data.shape
     for i in range(num_people):
         for j in range(num_cameras):

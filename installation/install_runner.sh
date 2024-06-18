@@ -59,7 +59,6 @@ echo "Installing additional dependencies..."
 conda install -c conda-forge pyparsing -y
 conda install -c conda-forge six -y
 conda install -c conda-forge toml -y
-pip install h5py
 conda deactivate
 
 echo " OPENMMLab Environment setup completed successfully."
