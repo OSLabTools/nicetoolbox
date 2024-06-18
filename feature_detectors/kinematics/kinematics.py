@@ -10,26 +10,56 @@ import oslab_utils.check_and_exception as check
 
 class Kinematics(BaseFeature):
     """
+    The Kinematics class is a feature detector that computes the kinematics component.
+
+    The Kinematics feature detector accepts the human_pose component (body_joints) as its primary 
+    input, which is computed using the human_pose method detector. The kinematics component of this 
+    feature detector calculates the Euclidean distance between adjacent frames, essentially determining 
+    the velocity of body movement from one frame to the next.
+
+    Attributes:
+        components (list): A list containing the name of the component this class is responsible for:
+            kinematics:
+        algorithm (str): The name of the algorithm used to compute the kinematics component.
+            velocity_body: the velocity of body movement from one frame to the next
+        predictions_mapping (dict): A dictionary containing the mapping of body parts to their 
+            respective indices.
+        camera_names (list): A list containing the names of the cameras used to capture the 
+            original input data.
+        bodyparts_list (list): A list containing the names of the body parts.
+        fps (int): The frames per second of the input data.
+
+    Methods:
+        __init__(config, io, data): Initializes the Kinematics class.
+        compute(): Computes the kinematics component.
+        visualization(data): Creates visualizations for the computed kinematics component.
+        post_compute(motion_velocity): Calculates the sum of movement per body part.
     """
     components = ['kinematics']
     algorithm = 'velocity_body'
 
     def __init__(self, config, io, data):
-        """ Initialize Movement class.
-
-        Parameters
-        ----------
-        config : dict
-            the method-specific configurations dictionary
-        io: class
-            a class instance that handles in-output folders
         """
-        # then, call the base class init
+        Setup input/output folders and data for the Kinematics feature detector.
+
+        This method initializes the Kinematics class by setting up the necessary configurations, 
+        input/output handler, and data. It also extracts the joints component and algorithm from the 
+        configuration and prepares the list of body parts. It supports handling of 
+        multiple cameras by loading the camera names from the pose configuration.
+
+        Args:
+            config (dict): The configuration settings for the feature detector. It should include 
+                           'input_detector_names' key which contains joints component and algorithm.
+            io (object): The input/output handler object. It should have a method 
+                         'get_detector_output_folder' which returns the output folder for the joints detector.
+            data (object): The data object containing the input data. It should have an attribute 'fps' 
+                           which represents the frames per second of the input data.
+
+        """
         super().__init__(config, io, data, requires_out_folder=False)
 
-        # POSE
         joints_component, joints_algorithm = [l for l in config['input_detector_names'] 
-                                          if any(['joints' in s for s in l])][0]
+                                              if any(['joints' in s for s in l])][0]
         pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, 'run_config')
         pose_config = cfg.load_config(os.path.join(pose_config_folder, 'run_config.toml'))
         self.predictions_mapping = \
@@ -49,7 +79,28 @@ class Kinematics(BaseFeature):
 
     def compute(self):
         """
-            Calculate euclidean distance between adjacent frames - how changed from t to t-1 - first frame will be empty
+        Computes the kinematics component.
+
+        This method calculates the Euclidean distance between adjacent frames for each keypoint. 
+        It handles both 2D and 3D data. The method starts by loading the joint data from the input 
+        files. It then computes the differences between adjacent frames for each keypoint. A 
+        zero-filled frame is added at the beginning to match the original number of frames. 
+        Finally, the Euclidean distance for each keypoint between adjacent frames is computed. The 
+        computed differences are stored in a dictionary and saved to a compressed .npz file with 
+        the following structure:
+
+        - displacement_vector_body_2d: A numpy array containing the computed differences 
+            for 2D data.
+        - velocity_body_2d: A numpy array containing the computed velocity for 2D data.
+        - displacement_vector_body_3d: A numpy array containing the computed differences 
+            for 3D data.
+        - velocity_body_3d: A numpy array containing the computed velocity for 3D data.
+        - data_description: A dictionary containing the data description for each dimension 
+            of any of the above output numpy arrays.        
+        
+        Returns:
+            out_dict (dict): A dictionary containing the above mentioned parts of the 
+                kinematics component.
         """
         dimensions = ['2d'] if len(self.camera_names) < 2 else ['2d', '3d']
 
@@ -99,10 +150,20 @@ class Kinematics(BaseFeature):
 
     def visualization(self, out_dict):
         """
-        Parameters
-        ----------
-        data: class
-            a class instance that stores all input file locations
+        Creates visualizations for the computed kinematics component.
+
+        This method generates visualizations for the computed kinematics component. It checks if 
+        the output dictionary contains the keys 'velocity_body_2d' and 'velocity_body_3d'. If these 
+        keys are present, their corresponding values are used to create the visualizations.
+
+        The method calculates the sum of movement per body part using the post_compute method. 
+        It then determines the global minimum and maximum values to define the y-limits of the graphs. 
+        Finally, it calls the visualize_mean_of_motion_magnitude_by_bodypart function from the 
+        kinematics_utils module to generate the visualizations.
+
+        Parameters:
+            out_dict (dict): The output dictionary containing the computed kinematics component. 
+                It should contain the keys 'velocity_body_2d' and/or 'velocity_body_3d'.
         """
         logging.info(f"Visualizing the feature detector output {self.components}.")
 
@@ -113,7 +174,7 @@ class Kinematics(BaseFeature):
             data['3d'] = out_dict['velocity_body_3d']
 
         for dim, velocity_body in data.items():
-            #calculate sum of movement per bodypart
+            # Calculate sum of movement per bodypart
             motion_per_bodypart = self.post_compute(velocity_body)
 
             # Determine global_min and global_max - define y-lims of graphs
@@ -130,7 +191,24 @@ class Kinematics(BaseFeature):
 
     def post_compute(self, motion_velocity):
         """
-            calculate sum of movement per bodypart
+        Calculates the sum of movement per body part.
+
+        This method calculates the sum of movement per body part by averaging the motion velocity 
+        over the joint indices corresponding to each body part. It then concatenates the results 
+        for all body parts.
+
+        The method also checks for any [0,0,0] prediction using the check_zeros function from the 
+        check module.
+
+        Parameters:
+            motion_velocity (numpy.ndarray): A 5D numpy array with shape 
+                (#persons, #cameras, #frames, #joints/keypoints, 1/velocity) 
+                representing the motion velocity.
+
+        Returns:
+            bodypart_motion (numpy.ndarray): A 4D numpy array with shape 
+                (#persons, #cameras, #frames, #bodyparts) representing the 
+                sum of movement per body part.
         """
         # motion_velocity.shape = (#persons, #cameras, #frames, #joints/keypoints, 1/velocity)
         bodypart_motion = []
