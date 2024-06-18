@@ -1,7 +1,26 @@
 # Installation
 
-## 1. Clone the Isa-tool and oslab_utils (if not already installed) repositories and navigate into Isa-tool:
-#TODO: UPDATE THE REPOSITORIES
+We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 22, using CUDA 11.8.
+
+<!-- TOC -->
+* [Installation](#installation)
+* [Contents  <!-- omit in toc -->](#contents----omit-in-toc---)
+  * [1. Clone the repositories](#1-clone-the-repositories)
+  * [2. Download assets](#2-download-assets)
+  * [2. Prerequisites](#2-prerequisites)
+    * [a. Python 3.10](#a-python-310)
+    * [b. Conda](#b-conda)
+    * [c. Cuda 11.8](#c-cuda-118-)
+    * [d. FFmpeg](#d-ffmpeg)
+  * [3. Install the necessary libraries](#3-install-the-necessary-libraries-)
+    * [**How-to:**](#how-to)
+      * [3.1. In Linux:](#31-in-linux)
+      * [3.2. In Windows:](#32-in-windows-)
+<!-- TOC -->
+
+## 1. Clone the repositories
+Clone the Isa-tool and oslab_utils repositories and navigate into Isa-tool:
+#TODO: UPDATE RENAME OF THE REPOSITORIES
 ```
 git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git 
 git clone https://gitlab.tuebingen.mpg.de/cschmitt/oslab_utils.git 
@@ -21,7 +40,7 @@ see https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 
 ### c. Cuda 11.8 
 - For windows, see https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html
-- For Linux, see https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+- For Ubuntu, see https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 
 #TODO: if the code works without CUDA - specify here - and perhaps create openmmlab installation 
 have pytorch - cpu only installation 
