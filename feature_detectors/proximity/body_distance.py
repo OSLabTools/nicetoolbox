@@ -7,7 +7,7 @@ import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
 import feature_detectors.proximity.utils as pro_utils
 
-class Proximity(BaseFeature):
+class BodyDistance(BaseFeature):
     """
     """
     components = ['proximity']
@@ -46,7 +46,7 @@ class Proximity(BaseFeature):
         # viz_camera_name = config['viz_camera_name'].strip('<').strip('>')
         # self.frames_data = os.path.join(pose_config['input_data_folder'], data.camera_mapping[viz_camera_name])
         # self.frames_data_list = [os.path.join(self.frames_data, f) for f in sorted(os.listdir(self.frames_data))]
-        # self.used_keypoints = config["used_keypoints"]
+        self.used_keypoints = config["used_keypoints"]
         # proximity index
         for keypoint in self.used_keypoints:
             if keypoint not in self.predictions_mapping["keypoints_index"]["body"].keys():

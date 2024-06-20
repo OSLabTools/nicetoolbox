@@ -8,7 +8,7 @@ import feature_detectors.kinematics.utils as kinematics_utils
 import oslab_utils.check_and_exception as check
 
 
-class Kinematics(BaseFeature):
+class VelocityBody(BaseFeature):
     """
     The Kinematics class is a feature detector that computes the kinematics component.
 

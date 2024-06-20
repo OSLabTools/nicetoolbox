@@ -8,7 +8,7 @@ import oslab_utils.config as cfg
 import feature_detectors.leaning.utils as lean_utils
 
 
-class Leaning(BaseFeature):
+class BodyAngle(BaseFeature):
     """
     The Leaning class is a feature detector that computes the leaning component.
 

@@ -26,7 +26,7 @@ The ISA-Tool supports datasets with video or image input data, multiple camera v
 
 ```toml
 [<dataset_name>]
-participant_IDs = ['']    # identifiers for each participant (list of str)
+session_IDs = ['']        # identifiers for each session (list of str)
 sequence_IDs = ['']       # identifiers for individual sequences (list of str)
 cam_front = ''            # name of folder that contains data of the most frontal camera view (str)
 cam_top = ''              # folder name of a frontal camera view from top (str, optional)
@@ -44,16 +44,16 @@ fps = 30                  # frame-rate of video data (int, optional)
 - `cam_top`, `cam_face1`, and `cam_face2` are the names of optional additional camera views for multi-view predictions.
 - `subjects_descr` 
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Each subject is represented by its index in subjects_descr, where indexing starts with 0.
-- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be `<participant_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
+- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
 
 
 ### Example  <!-- omit in toc -->
 
-Assume we have a dataset that contains video sequences from multiple ?participants? and capture days. The setup of the data is as follows: a single camera records two people sitting next to each other and talking. The camera captures at a framerate of 30 frames per second and the dataset provides frames that are indexed starting from 0.
+Assume we have a dataset that contains video sequences from multiple sessions and capture days. The setup of the data is as follows: a single camera records two people sitting next to each other and talking. The camera captures at a framerate of 30 frames per second and the dataset provides frames that are indexed starting from 0.
 Further suppose that the dataset directory the following folder structure:
 ```
 dataset_name/
-├── participant_1/
+├── session_1/
 │   ├── sequence_1/
 │   │   ├── view_1/
 │   │   ├── annotation_file
@@ -61,7 +61,7 @@ dataset_name/
 │   │   └── ...
 │   ├── sequence_2/
 │   └── ...
-├── participant_2/
+├── session_2/
 │   ├── ...
 └── ...
 ```
@@ -69,7 +69,7 @@ To add this dataset to the ?ISA-Tool?, we need to add the following to `./config
 
 ```toml
 [test_dataset]
-participant_IDs = ["participant_1", "participant_2", ...]
+session_IDs = ["session_1", "session_2", ...]
 sequence_IDs = ['sequence_1', 'sequence_1', ...]
 cam_front = 'view_1'
 cam_top = ''
@@ -77,8 +77,8 @@ cam_face1 = ''
 cam_face2 = ''
 subjects_descr = ["personL", "personR"]  # there are 2 people visible in the video
 cam_sees_subjects = {view_1 = [0, 1]}  # order of the subjects named in 'subjects_descr'
-path_to_calibrations = "<datasets_folder_path>/test_dataset/<participant_ID>/calibration.npz"
-data_input_folder = "<datasets_folder_path>/test_dataset/<participant_ID>/<sequence_ID>/"
+path_to_calibrations = "<datasets_folder_path>/test_dataset/<session_ID>/calibration.npz"
+data_input_folder = "<datasets_folder_path>/test_dataset/<session_ID>/<sequence_ID>/"
 start_frame_index = 0
 fps = 30
 ```
@@ -91,9 +91,14 @@ Create a file `./configs/machine_specific_paths.toml`, you can also copy and ren
 These machine specific configuration file should contain the following dictionary:
 
 ```toml
-pis_folder_path = ""       # depricated?? absolute path to the directory in which the datasets are stored (str)
-datasets_folder_path = ""  # absolute path to the directory in which the datasets are stored (str)
-conda_path = ""            # absolute path to the conda installation (str, optional)
+# Absolute path to the directory in which all datasets are stored (str)
+datasets_folder_path = ''
+
+# Directory for saving toolbox output as an absolute path (str)
+output_folder_path = ''
+
+# Where to find your conda (miniconda or anaconda) installation as absolute path (str)
+conda_path = ''
 ```
 
 
@@ -117,7 +122,7 @@ visualize = false  # save image/video visualizations of detectors
 components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
 videos = [                      # define which data to run on
     {
-    participant_ID = "",        # select the participant_ID (str)
+    session_ID = "",            # select the session_ID (str)
     sequence_ID="",             # select the sequence_ID (str, may be empty)
     video_start = 0,            # start of the video in frames, 0 for starting from beginnning (int)
     video_length = 100,         # number of frames to run, defines the length of the video (int)
@@ -198,12 +203,12 @@ There is one part of the `./configs/run_file.toml` we did not explain in detail 
 [io]
 experiment_name = "<yyyymmdd>"
 out_folder = "<pis_folder_path>/experiments/<experiment_name>"
-out_sub_folder = "<out_folder>/<dataset_name>_<participant_ID>_s<video_start>_l<video_length>"
+out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
 dataset_config = "configs/dataset_properties.toml"
 assets = "<code_folder>/assets"
 
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
-data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<participant_ID>_<sequence_ID>"
+data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
 tmp_folder = "<pis_folder_path>/experiments/tmp"
 detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
 detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
@@ -299,13 +304,13 @@ For more information, see a great introduction from [MathWorks](https://de.mathw
 
 ### Calibration Mapping  <!-- omit in toc -->
 
-The ??ISA-Tool?? allows for adding a mapping between, e.g., ?participant_IDs? and calibration file paths. The idea is that during a data capture the camera system is recalibrated occasionally.
+The ??ISA-Tool?? allows for adding a mapping between, e.g., session_IDs and calibration file paths. The idea is that during a data capture the camera system is recalibrated occasionally.
 //TODO In which file to add this mapping? Is this still up-to-date?
 ```json
 {
-    "participant_1": "calibration_1",
-    "participant_2": "calibration_1",
-    "participant_3": "calibration_2",
+    "session_1": "calibration_1",
+    "session_2": "calibration_1",
+    "session_3": "calibration_2",
     ...
 }
 ```

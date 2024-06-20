@@ -1,13 +1,15 @@
 # This is a template file, do not add your paths here.
 # Create a local copy of this file called 'machine_specific_paths.toml' and
 # edit that one. The 'machine_specific_paths.toml' is added to the '.gitignore'.
-#
-# Please copy the needed data from /ps/project/pis/ to your local, while
-# preserving the folder structure. Add the path to 'pis_folder_path' for easy
-# local-remote interchange.
-pis_folder_path = ''  # e.g. "/is/sg2/cschmitt/pis"
-datasets_folder_path = ''  # e.g. "/is/sg2/cschmitt/datasets"
-remote_datasets_folder_path = ''  # e.g. "/ps/project/datasets/oslab"
-conda_path = ''  # where your conda (miniconda or anaconda) is installed
+
+# Absolute path to the directory in which all datasets are stored (str)
+datasets_folder_path = ''
+
+# Directory for saving toolbox output as an absolute path (str)
+output_folder_path = ''
+
+# Where to find your conda (miniconda or anaconda) installation as absolute path (str)
+conda_path = ''          
+
 
 # TODO: add a assertion for the case that the machine_specific_paths toml is empty

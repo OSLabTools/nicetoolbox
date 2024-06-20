@@ -41,7 +41,7 @@ class Data:
         self.data_input_folder = io.get_input_folder()
 
         # collect data details from config
-        self.participant_ID = config['participant_ID']
+        self.session_ID = config['session_ID']
         self.sequence_ID = config['sequence_ID']
         self.video_length = config['video_length']
         self.video_start = config['video_start']
@@ -165,7 +165,7 @@ class Data:
             logging.exception(f"Invalid argument for video_length.")
             raise
         try:
-            exc.check_value_bounds(config['annotation_interval'], int,
+            exc.check_value_bounds(config['annotation_interval'], float,
                                    object_min=0, object_max=total_frames)
         except (TypeError, ValueError):
             logging.exception(f"Invalid argument for annotation_interval.")
@@ -193,9 +193,9 @@ class Data:
             raise NotImplementedError
 
         if self.sequence_ID == '':
-            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.participant_ID].item()
+            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.session_ID].item()
         else:
-            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.participant_ID + '_' + self.sequence_ID].item()
+            loaded_calib = np.load(calibration_file, allow_pickle=True)[self.session_ID + '_' + self.sequence_ID].item()
 
         calib = dict((key, value) for key, value in loaded_calib.items()
                         if key in self.all_camera_names)
@@ -230,7 +230,7 @@ class Data:
 
         elif data_format == 'segments':
             video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
-            step = self.annotation_interval * get_fps(video_files[0])
+            step = int(self.annotation_interval * get_fps(video_files[0]))
             file_names = [f"s{s}_e{s + step}.{input_format}"
                           for s in range(start, end, step)]
             for camera_name in camera_names:
@@ -343,8 +343,8 @@ class Data:
                 os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
 
                 # calculate frames per annotation interval
-                frames_per_segment = self.annotation_interval * get_fps(
-                        video_files[0])
+                frames_per_segment = int(self.annotation_interval * get_fps(
+                        video_files[0]))
 
                 # split video into segments of length annotation_interval
                 self.segments_list = equal_splits_by_frames(

@@ -61,6 +61,8 @@ class GazeDistance(BaseFeature):
             [os.path.join(gaze_out_folder, f) for f in os.listdir(gaze_out_folder) if 'cam3' in f],
             [os.path.join(gaze_out_folder, f) for f in os.listdir(gaze_out_folder) if 'cam4' in f]
         ]
+
+        self.threshold_look_at = config['threshold_look_at']
         logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
@@ -106,8 +108,7 @@ class GazeDistance(BaseFeature):
         distances_face = np.stack((distance_p1, distance_p2), axis=0)[:, None]
 
         # calculate look_at and mutual_gaze
-        threshold = 0.2
-        look_at = distances_face <= threshold
+        look_at = distances_face <= self.threshold_look_at
         mutual = np.all(look_at, axis=0, keepdims=True)
         visualization_data = [distances_face, look_at, mutual]
 

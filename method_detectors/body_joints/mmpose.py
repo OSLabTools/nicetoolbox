@@ -6,14 +6,14 @@ import numpy as np
 import logging
 import scipy.signal as signal
 from method_detectors.base_detector import BaseDetector
-import method_detectors.human_pose.utils as utils
+import method_detectors.body_joints.utils as utils
 import oslab_utils.triangulation as tri
 import oslab_utils.filehandling as fh
 import oslab_utils.config as cfg
 import configs.config_handler as confh
 import subprocess
 import oslab_utils.check_and_exception as check
-from method_detectors.human_pose.filters import SGFilter
+from method_detectors.body_joints.filters import SGFilter
 
 
 class MMPose(BaseDetector):

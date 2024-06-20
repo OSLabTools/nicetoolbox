@@ -2,7 +2,7 @@
 # Local copy in your dataset folder
 
 [dyadic_communication]
-participant_IDs = ["PIS_ID_000", "PIS_ID_02", "PIS_ID_03", "PIS_ID_04", "PIS_ID_05", "PIS_ID_06", "PIS_ID_07", "PIS_ID_08"]
+session_IDs = ["PIS_ID_000", "PIS_ID_02", "PIS_ID_03", "PIS_ID_04", "PIS_ID_05", "PIS_ID_06", "PIS_ID_07", "PIS_ID_08"]
 sequence_IDs = ['']
 cam_front = 'cam4'
 cam_top = 'cam3'
@@ -10,18 +10,14 @@ cam_face1 = 'cam1'
 cam_face2 = 'cam2'
 subjects_descr = ["personL", "personR"]  # implies there are 2 people visible in the video
 cam_sees_subjects = {cam1 = [0], cam2 = [1], cam3 = [0, 1], cam4 = [0, 1]}  # order subjects f.l.t.r., indices from subjects_descr, start with 0
-metric_types = ['point_cloud_metrics', 'keypoint_metrics']
-annotation_types = ["none"]
-keypoints = 'coco_wholebody'
-path_to_annotations = "<datasets_folder_path>/dyadic_communication/oslab/annotations.npz"
 path_to_calibrations = "<datasets_folder_path>/dyadic_communication/oslab/calibrations.npz"
-data_input_folder = "<pis_folder_path>/<participant_ID>/IOI/compressed_25/withAudio"
+data_input_folder = "<datasets_folder_path>/dyadic_communication/<session_ID>/IOI/compressed_25/withAudio"
 start_frame_index = 0
 fps = 30
 
 
 [mpi_inf_3dhp]
-participant_IDs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
+session_IDs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
 sequence_IDs = ['Seq1', 'Seq2']
 cam_front = 'video_8'
 cam_top = 'video_5'
@@ -29,12 +25,8 @@ cam_face1 = ''
 cam_face2 = ''
 subjects_descr = ["person"]  # implies that the video shows a single person
 cam_sees_subjects = {video_5 = [0], video_8 = [0]}
-metric_types = ['point_cloud_metrics', 'keypoint_metrics']
-annotation_types = ['keypoints'] # ["3d_keypoints", "2d_keypoints"]
-keypoints = 'human36m'
-path_to_annotations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/annotations.npz"
 path_to_calibrations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<participant_ID>/<sequence_ID>/<camera_name>"
+data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<session_ID>/<sequence_ID>/<camera_name>"
 start_frame_index = 1
 fps = 50
 

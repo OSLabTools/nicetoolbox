@@ -93,3 +93,4 @@ input_detector_names = [["body_joints", "hrnetw48"]]
 [algorithms.gaze_distance]
 input_detector_names = [["gaze_individual", "xgaze_3cams"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"
+threshold_look_at = 0.2
