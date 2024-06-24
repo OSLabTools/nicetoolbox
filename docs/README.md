@@ -3,7 +3,8 @@
 #TODO: UPDATE THE TOOL/Project NAME
 #TODO: Perhaps add a paragraph about non-verbal communication
 
-XXX is an ongoing project aims to develop a comprehensive and roboust framework for exploring the nonverbal cues and observable (behavioral) signs that reflect emotional and cognitive state of the individual, as well as the interpersonal dynamics between relatively static (?) people.
+
+XXX is an ongoing project aims to develop a comprehensive and roboust framework for exploring nonverbal human communication, which enables the investigation of nonverbal cues and observable (behavioral) signs that reflect emotional and cognitive state of the individual, as well as the interpersonal dynamics between people in relatively fixed positions(?).
 
 The toolbox incorporate a set of deep-learning- and rule-based algorithms to track and identify potentially important non-verbal visual components/aspects. The initial release of the toolbox includes whole-body pose estimation and gaze tracking for each individual. It also encompasses forward and backward leaning detection, movement dynamics calculation (kinematics), gaze interaction monitoring (mutual-gaze), and measurement of physical body distance between dyads using video data from a single camera or calibrated multi-camera setups. For more details see [Components Overview](#components-overview) Section. 
 
@@ -43,10 +44,10 @@ If you are interested in collaborating with us or contributing to the project, p
 
     - **Body Joints**: Identifies and tracks the position of key body joints, (e.g., shoulders, elbows) to analyze body posture and movements. Available algorithms include MMPose implementation of [HRNet-w48+DARK](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-hrnet-dark-on-coco-wholebody) and [ViTPose-L](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-vitpose-on-coco). 
 
-    - **Hand Joint Estimation**: Tracks the positions of hand joints (e.g., wrists, fingers) to analyze hand movements and gestures. Available algorithm is MMPPose implementation of [HRNet-w48+DARK](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-hrnet-dark-on-coco-wholebody)
+    - **Hand Joint Estimation**: Tracks the positions of hand joints (e.g., wrists, fingers) to analyze hand movements and gestures. Available algorithm is MMPose implementation of [HRNet-w48+DARK](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-hrnet-dark-on-coco-wholebody)
 
     - **Face Landmark Estimation**: Detects the position of key landmarks to analyze facial expressions and
-    movements. Available algorithm is MMPPose implementation of [HRNet-w48+DARK](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-hrnet-dark-on-coco-wholebody) 
+    movements. Available algorithm is MMPose implementation of [HRNet-w48+DARK](https://mmpose.readthedocs.io/en/latest/model_zoo_papers/algorithms.html#topdown-heatmap-hrnet-dark-on-coco-wholebody) 
 
 
 The algorithms estimate the position of joints in 2D. These 2D estimates are further refined during post-processing.

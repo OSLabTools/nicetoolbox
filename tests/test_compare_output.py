@@ -6,8 +6,8 @@ import os
 import pytest
 import numpy as np
 
-RUNNER_OUTPUT_FOLDER = "../artifacts/example_data/input_data/dyadic_communication/experiments/functional_test_experiment"
-EXPECTED_OUTPUT_FOLDER = "../artifacts/example_data/output/functional_test_experiment"
+RUNNER_OUTPUT_FOLDER = "../artifacts/example_data/output/experiments/functional_test_experiment"
+EXPECTED_OUTPUT_FOLDER = "../artifacts/example_data/output/experiments/functional_test_experiment"
 THRESHOLD = 0.001
 
 print(f"current working dir -- : {os.getcwd()}")
