@@ -94,3 +94,14 @@ ISA-Visual is based on [rerun.io](https://rerun.io/).
 
 ## Licence 
 ISA-Tool is licenced under .... 
+
+List of Licences and Links to the 3rd party tools use in NICE toolbox
+
+| 3rd Party Name | Licence Type     | Link                                                                           |
+|----------------|------------------|--------------------------------------------------------------------------------|
+| mmPOSE         | Apache 2.0       | https://github.com/open-mmlab/mmpose/blob/main/LICENSE                         |
+| HRNet          | MIT              | https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/blob/master/LICENSE |
+| VITPose        | Apache 2.0       | https://github.com/ViTAE-Transformer/ViTPose/blob/main/LICENSE                 |
+| DarkPose       | Apache 2.0       | https://github.com/ilovepose/DarkPose/blob/master/LICENSE                      |
+| ETH-XGaze      | CC BY-NC-SA 4.0  | https://creativecommons.org/licenses/by-nc-sa/4.0/                             |
+| rerun.io       | MIT & Apache 2.0 | https://rerun.io/docs/reference/about                                          |
