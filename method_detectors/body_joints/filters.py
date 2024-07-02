@@ -2,6 +2,7 @@ import numpy as np
 import scipy.signal as signal
 from abc import ABC, abstractmethod
 
+# TODO: Remove base class if not needed
 class BaseFilter(ABC):
     """
     Class to apply filters to the 3D pose estimation results
@@ -14,32 +15,55 @@ class BaseFilter(ABC):
 
 class SGFilter(BaseFilter):
     """
-    Class to apply 1D savgol filter
-    savgol_filter :https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html.
+    A class designed to apply a 1D Savitzky-Golay filter to smooth and/or differentiate data.
 
-    Parameters
-    ----------
-    window_size (float): The length of the filter window. window_length must be a positive odd integer.
+    The Savitzky-Golay filter is a digital filter that can smooth or differentiate a set of digital
+    data points by fitting successive subsets of adjacent data points with a low-degree polynomial 
+    by the method of linear least squares. This class encapsulates the functionality of the 
+    Savitzky-Golay filter, allowing for easy application to data arrays. It is particularly useful 
+    for smoothing noisy data while preserving features of the signal such as relative maxima, 
+    minima, and width, which are usually flattened by other types of filters.
 
-    polyorder (int):The order of the polynomial used to fit the samples. polyorder must be less than window_length.
+    Attributes:
+        window_size (int): The length of the filter window (i.e., the number of coefficients). 
+            `window_size` must be a positive odd integer. The size of the window will affect the 
+            smoothness of the output signal, with larger windows providing smoother results but less 
+            sensitivity to small variations in the input data.
+        polyorder (int): The order of the polynomial used to fit the samples. `polyorder` must be 
+            less than `window_size`. A higher polynomial order can fit the data more closely, but if 
+            too high, it may lead to overfitting, causing artifacts in the filtered signal.
 
+    References:
+        - Savitzky, A., and Golay, M.J.E. (1964). Smoothing and Differentiation of Data by Simplified 
+            Least Squares Procedures. Analytical Chemistry, 36(8), pp.1627-1639.
+        - https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
     """
 
     def __init__(self, window_length, polyorder)-> None:
-
+        """
+        Initializes the Savitzky-Golay filter with the specified window length and polynomial order.
+        """
         self.window_length = window_length
         self.polyorder = polyorder
 
     def apply(self, data, is_3d=False):
         """
-        Takes data as an input and apply filter to each dimension of each keypoint separately.
+        Applies the Savitzky-Golay filter to the input data.
 
-        Parameters
-        ----------
-        data: (np array, shape - [#Frames, #Keypoints, XYZ]
+        The filter is applied to each dimension (X, Y, (Z)) of each keypoint separately.
+        The filtered data is stored in a new array.
+
+        Args:
+            data (np.array): The input data to be filtered. The shape of the array should be
+                [#Frames, #Keypoints, XYZ].
+
+            is_3d (bool, optional): A flag indicating whether the input data is 3D or not.
+                If True, the filter will be applied to the Z dimension.
+                If False, the filter will only be applied to the X and Y dimensions.
+                Default is False.
 
         Returns:
-        smoothed data(np array, shape - [#Frames, #Keypoints, XYZ]
+            np.array: The filtered data. The shape of the array will be [#Frames, #Keypoints, XYZ].
         """
         # Create an empty array to store the filtered data
         smooth_data = np.copy(data)

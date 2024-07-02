@@ -18,17 +18,48 @@ from method_detectors.body_joints.filters import SGFilter
 
 class MMPose(BaseDetector):
     """
+    The MMPose class is a method detector for pose estimation using the MMPose framework.
+
+    This class is designed to perform pose estimation on video data using the MMPose framework, 
+    which is an open-source toolbox for comprehensive pose estimation. It provides the necessary 
+    preparations and post-inference utilities to integrate the MMPose framework into our pipeline.
+
+    The MMPose class supports 2D pose estimation and can handle data from multiple cameras. It also 
+    has the capability to perform 3D pose estimation by triangulating the 2D pose data from different 
+    camera views. Additionally, it offers the option to filter the 3D pose data to reduce noise and 
+    smooth out the results.
+    
+    Available components: body_joints, hand_joints, face_landmarks
+
+    Attributes:
+        camera_names (list of str): Names of the cameras used to capture the video data. 
+        video_start (int): The frame number from which to start pose estimation. 
+        filtered (bool): Indicates whether the 3D pose data should be filtered.
+        filter_window_length (int): Specifies the length of the window used for filtering the 3D data. 
+        filter_polyorder (int): Defines the order of the polynomial used in the filtering process. 
+        data_folder (str): The file path to the folder containing the input data.
+        out_folder (str): The file path to the folder where the pose estimation results will be saved.
+        prediction_folders (dict of str: str): A dictionary mapping camera names to their respective
+            folders for storing the pose estimation predictions.
+        image_folders (dict of str: str): A dictionary mapping camera names to their respective folders 
+            containing the input images or frames for pose estimation.
+        result_folders (dict of str: str): A dictionary mapping camera names to their respective folders
+            for storing the final pose estimation results.
+        calibration (dict): Contains the calibration parameters for the cameras used in pose estimation. 
     """
 
     def __init__(self, config, io, data):
-        """ Initialize MMPose class.
-
-        Parameters
-        ----------
-        config : dict
-            the method-specific configurations dictionary
-        io: class
-            a class instance that handles in-output folders
+        """ 
+        Initializes the MMPose class with configuration settings and IO handling capabilities.
+        
+        This constructor takes care of all inference preparation steps, including setting up
+        the input and output folders, configuring the keypoint mapping, and preparing the calibration 
+        parameters for 3D pose estimation.
+        
+        Args:
+            config (dict): A dictionary containing the configuration settings for the method detector.
+            io (class): An instance of the IO class for input-output operations.
+            data (class): An instance of the Data class for accessing data.
         """
 
         logging.info(f"Prepare Inference for '{self.algorithm}' and components {self.components}.")
@@ -71,16 +102,44 @@ class MMPose(BaseDetector):
 
         logging.info(f"Inference Preparation completed.\n")
 
+    # TODO: Somehow mark this method as abstract and to be implemented by the derived classes (algorithms)
     def get_per_component_keypoint_mapping(self, keypoints_indices):
+        """
+        This method extracts the keypoint indices and descriptions for each pose estimation component.
+        
+        It has to be implemented by the derived classes assoicated to the available pose estimation
+        algorithms. (See HRNetw48 and Vitpose classes below)
+        
+        Available algorithms are: hrnetw48, vitpose
+
+        Args:
+            keypoints_indices (_type_): _description_
+        """
         pass
 
     def visualization(self, data):
         """
+        Generates a visualization video for each camera from the processed image frames.
 
-        Parameters
-        ----------
-        data: class
-            a class instance that stores all input file locations
+        This method takes the processed image frames for each camera and compiles them into a 
+        video file. It uses the `ffmpeg` command-line tool to create a video with a specified 
+        frame rate. For each camera, it checks if the image folder is empty and logs an error 
+        if so. Otherwise, it constructs the video file path and executes the `ffmpeg` command 
+        to generate the video. The success of the video creation is tracked, and the method logs 
+        the outcome of the visualization process for each camera.
+
+        Args:
+            data (class): An instance of a class that stores all data related information, 
+                including the frame rate (`fps`) for the video and the starting frame number 
+                (`video_start`).
+
+        Raises:
+            FileNotFoundError: If the image folder for any camera is empty, indicating that there 
+                are no processed frames to visualize, a FileNotFoundError is logged as an error.
+
+        Note:
+            - The method assumes that the processed image frames are named in a specific format (`%05d.png`), 
+            where each frame's name is a zero-padded five-digit number representing its sequence in the video.
         """
         logging.info(f"VISUALIZING the method detector output of {self.components} and {self.algorithm}.")
 
@@ -106,19 +165,40 @@ class MMPose(BaseDetector):
         else:
             logging.error(f"VISUALIZATION {self.components}, {self.algorithm} - FAILURE - Video file was not created")
 
+    # TODO: Split this method into smaller functions for better readability
     def post_inference(self):
         """
-        The triangulation pipeline that first gets the pose estimation results (2d points) of each person
-            in two camera, then undistorts the 2d points using calibration parameters, and apply stereo triangulation
+        Post-inference processing for pose estimation components such as body_joints, hand_joints,
+        and face_landmarks.
 
-        Parameters
-        ----------
-        data: class
-            a class instance that stores all input file locations
-
-        Returns
-        -------
-        saves 3d positions as hdf5 file and returns the 3d positions as a list of np.arrays[personL, personR]
+        This method takes the raw 2D pose estimation results and applies a series of processing 
+        steps. They include optional filtering to smooth the results, interpolation to fill in 
+        missing values, undistortion using camera calibration parameters, and 3D triangulation from 
+        multiple camera views. The final processed results are saved for further analysis 
+        and visualization for each of the components.
+        
+        Steps:
+        1. **Filtering**: Applies a smoothing filter to the 2D pose estimation results if filtering
+            is enabled. This step reduces noise and improves the consistency of the pose data over 
+            time.
+        2. **Interpolation**: Fills in missing values in the 2D pose estimation results. This is 
+            crucial for maintaining the integrity of the pose data, especially in cases where 
+            occlusion or poor lighting conditions may lead to incomplete detections.
+        3. **Undistortion**: Corrects the 2D pose estimation results for lens distortion using the 
+            camera's calibration parameters.
+        4. **3D Triangulation**: Uses the undistorted 2D pose estimation results from at least two
+            camera views to reconstruct the 3D positions of the pose keypoints.
+        5. **Saving Results**: The processed 3D pose data is saved to a .npz file with the following 
+            structure:
+                - '2d': A numpy array containing the 2D pose estimation results.
+                - '2d_filtered': A numpy array containing the filtered 2D pose estimation results.
+                - '2d_interpolated': A numpy array containing the interpolated 2D pose estimation results.
+                - 'bbox_2d': A numpy array containing the 2D bounding box coordinates.
+                - '3d': A numpy array containing the 3D pose estimation results.
+                - 'data_description': A dictionary containing the data description for the above output numpy arrays. See the documentation of the output for more details.
+                
+        Returns:
+            None. The processed results are saved to the output folder (See step 5).
         """
 
         for component, result_folder in self.result_folders.items():
@@ -288,6 +368,16 @@ class MMPose(BaseDetector):
                 #     self.person_threshold)
 
     def get_prediction_folders(self, make_dirs = False):
+        """
+        Generate and return a dictionary of prediction folders for each camera.
+
+        Args:
+            make_dirs (bool): If True, the function will create the directories if they do not exist.
+
+        Returns:
+            dict: A dictionary where the keys are the camera names and the values are the 
+                corresponding prediction folder paths.
+        """
         out_kp = {}
         for camera in self.camera_names:
             out = os.path.join(self.out_folder, 'predictions', camera)
@@ -297,6 +387,16 @@ class MMPose(BaseDetector):
         return out_kp
 
     def get_image_folders(self, make_dirs = False):
+        """
+        Generate and return a dictionary of image folders for each camera.
+
+        Args:
+            make_dirs (bool): If True, the function will create the directories if they do not exist.
+
+        Returns:
+            dict: A dictionary where the keys are the camera names and the values are the 
+                corresponding image folder paths.
+        """
         out_img = {}
         for camera in self.camera_names:
             out = os.path.join(self.out_folder, 'images', camera)
@@ -306,6 +406,17 @@ class MMPose(BaseDetector):
         return out_img
 
     def get_camera_data(self):
+        """
+        Retrieves the camera data for each camera name.
+    
+        This function constructs a dictionary where the keys are the camera names
+        and the values are the corresponding camera folders. The camera folders are
+        obtained by joining the `data_folder` with the camera name.
+        
+        Returns:
+            dict: A dictionary containing the camera data, where the keys are the camera names
+                    and the values are the corresponding camera folders.
+        """
         in_camera = {}
         for camera in self.camera_names:
             camera_folder = os.path.join(self.data_folder, camera)
@@ -314,6 +425,21 @@ class MMPose(BaseDetector):
 
 
 def extract_key_per_value(input_dict):
+    """
+    Extracts keys from a dictionary based on the type of their values.
+
+    If all values in the dictionary are integers, it returns a list of keys.
+    If any value is a list, it appends an index to the key to create a unique key.
+
+    Args:
+        input_dict (dict): The input dictionary to extract keys from.
+
+    Returns:
+        return_keys (list): A list of keys extracted from the input dictionary.
+
+    Raises:
+        NotImplementedError: If a value in the dictionary is neither an integer nor a list.
+    """
     if all(isinstance(l, int) for l in list(input_dict.values())):
         return list(input_dict.keys())
     else:
@@ -331,11 +457,38 @@ def extract_key_per_value(input_dict):
 
 class HRNetw48(MMPose):
     """
+    HRNetw48 is a subclass of MMPose specialized for pose estimation using the HRNetw48 model.
+
+    The HRNetw48 class is designed to utilize the HRNetw48 model within the MMPose framework 
+    for pose estimation tasks. It provides the necessary component keypoint indices
+    and descriptions for the body joints component. The base_detector class starts the algorithm 
+    as a subprocess within the base_detector's 'run_inference' method.
+    
+    HRNetw48, or High-Resolution Network, is a deep neural network designed for human pose estimation
+    that maintains high-resolution representations through the whole process. It is particularly
+    effective for tasks requiring precise localization of body joints. 
+    
+    Components: body_joints, hand_joints, face_landmarks
     """
     components = ['body_joints', 'hand_joints', 'face_landmarks']
     algorithm = 'hrnetw48'
 
     def get_per_component_keypoint_mapping(self, keypoints_indices):
+        """
+        Extracts and returns the indices and descriptions of keypoints for each component.
+
+        Args:
+            keypoints_indices (dict): A dictionary containing the indices of keypoints for each 
+                component. The keys of the dictionary are the component names ('body_joints', 
+                'hand_joints', 'face_landmarks'), and the values are dictionaries containing the 
+                indices of keypoints for each keypoint.
+
+        Returns:
+            tuple: A tuple containing two dictionaries.
+                - The first dictionary contains the indices of keypoints for each component.
+                - The second dictionary contains the descriptions of keypoints for each component.
+
+        """
         indices = dict(
             body_joints = confh.flatten_list(list(keypoints_indices['body'].values()) + 
                                              list(keypoints_indices['foot'].values())),
@@ -355,11 +508,38 @@ class HRNetw48(MMPose):
 
 class VitPose(MMPose):
     """
+    VitPose is a subclass of MMPose specialized for pose estimation using the Vision Transformer (ViT) model.
+
+    The VitPose class is designed to utilize the ViT model within the MMPose framework for pose 
+    estimation tasks, focusing on body joints. It provides the necessary component keypoint indices
+    and descriptions for the body joints component. The base_detector class starts the algorithm 
+    as a subprocess within the base_detector's 'run_inference' method.
+    
+    VitPose leverages the Vision Transformer architecture, a model that applies the transformer mechanism to 
+    image processing tasks, including pose estimation. 
+
+    Component: body_joints
     """
     components = ['body_joints']
     algorithm = 'vitpose'
 
     def get_per_component_keypoint_mapping(self, keypoints_indices):
+        """
+        Extracts and returns the indices and descriptions of keypoints for each component.
+
+        Args:
+            keypoints_indices (dict): A dictionary containing the indices of keypoints for each 
+                component. The keys of the dictionary are the component names ('body_joints', 
+                'hand_joints', 'face_landmarks'), and the values are dictionaries containing the 
+                indices of keypoints for each keypoint.
+                Note: This algorithm only supports the 'body_joints' component.
+
+        Returns:
+            tuple: A tuple containing two dictionaries.
+                - The first dictionary contains the indices of keypoints for each component.
+                - The second dictionary contains the descriptions of keypoints for each component.
+
+        """
         indices = dict(
             body_joints = confh.flatten_list(list(keypoints_indices['body'].values()))
             )

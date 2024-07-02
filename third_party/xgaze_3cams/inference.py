@@ -14,8 +14,22 @@ import xgaze_3cams.landmarks as lm
 import file_handling as fh
 
 
+# TODO: Split into smaller functions: e.g. load_data, run_inference, visualize_gaze_direction, save_results
 def main(config, debug=False):
-    """ Run inference of the method on the pre-loaded image
+    """ 
+    Run xgaze_3cams gaze detection on the provided data.
+    
+    The function uses the 'xgaze_3cams' library to estimate gaze vectors for each camera.
+    The estimated gaze vectors are then converted to pitch and yaw angles using a simple
+    linear transformation. The resulting angles are saved in a .npz file with the following
+    structure:
+        - 3d: Numpy array of shape (n_frames, n_subjects, 3)
+        - data_description: A dictionary containing the description of the data.
+    
+    Args:
+        config (dict): The configuration dictionary containing parameters for gaze detection.
+        debug (bool, optional): A flag indicating whether to print debug information.
+            Defaults to False.
     """
 
     # initialize logger

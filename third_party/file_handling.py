@@ -8,7 +8,7 @@ import toml
 import json
 import numpy as np
 
-
+# TODO: Functions into archive? hdf5 format outdated
 def save_to_hdf5(array_list,  groups_list, output_file, index=[]):
     """save the numpy array into given output_file
 

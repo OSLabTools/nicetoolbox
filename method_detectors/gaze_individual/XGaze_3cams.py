@@ -15,22 +15,36 @@ import oslab_utils.logging_utils as log_ut
 
 
 class XGaze3cams(BaseDetector):
-    """Class to setup and run existing computer vision research code.
+    """
+    The XGaze3cams class is a method detector that computes the gaze_individual component.
+    
+    The method detector computes the gaze of individuals in the scene using multiple
+    cameras.It provides the necessary preparations and post-inference visualizations to 
+    integrate the XGaze3cams algorithm into our pipeline.
+    
+    Component: gaze_individual
+    
+    Attributes:
+        components (list): A list containing the name of the component: gaze_individual.
+        algorithm (str): The name of the algorithm used to compute the gaze_individual component.
+        camera_names (list): A list of camera names used to capture the original input data.
     """
     components = ['gaze_individual']
     algorithm = 'xgaze_3cams'
 
     def __init__(self, config, io, data) -> None:
-        """InitializeMethod class.
-
-        Parameters
-        ----------
-        config : dict
-            some configurations/settings dictionary, here it must contain the key 'image_file'
+        """
+        Initialize the XGaze3cams method detector with all inference preparations completed.
+        
+        Args:
+            config (dict): A dictionary containing the configuration settings for the method detector.
+            io (class): An instance of the IO class for input-output operations.
+            data (class): An instance of the Data class for accessing data.
         """
 
         logging.info(f"Prepare Inference for '{self.algorithm}' and components {self.components}.")
 
+        # TODO: comments still relevant?
         # first, make additions to the method/detector's config:
         # extract the relevant data input files from the data class
 
@@ -50,7 +64,22 @@ class XGaze3cams(BaseDetector):
 
         logging.info(f"Inference Preparation completed.\n")
             
+    # TODO: data parameter not used
     def visualization(self, data):
+        """
+        Visualizes the processed frames of the xgaze3cams algorithm as a video for all cameras.
+
+        This function reads the processed frames from each camera, checks if all frames are 
+        present, and verifies that the number of frames per camera is consistent. It then creates
+        a video for each camera using the processed frames.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If no frames are found for at least one camera or if the number of 
+            frames per camera is not consistent.
+        """
         frames_lists = [
             sorted(glob.glob(os.path.join(self.out_folder, f'{cam}_*.png')))
             for cam in self.camera_names]

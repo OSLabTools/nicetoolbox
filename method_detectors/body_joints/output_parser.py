@@ -3,6 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 import third_party.file_handling as fh
 
+# TODO: file still used?
 
 KEYPOINT_MAPPING_PATH = "./configs/predictions_mapping.yml"
 

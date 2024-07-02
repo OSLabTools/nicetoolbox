@@ -1,6 +1,8 @@
 """
-
+Main script for the NICE toolbox inference pipeline. 
+It imports various modules and classes to run method detectors and feature detectors on datasets.
 """
+
 import copy
 import logging
 import os
@@ -39,6 +41,25 @@ all_feature_detectors = dict(
 
 
 def main(run_config_file, detector_config_file, machine_specifics_file):
+    """
+    The main function of the ISA-TOOL.
+
+    Args:
+        run_config_file (str): The path to the run configuration file.
+        detector_config_file (str): The path to the detector configuration file.
+        machine_specifics_file (str): The path to the machine specifics file.
+
+    This function is the entry point of the NICE toolbox. It performs the following steps:
+
+    1. Initializes the configuration handler with the provided configuration files.
+    2. Initializes the IO module with the IO configuration from the configuration handler.
+    3. Sets up logging and logs the start of the NICE toolbox.
+    4. Checks the configuration consistency and saves the experiment configuration.
+    5. Runs the datasets specified in the configuration.
+    6. For each dataset, initializes the IO module and prepares the data.
+    7. Runs the method detectors specified in the configuration for each dataset.
+    8. Runs the feature extraction pipeline specified in the configuration for each dataset.
+    """
     # CONFIG I
     config_handler = confh.Configuration(run_config_file, detector_config_file, machine_specifics_file)
 
@@ -78,7 +99,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
             config_handler.get_all_camera_names(algorithm_names)
             )
 
-        # RUN detectors
+        # RUN method detectors
         for (method_config, method_name) in config_handler.get_method_configs(method_names):
             logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
             detector = all_method_detectors[method_name](method_config, io, data)
@@ -87,7 +108,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
                 detector.visualization(data)
             logging.info(f"FINISHED method '{method_name}'.\n\n")
 
-        # RUN feature extractions pipeline
+        # RUN feature detectors
         for (feature_config, feature_name) in config_handler.get_feature_configs(feature_names):
             logging.info(f"STARTING feature '{feature_name}'.\n{'-' * 80}")
             feature = all_feature_detectors[feature_name](feature_config, io, data)

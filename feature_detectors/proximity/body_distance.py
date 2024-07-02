@@ -9,19 +9,44 @@ import feature_detectors.proximity.utils as pro_utils
 
 class BodyDistance(BaseFeature):
     """
+    The BodyDistance class is a feature detector that computes the proximity component.
+
+    The BodyDistance feature detector calculates the Euclidean distance between keypoints of 
+    different individuals in the scene, essentially determining the proximity between individuals 
+    from one frame to the next.
+    
+    Component: proximity
+
+    Attributes:
+        components (list): A list containing the name of the component this class is responsible for:
+            proximity.
+        algorithm (str): The name of the algorithm used to compute the proximity component.
+            body_distance: the Euclidean distance between individuals in the scene
+        valid_run (bool): A boolean value indicating whether the feature detector can run with the
+            given input data.
+        predictions_mapping (dict): A dictionary containing the mapping of body parts to their 
+            respective indices, used to identify the keypoints for distance calculation.
+        camera_names (list): A list containing the names of the cameras used to capture the 
+            original input data.
+        used_keypoints (list): A list containing the names of the keypoints used for calculating 
+            the distance.
+        keypoint_index (list): A list containing the indices of the keypoints used for calculating
     """
     components = ['proximity']
     algorithm = 'body_distance'
 
     def __init__(self, config, io, data):
         """ Initialize Movement class.
+        Setup the BodyDistance feature detector and extract gaze component from method detector output.
+        
+        This method initializes the BodyDistance class by setting up the necessary configurations, 
+        input/output handler, and data. It extracts the body_joints component and prepares the 
+        used keypoints and keypoint indices given the predictions mapping.
 
-        Parameters
-        ----------
-        config : dict
-            the method-specific configurations dictionary
-        io: class
-            a class instance that handles in-output folders
+        Args:
+            config (dict): The method-specific configurations dictionary.
+            io (class): A class instance that handles input and output folders.
+            data (class): A class instance that stores all input file locations.
         """
         self.valid_run = True
         if len(data.subjects_descr) == 1:
@@ -29,7 +54,6 @@ class BodyDistance(BaseFeature):
             self.valid_run = False
             return
 
-        # then, call the base class init
         super().__init__(config, io, data, requires_out_folder=False)
 
         # POSE
@@ -55,18 +79,24 @@ class BodyDistance(BaseFeature):
             [self.predictions_mapping["keypoints_index"]["body"][keypoint]
              for keypoint in self.used_keypoints]
 
-
         logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
-        """ Compute the euclidean distance between the keypoint coord of personL and personR
-        index of keypoint(s). If length of index of keypoint(s) list is greater than 1,
-        the midpoint of the keypoints will be used in proximity measure
-
-        Returns
-         -------
-        The proximity measure - The euclidean distance between the two person's body (one location on body)
-
+        """ 
+        Computes the proximity component.
+        
+        This method calculates the Euclidean distance between the keypoints of personL and 
+        personR. If the length of the keypoint index list is greater than 1, the midpoint of the
+        keypoints will be used in the proximity measure.
+        
+        The results are saved in a numpy .npz file with the following structure:
+        - body_distance_2d: A numpy array containing the proximity scores in 2D.
+        - body_distance_3d: A numpy array containing the proximity scores in 3D.
+        - data_description: A dictionary containing the data description for the above output numpy arrays. See the documentation of the output for more details.
+        
+        Returns:
+            out_dict (dict): A dictionary containing the proximity scores (2D and/or 3D).
+    
         """
         if not self.valid_run:
             return None
@@ -112,11 +142,17 @@ class BodyDistance(BaseFeature):
 
     def visualization(self, out_dict):
         """
-
-        Parameters
-        ----------
-        out_dict: class
-            a class instance that stores all input file locations
+        Creates visualizations for the computed proximity component.
+        
+        The visualization includes a line graph of the proximity scores over time, and the 
+        proximity scores are also displayed on top of the original video frames. The video is 
+        saved as 'proximity_score_on_video.mp4' in the visualization folder.
+        
+        Args:
+            out_dict (dict): A dictionary containing the proximity scores computed by the
+            feature detector. It should contain keys 'body_distance_2d' and/or 
+            'body_distance_3d', each mapping to a numpy array containing the proximity scores 
+            for the respective dimension.
         """
         if out_dict is not None:
             logging.info(f"Visualizing the feature detector output {self.components}.")

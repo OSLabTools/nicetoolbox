@@ -18,15 +18,47 @@ import shutil
 
 
 class Data:
+    """
+    A data class for loading and processing data.
+
+    Attributes:
+        name (str): The name of the data.
+        data_folder (str): The folder path for the data.
+        tmp_folder (str): The folder path for temporary files.
+        code_folder (str): The folder path for code files.
+        data_input_folder (str): The folder path for input data.
+        session_ID (str): The session ID.
+        sequence_ID (str): The sequence ID.
+        video_length (int): The length of the video.
+        video_start (int): The starting frame of the video.
+        video_skip_frames (int or None): The number of frames to skip in the video.
+        annotation_interval (float): The interval for annotations.
+        subjects_descr (str): The description of the subjects.
+        camera_mapping (dict): The mapping of camera names.
+        data_formats (list): The list of data formats required.
+        all_camera_names (list): The list of all camera names.
+        segments_list (None or list): The list of data segments.
+        frames_list (None or list): The list of frames.
+        frame_indices_list (None or list): The list of frame indices.
+        snippets_list (None or list): The list of snippets.
+        calibration (dict): The camera calibration.
+        fps (int): The frames per second of the input video files.
+    """
+
     name = 'data'
 
     def __init__(self, config, io, data_formats, all_camera_names) -> None:
-        """InitializeMethod class.
+        """
+        Initialize the Data class.
 
-        Parameters
-        ----------
-        config : dict
-            some configurations/settings dictionary
+        Args:
+            config (dict): The configuration dictionary.
+            io (IO): The IO object for file and folder operations.
+            data_formats (list): The list of data formats required.
+            all_camera_names (list): The list of all camera names.
+
+        Returns:
+            None
         """
         logging.info("Start DATA LOADING and processing.")
         # TODO later: add caching for tmp folder
@@ -70,17 +102,40 @@ class Data:
         logging.info("Data loading and processing finished.\n\n")
 
     def get_inference_path(self, detector_name):
-        filepath = os.path.join(self.code_folder, 'third_party', detector_name,
-                                'inference.py')
+        """
+        Get the file path for the inference script of a given detector.
+
+        Args:
+            detector_name (str): The name of the detector.
+
+        Returns:
+            str: The file path for the inference script.
+
+        Raises:
+            FileNotFoundError: If the inference script file does not exist.
+        """
+        filepath = os.path.join(self.code_folder, 'third_party', detector_name, 'inference.py')
         try:
             exc.file_exists(filepath)
         except FileNotFoundError:
-            logging.exception(
-                f"Detector inference file {filepath} does not exist!")
+            logging.exception(f"Detector inference file {filepath} does not exist!")
             raise
         return filepath
 
     def get_venv_path(self, detector_name, env_name):
+        """
+        Get the file path of the virtual environment for the given detector and environment name.
+
+        Args:
+            detector_name (str): The name of the detector.
+            env_name (str): The name of the environment.
+
+        Returns:
+            str: The file path of the virtual environment.
+
+        Raises:
+            FileNotFoundError: If the virtual environment does not exist.
+        """
         os_type = oslab_sys.detect_os_type()
         if os_type == "linux":
             filepath = os.path.join(self.code_folder, 'third_party', detector_name,
@@ -97,6 +152,16 @@ class Data:
         return filepath
 
     def get_fps(self, config_fps):
+        """
+        Get the frames per second (fps) of the input video files.
+
+        Args:
+            config_fps (int): The desired fps specified in the configuration.
+
+        Returns:
+            int: The fps of the input video files. If the input formats are not 'mp4' or 'avi',
+                 the config_fps value is returned.
+        """
         input_formats = self.get_input_format(self.all_camera_names)
         if input_formats in ['mp4', 'avi']:
             video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
@@ -109,6 +174,17 @@ class Data:
             return config_fps
 
     def check_config(self, config):
+        """
+        Checks the validity of the configuration for the detector methods.
+
+        Args:
+            config (dict): The configuration dictionary.
+
+        Raises:
+            KeyError: If a required key is missing in the configuration.
+            TypeError: If the value of a key is of an incorrect type.
+            ValueError: If the value of a key is out of bounds.
+        """
         for detector in config['methods']['names']:
             try:
                 config['methods'][detector]['input_data_format']
@@ -184,6 +260,21 @@ class Data:
         # total_frames (60) > frames_per_split (60)
 
     def load_calibration(self, calibration_file, dataset_name):
+        """
+        Load camera calibration from a file for a specific dataset.
+        
+        Currently implemented for the datasets 'dyadic_communication' and 'mpi_inf_3dhp'.
+
+        Args:
+            calibration_file (str): The path to the calibration file.
+            dataset_name (str): The name of the dataset.
+
+        Returns:
+            dict: A dictionary containing the loaded camera calibration.
+
+        Raises:
+            NotImplementedError: If loading camera calibration for the specified dataset is not implemented.
+        """
         try:
             exc.check_options(dataset_name, str, ['dyadic_communication', 'mpi_inf_3dhp'])
         except (TypeError, ValueError):
@@ -203,6 +294,18 @@ class Data:
         return calib
 
     def get_input_format(self, camera_names):
+        """
+        Get the input format for the given camera names.
+
+        Args:
+            camera_names (list): A list of camera names.
+
+        Returns:
+            str: The input format for the given camera names.
+
+        Raises:
+            ValueError: If multiple or no valid input format is found in the data input folder.
+        """
         example_input_folder = self.data_input_folder.replace('<camera_name>', next(iter(camera_names)))
         input_formats = [name in '_'.join(sorted(os.listdir(example_input_folder))) for
                         name in ['.mp4', '.avi', '.png', '.jpg', '.jpeg']]
@@ -210,13 +313,26 @@ class Data:
             exc.error_log_and_raise(
                 ValueError, 
                 'Reading input data', 
-                f"Multiple or no valid input format found in '{self.data_input_folder}'." \
-                f"Found '{input_formats}', valid are ['mp4', 'avi']."
+                f"Multiple or no valid input format found in '{self.data_input_folder}'. "
+                f"Found '{input_formats}', valid formats are ['mp4', 'avi']."
                 )
         input_format = ['mp4', 'avi', 'png', 'jpg', 'jpeg'][input_formats.index(True)]
         return input_format
         
     def get_inputs_list(self, input_format, data_format, camera_names):
+        """
+        Returns a list of input file paths based on the specified input format,
+        data format, and camera names.
+
+        Args:
+            input_format (str): The format of the input files.
+            data_format (str): The format/type of the video data. 
+                One of snippets, segments, or frames.
+            camera_names (list): A list of camera names.
+
+        Returns:
+            list: A list of input file paths.
+        """
 
         start = self.video_start
         end = self.video_start + self.video_length
@@ -249,10 +365,23 @@ class Data:
         return inputs_list
 
     def data_initialization(self):
+        """
+        Initializes the data required for running NICE toolbox.
+
+        This method performs the following steps:
+        1. Determines the input format based on the available camera names.
+        2. Creates a list of all input files required to run NICE toolbox.
+        3. Checks whether all required data files exist.
+        4. Initializes data lists for frames, segments, and snippets.
+        5. If the data exists, extracts frame indices and organizes frames by camera name.
+        6. If the data does not exist, creates the required data from video or frames.
+        7. Logs the completion of data creation.
+        """
         # find data input format
         input_format = self.get_input_format(self.all_camera_names)
 
-        # create a list of all input files required to run isa-tool given the current run_config.toml
+        # create a list of all input files required to run the nice toolbox
+        # given the current run_config.toml
         data_list = []
         for data_format in self.data_formats:
             data_list += self.get_inputs_list(input_format, data_format, self.all_camera_names)
@@ -300,12 +429,23 @@ class Data:
             logging.info(f"DATA creation completed.")
 
     def create_inputs_from_video(self):
+        """
+        Create inputs from video files.
+
+        This method detects video input files, splits them into frames, and organizes the frames
+        into different data formats which are frames, segments, and snippets.
+        
+        Raises:
+            AssertionError: If the length of the frame indices list does not match the specified
+                video length.
+            AssertionError: If the frame indices of different cameras do not match.        
+        """
         # detect all video input files
         video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
 
         for video_file in video_files:
-            camera_name_indices = [name in video_file.lower() for name in
-                                    list(self.all_camera_names)]
+            camera_name_indices = [name in video_file.lower() 
+                                   for name in list(self.all_camera_names)]
             if not any(camera_name_indices):
                 continue
             camera_name = list(self.all_camera_names)[camera_name_indices.index(True)]
@@ -317,11 +457,11 @@ class Data:
             if 'frames' in self.data_formats:
                 os.makedirs(os.path.join(data_folder, 'frames'), exist_ok=True)
                 frames_list, frame_indices_list = split_into_frames(
-                        video_file,
-                        os.path.join(data_folder, 'frames/'),
-                        self.video_start,
-                        self.video_length,
-                        self.video_skip_frames
+                    video_file,
+                    os.path.join(data_folder, 'frames/'),
+                    self.video_start,
+                    self.video_length,
+                    self.video_skip_frames
                 )
                 assert len(frame_indices_list) == self.video_length, \
                     f"ERROR. len(frame_indices_list) = " \
@@ -344,35 +484,58 @@ class Data:
 
                 # calculate frames per annotation interval
                 frames_per_segment = int(self.annotation_interval * get_fps(
-                        video_files[0]))
+                    video_files[0]))
 
                 # split video into segments of length annotation_interval
                 self.segments_list = equal_splits_by_frames(
-                        video_file,
-                        os.path.join(data_folder, 'segments/'),
-                        frames_per_segment,
-                        keep_last_split=False,
-                        start_frame=self.video_start,
-                        number_of_frames=self.video_length
+                    video_file,
+                    os.path.join(data_folder, 'segments/'),
+                    frames_per_segment,
+                    keep_last_split=False,
+                    start_frame=self.video_start,
+                    number_of_frames=self.video_length
                 )
 
             if 'snippets' in self.data_formats:
                 os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
                 out_name = f'{camera_name}_s{self.video_start}_e' \
-                            f'{self.video_start + self.video_length}'
+                           f'{self.video_start + self.video_length}'
                 # cut video to the required number of frames
                 out_video_file = cut_length(
-                        video_file,
-                        os.path.join(data_folder, f'snippets/{out_name}'),
-                        start_frame=self.video_start,
-                        number_of_frames=self.video_length
+                    video_file,
+                    os.path.join(data_folder, f'snippets/{out_name}'),
+                    start_frame=self.video_start,
+                    number_of_frames=self.video_length
                 )
 
                 # read result list
                 self.snippets_list.append(out_video_file)
 
     def create_inputs_from_frames(self, input_format):
+        """
+        Processes frames and organizes them into specified data formats for further
+        processing in the NICE pipeline.
 
+        This method iterates through all camera names, and for each camera, it performs the 
+        following operations based on the given data formats:
+
+        1. Frames: For each frame in the specified range, it checks if the frame exists in the
+        input directory. If it does, the method creates a symbolic link in the output directory
+        under a 'frames' subdirectory.
+
+        2. Segments: (Not Implemented) This part is intended to split the video into segments of a
+        specified length based on the annotation interval.
+
+        3. Snippets: (Not Implemented) This part is intended to cut the video into snippets based 
+        on the specified start and length.
+
+        Args:
+            input_format (str): The file format of the input frames (e.g., 'jpg', 'png').
+
+        Raises:
+            NotImplementedError: If the filename convention inferred from the first frame's 
+            filename does not apply to any frame or if the 'segments' or 'snippets' data formats are specified, as these are not implemented.
+        """
         frames_list = []
         frame_indices_list = set()
         for camera_name in self.all_camera_names:
@@ -418,6 +581,7 @@ class Data:
 
                 frames_list.append(camera_frames_list)
 
+            # TODO: Clean up or implement
             if 'segments' in self.data_formats:
                 raise NotImplementedError
                 os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
@@ -436,6 +600,7 @@ class Data:
                         number_of_frames=self.video_length
                 )
 
+            # TODO: Clean up or implement
             if 'snippets' in self.data_formats:
                 raise NotImplementedError
                 os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)

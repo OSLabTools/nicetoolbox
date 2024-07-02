@@ -12,26 +12,18 @@ import oslab_utils.logging_utils as log_ut
 def compare_saved3d_data_values_with_triangulation_through_json(prediction_folders, results_folder, camera_names,
                                                                 calibration_params, person_threshold):
     """
-    Sanity check function. Compare saved 3d hdf5 values with triangulating algorithm original results. It selects randomly 5 images and 5 keypoints.
-    And for each person compare the saved 3d keypoints in hdf5 file with the triangulated algorithm original results.
+    Sanity check function. Compare saved 3D HDF5 values with the triangulating algorithm's original results. It selects randomly 5 images and 5 keypoints.
+    And for each person, it compares the saved 3D keypoints in the HDF5 file with the triangulated algorithm's original results.
 
-    Parameters
-    ----------
-    prediction_folders: dict
-                    prediction folder dictionary - camera name is the key [str:detector_out/method_output/predictions/camera_name]
-    results_folder: str
-                    results folder where the hdf5 files are saved [str:detector_out/]
-    camera_names: lst
-                    list of camera name
-    calibration_params: dict
-                    calibration dictionary - camera name is the key
-    person_threshold: float
-                    the threshold the determine left and right bbox.
+    Parameters:
+        prediction_folders (dict): Prediction folder dictionary - camera name is the key [str:detector_out/method_output/predictions/camera_name]
+        results_folder (str): Results folder where the HDF5 files are saved [str:detector_out/]
+        camera_names (list): List of camera names
+        calibration_params (dict): Calibration dictionary - camera name is the key
+        person_threshold (float): The threshold to determine left and right bbox.
 
-    Returns
-    -------
-    asserts if there is a dismatch
-
+    Returns:
+        Asserts if there is a mismatch
     """
     # Todo: add to the log
     print("CHECKING saved 3d data & triangulation...")
@@ -93,8 +85,20 @@ def compare_saved3d_data_values_with_triangulation_through_json(prediction_folde
         i += 1
     logging.info("3d Data MATCH!")
 
-# Function to interpolate missing data using scipy
+
 def interpolate_data(data, is_3d= True, max_empty=10): ## TODO make max_empty 1/3 of FPS
+    """
+    Interpolates missing data in the given multi-dimensional array using scipy's interp1d function.
+
+    Args:
+        data (ndarray): The input data array with shape (num_persons, num_cameras, num_frames, num_keypoints, _).
+        is_3d (bool, optional): Indicates whether the data is 3D or not. Defaults to True.
+        max_empty (int, optional): The maximum number of consecutive empty frames allowed. Defaults to 10.
+
+    Returns:
+        ndarray: The interpolated data array with the same shape as the input data.
+
+    """
     num_people, num_cameras, num_frames, num_keypoints, _ = data.shape
     for i in range(num_people):
         for j in range(num_cameras):

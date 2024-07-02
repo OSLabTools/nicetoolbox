@@ -10,12 +10,14 @@ import oslab_utils.check_and_exception as check
 
 class VelocityBody(BaseFeature):
     """
-    The Kinematics class is a feature detector that computes the kinematics component.
+    The VelocityBody class is a feature detector that computes the kinematics component.
 
-    The Kinematics feature detector accepts the human_pose component (body_joints) as its 
+    The VelocityBody feature detector accepts the human_pose component (body_joints) as its 
     primary input, which is computed using the human_pose method detector. The kinematics 
     component of this feature detector calculates the Euclidean distance between adjacent 
     frames, essentially determining the velocity of body movement from one frame to the next.
+    
+    Component: kinematics
 
     Attributes:
         components (list): A list containing the name of the component this class is responsible for:

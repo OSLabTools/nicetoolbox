@@ -15,13 +15,6 @@ class BaseFeature(ABC):
     Abstract class to setup and run follow-up computations, called features detectors. Input is 
     always the output of any method detector.
     
-    Args:
-        config (dict): The feature-specific configurations dictionary.
-        io (class): A class instance that handles input and output folders.
-        data (class): A class instance that contains the data.
-        requires_out_folder (bool, optional): Whether the output folder is required. 
-            Defaults to True.
-    
     Attributes:
         input_folders (list): A list of input folders.
         input_files (list): A list of input files.
@@ -30,23 +23,13 @@ class BaseFeature(ABC):
         viz_folder (str): The visualization folder.
         subjects_descr (str): The subjects description.
         config_path (str): The path to the configuration file.
-    
-    Methods:
-        __init__: Initializes the BaseFeature class.
-        get_input: Finds a specific file in a list of files based on a token.
-        __str__: Returns a description of the class instance for printing.
-        compute: Computes a feature based on a detector output.
-        post_compute: Performs post-processing after computation.
-        components: Abstract property that returns the components.
-        algorithm: Abstract property that returns the algorithm.
-        visualization: Abstract method to visualize the output of the method.
     """
 
     def __init__(self, config, io, data, requires_out_folder=True) -> None:
         """
         Sets up the input and output folders based on the provided configurations 
         and handles any necessary file checks. Input folders contain the the results 
-        of the method detectors.
+        of the method detectors. Saves a copy of the configuration file for the feature detector.
 
         Args:
             config (dict): The feature-specific configurations dictionary.
@@ -119,7 +102,7 @@ class BaseFeature(ABC):
 
         Returns:
             str: A string representation of the feature detector, including its components,
-            and the associated algorithm.
+                and the associated algorithm.
         """
         return (f"Instance of component {self.components} \n\t"
                 f"algorithm = {self.algorithm} \n\t "

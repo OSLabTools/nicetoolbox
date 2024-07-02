@@ -6,6 +6,20 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
+    """
+    Visualizes the proximity score for a given data array and saves the plots as images.
+
+    Images are created for each camera. If the number of keypoints is greater than 1, the proximity score is visualized for the center of the selected keypoints.
+    
+    Args:
+        data (numpy.ndarray): The data array containing proximity scores.
+        output_folder (str): The path to the output folder where the images will be saved.
+        keypoint (str or list): The name(s) of the keypoint(s) used for calculating proximity scores.
+        camera_names (list, optional): The names of the cameras. Defaults to None.
+
+    Returns:
+        None
+    """
     for camera_idx in range(data.shape[1]):
         plt.clf()
         plt.figure(figsize=(10, 5))
@@ -23,12 +37,23 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
         camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
         # Save the plot
         plt.savefig(os.path.join(output_folder, f'proximity_score_{keypoint}_{camera_name}.png'), dpi=500)
-    
+
 
 def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
-    """Combine a video frame with the plots for PersonL and PersonR up to the current frame."""
+    """
+    Combines a video frame with line graphs representing proximity scores up to the current frame.
 
-    if len(data)!=1:
+    Args:
+        frame (numpy.ndarray): The video frame to be combined with the line graphs.
+        data (list): The list of data arrays containing proximity scores.
+        current_frame (int): The current frame index.
+        global_min (float): The minimum value for the y-axis of the line graphs.
+        global_max (float): The maximum value for the y-axis of the line graphs.
+
+    Returns:
+        numpy.ndarray: The combined image of the frame and line graphs.
+    """
+    if len(data) != 1:
         logging.error("The data shape is wrong. Data should be given as into a list")
 
     data = data[0]
@@ -53,7 +78,7 @@ def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
     plt.subplots_adjust(bottom=0.20)
 
     leg = plt.legend(loc='upper center', bbox_to_anchor=(1.0, 0.8), facecolor='black')
-    for text in leg.get_texts():
+    for text in leg.get_texts():  
         text.set_color("white")
 
     canvas = FigureCanvas(fig)
@@ -61,7 +86,6 @@ def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
     graph_img = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
     graph_img = graph_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.close(fig)
-
 
     # Resize the graph_img to match the width of the frame
     graph_img = cv2.resize(graph_img, (frame.shape[1], graph_img.shape[0]))

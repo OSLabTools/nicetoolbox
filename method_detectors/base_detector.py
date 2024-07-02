@@ -13,18 +13,36 @@ import oslab_utils.system as system
 
 
 class BaseDetector(ABC):
-    """Class to setup and run existing computer vision research code.
+    """
+    Abstract class to setup and run existing computer vision research code, called method detectors.
+    
+    Attributes:
+        components (list): A list of components associated with the method detector.
+        algorithm (str): The algorithm used for detecting the component.
+        out_folder (str): The output folder.
+        viz_folder (str): The visualization folder.
+        subjects_descr (str): The subjects description.
+        config_path (str): The path to the configuration file.
+        conda_path (str): The path to the conda installation.
+        framework (str): The name of the framework used for the method detector.
+        script_path (str): The path to the script used for the method detector.
+        venv (str): The type of virtual environment used for the method detector.
+        env_name (str): The name of the virtual environment used for the method detector.
+        venv_path (str): The path to the virtual environment used for the method detector.
     """
 
     def __init__(self, config, io, data, requires_out_folder=True) -> None:
-        """InitializeMethod class.
+        """
+        Sets up the input and output folders required for each method based on the 
+        provided configurations. Saves a copy of the configuration file for the method
+        detector.
 
-        Parameters
-        ----------
-        config : dict
-            the method-specific configurations dictionary
-        io: class
-            a class instance that handles in-output folders
+        Args:
+            config (dict): Configuration parameters for the detector.
+            io (IO): An instance of the IO class for input/output operations.
+            data (Data): An instance of the Data class for accessing data.
+            requires_out_folder (bool, optional): Indicates whether an output folder is required. 
+                Defaults to True.
         """
         # log file
         config['log_file'], config['log_level'] = io.get_log_file_level()
@@ -62,12 +80,12 @@ class BaseDetector(ABC):
             self.venv_path = data.get_venv_path(self.framework, self.env_name)
 
     def __str__(self):
-        """ description of the class instance for printing
+        """
+        Returns a description of the method detector for printing.
 
-        Returns
-        -------
-        str
-            all attributes and their values, written in plain text
+        Returns:
+            str: A string representation of the method detector, including its components,
+                and the associated algorithm.
         """
         return f"Instance of component {self.components} \n\t" \
                f"algorithm = {self.algorithm} \n\t" + \
@@ -122,25 +140,65 @@ class BaseDetector(ABC):
             logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
 
     def post_inference(self):
-        """ Post-processing after inference
+        """ 
+        Post-processing after inference.
+        
+        This method is called after the inference step and is used for any post-processing tasks that need to be performed.
         """
         pass
 
     @property
     @abstractmethod
     def components(self):
+        """
+        Abstract property that returns the components of the method detector.
+
+        This property should be implemented in the derived classes to specify the components 
+        that the method detector is associated with. 
+
+        Returns:
+            list: A list of strings representing the components associated with the method detector.
+
+        Raises:
+            NotImplementedError: If the property is not set in the derived classes.
+        """
         raise NotImplementedError
 
     @property
     @abstractmethod
     def algorithm(self):
+        """
+        Abstract property that returns the algorithm of the method detector.
+
+        This property should be implemented in the derived classes to specify the algorithm 
+        that the method detector is associated with. 
+
+        Returns:
+            str: A string representing the algorithm associated with the method detector.
+
+        Raises:
+            NotImplementedError: If the property is not set in the derived classes.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def visualization(self, data):
-        """ Visualize the output of the method, preferably as a video
+        """ 
+        Abstract method to visualize the output of the method, preferably as a video.
 
-        Should save the visualization in the self.viz_folder
+        This method is intended to generate a visual representation of the method detector's 
+        output. The visualization should be saved in the self.viz_folder.
+
+        Args:
+            data (any): The data to be visualized. The type and content of this parameter depend on 
+                the specific implementation of the method detector.
+
+        Returns:
+            None. This method does not return any value. However, it should save the visualization 
+                in the self.viz_folder.
+
+        Raises:
+            NotImplementedError: If this method is not implemented in the derived classes. 
         """
         pass
 
