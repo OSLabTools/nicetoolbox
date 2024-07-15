@@ -1,3 +1,7 @@
+"""
+Utility functions for visualizing motion data (kinematics component).
+"""
+
 import os
 import logging
 import numpy as np

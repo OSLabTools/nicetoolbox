@@ -3,12 +3,18 @@ A template class for Detectors.
 """
 
 import os
-from abc import ABC, abstractmethod
+import sys
 import subprocess
 import logging
+from pathlib import Path
+from abc import ABC, abstractmethod
+
+top_level_dir = Path(__file__).resolve().parents[2]
+sys.path.append(str(top_level_dir))
+
+# internal imports
 from utils.system import detect_os_type
 from utils.config import save_config
-import utils.filehandling as fh
 import utils.system as system
 
 

@@ -2,16 +2,20 @@ import os
 import sys
 import cv2
 import numpy as np
-import re
 import logging
+from pathlib import Path
 
+# Add top-level directory to sys.path depending on repo structure and not cwd
+top_level_dir = Path(__file__).resolve().parents[3]
+sys.path.append(str(top_level_dir)) 
 sys.path.append(os.getcwd())
 import utils.config as cf
-
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xgaze_3cams'))
+
+# internal and third-party imports
+import landmarks as lm
 from gaze_estimator import GazeEstimator
 from xgaze_utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
-import landmarks as lm
 
 
 # TODO: Split into smaller functions: e.g. load_data, run_inference, visualize_gaze_direction, save_results

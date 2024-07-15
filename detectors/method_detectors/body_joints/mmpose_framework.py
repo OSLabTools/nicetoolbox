@@ -1,19 +1,27 @@
 """
-
+Integration of the MMPose framework into the NICE toolbox pipeline.
 """
+
 import os
+import sys
 import numpy as np
 import logging
-import scipy.signal as signal
 import subprocess
+from pathlib import Path
+
+top_level_dir = Path(__file__).resolve().parents[3]
+sys.path.append(str(top_level_dir))
+
+# internal imports
 from detectors.method_detectors.base_detector import BaseDetector
-import detectors.method_detectors.body_joints.utils as utils
 from detectors.method_detectors.body_joints.filters import SGFilter
+import detectors.method_detectors.body_joints.utils as utils
+
 import utils.triangulation as tri
-import utils.filehandling as fh
 import utils.config as cfg
 import utils.check_and_exception as check
-import configs.config_handler as confh
+
+import detectors.configs.config_handler as confh
 
 
 class MMPose(BaseDetector):

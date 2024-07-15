@@ -1,9 +1,8 @@
-Getting Started
-================================================
+# Getting Started
 
 For a quick start, [Getting Started](#getting-started) explains how to run the NICE Toolbox on the videos of a single camera, without multi-view captures. Multi-view requires calibrated cameras - this is covered in [Advanced Usage](#advanced-usage).
 
-### Contents  <!-- omit in toc -->
+## Contents  <!-- omit in toc -->
 
 - [Getting Started](#getting-started)
   - [1. Prepare the dataset](#1-prepare-the-dataset)
@@ -11,15 +10,12 @@ For a quick start, [Getting Started](#getting-started) explains how to run the N
   - [2. Create your machine-specific config](#2-create-your-machine-specific-config)
   - [3. Define the experiment to run](#3-define-the-experiment-to-run)
   - [4. Run the code](#4-run-the-code)
-- [Advanced Usage](#advanced-usage)
-  - [Understanding the Config Files](#understanding-the-config-files)
-  - [Choosing Detectors](#choosing-detectors)
-  - [Defining Output Files](#defining-output-files)
-  - [Calibration File](#calibration-file)
-  - [Multi-View Dataset](#multi-view-dataset)
-
-
-
+  - [Advanced Usage](#advanced-usage)
+    - [Understanding the Config Files](#understanding-the-config-files)
+    - [Choosing Detectors](#choosing-detectors)
+    - [Defining Output Files](#defining-output-files)
+    - [Calibration File](#calibration-file)
+    - [Multi-View Dataset](#multi-view-dataset)
 
 ## 1. Prepare the dataset
 
@@ -47,10 +43,9 @@ fps = 30                  # frame-rate of video data (int, optional)
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Each subject is represented by its index in subjects_descr, where indexing starts with 0.
 - `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
 
-
 The code expects the data folder to have a pre-defined folder structure:
 `dataset_name/session_name/sequence_name(optional)/camera_name(optional)`
-Supported data formats are `.mp4`, `.avi`, `.png`, `.jpg`, `.jpeg`. Examples for valid folder structures are: 
+Supported data formats are `.mp4`, `.avi`, `.png`, `.jpg`, `.jpeg`. Examples for valid folder structures are:
 
 ```
 dataset_name/
@@ -69,13 +64,13 @@ dataset_name/
 ...
 ```
 
-Note: the `calibration_file` (ehich also belongs to the dataset) does not have a specific location, as its filepath is defined in `./detectors/configs/dataset_properties.toml`, see above. 
-
+Note: the `calibration_file` (ehich also belongs to the dataset) does not have a specific location, as its filepath is defined in `./detectors/configs/dataset_properties.toml`, see above.
 
 ### Example  <!-- omit in toc -->
 
 Assume we have a dataset that contains video sequences from multiple sessions and capture days. The setup of the data is as follows: a single camera records two people sitting next to each other and talking. The camera captures at a framerate of 30 frames per second and the dataset provides frames that are indexed starting from 0.
 Further suppose that the dataset directory the following folder structure:
+
 ```
 test_dataset/
 ├── session_1/
@@ -89,6 +84,7 @@ test_dataset/
 ├── ...
 └── calibration.npz
 ```
+
 To add this dataset to the NICE Toolbox, we need to add the following to `./detectors/configs/dataset_properties.toml`:
 
 ```toml
@@ -111,14 +107,16 @@ fps = 30                                          # The camera captures at a fra
 
 Try our calibration converter GUI!
 
-```
-# On linux:
+On linux:
+
+```bash
 cd isa-tool/
 source envs/isa2/bin/activate
 python utils/calibration_gui/calibration_converter.py
 ```
 
 In case your dataset has a single camera only (no multi-view setup), feel free to leave the rotation matrix (usually `R` or `rvec`) and the translation matrix (commonly denoted with `t` or `tcev`) to the defaults of identity:
+
 ```
 "rotation_matrix" or "R":       [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
 "vector" or "rvec":             [[0.0], [0.0], [0.0]]
@@ -130,11 +128,9 @@ Similarly, if you do not know the distortion coefficients, set them to `0.0`:
 "distortions" or "d":           [0.0, 0.0, 0.0, 0.0, 0.0]
 ```
 
-
-
 ## 2. Create your machine-specific config
 
-Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`. 
+Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
 These machine specific configuration file should contain the following dictionary:
 
 ```toml
@@ -148,14 +144,10 @@ output_folder_path = ''
 conda_path = ''
 ```
 
-
 ### Placeholders instead of absolute paths  <!-- omit in toc -->
 
 Note: It is best practice not to use absolute paths in any other files in the ?ISA-Tool? Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code. 
 Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
-
-
-
 
 ## 3. Define the experiment to run
 
@@ -183,6 +175,7 @@ experiment_name = "<yyyymmdd>"  # optionally, change the name of the experiment,
 out_folder = "<pis_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
 ...
 ```
+
 - `visualize` enables saving of intermediate results per detector. Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
 - `run.dataset_name.components` lists all the components that should run.
 - `run.dataset_name.videos` is a list of dictionaries. Each dictionary defines one video snipped to run. Possibility to extend as needed.
@@ -191,32 +184,27 @@ out_folder = "<pis_folder_path>/experiments/<experiment_name>"  # define where t
 
 More entries of the `./detectors/configs/run_file.toml` are discussed in ?SECTION???.
 
-
-
 ## 4. Run the code
 
 To run the code, open a terminal or the API of your choice and do:
 
-```
+```bash
 cd /path/to/isa-tool/
 source ./env/bin/activate
 
 python detectors/main.py --run_config detectors/configs/run_file.toml --detectors_config detectors/configs/detectors_config.toml --machine_specifics machine_specific_paths.toml
 ```
 
-The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders). 
+The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders).
 To watch the experiment run, check the log file `.../out_folder/ISA-Tool.log`.
 
 Congratulations! You got your first experiment running :)
 
-
-
-Advanced Usage
-=================================================
+## Advanced Usage
 
 There are many more options to individualize and specify the experiment runs. We will cover them in the following.
 
-## Understanding the Config Files 
+### Understanding the Config Files
 
 - `./detectors/configs/run_file.toml`
 - `./detectors/configs/dataset_properties.toml`
@@ -225,7 +213,7 @@ There are many more options to individualize and specify the experiment runs. We
 - `./detectors/configs/predictions_mapping.toml`
 
 
-## Choosing Detectors
+### Choosing Detectors
 
 Each component can be assigned to and run with multiple different algorithms. This is defined in `./detectors/configs/run_file.toml`:
 
@@ -241,8 +229,7 @@ proximity = ['body_distance']
 leaning = ['body_angle']
 ```
 
-
-## Defining Output Files
+### Defining Output Files
 
 There is one part of the `./detectors/configs/run_file.toml` we did not explain in detail yet, the `[io]`. This part of the config specifies where any out put of the NICE Toolbox gets saved.
 
@@ -275,8 +262,7 @@ conda_path = "<conda_path>"
 - `code_folder` ():
 - `conda_path` ():
 
-
-## Calibration File
+### Calibration File
 
 This is an extension of the dataset directory. Calibration parameters for all cameras are provided as a nested dictionary, its file path is saved in `./detectors/configs/dataset_properties.toml` under `path_to_calibrations` as `.json` or `.npz`.
 
@@ -321,37 +307,37 @@ This is an extension of the dataset directory. Calibration parameters for all ca
 
 - `image_size` (list): the width and the height of the image that the camera captures. The list format is [image_width, image_height]
 
-- `intrinsics_matrix` (list-of-lists): This matrix, also known as the camera matrix, contains intrinsic parameters of the camera. 
-The list format is: `[[fx,s,cx],[0,fy,cy],[0,0,1]]`. It is structured as follows: 
-  - `fx/fy`: focal length (if fx/fy is not specified, f=fx, fy=fx*ar) 
+- `intrinsics_matrix` (list-of-lists): This matrix, also known as the camera matrix, contains intrinsic parameters of the camera.
+The list format is: `[[fx,s,cx],[0,fy,cy],[0,0,1]]`. It is structured as follows:
+  - `fx/fy`: focal length (if fx/fy is not specified, f=fx, fy=fx*ar)
   - `s`: skewness, mostly 0
   - `cx/cy`: principle points
 
-- `distortions` (list): The distortion coefficients which correct for lens distortion in the captured images. These coefficients follow the OpenCV model and usually include [k1, k2, p1, p2, k3] 
+- `distortions` (list): The distortion coefficients which correct for lens distortion in the captured images. These coefficients follow the OpenCV model and usually include [k1, k2, p1, p2, k3]
   - `k1, k2, k3` : Radial distortion coefficients.
   - `p1, p2`: Tangential distortion coefficients.
 
-- `rvec` (list): rotation vector - `cv2.rodrigues(rotation_matrix)` - a 3-element vector, a compact representation of rotation matrix. 
+- `rvec` (list): rotation vector - `cv2.rodrigues(rotation_matrix)` - a 3-element vector, a compact representation of rotation matrix.
 Its direction represents the axis of rotation and whose magnitude represents the angle of rotation in radians. also known as axis-angle representation.
 
 - `rotation_matrix` (list-of-lists): 3x3 rotation matrix `R` - `cv2.rodrigues(rvec)`
 
-- `translation` (list-of-lists): the translation `t` of the camera from the origin of the coordinate system. 
+- `translation` (list-of-lists): the translation `t` of the camera from the origin of the coordinate system.
 
 - `extrinsics_matrix` (list-of-lists): This is a 3x4 matrix that combines the rotation matrix and translation vector to describe the camera's position and orientation in space. It is optained by stacking rotation matrix with tranlsation vector: `[R|t]`.
 
-- `projection_matrix` (list-of-lists): 4x4 matrix that projects 3D points in the camera's coordinate system into 2D points in the image coordinate system. 
+- `projection_matrix` (list-of-lists): 4x4 matrix that projects 3D points in the camera's coordinate system into 2D points in the image coordinate system.
 It is obtained by multiplying the intrinsic matrix by the extrinsic matrix: `np.matmul(intrinsic_matrix, extrinsic_matrix)`.
 
-The extrinsic parameters represent a rigid transformation from 3-D world coordinate system to the 3-D camera’s coordinate system. 
+The extrinsic parameters represent a rigid transformation from 3-D world coordinate system to the 3-D camera’s coordinate system.
 The intrinsic parameters represent a projective transformation from the 3-D camera’s coordinates into the 2-D image coordinates.
 For more information, see a great introduction from [MathWorks](https://de.mathworks.com/help/vision/ug/camera-calibration.html).
-
 
 ### Calibration Mapping -- OUTDATED? <!-- omit in toc -->
 
 The ??ISA-Tool?? allows for adding a mapping between, e.g., session_IDs and calibration file paths. The idea is that during a data capture the camera system is recalibrated occasionally.
 //TODO In which file to add this mapping? Is this still up-to-date?
+
 ```json
 {
     "session_1": "calibration_1",
@@ -361,9 +347,7 @@ The ??ISA-Tool?? allows for adding a mapping between, e.g., session_IDs and cali
 }
 ```
 
-
-
-## Multi-View Dataset
+### Multi-View Dataset
 
 We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. After adding the calibration file as described in the previous section [Calibration file](#calibration-file).
 To run on multi-view camera input, we now need to review the dataset config `./detectors/configs/dataset_properties.toml`. Make sure to update the following keys for your dataset:
@@ -376,6 +360,5 @@ subjects_descr = []       # define an identifier for the subjects in each video 
 cam_sees_subjects = {}    # define which camera view records which subject (dict: (cam_name, list of int))
 path_to_calibrations = "" # file path with placeholders for the calibration files (str, optional)
 ```
+
 Now, running the experiment will use all cameras provided. Check the log-file to see it working.
-
-

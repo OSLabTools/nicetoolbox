@@ -1,3 +1,7 @@
+"""
+Utility functions for visualizing proximity scores.
+"""
+
 import os
 import logging
 import numpy as np

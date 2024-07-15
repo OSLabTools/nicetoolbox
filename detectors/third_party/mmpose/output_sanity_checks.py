@@ -3,9 +3,10 @@ import os
 import numpy as np
 import random
 import logging
-import detectors.human_pose.output_parser as parser
-import utils.filehandling as fh
 
+# internal imports
+import detectors.method_detectors.body_joints.output_parser as parser
+import utils.filehandling as fh
 
 
 def compare_data_values_with_saved_json(predictions_folder,intermediate_results_folder, camera_list, person_threshold):

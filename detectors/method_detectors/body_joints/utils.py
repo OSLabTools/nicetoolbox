@@ -1,3 +1,7 @@
+"""
+Pose estimation utilities. # TODO: Move to a more appropriate location?
+"""
+
 import sys
 import os
 import numpy as np
@@ -5,6 +9,12 @@ import random
 import cv2
 import logging
 import scipy.interpolate as interp
+from pathlib import Path
+
+top_level_dir = Path(__file__).resolve().parents[3]
+sys.path.append(str(top_level_dir))
+
+# internal imports
 from detectors.method_detectors.body_joints.output_parser import MMPoseParser, HDF5Parser
 import utils.logging_utils as log_ut
 

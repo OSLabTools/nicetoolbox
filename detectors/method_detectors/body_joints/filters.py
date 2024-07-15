@@ -1,3 +1,6 @@
+"""
+Savitzy-Golay filter for smoothing pose data.
+"""
 import numpy as np
 import scipy.signal as signal
 from abc import ABC, abstractmethod

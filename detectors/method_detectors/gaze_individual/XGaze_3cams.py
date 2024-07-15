@@ -1,6 +1,7 @@
 """
-    This code is by XuCong
-    taken from /ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
+XGaze3cams method detector class.
+
+This code is by XuCong taken from /ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
 """
 
 import os

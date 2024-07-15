@@ -1,6 +1,6 @@
 import os
 
-import configs.config_handler as confh
+import detectors.configs.config_handler as confh
 
 
 remote_datasets_folder_path = "/ps/project/datasets/oslab"

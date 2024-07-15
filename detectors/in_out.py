@@ -3,9 +3,10 @@ IO module for the NICE toolbox.
 """
 
 import os
-import glob
 import copy
 import logging
+
+# internal imports
 import utils.check_and_exception as exc
 
 

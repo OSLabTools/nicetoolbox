@@ -1,3 +1,7 @@
+"""
+Utility functions for visualizing leaning angles and calculating the angle between three points.
+"""
+
 import os
 import logging
 import numpy as np

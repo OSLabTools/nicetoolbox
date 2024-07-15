@@ -1,15 +1,13 @@
 """
-    A class for data handling
+Data module handling the data loading and processing of the give datasets.
 """
 
 import os
 import glob
-import json
 import logging
-import cv2
 import numpy as np
-import shutil
 
+# internal imports
 import utils.system as oslab_sys
 import utils.video as vid
 import utils.check_and_exception as exc

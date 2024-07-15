@@ -3,9 +3,8 @@
 __pycache__
 **/__pycache__
 
-docs/build/
-docs/html/
-docs/latex/
+docs/_build/
+docs/_autosummary/
 docs/release_notes/*.pdf
 
 builds/

@@ -1,13 +1,23 @@
+"""
+Run the MMPose inference algorithm and save the results as npz files.
+"""
+
 import os
 import sys
 import numpy as np
 import logging
 from mmpose.apis import MMPoseInferencer
+from pathlib import Path
 
+# Add top-level directory to sys.path depending on repo structure and not cwd
+top_level_dir = Path(__file__).resolve().parents[3]
+sys.path.append(str(top_level_dir)) 
 sys.path.append(os.getcwd())
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mmpose'))
+
+# internal imports
 import utils.config as cf
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mmpose'))
 
 #import output_sanity_checks as sc
 #import tests.test_data as test_data

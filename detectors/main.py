@@ -1,26 +1,25 @@
 """
-Main script for the NICE toolbox inference pipeline. 
-It imports various modules and classes to run method detectors and feature detectors on datasets.
+Run the NICE toolbox inference pipeline. The main script imports various modules and 
+classes to run method detectors and feature detectors on the provided datasets.
 """
 
-import copy
 import logging
 import os
 import sys
-import glob
 import time
 import argparse
-import plotly.graph_objects as go
-import matplotlib.pyplot as plt
 
 sys.path.append(os.getcwd())
-from in_out import IO
-from data import Data
+
+# internal imports
 import utils.logging_utils as log_ut
-import configs.config_handler as confh
+import detectors.configs.config_handler as confh
+
+from detectors.in_out import IO
+from detectors.data import Data
 
 from detectors.method_detectors.gaze_individual.XGaze_3cams import XGaze3cams
-from detectors.method_detectors.body_joints.mmpose import HRNetw48, VitPose
+from detectors.method_detectors.body_joints.mmpose_framework import HRNetw48, VitPose
 from detectors.feature_detectors.kinematics.velocity_body import VelocityBody
 from detectors.feature_detectors.proximity.body_distance import BodyDistance
 from detectors.feature_detectors.leaning.body_angle import BodyAngle

@@ -1,9 +1,20 @@
+"""
+Velocity Body feature detector class for kinematics of the body.
+"""
+
 import os
+import sys
 import numpy as np
 import logging
+from pathlib import Path
+
+top_level_dir = Path(__file__).resolve().parents[3]
+sys.path.append(str(top_level_dir))
+
+# internal imports
 from detectors.feature_detectors.base_feature import BaseFeature
 import detectors.feature_detectors.kinematics.utils as kinematics_utils
-import utils.filehandling as fh
+
 import utils.config as cfg
 import utils.check_and_exception as check
 

@@ -1,9 +1,11 @@
+"""
+# TODO: Still used? (MMPoseParser and HDF5Parser classes to parse algorithm output)
+"""
+
 import os
 import numpy as np
 from abc import ABC, abstractmethod
 import utils.filehandling as fh
-
-# TODO: file still used?
 
 KEYPOINT_MAPPING_PATH = "./configs/predictions_mapping.yml"
 

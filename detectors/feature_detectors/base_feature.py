@@ -3,9 +3,16 @@ A template class for Detectors.
 """
 
 import os
+import sys
 import logging
 import data
 from abc import ABC, abstractmethod
+from pathlib import Path
+
+top_level_dir = Path(__file__).resolve().parents[2]
+sys.path.append(str(top_level_dir))
+
+# internal imports
 from utils.config import save_config
 import utils.logging_utils as log_ut
 
