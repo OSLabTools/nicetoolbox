@@ -3,32 +3,30 @@
 We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 22, using CUDA 11.8.
 
 <!-- TOC -->
-* [Installation](#installation)
-* [Contents  <!-- omit in toc -->](#contents----omit-in-toc---)
-  * [1. Clone the repositories](#1-clone-the-repositories)
-  * [2. Download assets](#2-download-assets)
-  * [2. Prerequisites](#2-prerequisites)
-    * [a. Python 3.10](#a-python-310)
-    * [b. Conda](#b-conda)
-    * [c. Cuda 11.8](#c-cuda-118-)
-    * [d. FFmpeg](#d-ffmpeg)
-  * [3. Install the necessary libraries](#3-install-the-necessary-libraries-)
-    * [**How-to:**](#how-to)
-      * [3.1. In Linux:](#31-in-linux)
-      * [3.2. In Windows:](#32-in-windows-)
+- [Installation](#installation)
+  - [1. Clone the repositories](#1-clone-the-repositories)
+  - [2. Download assets](#2-download-assets)
+  - [2. Prerequisites](#2-prerequisites)
+    - [a. Python 3.10](#a-python-310)
+    - [b. Conda](#b-conda)
+    - [c. Cuda 11.8](#c-cuda-118)
+    - [d. FFmpeg](#d-ffmpeg)
+  - [3. Install the necessary libraries](#3-install-the-necessary-libraries)
+    - [**How-to:**](#how-to)
+      - [3.1. In Linux:](#31-in-linux)
+      - [3.2. In Windows:](#32-in-windows)
 <!-- TOC -->
 
 ## 1. Clone the repositories
-Clone the Isa-tool and oslab_utils repositories and navigate into Isa-tool:
+Clone the isa-tool repository and navigate into the isa-tool folder:
 #TODO: UPDATE RENAME OF THE REPOSITORIES
 ```
 git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git 
-git clone https://gitlab.tuebingen.mpg.de/cschmitt/oslab_utils.git 
 cd isa-tool
 ```
 ## 2. Download assets
 Assets are uploaded to [keeper](https://keeper.mpdl.mpg.de/d/a9f91e7e60e84da69fc0/).
-Please download the folder put it in `isa-tool/assets`.
+Please download the folder put it in `isa-tool/detectors/assets`.
 
 ## 2. Prerequisites
 
@@ -69,13 +67,12 @@ your system. Installation via Conda is mandatory because of openmmlab installati
 However, if you wish to use different versions of Python and CUDA, you can modify the corresponding 
 lines in the installation files.
 
-The installation script (installation/install_all): 
+The installation script (`installation/install_all`): 
 1. Setup isa-tool environment
 2. Setup conda environment for Openmmlab (pose detector)
 3. Setup venv environment for Gaze Detector
 
-'install_all.sh' is an installation script for Linux and 'install_all.bat' is an installation script
-for Windows. 
+`install_all.sh` is the installation script for Linux and `install_all.bat` the installation script for Windows. 
 
 
 ### **How-to:**
@@ -83,9 +80,9 @@ for Windows.
 Open a terminal and navigate to main directory where isa-tool then type the followings into terminal
 
 ```
-cd isa-tool/installation
-chmod +x installation_all.sh # to add executable permission to the script
-./install_all.sh # to install all necessary libraries
+cd isa-tool/installation/
+chmod +x installation_all.sh  # to add executable permission to the script
+./install_all.sh              # to install all necessary libraries
 ```
 
 #### 3.2. In Windows:  

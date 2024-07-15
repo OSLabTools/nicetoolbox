@@ -1,0 +1,55 @@
+# This config supports using placeholders.
+# options are <git_hash> <commit_message> <me> <today> <yyyymmdd> <time> <pwd>
+# and all keys from your local 'machine_specific_paths.toml' as well as 'io'
+# and top layer dictionary entries
+
+# logging, consistency checks, and error handling depend on the chosen 'run_mode':
+# "experiment": for full runs, minimum logging with maximum consistency checks, and all errors interrupt
+# "development": for implementing and debugging: maximum logging, medium consistency checks, and only severe errors are thrown
+# "production": all logs but no consistency checks and swallow exceptions
+run_mode = "development"  # "experiment", "development", or "production"
+git_hash = "<git_hash>"
+visualize = true
+
+[component_algorithm_mapping]
+# each component can be assigned to / run with multiple different algorithms
+gaze_individual = ['xgaze_3cams']
+gaze_interaction = ['gaze_distance']
+body_joints = ['hrnetw48', 'vitpose']
+hand_joints = ['hrnetw48']
+face_landmarks = ['hrnetw48']
+kinematics = ['velocity_body']
+proximity = ['body_distance']
+leaning = ['body_angle']
+
+[run]
+# the inPut video is processed into 'frames', 'segments' and 'snippets'
+# - video_length (int) is in frames, relevant for all
+# - video_start (int) is in frames, relevant for all
+# - video_skip_frames (bool) is relevant for frames only
+# - annotation_interval (int) in seconds, length of segments
+
+[run.communication_multiview]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
+videos = [
+   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99, video_skip_frames = false, annotation_interval = 2.0},
+]
+
+[io]
+experiment_name = "<yyyymmdd>"
+out_folder = "<output_folder_path>/experiments/<experiment_name>"
+out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
+dataset_config = "detectors/configs/dataset_properties.toml"
+assets = "<code_folder>/detectors/assets"
+
+process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
+data_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
+tmp_folder = "<output_folder_path>/experiments/tmp"
+detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
+detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
+detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
+detector_tmp_folder = "<tmp_folder>/<component_name>/<algorithm_name>"
+detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
+detector_final_result_folder = "<out_sub_folder>/<component_name>"
+code_folder = "<pwd>"
+conda_path = "<conda_path>"

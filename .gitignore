@@ -6,17 +6,16 @@ __pycache__
 docs/build/
 docs/html/
 docs/latex/
+docs/release_notes/*.pdf
 
 builds/
-
-assets/
-assets/
 output/
+
+**/assets/
 **/envs/
 **/env/
 **/*.pth
 
-doc/release_notes/*.pdf
 **/*.bib
 **/*.aux
 **/*.fls
@@ -24,7 +23,5 @@ doc/release_notes/*.pdf
 **/*.fdb_latexmk
 **/*.synctex.gz
 
-configs/machine_specific_paths.toml
-
-third_party/emoca/emoca/assets
-third_party/emoca/emoca/image_output
+machine_specific_paths.toml
+detectors/configs/tests_*

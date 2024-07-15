@@ -17,15 +17,15 @@ deactivate
 echo "ISA-Tool Environment setup completed successfully."
 
 ###GAZE DETECTOR INSTALLATION###
-echo "Setting up Python virtual environment for third_party/xgaze_3cams..."
-python3.10 -m venv third_party/xgaze_3cams/env
-source third_party/xgaze_3cams/env/bin/activate
+echo "Setting up Python virtual environment for detectors/third_party/xgaze_3cams..."
+python3.10 -m venv detectors/third_party/xgaze_3cams/env
+source detectors/third_party/xgaze_3cams/env/bin/activate
 #install correct torch
 pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 
 
-echo "Installing requirements for third_party/xgaze_3cams..."
-python -m pip install -r third_party/xgaze_3cams/requirements.txt
+echo "Installing requirements for detectors/third_party/xgaze_3cams..."
+python -m pip install -r detectors/third_party/xgaze_3cams/requirements.txt
 deactivate
 echo "XGaze Environment setup completed successfully."
 
@@ -51,7 +51,7 @@ mim install "mmcv>=2.0.1"
 mim install "mmdet>=3.1.0"
 mim install "mmpretrain>=1.0.0rc8"  # required for Vitpose
 echo "Navigate Inside to mmpose directory"
-cd third_party/mmpose/mmpose
+cd detectors/third_party/mmpose/mmpose
 echo "Installing requirements from MMPose..."
 pip install -r requirements.txt
 pip install .

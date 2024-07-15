@@ -1,12 +1,13 @@
 Getting Started
 ================================================
 
-For a quick start, [Getting Started](#getting-started) explains how to run the ??isa-tool?? on the videos of a single camera, without multi-view captures. Multi-view requires calibrated cameras and is covered in [Advanced Usage](#advanced-usage).
+For a quick start, [Getting Started](#getting-started) explains how to run the NICE Toolbox on the videos of a single camera, without multi-view captures. Multi-view requires calibrated cameras - this is covered in [Advanced Usage](#advanced-usage).
 
 ### Contents  <!-- omit in toc -->
 
 - [Getting Started](#getting-started)
   - [1. Prepare the dataset](#1-prepare-the-dataset)
+    - [Create a calibration file](#create-a-calibration-file)
   - [2. Create your machine-specific config](#2-create-your-machine-specific-config)
   - [3. Define the experiment to run](#3-define-the-experiment-to-run)
   - [4. Run the code](#4-run-the-code)
@@ -22,7 +23,7 @@ For a quick start, [Getting Started](#getting-started) explains how to run the ?
 
 ## 1. Prepare the dataset
 
-The ISA-Tool supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./configs/dataset_properties.toml`. To add a new dataset, edit the toml file by creating a new dictionary within:
+The NICE Toolbox supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./detectors/configs/dataset_properties.toml`. To add a new dataset, edit the toml file by creating a new dictionary within:
 
 ```toml
 [<dataset_name>]
@@ -47,47 +48,93 @@ fps = 30                  # frame-rate of video data (int, optional)
 - `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
 
 
+The code expects the data folder to have a pre-defined folder structure:
+`dataset_name/session_name/sequence_name(optional)/camera_name(optional)`
+Supported data formats are `.mp4`, `.avi`, `.png`, `.jpg`, `.jpeg`. Examples for valid folder structures are: 
+
+```
+dataset_name/
+├── session_name/
+│   ├── sequence_name/
+│   │   ├── camera_name/
+│   │   │   ├── image1.png
+│   │   │   ├── image2.png
+...
+```
+
+```
+dataset_name/
+├── session_name/
+│   ├── camera_name.mp4
+...
+```
+
+Note: the `calibration_file` (ehich also belongs to the dataset) does not have a specific location, as its filepath is defined in `./detectors/configs/dataset_properties.toml`, see above. 
+
+
 ### Example  <!-- omit in toc -->
 
 Assume we have a dataset that contains video sequences from multiple sessions and capture days. The setup of the data is as follows: a single camera records two people sitting next to each other and talking. The camera captures at a framerate of 30 frames per second and the dataset provides frames that are indexed starting from 0.
 Further suppose that the dataset directory the following folder structure:
 ```
-dataset_name/
+test_dataset/
 ├── session_1/
 │   ├── sequence_1/
 │   │   ├── view_1/
-│   │   ├── annotation_file
-│   │   ├── calibration_file
 │   │   └── ...
 │   ├── sequence_2/
 │   └── ...
 ├── session_2/
 │   ├── ...
-└── ...
+├── ...
+└── calibration.npz
 ```
-To add this dataset to the ?ISA-Tool?, we need to add the following to `./configs/dataset_properties.toml`:
+To add this dataset to the NICE Toolbox, we need to add the following to `./detectors/configs/dataset_properties.toml`:
 
 ```toml
-[test_dataset]
-session_IDs = ["session_1", "session_2", ...]
-sequence_IDs = ['sequence_1', 'sequence_1', ...]
-cam_front = 'view_1'
-cam_top = ''
+[test_dataset]                                    # folder name of the dataset
+session_IDs = ["session_1", "session_2", ...]     # folder name of the sessions
+sequence_IDs = ['sequence_1', 'sequence_1', ...]  # folder name of the sequences
+cam_front = 'view_1'                              # a single camera recording from the front
+cam_top = ''                                      # no other cameras, leave empty strings
 cam_face1 = ''
 cam_face2 = ''
-subjects_descr = ["personL", "personR"]  # there are 2 people visible in the video
-cam_sees_subjects = {view_1 = [0, 1]}  # order of the subjects named in 'subjects_descr'
-path_to_calibrations = "<datasets_folder_path>/test_dataset/<session_ID>/calibration.npz"
+subjects_descr = ["personL", "personR"]           # there are 2 people visible in the video
+cam_sees_subjects = {view_1 = [0, 1]}             # order of the subjects named in 'subjects_descr'
+path_to_calibrations = "<datasets_folder_path>/test_dataset/calibration.npz"
 data_input_folder = "<datasets_folder_path>/test_dataset/<session_ID>/<sequence_ID>/"
-start_frame_index = 0
-fps = 30
+start_frame_index = 0                             # the dataset provides frames that are indexed starting from 0
+fps = 30                                          # The camera captures at a framerate of 30 frames per second
+```
+
+### Create a calibration file
+
+Try our calibration converter GUI!
+
+```
+# On linux:
+cd isa-tool/
+source envs/isa2/bin/activate
+python utils/calibration_gui/calibration_converter.py
+```
+
+In case your dataset has a single camera only (no multi-view setup), feel free to leave the rotation matrix (usually `R` or `rvec`) and the translation matrix (commonly denoted with `t` or `tcev`) to the defaults of identity:
+```
+"rotation_matrix" or "R":       [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+"vector" or "rvec":             [[0.0], [0.0], [0.0]]
+"translation", "t", or "tvec":  [0.0, 0.0, 0.0]
+```
+
+Similarly, if you do not know the distortion coefficients, set them to `0.0`:
+```
+"distortions" or "d":           [0.0, 0.0, 0.0, 0.0, 0.0]
 ```
 
 
 
 ## 2. Create your machine-specific config
 
-Create a file `./configs/machine_specific_paths.toml`, you can also copy and rename the file `./configs/machine_specific_paths_template.toml`. 
+Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`. 
 These machine specific configuration file should contain the following dictionary:
 
 ```toml
@@ -105,14 +152,14 @@ conda_path = ''
 ### Placeholders instead of absolute paths  <!-- omit in toc -->
 
 Note: It is best practice not to use absolute paths in any other files in the ?ISA-Tool? Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code. 
-Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
+Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
 
 
 
 
 ## 3. Define the experiment to run
 
-The main config file to run a specific experiment is `./configs/run_file.toml`. For a first run of an experiment, there are only a few things to adjust:
+The main config file to run a specific experiment is `./detectors/configs/run_file.toml`. For a first run of an experiment, there are only a few things to adjust:
 
 ```toml
 visualize = false  # save image/video visualizations of detectors
@@ -140,9 +187,9 @@ out_folder = "<pis_folder_path>/experiments/<experiment_name>"  # define where t
 - `run.dataset_name.components` lists all the components that should run.
 - `run.dataset_name.videos` is a list of dictionaries. Each dictionary defines one video snipped to run. Possibility to extend as needed.
 - `io.experiment_name` defaults to the current date (in format YYYMMDD). `<yyyymmdd>` is a placeholder that gets filled automatically.
-- `io.out_folder` is the experiment output directory. It supports placeholders for all keys in `io`, all keys in `./configs/machine_specific_paths.toml`, as well as the options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
+- `io.out_folder` is the experiment output directory. It supports placeholders for all keys in `io`, all keys in `./machine_specific_paths.toml`, as well as the options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
 
-More entries of the `./configs/run_file.toml` are discussed in ?SECTION???.
+More entries of the `./detectors/configs/run_file.toml` are discussed in ?SECTION???.
 
 
 
@@ -154,10 +201,10 @@ To run the code, open a terminal or the API of your choice and do:
 cd /path/to/isa-tool/
 source ./env/bin/activate
 
-python main.py --run_config configs/run_file.toml --detectors_config configs/detectors_config.toml --machine_specifics configs/machine_specific_paths.toml
+python detectors/main.py --run_config detectors/configs/run_file.toml --detectors_config detectors/configs/detectors_config.toml --machine_specifics machine_specific_paths.toml
 ```
 
-The outputs will be saved in the folder defined in `./configs/run_file.toml` under `io.out_folder` (with filled-in placeholders). 
+The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders). 
 To watch the experiment run, check the log file `.../out_folder/ISA-Tool.log`.
 
 Congratulations! You got your first experiment running :)
@@ -171,16 +218,16 @@ There are many more options to individualize and specify the experiment runs. We
 
 ## Understanding the Config Files 
 
-- `./configs/run_file.toml`
-- `./configs/dataset_properties.toml`
-- `./configs/machine_specific_paths.toml`
-- `./configs/detectors_config.toml`
-- `./configs/predictions_mapping.toml`
+- `./detectors/configs/run_file.toml`
+- `./detectors/configs/dataset_properties.toml`
+- `./machine_specific_paths.toml`
+- `./detectors/configs/detectors_config.toml`
+- `./detectors/configs/predictions_mapping.toml`
 
 
 ## Choosing Detectors
 
-Each component can be assigned to and run with multiple different algorithms. This is defined in `./configs/run_file.toml`:
+Each component can be assigned to and run with multiple different algorithms. This is defined in `./detectors/configs/run_file.toml`:
 
 ```toml
 [component_algorithm_mapping]
@@ -197,15 +244,15 @@ leaning = ['body_angle']
 
 ## Defining Output Files
 
-There is one part of the `./configs/run_file.toml` we did not explain in detail yet, the `[io]`. This part of the config specifies where any out put of the ?ISA-Tool?? gets saved.
+There is one part of the `./detectors/configs/run_file.toml` we did not explain in detail yet, the `[io]`. This part of the config specifies where any out put of the NICE Toolbox gets saved.
 
 ```toml
 [io]
 experiment_name = "<yyyymmdd>"
 out_folder = "<pis_folder_path>/experiments/<experiment_name>"
 out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
-dataset_config = "configs/dataset_properties.toml"
-assets = "<code_folder>/assets"
+dataset_config = "detectors/configs/dataset_properties.toml"
+assets = "<code_folder>/detectors/assets"
 
 process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
 data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
@@ -231,8 +278,7 @@ conda_path = "<conda_path>"
 
 ## Calibration File
 
-This is an extension of the dataset directory.
-Calibration parameters for all cameras are provided as a nested dictionary, its file path is saved in `./configs/dataset_properties.toml` under `path_to_calibrations` as `.json` or `.npz`.
+This is an extension of the dataset directory. Calibration parameters for all cameras are provided as a nested dictionary, its file path is saved in `./detectors/configs/dataset_properties.toml` under `path_to_calibrations` as `.json` or `.npz`.
 
 **Example:**
 
@@ -302,7 +348,7 @@ The intrinsic parameters represent a projective transformation from the 3-D came
 For more information, see a great introduction from [MathWorks](https://de.mathworks.com/help/vision/ug/camera-calibration.html).
 
 
-### Calibration Mapping  <!-- omit in toc -->
+### Calibration Mapping -- OUTDATED? <!-- omit in toc -->
 
 The ??ISA-Tool?? allows for adding a mapping between, e.g., session_IDs and calibration file paths. The idea is that during a data capture the camera system is recalibrated occasionally.
 //TODO In which file to add this mapping? Is this still up-to-date?
@@ -320,7 +366,7 @@ The ??ISA-Tool?? allows for adding a mapping between, e.g., session_IDs and cali
 ## Multi-View Dataset
 
 We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. After adding the calibration file as described in the previous section [Calibration file](#calibration-file).
-To run on multi-view camera input, we now need to review the dataset config `./configs/dataset_properties.toml`. Make sure to update the following keys for your dataset:
+To run on multi-view camera input, we now need to review the dataset config `./detectors/configs/dataset_properties.toml`. Make sure to update the following keys for your dataset:
 
 ```toml
 cam_top = ''              # folder name of a frontal camera view from top (str, optional)

@@ -1,17 +1,18 @@
-# Project Overview 
+# NICE Toolbox
 
-#TODO: UPDATE THE TOOL/Project NAME
+**Non-Verbal Interpersonal Communication Exploration Toolbox**
+
 #TODO: Perhaps add a paragraph about non-verbal communication
 
 
-XXX is an ongoing project aims to develop a comprehensive and roboust framework for exploring nonverbal human communication, which enables the investigation of nonverbal cues and observable (behavioral) signs that reflect emotional and cognitive state of the individual, as well as the interpersonal dynamics between people in relatively fixed positions(?).
+NICE Toolbox is an ongoing project aims to develop a comprehensive and roboust framework for exploring nonverbal human communication, which enables the investigation of nonverbal cues and observable (behavioral) signs that reflect emotional and cognitive state of the individual, as well as the interpersonal dynamics between people in relatively fixed positions(?).
 
 The toolbox incorporate a set of deep-learning- and rule-based algorithms to track and identify potentially important non-verbal visual components/aspects. The initial release of the toolbox includes whole-body pose estimation and gaze tracking for each individual. It also encompasses forward and backward leaning detection, movement dynamics calculation (kinematics), gaze interaction monitoring (mutual-gaze), and measurement of physical body distance between dyads using video data from a single camera or calibrated multi-camera setups. For more details see [Components Overview](#components-overview) Section. 
 
-The toolbox includes a visualizer module, which allows users to visualize and investigate the algorithm's outputs. For more details see XXX-Visual ...
+The toolbox includes a visualizer module, which allows users to visualize and investigate the algorithm's outputs. For more details see NICE-Visual ...
 
 
-#### Next Steps for Project XXX:
+#### Next Steps for the NICE Toolbox:
 
 1. Extention of toolbox with new components. 
 
@@ -81,7 +82,7 @@ The algorithm requires the intrinsics parameters of the used cameras. For more d
 - **Proximity**: Measures the physical distance between dyad to to provide more insights about the communication dynamics. 'body-distance' algorithm calcultes the proximity between dyad based on the position of user-defined joint/s (controlled by [algorithms.body_distance]`used_keypoints` parameter in detectors_config.toml).  With calibrated stereo cameras, algorithm's measurement is based 3D position of the joint/s. The algorithm measures the proximity in 2D camera-views as well. For 2D scenarios, the user can define used_keypoints based on custom settings to improve accuracy and tailor the algorithm to specific needs.
 
 
-## Workflow of XXX Toolbox 
+## Workflow of the NICE Toolbox 
 #TODO: add workflow overview image
 
 ## Installation

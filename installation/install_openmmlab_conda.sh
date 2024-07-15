@@ -23,7 +23,7 @@ mim install "mmcv>=2.0.1"
 mim install "mmdet>=3.1.0"
 mim install "mmpretrain>=1.0.0rc8"  # required for Vitpose
 echo "Navigate Inside to mmpose directory"
-cd ../third_party/mmpose/mmpose
+cd ../detectors/third_party/mmpose/mmpose
 echo "Installing requirements from MMPose..."
 pip install -r requirements.txt
 pip install -e .
