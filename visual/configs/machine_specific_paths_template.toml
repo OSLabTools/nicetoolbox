@@ -1,0 +1,9 @@
+# This is a template file, do not add your paths here.
+# Create a local copy called 'machine_specific_paths.toml' and edit that one.
+# The 'machine_specific_paths.toml' is added to the '.gitignore'.
+#
+
+experiment_input_path = 'F:/pis'
+datasets_folder_path = 'F:/pis/datasets'
+
+# TODO: add a assertion for the case that the machine_specific_paths toml is empty

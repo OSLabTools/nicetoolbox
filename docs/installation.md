@@ -93,3 +93,19 @@ Open a cmd and navigate to main directory where isa-tool then type the following
 cd isa-tool/installation
 install_all.bat
 ```
+
+#### 4. Additional Notes: 
+Please check rerun privacy policies. 
+
+https://www.rerun.io/privacy
+
+It will be used in local mode. Still, the application will be collecting the user information. To disable these analytics: 
+
+1. activate envs/ under isa-tool, then run: 
+```
+rerun analytics config ##to see current configuration
+rerun analytics disable 
+rerun analytics config ## to check if the change is applied
+
+```
+For more information: https://github.com/rerun-io/rerun/blob/main/crates/re_analytics/README.md

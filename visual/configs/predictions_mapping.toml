@@ -1,0 +1,177 @@
+[human_pose]
+[human_pose.coco_wholebody]
+[human_pose.coco_wholebody.keypoints_index]
+[human_pose.coco_wholebody.keypoints_index.body]
+"nose" = 0
+"left_eye" =  1
+"right_eye" = 2
+"left_ear" = 3
+"right_ear" = 4
+"left_shoulder" = 5
+"right_shoulder" = 6
+"left_elbow" = 7
+"right_elbow" = 8
+"left_wrist" = 9
+"right_wrist" = 10
+"left_hip" = 11
+"right_hip" = 12
+"left_knee" = 13
+"right_knee" = 14
+"left_ankle" = 15
+"right_ankle" = 16
+"left_bigtoe" =  17
+"left_smalltoe" = 18
+"left_heel" = 19
+"right_bigtoe" = 20
+"right_smalltoe" = 21
+"right_heel" = 22
+[human_pose.coco_wholebody.keypoints_index.face]
+"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39] #exclusivelast element, i.e. 40
+"right_eyebrow" = [40,41,42,43,44]
+"left_eyebrow" = [45,46,47,48,49]
+"nose_up" = [50,51,52,53]
+"nose_down" = [54,55,56,57,58]
+"right_eye" = [59,60,61,62,63,64]
+"left_eye" = [65,66,67,68,69,70]
+"mouth" = [71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90]
+[human_pose.coco_wholebody.keypoints_index.hand]
+"left_hand" = [91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111]
+"right_hand" = [112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132]
+[human_pose.bodypart_index]
+"head" = [0,1,2,3,4]
+"upper_body" = [5,6,7,8,9,10]  # Indices of keypoints belonging to the upper body
+"lower_body" = [11,12,13,14,15,16]
+
+[human_pose.bone_dict]
+"eye_distance" = ["left_eye", "right_eye"]
+"left_upper_arm" = ["left_shoulder", "left_elbow"]
+"left_lower_arm" = ["left_elbow", "left_wrist"]
+"right_upper_arm"= ["right_shoulder", "right_elbow"]
+"right_lower_arm"= ["right_elbow", "right_wrist"]
+"left_upper_leg" = ["left_hip", "left_knee"]
+"left_lower_leg" = ["left_knee", "left_ankle"]
+"right_upper_leg" = ["right_hip", "right_knee"]
+"right_lower_leg"= ["right_knee", "right_ankle"]
+
+[human_pose.joint_diameter_size] #in meter
+"left_eye" = 0.025
+"right_eye" = 0.025
+"nose" = 0.040
+"left_ear" = 0.035
+"right_ear" = 0.035
+"left_shoulder" = 0.070
+"right_shoulder" = 0.070
+"left_elbow" = 0.065
+"right_elbow" = 0.065
+"left_wrist" =  0.045
+"right_wrist" = 0.045
+"left_hip" = 0.075
+"right_hip" = 0.075
+"left_knee" = 0.080
+"right_knee" = 0.080
+"left_ankle" = 0.055
+"right_ankle" = 0.055
+#"left_bigtoe" = 0.030
+#"right_bigtoe" = 0.030
+#"left_heel" = 0.040
+#"right_heel" = 0.040
+
+
+# MPI-INF-3DHP Keypoints:
+# all_joint_names = [
+#     'spine3', 'spine4', 'spine2', 'spine', 'pelvis',
+#     'neck', 'head', 'head_top', 'left_clavicle', 'left_shoulder', 'left_elbow',
+#     'left_wrist', 'left_hand',  'right_clavicle', 'right_shoulder', 'right_elbow', 'right_wrist',
+#     'right_hand', 'left_hip', 'left_knee', 'left_ankle', 'left_foot', 'left_toe',
+#     'right_hip' , 'right_knee', 'right_ankle', 'right_foot', 'right_toe']
+
+
+[human_pose.human36m.comparible]
+# Only a subset of keypoints that corresponds better to the coco body keypoints
+# Renamed to align with coco body keypoint naming
+# 'neck' = 5
+# 'head' = 6
+
+'left_shoulder' = 9
+'left_elbow' = 10
+'left_wrist' = 11
+
+'right_shoulder' = 14
+'right_elbow' = 15
+'right_wrist' = 16
+
+'left_hip' = 18
+'left_knee' = 19
+'right_hip' = 23
+'right_knee' = 24
+
+'left_ankle' = 20
+'left_bigtoe' = 22
+'right_ankle' = 25
+'right_bigtoe' = 27
+
+[human_pose.human36m.original]
+'spine3' = 0
+'spine4' = 1
+'spine2' = 2
+'spine' = 3
+'pelvis'= 4
+'neck' = 5
+'head' = 6
+'head_top' = 7
+'left_clavicle' = 8
+'left_shoulder' = 9
+'left_elbow' = 10
+'left_wrist' = 11
+'left_hand' = 12
+'right_clavicle' = 13
+'right_shoulder' = 14
+'right_elbow' = 15
+'right_wrist' = 16
+'right_hand' = 17
+'left_hip' = 18
+'left_knee' = 19
+'left_ankle' = 20
+'left_foot' = 21
+'left_toe' = 22
+'right_hip' = 23
+'right_knee' = 24
+'right_ankle' = 25
+'right_foot' = 26
+'right_toe' = 27
+
+[human_pose.coco_wholebody.connections]
+'body_joints' = [
+    ["left_wrist", "left_elbow", "left_shoulder", "left_hip", "left_knee", "left_ankle", "left_bigtoe"],
+    ["left_heel", "left_ankle", "left_smalltoe"],
+    ["right_wrist", "right_elbow", "right_shoulder", "right_hip", "right_knee", "right_ankle", "right_bigtoe"],
+    ["right_heel", "right_ankle", "right_smalltoe"],
+    ["left_shoulder", "right_shoulder"],
+    ["left_hip", "right_hip"]]
+
+'hand_joints' = [[0,2],[2,5],[5,9],[9,13],[13,17],[0,17],[2,4],[5,8],[9,12],[13,16],[17,20],
+    [21,23],[23,26],[26,30],[30,34],[34,38],[21,38],[23,25],[26, 29],[30,33],[34,37],[38,41]]
+'face_landmarks' = []
+
+[human_pose.human36m.connections]
+'body_joints' = [
+    ["head_top", "head", "neck", "spine4", "spine3", "spine2"],
+    ["left_wrist", "left_elbow", "left_shoulder", "left_hip", "left_knee", "left_ankle", "left_toe"],
+    ["right_wrist", "right_elbow", "right_shoulder", "right_hip", "right_knee", "right_ankle", "right_toe"],
+    ["left_shoulder", "right_shoulder"],
+    ["left_hip", "right_hip"]]
+
+'hand_joints' = []
+'face_landmarks' = []
+
+
+
+
+
+
+
+
+
+
+
+
