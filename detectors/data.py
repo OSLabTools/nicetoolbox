@@ -65,7 +65,7 @@ class Data:
 
         # collect all required file/folder paths
         self.data_folder = io.get_data_folder()
-        self.tmp_folder = io.get_output_folder(self.name, 'tmp')
+        self.tmp_folder = io.get_output_folder('tmp')
         self.code_folder = config['code_folder']
         self.data_input_folder = io.get_input_folder()
 
@@ -443,7 +443,7 @@ class Data:
         video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
 
         for video_file in video_files:
-            camera_name_indices = [name in video_file.lower() 
+            camera_name_indices = [name.lower() in video_file.lower() 
                                    for name in list(self.all_camera_names)]
             if not any(camera_name_indices):
                 continue
@@ -543,8 +543,16 @@ class Data:
             input_frame_paths = sorted(glob.glob(os.path.join(frames_input_folder, f"*.{input_format}")))
             
             # guess for number of characters in filename base
-            n_filename_chars = len(os.path.basename(input_frame_paths[0]).split('.')[0])
-            filename_template = f"%0{n_filename_chars}d.{input_format}"
+            base_name = '.'.join(os.path.basename(input_frame_paths[0]).split('.')[:-1])
+            chars = ''.join([b for b in base_name if not b.isdigit()])
+            if base_name[0].isdigit() and base_name[:-len(chars)].isdigit():
+                # in case the filename starts with a digit and all letters are in the end
+                filename_template = f"%0{len(base_name[:-len(chars)])}d{chars}.{input_format}"
+            elif not base_name[0].isdigit() and base_name[len(chars):].isdigit():
+                # in case the filename starts with a letter and all digits are in the end
+                filename_template = f"{chars}%0{len(base_name[len(chars):])}d.{input_format}"
+            else:
+                logging.error(f"Can not detect filename pattern from file basename {base_name}.")
 
             # split video into frames
             data_folder = os.path.join(self.data_folder, camera_name)

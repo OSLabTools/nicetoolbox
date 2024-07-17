@@ -184,6 +184,9 @@ class Configuration:
     def get_all_dataset_names(self):
         return list(self.dataset_config.keys())
 
+    def save_csv(self):
+        return self.run_config['save_csv']
+
     def checker(self):
 
         # check USER INPUT

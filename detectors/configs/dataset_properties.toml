@@ -38,8 +38,8 @@ cam_face1 = 'view_left'
 cam_face2 = 'view_right'
 subjects_descr = ["person_left", "person_right"]
 cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]} 
-path_to_calibrations = "<datasets_folder_path>/communication_multiview/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/communication_multiview/<session_ID>/"
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/communication_multiview/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/communication_multiview/<session_ID>/"
 start_frame_index = 0
 fps = 30
 
@@ -52,8 +52,36 @@ cam_face1 = ''
 cam_face2 = ''
 subjects_descr = ["Senya", "Johannes"]  
 cam_sees_subjects = {video = [0, 1]} 
-path_to_calibrations = "<datasets_folder_path>/communication_mono/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/communication_mono/<session_ID>/"
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/communication_mono/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/communication_mono/<session_ID>/"
 start_frame_index = 0
 fps = 30
+
+[dc_resolution015_fps10_videos]
+session_IDs = ['frames']
+sequence_IDs = ['']
+cam_front = "8700A24"
+cam_top = "8700A23"
+cam_face1 = ""
+cam_face2 = ""
+subjects_descr = ["p1", "p2"]  
+cam_sees_subjects = {8700A21 = [0], 8700A22 = [1], 8700A23 = [0, 1], 8700A24 = [0, 1]} 
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/dc_resolution015_fps10/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/dc_resolution015_fps10/<session_ID>"
+start_frame_index = 0
+fps = 10
+
+[dc_resolution015_fps10_frames]
+session_IDs = ['frames']
+sequence_IDs = ['']
+cam_front = "8700A24"
+cam_top = "8700A23"
+cam_face1 = "8700A21"
+cam_face2 = "8700A22"
+subjects_descr = ["p1", "p2"]  
+cam_sees_subjects = {8700A21 = [0], 8700A22 = [1], 8700A23 = [0, 1], 8700A24 = [0, 1]} 
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/dc_resolution015_fps10/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/dc_resolution015_fps10/<session_ID>/<camera_name>"
+start_frame_index = 0
+fps = 10
 

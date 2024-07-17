@@ -9,7 +9,7 @@
 # "production": all logs but no consistency checks and swallow exceptions
 run_mode = "development"  # "experiment", "development", or "production"
 git_hash = "<git_hash>"
-visualize = true
+save_csv = true
 
 [component_algorithm_mapping]
 # each component can be assigned to / run with multiple different algorithms
@@ -51,5 +51,6 @@ detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorith
 detector_tmp_folder = "<tmp_folder>/<component_name>/<algorithm_name>"
 detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
 detector_final_result_folder = "<out_sub_folder>/<component_name>"
+csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"

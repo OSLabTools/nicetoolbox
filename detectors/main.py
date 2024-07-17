@@ -14,9 +14,9 @@ sys.path.append(os.getcwd())
 # internal imports
 import utils.logging_utils as log_ut
 import detectors.configs.config_handler as confh
-
 from detectors.in_out import IO
 from detectors.data import Data
+import detectors.result_conversion.to_csv as csv
 
 from detectors.method_detectors.gaze_individual.XGaze_3cams import XGaze3cams
 from detectors.method_detectors.body_joints.mmpose_framework import HRNetw48, VitPose
@@ -73,7 +73,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
     # CONFIG II
     # check config consistency
     #config_handler.check_config_consistency(
-    #        io.get_output_folder('config', 'output'))
+    #        io.get_output_folder('output'))
 
     # check and save experiment configs
     # config_handler.checker()
@@ -120,6 +120,13 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
             if feature_config['visualize']:
                 feature.visualization(feature_data)
             logging.info(f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n")
+
+    # convert results
+    logging.info(f"Detectors finished.\n{'-' * 80}")
+    if config_handler.save_csv():
+        logging.info(f"START converting results to CSV-files.")
+        csv.results_to_csv(io.get_output_folder('main'), io.get_output_folder('csv'))
+        logging.info(f"FINISHED converting results to CSV-files.")
 
 
 if __name__ == '__main__':

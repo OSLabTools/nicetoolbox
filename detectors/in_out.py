@@ -106,6 +106,7 @@ class IO:
         self.data_input_folder = config['data_input_folder']
         self.calibration_file = config['path_to_calibrations']
         self.conda_path = config['conda_path']
+        self.csv_folder = config['csv_out_folder']
 
         self.algorithm_names = algorithm_names
         self.detector_out_folder = config['detector_out_folder']
@@ -168,32 +169,33 @@ class IO:
         """
         return self.conda_path
 
-    def get_output_folder(self, name, token):
+    def get_output_folder(self, token):
         """
         Returns the output folder based on the given name and token.
 
         Args:
-            name (str): The name of the folder ('data' or 'config').
-            token (str): The token specifying the type of output folder ('tmp' or 'output').
+            token (str): The token specifying the type of output folder 
+            ('tmp', 'output', 'main', or 'csv').
 
         Returns:
             str: The path to the output folder.
 
         Raises:
-            NotImplementedError: If the name is not 'data' or 'config'.
+            NotImplementedError: If the token is not 'tmp', 'output', 'main', or 'csv'.
         """
-        if name == 'data':
-            if token == 'tmp':
-                return self.tmp_folder
-
-        elif name == 'config':
-            if token == 'output':
-                return self.out_sub_folder
-
+        if token == 'tmp':
+            return self.tmp_folder
+        if token == 'output':
+            return self.out_sub_folder
+        if token == 'main':
+            return self.out_folder
+        if token == 'csv':
+            os.makedirs(self.csv_folder, exist_ok=True)
+            return self.csv_folder
         else:
             raise NotImplementedError(
-                f"IO return output folder: Name '{name}' unknown! "
-                f"Supported are 'data', 'config'.")
+                f"IO return output folder: Token '{token}' unknown! "
+                f"Supported are 'tmp', 'output', 'main', 'csv'.")
 
     def get_detector_output_folder(self, component, algorithm, token):
         """

@@ -1,6 +1,7 @@
 run_mode = ["experiment", "development", "production"]
 git_hash = 'type:str'
 visualize = 'type:bool'
+save_csv = 'type:bool'
 
 [component_algorithm_mapping]
 gaze_individual = 'keys:configs/detectors_config.toml:algorithms'
@@ -70,6 +71,7 @@ detector_additional_output_folder = 'tbd'
 detector_tmp_folder = 'tbd'
 detector_run_config_path = 'tbd'
 detector_final_result_folder = 'tbd'
+csv_out_folder = 'folder:base'
 code_folder = 'folder:full'
 conda_path = 'folder:full'
 log_level = 'type:int'

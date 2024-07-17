@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 import matrix_utils as mut
 import initialization as init
 import make_forms as mf
-import io as io
+import calib_io as io
 from constants import px, py
 
 
@@ -30,7 +30,7 @@ def save(entries):
     matrix_dict = mut.nested_entries2matrix(entries['data'])
 
     # calculate all representations
-    matrix_dict = ut.fill_nested_matrix_dict(matrix_dict)
+    matrix_dict = mut.fill_nested_matrix_dict(matrix_dict)
     if matrix_dict is None:
         entries['message'].set('Could not calculate all representations.')
         return

@@ -172,8 +172,11 @@ def load_calibration_file(frame, entries):
     elif calibration_file.endswith('.json'):
         calibration_dict = fh.load_json_file(calibration_file)
         load_type = 'json'
+    elif calibration_file.endswith('.toml'):
+        calibration_dict = fh.load_toml(calibration_file)
+        load_type = 'toml'
     else:
-        entries['message'].set(f"Calibration file '{calibration_file}' is not a.npz file and currently not supported")
+        entries['message'].set(f"Calibration file is not a.npz, .json, or .toml file and currently not supported: '{calibration_file}'")
         return 
     
     # delete current matrix variables as the folder structure of sessions and cameras might change

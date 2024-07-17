@@ -54,7 +54,8 @@ def main(config, debug=False):
     n_subjects = len(config['subjects_descr'])
     if len(np.array(config['frames_list']).shape) == 2:
         assert np.array(config['frames_list']).shape[1] == n_cams, \
-            "config['frames_list' has unknown shape!"
+            "Number of cameras do not match! Please check the camera's definitions " \
+            "in detectors/configs/datset_properties.toml."
         frames_list = np.array(config['frames_list']).flatten()
     else:
         frames_list = config['frames_list']
