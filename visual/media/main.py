@@ -1,5 +1,8 @@
 import os
+import sys
 import cv2
+
+sys.path.append(os.getcwd())
 
 # internal imports
 import visual.configs.config_handler as vis_cfg
@@ -11,13 +14,14 @@ from visual.media.components import GazeIndividualComponent, BodyJointsComponent
 
 def main():
     ############# CONFIGURATION - IO #############
-    visualizer_config_file = "../configs/visualizer_config.toml"
-    machine_specifics_file = "../configs/machine_specific_paths.toml"
+    visualizer_config_file = "visual/configs/visualizer_config.toml"
+    machine_specifics_file = "machine_specific_paths.toml"
     config_handler = vis_cfg.Configuration(visualizer_config_file, machine_specifics_file)
 
     visualizer_config = config_handler.get_visualizer_config()
     experiment_detector_config = config_handler.get_experiment_config(type="detector")
     experiment_dataset_config = config_handler.get_experiment_config(type="dataset")
+    visualizer_config = config_handler.localize(visualizer_config, fill_io=False, fill_data=True, dataset_name=visualizer_config['media']['dataset_name'])
 
     # get experiment properties
     dataset_name = visualizer_config['media']['dataset_name']

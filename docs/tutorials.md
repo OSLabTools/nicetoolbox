@@ -59,3 +59,36 @@ The outputs will be saved in the folder defined in `./detectors/configs/run_file
 To watch the experiment run, check the log file `.../out_folder/ISA-Tool.log`. Expect the tool to take about 6min for this experiment.
 
 
+**5. Visualize the results**
+
+There are multiple options to visualize the results of NICE toolbox. 
+For an interactive experience, we recommend to use our `visual` code which is running `rerun`.
+
+TO BE UPDATED First, create another `machine_specific_paths.toml` file in `/isa-tool/visual/configs/machine_specific_paths.toml`.
+
+Second, open `/isa-tool/visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder` and `media.video_name`:
+```toml
+[io]
+dataset_folder = "<datasets_folder_path>"
+nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" 
+experiment_folder = "<output_folder_path>/experiments/..."  # add the path to your output folder (the one containing the file 'ISA-Tool.log')
+experiment_video_folder = "<experiment_folder>/<video_name>" 
+experiment_video_component = "<experiment_folder>/<video_name>/<component_name>"
+
+[media]
+mode = 'isa-tool'
+dataset_name = 'dyadic_communication'
+video_name = 'dyadic_communication_PIS_ID_000_s500_l10' # the folder name that got created inside your experiment_folder
+multi_view = true
+```
+
+And last, from inside the top level of your code folder, start the visualizer by running
+```
+source ./env/bin/activate
+python visual/media/main.py
+```
+
+It will open a window which looks similar to this: 
+![Visualization example in Rerun](../docs/graphics/rerun_example.png)
+
+

@@ -30,14 +30,14 @@ class Configuration:
         self.experiment_detector_config = loaded_experiment_config['detector_config']
         self.dataset_properties = loaded_experiment_config['dataset_config']
 
-    def localize(self, config, fill_io=True, fill_data=False):
+    def localize(self, config, fill_io=True, fill_data=False, dataset_name=None):
         # fill placeholders
         config = confh.config_fill_auto(config)
         config = confh.config_fill_placeholders(config, self.machine_specific_config)
         if fill_io:
             config = confh.config_fill_placeholders(config, self.get_io_config())
         if fill_data:
-            config = confh.config_fill_placeholders(config, self.dataset_properties)
+            config = confh.config_fill_placeholders(config, self.dataset_properties[dataset_name])
         config = confh.config_fill_placeholders(config, config)
         return config
 

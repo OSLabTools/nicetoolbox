@@ -68,6 +68,11 @@ def get_cam_para_studio(content, cam):
     cam_distor = np.hstack(cam_distor)
     cam_rotation = content[cam]['rotation_matrix'] if 'rotation_matrix' in content[cam].keys() else None
     cam_extrinsic = content[cam]['extrinsics_matrix'] if 'extrinsics_matrix' in content[cam].keys() else None
+    if isinstance(cam_matrix, np.ndarray):
+        cam_matrix = cam_matrix.tolist()
+        cam_distor = cam_distor.tolist()
+        cam_rotation = cam_rotation.tolist()
+        cam_extrinsic = cam_extrinsic.tolist()
     return cam_matrix, cam_distor, cam_rotation, cam_extrinsic
 
 def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):

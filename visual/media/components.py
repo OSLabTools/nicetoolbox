@@ -6,7 +6,7 @@ import rerun as rr
 import utils.visual_utils as vis_ut
 import utils.config as confh
 
-PREDICTIONS_MAPPING_FILE = "../configs/predictions_mapping.toml"
+PREDICTIONS_MAPPING_FILE = "visual/configs/predictions_mapping.toml"
 PREDICTIONS_MAPPING = confh.load_config(PREDICTIONS_MAPPING_FILE)
 
 class Component:
