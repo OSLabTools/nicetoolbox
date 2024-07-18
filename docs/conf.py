@@ -35,8 +35,12 @@ extensions = [
     # 'sphinx_autodoc_typehints', # Automatically document param types (less noise in class signature)
 ]
 
+autodoc_mock_imports = [
+    "mmpose.apis", "mmpose", "data", 
+    "torch", "torchvision", "face_alignment"
+    ] # fix for failing imports using sphinx.ext.autodoc
+
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
-autodoc_mock_imports = ["mmpose.apis", "mmpose", "data", "torchvision"] # fix for failing imports using sphinx.ext.autodoc
 autoclass_content = "both"  # Add __init__ doc (ie. params) to class summaries
 html_show_sourcelink = False  # Remove 'view source code' from top of page (for html, not python)
 autodoc_inherit_docstrings = True  # If no docstring, inherit from base class

@@ -30,45 +30,47 @@ def compare_data_values_with_saved_json(predictions_folder,intermediate_results_
     asserts if there is a dismatch
 
     """
-    logging.info("CHECKING saved 2d data...")
+    pass # TODO: Rewrite using npz.
 
-    i =0
-    while i < 5:
-        for camera_name in camera_list:
-            camera_folder = predictions_folder[camera_name]
-            filelist = sorted(os.listdir(camera_folder))
-            # Randomly select a filename
-            random_filename = random.choice(filelist)
-            random_filename_path = os.path.join(camera_folder, random_filename)
-            # Find the index of the randomly selected filename
-            index_of_random_filename = filelist.index(random_filename)
-            # get the name of hdf5 file
-            hdf5_file = [f for f in sorted(os.listdir(intermediate_results_folder)) if camera_name in f][0]
-            mmpose_parser = parser.MMPoseParser("coco_wholebody")  # TODO get framework name
-            number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path)
+    # logging.info("CHECKING saved 2d data...")
 
-            # find the keypoint location in original json
-            for person in ["personL", "personR"]:
-                random_keypoint_index = random.randint(0, number_of_keypoints-1)
-                xy_json = mmpose_parser.get_keypoint_location(
-                    random_filename_path, random_keypoint_index,person,person_threshold
-                )
-                #find the keypoint location from hdf5 file
-                hdf5_parser = parser.HDF5Parser("coco_wholebody")
-                xy_data = hdf5_parser.get_keypoint_location(
-                    input_file =os.path.join(intermediate_results_folder, hdf5_file),
-                    frame_index= index_of_random_filename,
-                    keypoint_index = random_keypoint_index,
-                    person = person)
+    # i =0
+    # while i < 5:
+    #     for camera_name in camera_list:
+    #         camera_folder = predictions_folder[camera_name]
+    #         filelist = sorted(os.listdir(camera_folder))
+    #         # Randomly select a filename
+    #         random_filename = random.choice(filelist)
+    #         random_filename_path = os.path.join(camera_folder, random_filename)
+    #         # Find the index of the randomly selected filename
+    #         index_of_random_filename = filelist.index(random_filename)
+    #         # get the name of hdf5 file
+    #         hdf5_file = [f for f in sorted(os.listdir(intermediate_results_folder)) if camera_name in f][0]
+    #         mmpose_parser = parser.MMPoseParser("coco_wholebody")  # TODO get framework name
+    #         number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path)
 
-                # Compare the data at the random index between JSON and HDF5
-                fh.assert_and_log(np.allclose(xy_json, xy_data, atol=1e5), "Data MISMATCH!")
+    #         # find the keypoint location in original json
+    #         for person in ["personL", "personR"]:
+    #             random_keypoint_index = random.randint(0, number_of_keypoints-1)
+    #             xy_json = mmpose_parser.get_keypoint_location(
+    #                 random_filename_path, random_keypoint_index,person,person_threshold
+    #             )
+    #             #find the keypoint location from hdf5 file
+    #             hdf5_parser = parser.HDF5Parser("coco_wholebody")
+    #             xy_data = hdf5_parser.get_keypoint_location(
+    #                 input_file =os.path.join(intermediate_results_folder, hdf5_file),
+    #                 frame_index= index_of_random_filename,
+    #                 keypoint_index = random_keypoint_index,
+    #                 person = person)
 
-                filename_in_data = fh.get_attribute_by_index(index_of_random_filename,
-                                                                              os.path.join(intermediate_results_folder,
-                                                                                           hdf5_file), person)
-                # Compare the data at the random index between JSON and HDF5
-                fh.assert_and_log(os.path.basename(filename_in_data).split('.')[0] == random_filename.split('.')[0], "Filenames MISMATCH!")
-        i += 1
-    logging.info("2d Data MATCH!")
-    logging.info("Filenames MATCH!")
+    #             # Compare the data at the random index between JSON and HDF5
+    #             fh.assert_and_log(np.allclose(xy_json, xy_data, atol=1e5), "Data MISMATCH!")
+
+    #             filename_in_data = fh.get_attribute_by_index(index_of_random_filename,
+    #                                                                           os.path.join(intermediate_results_folder,
+    #                                                                                        hdf5_file), person)
+    #             # Compare the data at the random index between JSON and HDF5
+    #             fh.assert_and_log(os.path.basename(filename_in_data).split('.')[0] == random_filename.split('.')[0], "Filenames MISMATCH!")
+    #     i += 1
+    # logging.info("2d Data MATCH!")
+    # logging.info("Filenames MATCH!")

@@ -15,7 +15,7 @@ top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 
 # internal imports
-from detectors.method_detectors.body_joints.output_parser import MMPoseParser, HDF5Parser
+from detectors.method_detectors.body_joints.output_parser import MMPoseParser # , HDF5Parser
 import utils.logging_utils as log_ut
 
 
@@ -35,65 +35,67 @@ def compare_saved3d_data_values_with_triangulation_through_json(prediction_folde
     Returns:
         Asserts if there is a mismatch
     """
-    # Todo: add to the log
-    print("CHECKING saved 3d data & triangulation...")
-    i = 0
-    while i < 5:
-        camera1_path = prediction_folders[camera_names[0]]
-        camera2_path=prediction_folders[camera_names[1]]
-        filelist_cam1 = sorted(os.listdir(camera1_path))
-        # Randomly select a filename
-        random_filename_cam1 = random.choice(filelist_cam1)
-        # get file from each camera
-        random_filename_path_cam1 = os.path.join(camera1_path, random_filename_cam1)
-        random_filename_path_cam2 = os.path.join(camera2_path, random_filename_cam1.replace(f"{camera_names[0]}", f"{camera_names[1]}"))
-        # Find the index of the randomly selected filename
-        index_of_random_filename = filelist_cam1.index(random_filename_cam1)
-        # get the name of hdf5 file
-        hdf5_file = [f for f in sorted(os.listdir(results_folder)) if "3d" in f][0]
-        mmpose_parser = MMPoseParser("coco_wholebody")  # TODO get framework name
-        number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path_cam1)
-        # find the keypoint location in original json
-        for person in ["personL", "personR"]: # ToDO hardcoded
-            random_keypoint_index = random.randint(0, number_of_keypoints-1)
-            xy_json_cam1 = mmpose_parser.get_keypoint_location(
-                random_filename_path_cam1, random_keypoint_index, person, person_threshold
-            )
+    pass # TODO: Rewrite using npz output.
 
-            xy_json_cam2 = mmpose_parser.get_keypoint_location(
-                random_filename_path_cam2, random_keypoint_index, person, person_threshold
-            )
-            # find the keypoint location from hdf5 file
-            hdf5_parser = HDF5Parser("coco_wholebody")
-            xyz_data = hdf5_parser.get_keypoint_location(
-                input_file=os.path.join(results_folder, hdf5_file),
-                frame_index=index_of_random_filename,
-                keypoint_index=random_keypoint_index,
-                person=person, xyz = True)
+    # # Todo: add to the log
+    # print("CHECKING saved 3d data & triangulation...")
+    # i = 0
+    # while i < 5:
+    #     camera1_path = prediction_folders[camera_names[0]]
+    #     camera2_path=prediction_folders[camera_names[1]]
+    #     filelist_cam1 = sorted(os.listdir(camera1_path))
+    #     # Randomly select a filename
+    #     random_filename_cam1 = random.choice(filelist_cam1)
+    #     # get file from each camera
+    #     random_filename_path_cam1 = os.path.join(camera1_path, random_filename_cam1)
+    #     random_filename_path_cam2 = os.path.join(camera2_path, random_filename_cam1.replace(f"{camera_names[0]}", f"{camera_names[1]}"))
+    #     # Find the index of the randomly selected filename
+    #     index_of_random_filename = filelist_cam1.index(random_filename_cam1)
+    #     # get the name of hdf5 file
+    #     hdf5_file = [f for f in sorted(os.listdir(results_folder)) if "3d" in f][0]
+    #     mmpose_parser = MMPoseParser("coco_wholebody")  # TODO get framework name
+    #     number_of_keypoints = mmpose_parser.get_number_of_keypoints(random_filename_path_cam1)
+    #     # find the keypoint location in original json
+    #     for person in ["personL", "personR"]: # ToDO hardcoded
+    #         random_keypoint_index = random.randint(0, number_of_keypoints-1)
+    #         xy_json_cam1 = mmpose_parser.get_keypoint_location(
+    #             random_filename_path_cam1, random_keypoint_index, person, person_threshold
+    #         )
 
-            # undistort data
-            cam1_undistorted = cv2.undistortPoints(np.array(xy_json_cam1),
-                                         np.array(calibration_params[camera_names[0]]["intrinsic_matrix"]),
-                                         np.array(calibration_params[camera_names[0]]["distortions"]),
-                                        P=np.array(calibration_params[camera_names[0]]["intrinsic_matrix"]))
-            cam2_undistorted = cv2.undistortPoints(np.array(xy_json_cam2),
-                                         np.array(calibration_params[camera_names[1]]["intrinsic_matrix"]),
-                                         np.array(calibration_params[camera_names[1]]["distortions"]),
-                                         P=np.array(calibration_params[camera_names[1]]["intrinsic_matrix"]))
+    #         xy_json_cam2 = mmpose_parser.get_keypoint_location(
+    #             random_filename_path_cam2, random_keypoint_index, person, person_threshold
+    #         )
+    #         # find the keypoint location from hdf5 file
+    #         hdf5_parser = HDF5Parser("coco_wholebody")
+    #         xyz_data = hdf5_parser.get_keypoint_location(
+    #             input_file=os.path.join(results_folder, hdf5_file),
+    #             frame_index=index_of_random_filename,
+    #             keypoint_index=random_keypoint_index,
+    #             person=person, xyz = True)
 
-            # triangulate data
-            d3_homogeneous = cv2.triangulatePoints(
-                np.array(calibration_params[camera_names[0]]["projection_matrix"]),
-                np.array(calibration_params[camera_names[1]]["projection_matrix"]),
-                np.squeeze(cam1_undistorted),
-                np.squeeze(cam2_undistorted))
+    #         # undistort data
+    #         cam1_undistorted = cv2.undistortPoints(np.array(xy_json_cam1),
+    #                                      np.array(calibration_params[camera_names[0]]["intrinsic_matrix"]),
+    #                                      np.array(calibration_params[camera_names[0]]["distortions"]),
+    #                                     P=np.array(calibration_params[camera_names[0]]["intrinsic_matrix"]))
+    #         cam2_undistorted = cv2.undistortPoints(np.array(xy_json_cam2),
+    #                                      np.array(calibration_params[camera_names[1]]["intrinsic_matrix"]),
+    #                                      np.array(calibration_params[camera_names[1]]["distortions"]),
+    #                                      P=np.array(calibration_params[camera_names[1]]["intrinsic_matrix"]))
 
-            d3_euclidean = d3_homogeneous / d3_homogeneous[3]
-            xyz_cal = np.squeeze(d3_euclidean[:3])
-            # Compare the data at the random index between JSON and HDF5
-            log_ut.assert_and_log(np.allclose(xyz_data, xyz_cal, atol=1e5), "Data MISMATCH!")
-        i += 1
-    logging.info("3d Data MATCH!")
+    #         # triangulate data
+    #         d3_homogeneous = cv2.triangulatePoints(
+    #             np.array(calibration_params[camera_names[0]]["projection_matrix"]),
+    #             np.array(calibration_params[camera_names[1]]["projection_matrix"]),
+    #             np.squeeze(cam1_undistorted),
+    #             np.squeeze(cam2_undistorted))
+
+    #         d3_euclidean = d3_homogeneous / d3_homogeneous[3]
+    #         xyz_cal = np.squeeze(d3_euclidean[:3])
+    #         # Compare the data at the random index between JSON and HDF5
+    #         log_ut.assert_and_log(np.allclose(xyz_data, xyz_cal, atol=1e5), "Data MISMATCH!")
+    #     i += 1
+    # logging.info("3d Data MATCH!")
 
 
 def interpolate_data(data, is_3d= True, max_empty=10): ## TODO make max_empty 1/3 of FPS

@@ -17,7 +17,7 @@ def read_npz_file(filepath):
     return data
 
 def find_npz_files(directory):
-    """Recursively find all HDF5 files in the given directory."""
+    """Recursively find all NPZ files in the given directory."""
     npz_files = []
     for root, dirs, files in os.walk(directory):
         for file in files:

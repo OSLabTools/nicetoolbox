@@ -94,34 +94,3 @@ class MMPoseParser(BaseParser):
     def get_number_of_keypoints(self, input_file):
         json_predictions = fh.load_json_file(input_file)
         return len(json_predictions[0]["keypoints"])
-
-class HDF5Parser(BaseParser):
-    """Class to parse saved output
-    """
-
-    def __init__(self, keypoint_type):
-        super().__init__(keypoint_type)
-
-    def get_keypoint_index(self, keypoint_name):
-        pass
-
-    def get_keypoint_location(self, input_file, frame_index, keypoint_index, person, xyz = False):
-        hdf5_data, _ = fh.read_hdf5(input_file)
-        if person == "personL":
-            data = hdf5_data[0]
-        else:
-            data = hdf5_data[1]
-
-        # find the keypoint location in data
-        if xyz:
-            coord = data[frame_index, keypoint_index, :]
-        else:
-            coord = data[frame_index, keypoint_index, :2]
-        return np.array(coord)
-
-    def get_number_of_keypoints(self, input_file, frame_name):
-        pass
-
-
-
-

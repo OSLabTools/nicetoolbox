@@ -367,7 +367,8 @@ class MMPose(BaseDetector):
                     np.savez_compressed(prediction_file, **results_dict)
 
                 # check 3d data values
-                # TODO: this check works only for videos with 2 subjects?
+                # TODO: this check works only for videos with 2 subjects? 
+                # TODO: rewrite check for npz output
                 # utils.compare_saved3d_data_values_with_triangulation_through_json(
                 #     self.prediction_folders,
                 #     result_folder,
