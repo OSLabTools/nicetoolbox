@@ -6,8 +6,9 @@ class Viewer:
         self.visualizer_config = visualizer_config
         self.canvas_list = self.create_canvas_list()
         self.is_camera_position = visualizer_config['media']['visualize']['camera_position']
-        self.fps =visualizer_config['fps']
+        self.fps =self.visualizer_config['dataset_properties']['fps']
         self.create_canvas_roots()
+
 
     @staticmethod
     def spawn(app_id="NICE Toolbox Visualization"):
@@ -20,6 +21,21 @@ class Viewer:
         if frame_time == 0:
             frame_time =0.00001
         rr.set_time_seconds("time", frame_time)
+
+    def get_start_frame(self):
+        return self.visualizer_config['media']['visualize']['start_frame']
+
+    def get_end_frame(self):
+        end_frame = self.visualizer_config['media']['visualize']['end_frame']
+        if end_frame == -1:
+            end_frame = self.visualizer_config['video']['video_length']
+        return end_frame
+
+    def get_step(self):
+        return self.visualizer_config['media']['visualize']['visualize_interval']
+
+    def get_video_start(self):
+        return self.visualizer_config['video']['video_start']
 
     def create_canvas_list(self):
         canvas_list = []

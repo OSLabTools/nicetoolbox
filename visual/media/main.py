@@ -17,42 +17,16 @@ def main():
     visualizer_config_file = "visual/configs/visualizer_config.toml"
     machine_specifics_file = "machine_specific_paths.toml"
     config_handler = vis_cfg.Configuration(visualizer_config_file, machine_specifics_file)
-
-    visualizer_config = config_handler.get_visualizer_config()
-    experiment_detector_config = config_handler.get_experiment_config(type="detector")
-    experiment_dataset_config = config_handler.get_experiment_config(type="dataset")
-    visualizer_config = config_handler.localize(visualizer_config, fill_io=False, fill_data=True, dataset_name=visualizer_config['media']['dataset_name'])
-
-    # get experiment properties
-    dataset_name = visualizer_config['media']['dataset_name']
-    visualizer_dataset_config = config_handler.get_visualizer_dataset_config(dataset_name)
-    video_input_config = visualizer_dataset_config['videos'][
-        0]  # returns list of run video config dictionaries
-    video_len = video_input_config['video_length']
-    video_start = video_input_config['video_start']
-
-    # update visualizer config - which will be given to components
-    algorithms_config = experiment_detector_config['algorithms']
-    visualizer_config['algorithms_config'] = algorithms_config
-    visualizer_config['camera_sees_subjects'] = experiment_dataset_config[dataset_name][
-        'cam_sees_subjects']
-    visualizer_config['fps'] = experiment_dataset_config[visualizer_dataset_config['media']['dataset_name']]['fps']
+    visualizer_config = config_handler.get_updated_visualizer_config()
 
     # IO
     io = IO(config_handler.get_io_config(add_exp=True))
-    io.initialization(visualizer_dataset_config)
-    nice_tool_input_folder = io.get_component_nice_tool_input_folder(video_input_config, dataset_name)
+    io.initialization(visualizer_config)
+    nice_tool_input_folder = io.get_component_nice_tool_input_folder(visualizer_config['video'], visualizer_config['media']['dataset_name'])
 
     ### load calibration for the video
-    calibration_file = io.get_calibration_file(video_input_config)
-    calib = vis_utils.load_calibration(calibration_file, video_input_config, camera_names='all')
-
-    # Parse Visualizer config
-    start_frame = visualizer_config['media']['visualize']['start_frame']
-    end_frame = visualizer_config['media']['visualize']['end_frame']
-    step = visualizer_config['media']['visualize']['visualize_interval']
-    if end_frame == -1:
-        end_frame = video_len
+    calibration_file = io.get_calibration_file(visualizer_config['video'])
+    calib = vis_utils.load_calibration(calibration_file, visualizer_config['video'], camera_names='all')
 
     ############## INITIALIZE VIEWER ############
     viewer = Viewer(visualizer_config)
@@ -82,12 +56,13 @@ def main():
     face_landmarks_component = FaceLandmarksComponent(visualizer_config, io, viewer,
                                                       "face_landmarks") if 'face_landmarks' in components else None
     gaze_interaction_component = GazeInteractionComponent(visualizer_config, io, viewer,
-                                                          "gaze_interaction") if 'gaze_individual' in components else None
-    look_at_data_tuple = gaze_interaction_component.get_lookat_data() if 'gaze_individual' in components else None  # returns (data, data_labels)
+                                                          "gaze_interaction") if 'gaze_interaction' in components else None
+
+    look_at_data_tuple = gaze_interaction_component.get_lookat_data() if 'gaze_interaction' in components else None  # returns (data, data_labels)
 
     gaze_ind_component = GazeIndividualComponent(visualizer_config, io, viewer, "gaze_individual",
                                                  calib, eyes_middle_3d_data,
-                                                 look_at_data_tuple) if 'gaze_interaction' in components else None
+                                                 look_at_data_tuple) if 'gaze_individual' in components else None
     proximity_component = ProximityComponent(visualizer_config, io, viewer, "proximity",
                                              eyes_middle_3d_data,
                                              eyes_middle_2d_data) if 'proximity' in components else None
@@ -102,9 +77,9 @@ def main():
     # # initialize rerun visualizer
     viewer.spawn()
 
-    for frame_idx in range(start_frame, end_frame, step):
+    for frame_idx in range(viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()):
         viewer.go_to_timestamp(frame_idx)
-        frame_no = video_start + frame_idx
+        frame_no = viewer.get_video_start() + frame_idx
         image_name = f"{frame_no:05}.png"  ##TODO check in general cases
         for camera in all_cameras:
             # log camera into 3d canvas

@@ -30,6 +30,16 @@ class Configuration:
         self.experiment_detector_config = loaded_experiment_config['detector_config']
         self.dataset_properties = loaded_experiment_config['dataset_config']
 
+        # get experiment properties
+        self.dataset_name = self.visualizer_config['media']['dataset_name']
+
+        # update visualizer config - which will be given to components
+        self.visualizer_config['video'] = self.experiment_run_config['run'][self.dataset_name]['videos'][0]
+        # add properties of the dataset
+        self.visualizer_config['dataset_properties']=self.dataset_properties[self.dataset_name]
+        self.visualizer_config['algorithms_properties'] = \
+            {alg:alg_config for alg, alg_config in self.experiment_detector_config['algorithms'].items() if alg in self.get_algorithms_list()}
+
     def localize(self, config, fill_io=True, fill_data=False, dataset_name=None):
         # fill placeholders
         config = confh.config_fill_auto(config)
@@ -48,17 +58,9 @@ class Configuration:
             io_config.update(experiment_io=self.localize(self.localize(self.experiment_run_config['io'])))
         return io_config
     
-    def get_visualizer_config(self):
-        return self.visualizer_config
-
-    def get_visualizer_dataset_config(self, dataset_name):
-        """Merge rerun config with dataset parameters, and videos dict run with this dataset"""
-        # add details of the videos
-        self.visualizer_config.update(videos=self.experiment_run_config['run'][dataset_name]['videos'])
-        # add properties of the dataset
-        self.visualizer_config.update(dataset_properties=self.dataset_properties[dataset_name])
-        self.visualizer_config.update(detector_properties=self.experiment_detector_config)
-        return self.localize(self.visualizer_config)
+    def get_updated_visualizer_config(self):
+        return self.localize(self.visualizer_config, fill_io=False, fill_data=True,
+                             dataset_name=self.dataset_name)
 
     def get_experiment_config(self, type):
         if type == 'run':
@@ -72,15 +74,17 @@ class Configuration:
         experiment_run_config = self.experiment_run_config
         return experiment_run_config['component_algorithm_mapping']
 
+    def get_algorithms_list(self):
+        algorithms = [alg for alg_list in self.get_component_algorithms_map().values() for alg in alg_list]
+        return list(set(algorithms))
+
     def check_config(self):
         self.check_start_stop_frames()
         self.check_component_name()
         self.check_algorithms()
 
     def check_start_stop_frames(self):
-        dataset_name = self.visualizer_config['media']['dataset_name']
-        video_input_config = self.get_visualizer_dataset_config(dataset_name)['videos'][0]
-        video_length = video_input_config['video_length']
+        video_length = self.visualizer_config['video']['video_length']
 
         #check start frame
         if self.visualizer_config['media']['visualize']['start_frame'] < 0:

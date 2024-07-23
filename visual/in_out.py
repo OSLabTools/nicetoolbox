@@ -20,7 +20,6 @@ class IO:
 
     def initialization(self, dataset_config):
         # Dataset properties
-        #self.path_to_annots = dataset_config['dataset_properties']["path_to_annotations"]
         self.path_to_calibs = dataset_config['dataset_properties']["path_to_calibrations"]
 
         # Experiment details

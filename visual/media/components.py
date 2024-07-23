@@ -5,8 +5,8 @@ import rerun as rr
 # internal imports
 import utils.visual_utils as vis_ut
 import utils.config as confh
-
-PREDICTIONS_MAPPING_FILE = "visual/configs/predictions_mapping.toml"
+print(os.getcwd())
+PREDICTIONS_MAPPING_FILE = "detectors/configs/predictions_mapping.toml"
 PREDICTIONS_MAPPING = confh.load_config(PREDICTIONS_MAPPING_FILE)
 
 class Component:
@@ -35,6 +35,7 @@ class Component:
         algorithms_data = []
         for i,alg in enumerate(self.algorithm_list):
             algorithms_data.append(self.algorithms_results[i][data_type])
+
         return algorithms_data
 
     def get_canvas_list(self):
@@ -46,8 +47,9 @@ class Component:
     def create_canvas_data(self):
         canvas_data = {}
         for data_name, canvas in self.config['media'][self.component_name]['canvas'].items():
-            self.algorithms_data = self.get_algorithms_data(data_name)
-            canvas_data[data_name] = self.algorithms_data
+            if canvas != []:
+                self.algorithms_data = self.get_algorithms_data(data_name)
+                canvas_data[data_name] = self.algorithms_data
         return canvas_data
 
     def get_alg_color(self, alg_idx):
@@ -131,7 +133,7 @@ class BodyJointsComponent(Component):
         return (mean_value, self.camera_names)
 
     def get_alg_keypoint_type(self, alg_name):
-        alg_keypoint_type = self.config['algorithms_config'][alg_name]['keypoint_mapping']
+        alg_keypoint_type = self.config['algorithms_properties'][alg_name]['keypoint_mapping']
         return alg_keypoint_type
 
     def get_skeleton_connections(self, alg_idx, predictions_mapping):
@@ -200,7 +202,7 @@ class BodyJointsComponent(Component):
             else:
                 cam_name = canvas
                 data_key = [c for c in self.canvas_data.keys() if c != '3d']
-                camera_index = self.camera_names.index(canvas)
+                camera_index = self.camera_names.index(cam_name)
                 for k in data_key:
                     for alg_idx, alg_data in enumerate(self.canvas_data[k]):
                         alg_name = self.algorithm_list[alg_idx]
@@ -275,7 +277,7 @@ class GazeIndividualComponent(Component):
                     (data.shape[0], data.shape[2], 2), np.nan)
 
                 for subject_idx, subject_name in enumerate(self.subject_names):
-                    if subject_idx in self.config['camera_sees_subjects'][cam_name]:
+                    if subject_idx in self.config['dataset_properties']['cam_sees_subjects'][cam_name]:
                         gaze_vectors = data[subject_idx, 0, :,
                                        :]  # Extract all frames at once
                         dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_rotation,
@@ -326,9 +328,13 @@ class GazeIndividualComponent(Component):
         return camera_view_middle_point
 
     def visualize(self, frame_idx):
+        if "3d_filtered" in self.canvas_data.keys():
+            dataname = "3d_filtered"
+        else:
+            dataname = "3d"
         for canvas in self.canvas_list:
             if canvas == '3D_Canvas':
-                for alg_idx, alg_data in enumerate(self.canvas_data["3d"]):
+                for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
                         subject_gaze_individual = alg_data[subject_idx, 0, frame_idx]
@@ -349,7 +355,7 @@ class GazeIndividualComponent(Component):
                         self.log_3d_data(entity_path, subject_eyes_middle_3d_data, subject_gaze_individual, color)
             else:
                 cam_name = canvas
-                for alg_idx, alg_data in enumerate(self.canvas_data["3d"]):
+                for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
                         camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
@@ -359,7 +365,7 @@ class GazeIndividualComponent(Component):
                             self.component_name, is_3d=False, alg_name=alg_name,
                             subject_name=subject, cam_name=cam_name)
                         # gaze interaction defines color
-                        if self.look_at_data.all() != None:
+                        if self.look_at_data is not None:
                             if subject_idx + 1 < len(self.subject_names)-1: #look at subject either one forward or one backward in index
                                 look_to_subject = self.subject_names[subject_idx + 1]
                             else:
@@ -374,14 +380,20 @@ class GazeInteractionComponent(Component):
         super().__init__(visualizer_config, io, logger, component_name)
         self.camera_names = self.get_camera_names_from_data()
         self.subject_names = self.get_subject_names()
+
+    def get_first_keyname(self):
+        # selects first key - it might be distance_gaze_2d or distance_gaze_3d
+        keyname = list(self.algorithms_results[0]['data_description'].item().keys())[0]
+        return(keyname)
     def get_subject_names(self):
         # data description axis0 gives subject information
         # again the results will be read from first algorithm
-        subject_names = self.algorithms_results[0]['data_description'].item()['distance_gaze_3d']['axis0']
+
+        subject_names = self.algorithms_results[0]['data_description'].item()[self.get_first_keyname()]['axis0']
         return subject_names
 
     def get_camera_names_from_data(self):
-        camera_names = self.algorithms_results[0]['data_description'].item()['distance_gaze_3d']['axis1']
+        camera_names = self.algorithms_results[0]['data_description'].item()[self.get_first_keyname()]['axis1']
         return camera_names
 
     def get_algorithms_labels(self, data_name):
@@ -394,7 +406,10 @@ class GazeInteractionComponent(Component):
 
     def get_lookat_data(self):
         # read from first algorithm
-        data_name = 'gaze_look_at_3d'
+        if 'gaze_look_at_3d' in self.algorithms_results[0]['data_description'].item().keys():
+            data_name = 'gaze_look_at_3d'
+        else:
+            data_name = 'gaze_look_at_2d'
         data_labels = self.get_algorithms_labels(data_name)[0] #0 first algorithm
         data = self.canvas_data[data_name][0] # 0 first alg
         return (data, data_labels)
@@ -405,7 +420,7 @@ class ProximityComponent(Component):
         self.camera_names = self.get_camera_names_from_data()
         self.subject_names = self.get_subject_names()
         self.eyes_middle_3d_data, cams = eyes_middle_3d_data
-        if self.eyes_middle_3d_data.all():
+        if self.eyes_middle_3d_data is not None:
             self.middle_point_3d = self.get_middle_point_3d()
         self.eyes_middle_2d_data, middle_eye_camera_names = eyes_middle_2d_data
         self.camera_view_middle_point_dict = self.get_camera_view_middle_point_dict()

@@ -108,9 +108,12 @@ class GazeDistance(BaseFeature):
         gaze_data = np.load(self.get_input(self.input_files, 'gaze', listdir=False), allow_pickle=True)
         camera_names = gaze_data['data_description'].item()['landmarks_2d']['axis1']
         dim = '2d' if len(camera_names) == 1 else '3d'
-
-        gaze = gaze_data[dim]
-        gaze_description = gaze_data['data_description'].item()[dim]
+        if f'{dim}_filtered' in gaze_data['data_description'].item().keys():
+            data_name = f'{dim}_filtered'
+        else:
+            data_name = dim
+        gaze = gaze_data[data_name]
+        gaze_description = gaze_data['data_description'].item()[data_name]
 
         if dim == '3d':
             keypoints_data = np.load(

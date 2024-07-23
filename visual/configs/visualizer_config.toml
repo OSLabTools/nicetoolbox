@@ -7,7 +7,7 @@ experiment_video_component = "<experiment_folder>/<video_name>/<component_name>"
 
 [media]
 mode = 'isa-tool' # options: 'isa-tool', 'isa-eval'
-dataset_name = 'communication_multiview' # current options: 'dyadic_communication', 'mpi_inf_3dhp' # each Media session shows one video results. Each video belongs a dataset
+dataset_name = 'communication_multiview' # current options: 'dyadic_communication', 'mpi_inf_3dhp' 'communication_multiview' 'communication_mono'# each Media session shows one video results. Each video belongs a dataset
 video_name = 'communication_multiview_session_xyz_s0_l99' # each Media session shows one video results
 multi_view = true # set false if you don't have multiple cameras
 
@@ -38,7 +38,7 @@ visualize_interval = 1  # 1 means visualize every frame; change the parameter if
 algorithms = ['xgaze_3cams']
 
 [media.gaze_individual.canvas]
-3d = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
 ## -- Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 
 [media.gaze_individual.appearance]
@@ -51,11 +51,12 @@ algorithms = ['gaze_distance']
 
 [media.gaze_interaction.canvas]
 gaze_look_at_3d = ["3D_Canvas", "<cam_face1>", "<cam_face2>"]## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
-## -- Note: Delete '3D_Canvas' if you don't have a multi-view setup.
+#gaze_look_at_2d = ["<cam_front>"] ## use data key gaze_look_at_2d if you don't have a multi-view setup.
 
 [media.gaze_interaction.appearance]
 colors = [[[0,221, 22], [247, 13, 26]]] #vivid mala.. -green #vivid red -  [57,255,18] #neon green
 radii = {}
+
 
 # Component: body joints
 [media.body_joints]
@@ -120,8 +121,4 @@ body_distance_2d = ["<cam_top>", "<cam_front>"] ## value options: [camera nanes]
 [media.proximity.appearance]
 colors = [[153,50,204]]
 radii = {'3d'= 0.008, 'camera_view'= 3}
-
-
-
-
 

@@ -11,6 +11,7 @@ import cv2
 import logging
 
 from detectors.method_detectors.base_detector import BaseDetector
+from detectors.method_detectors.filters import SGFilter
 from utils.video import frames_to_video
 import utils.logging_utils as log_ut
 
@@ -63,8 +64,46 @@ class XGaze3cams(BaseDetector):
         while '' in self.camera_names:
             self.camera_names.remove('')
 
+        self.result_folders = config['result_folders'][self.components[0]]
+        self.filtered = config["filtered"]
+        if self.filtered:
+            self.filter_window_length = config["window_length"]
+            self.filter_polyorder = config["polyorder"]
+
         logging.info(f"Inference Preparation completed.\n")
-            
+
+    def post_inference(self):
+        """
+        Post-processing after inference.
+
+        This method is called after the inference step and is used for any post-processing tasks that need to be performed.
+        """
+        if self.filtered:
+            prediction_file = os.path.join(self.result_folders, f"{self.algorithm}.npz")
+            prediction = np.load(prediction_file, allow_pickle=True)
+            predictions_dict = {key:prediction[key] for key in prediction.files}
+            data_description = predictions_dict['data_description'].item()
+            results_3d = prediction['3d']
+            ## Apply filter
+            logging.info("APPLYING filtering to Gaze Individual data...")
+            results_3d_filtered = results_3d.copy()
+            filter = SGFilter(self.filter_window_length, self.filter_polyorder)
+            results_3d_filtered = filter.apply(results_3d_filtered, is_3d=True)
+            data_description.update({'3d_filtered':data_description['3d']})
+            predictions_dict['3d_filtered'] = results_3d_filtered
+
+            if len(self.camera_names) ==1:
+                results_2d = prediction['2d']
+                results_2d_filtered = results_2d.copy()
+                results_2d_filtered = filter.apply(results_2d_filtered, is_3d=False)
+                data_description.update({'2d_filtered': data_description['2d']})
+                predictions_dict['2d_filtered'] = results_2d_filtered
+
+            np.savez_compressed(prediction_file, **predictions_dict)
+
+        else:
+            pass
+
     # TODO: data parameter not used
     def visualization(self, data):
         """

@@ -14,7 +14,7 @@ sys.path.append(str(top_level_dir))
 
 # internal imports
 from detectors.method_detectors.base_detector import BaseDetector
-from detectors.method_detectors.body_joints.filters import SGFilter
+from detectors.method_detectors.filters import SGFilter
 import detectors.method_detectors.body_joints.utils as utils
 
 import utils.triangulation as tri
