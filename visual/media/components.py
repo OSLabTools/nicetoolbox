@@ -1,12 +1,14 @@
 import os
 import numpy as np
 import rerun as rr
+from pathlib import Path
 
 # internal imports
 import utils.visual_utils as vis_ut
 import utils.config as confh
-print(os.getcwd())
-PREDICTIONS_MAPPING_FILE = "detectors/configs/predictions_mapping.toml"
+
+TOP_LEVEL_DIR = Path(__file__).resolve().parents[2]
+PREDICTIONS_MAPPING_FILE = str(Path(TOP_LEVEL_DIR / "detectors/configs/predictions_mapping.toml"))
 PREDICTIONS_MAPPING = confh.load_config(PREDICTIONS_MAPPING_FILE)
 
 class Component:
