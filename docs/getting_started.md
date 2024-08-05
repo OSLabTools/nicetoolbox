@@ -115,6 +115,22 @@ source envs/isa2/bin/activate
 python utils/calibration_gui/calibration_converter.py
 ```
 
+The calibration converter offers multiple options to create, load, or change a calibration file for the NICE toolbox. It outputs the calibration in two files: `calibrations.npz` which is required to run the NICE toolbox and `calibrations.json` which displays the same calibration data in a human-readable (and changeable) file.  
+##TODO! Change json to toml
+
+If loading an existing calibration file, the calibration dictionary may look like this in the case of using OpenCV's camera matrix representation:
+```toml
+[<session_ID>__<sequence_ID>.<camera_name>]
+camera_name = "<camera_name>"
+image_size = [ <width>, <height>]
+mtx = [ [<f_x>, 0.0, <c_x>], [0.0, <f_y>, <c_y>], [ 0.0, 0.0, 1.0]]
+dist = [ 0.0, 0.0, 0.0, 0.0, 0.0]
+rvec = [ 0.0, 0.0, 0.0]
+tvec = [ [ 0.0], [ 0.0], [ 0.0]]
+```
+
+
+**For a single camera**
 In case your dataset has a single camera only (no multi-view setup), feel free to leave the rotation matrix (usually `R` or `rvec`) and the translation matrix (commonly denoted with `t` or `tcev`) to the defaults of identity:
 
 ```

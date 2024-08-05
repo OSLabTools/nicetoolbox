@@ -165,7 +165,8 @@ class Data:
         """
         input_formats = self.get_input_format(self.all_camera_names)
         if input_formats in ['mp4', 'avi']:
-            video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
+            example_input_folder = self.data_input_folder.replace('<camera_name>', next(iter(self.all_camera_names)))
+            video_files = sorted(glob.glob(os.path.join(example_input_folder, '*')))
             fps = vid.get_fps(video_files[0])
             if fps != config_fps:
                 logging.warning(
