@@ -12,7 +12,7 @@ def flatten_list(input_list):
 
 class IO:
     def __init__(self, config):
-        self.dataset_folder = config["dataset_folder"]
+        # self.dataset_folder = config["dataset_folder"]
         # Experiment details
         self.nice_tool_input_folder = config['nice_tool_input_folder']
         self.experiment_folder = config["experiment_folder"]

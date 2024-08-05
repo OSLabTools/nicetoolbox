@@ -75,7 +75,7 @@ def main(config, debug=False):
     frame_indices = []
     results = np.zeros((n_frames, n_subjects, 3))
     results_2d = np.zeros((n_frames, n_cams, n_subjects, 2))
-    landmarks_2d = np.zeros((n_frames, n_cams, n_subjects, 6, 2))
+    landmarks_2d = np.full((n_frames, n_cams, n_subjects, 6, 2), None)
     # landmarks_3d = np.zeros((n_frames, n_cams, n_subjects, 6, 3))
 
     for frame_i, frame_files in enumerate(frames_list):
@@ -97,12 +97,22 @@ def main(config, debug=False):
                     face_detector,
                     debug
             )
-            if landmark_predictions is not None and landmark_predictions.shape[0] != n_subjects:
-                scores = score.mean(axis=1)
-                max_value_indices = sorted(scores.argsort()[-n_subjects:])
-                landmark_predictions = landmark_predictions[max_value_indices]
 
-            landmarks_2d[frame_i, cam_i] = landmark_predictions
+            camera_name = [name for name in camera_names if name in frame_file][0]
+            subjects_by_cam = config['cam_sees_subjects'][camera_name]
+            if landmark_predictions is not None:
+                
+                if landmark_predictions.shape[0] > len(subjects_by_cam):
+                    scores = score.mean(axis=1)
+                    max_value_indices = sorted(scores.argsort()[-n_subjects:])
+                    landmark_predictions = landmark_predictions[max_value_indices]
+                elif landmark_predictions.shape[0] < len(subjects_by_cam):
+                    logging.error(f"Gaze landmark detection: Detected \
+                        {landmark_predictions.shape[0]} subjects instead of \
+                        {len(subjects_by_cam)} in frame file {frame_file}.")
+
+                landmarks_2d[frame_i, cam_i, subjects_by_cam] = landmark_predictions
+                
             # # debugging
             # for point in landmark_predictions.reshape(-1, 3):
             #     cv2.circle(image, point[:2].astype(int), 3, (0,0,255), -1)

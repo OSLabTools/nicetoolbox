@@ -317,12 +317,13 @@ class GazeIndividualComponent(Component):
         return self.config['media']["gaze_interaction"]['appearance']["colors"][alg_idx][color_index]
 
     def get_camera_view_middle_point_dict(self):
+        ## calculate the middle point of face
+        mean_face = np.nanmean(self.landmarks_2d.astype(float)[:,:,:,:4,:], axis=3)
+
         camera_view_middle_point = {}
         for cam_idx, cam_name in enumerate(self.camera_names):
             subjects_middle_points = []
             for subject_idx, subject in enumerate(self.subject_names):
-                ## calculate the middle point of face
-                mean_face = np.mean(self.landmarks_2d[:,:,:,:4,:], axis=3)
                 subjects_middle_points.append(mean_face[subject_idx, cam_idx, :])
             camera_view_middle_point[cam_name] = subjects_middle_points
         return camera_view_middle_point
