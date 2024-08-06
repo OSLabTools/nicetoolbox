@@ -4,6 +4,28 @@ Sphinx is a powerful tool for generating documentation from reStructuredText fil
 we will walk you through the process of using Sphinx to create professional-looking documentation
 for your project.
 
+<!-- TOC -->
+- [Using Sphinx for Documentation](#using-sphinx-for-documentation)
+  - [Installation](#installation)
+  - [Creating a New Sphinx Project](#creating-a-new-sphinx-project)
+  - [Generating Simple API Documentation](#generating-simple-api-documentation)
+  - [Autosummary](#autosummary)
+    - [How does it work?](#how-does-it-work)
+    - [How to set it up?](#how-to-set-it-up)
+  - [Configuring `conf.py`](#configuring-confpy)
+    - [(A) Change Project Source](#a-change-project-source)
+    - [(B) Project Information](#b-project-information)
+    - [(C) General Configuration](#c-general-configuration)
+      - [Extensions](#extensions)
+      - [Fix for failing imports](#fix-for-failing-imports)
+      - [Setting Extension Variables](#setting-extension-variables)
+      - [How to exclude patterns from the documentations](#how-to-exclude-patterns-from-the-documentations)
+      - [Templates (Necessary for autosummary)](#templates-necessary-for-autosummary)
+    - [(D) Options for HTML Output](#d-options-for-html-output)
+      - [Apply Read-The-Docs Theme](#apply-read-the-docs-theme)
+      - [Override CSS Settings](#override-css-settings)
+  - [Markdown Support](#markdown-support)
+
 ## Installation
 
 Install Sphinx using pip inside the project environment:
@@ -37,7 +59,7 @@ in the `./docs` folder:
   building to prevent conflicts.
 - `_build/`: The directory where the generated documentation will be stored.
 - `_static/`: The directory for static files such as CSS and JavaScript.
-- `_templates/`: The directory for custom templates.
+- `_templates/`: The directory for custom .rst templates.
 
 **Important:** Given the suggested structure of the project and the `./docs` folder, we have to
 change the source path from where Sphinx will start building the documentation.
@@ -58,7 +80,6 @@ To use `sphinx-apidoc` run the following command in the `./docs` folder:
 ```bash
 sphinx-apidoc -o <OUTPUT_PATH> <MODULE_PATH> --ext-autodoc
 sphinx-apidoc -o . .. --ext-autodoc
-
 ```
 
 This command will scan your project directory and generate `.rst` files for each
@@ -74,16 +95,85 @@ line to the `index.rst` file to include the modules:
    modules
 ```
 
+> Note: In the following section, we will explain how to set up the `autosummary` extension to generate
+more sophisticated documentation. *Setting up the `toctree` in `index.rst` will change accordingly.*
+
 ## Autosummary
 
 Since the `sphinx-apidoc` command only generates `.rst` files for a single module or package,
 and is not recursive, we need to use the `autosummary` extension to generate summaries for
-all modules, classes, and functions in our project. 
+all modules, classes, and functions in our project. There is a autosummary tutorial from
+[James Leedham on GitHub](https://github.com/JamesALeedham/Sphinx-Autosummary-Recursion)
+that explains how to set up the autosummary extension for recursive documentation. NICE Toolbox
+uses the same concepts.
 
-TODO
-- inits
-- mock imports as all python files interpreted 
-- how to call 
+### How does it work?
+
+The `autosummary` extension generates summary tables for modules, classes, and functions.
+The user can set a folder as starting point to then recursively generate summaries for all
+modules, classes, and functions in the project. The extension uses the `autosummary_generate`
+variable in the `conf.py` file to enable the feature. The `autosummary` extension requires
+the `autodoc` extension to be enabled as well.
+
+### How to set it up?
+
+1. A custom template for classes and modules is necessary to display the summaries correctly.
+   The templates must be placed in the `./docs/_templates` folder.
+   See [Templates](#templates-necessary-for-autosummary).
+2. To enable the `autosummary` extension, add the extension to the `conf.py` file.
+   See [Extensions](#extensions).
+3. Set the `autosummary_generate` variable to `True` in the `conf.py` file.
+   See [Setting Extension Variables](#setting-extension-variables).
+4. Python packages contain a `__init__.py` file to mark the directory as a package. Thus, the
+   `__init__.py` file should be present in all directories that contain modules to be documented
+   recursively.
+5. Failing imports can lead to missing files in the documentation. To prevent this, you can set
+   mock imports for all import statements that lead to errors. This is especially useful when
+   the project is split into different python environments. Sphinx operates in a single environment
+   and might not be able to run all import statements. See [Fix for failing imports](#fix-for-failing-imports).
+6. Create a new directory in the `./docs` folder called `_autosummary` to store the generated
+   summary files.
+
+Summaries are .rst files that contain a list of all modules, classes, and functions in the
+project for each directory, class and function. All these files are generated automatically
+and saved in the `./docs/_autosummary` folder. The summaries are then included in the `index.rst`
+file using the `autosummary` directive. For each starting point to recursively create a
+API reference, create a new `.rst` file in the `./docs` folder and include the following code:
+
+```rst
+.. autosummary::
+   :toctree: _autosummary                 - links to the generated summaries in the _autosummary folder
+   :template: custom-module-template.rst  - custom template for modules necessary for displaying the docs
+   :recursive:                            - recursive flag
+
+   <MODULE>                               - name of the module to be documented (e.g. detectors, visual)
+```
+
+In the NICE Toolbox, we created 3 starting points for recursive documentation: API references for
+the detectors, evaluation and visual source code directories. Finally, include the new `.rst` files
+in the `index.rst` file using the `toctree` directive.
+
+```rst
+.. toctree::
+   :hidden:
+
+   Home page <self>                          - link to the index.rst file
+   Overview of Project <README>              - main documentation files(.md or .rst)
+   Installation <installation>               - |
+   Getting started <getting_started>         - |
+   Tutorial <tutorials>                      - |
+   Detectors api <_autosummary/detectors>    - starting points for recursive documentation
+   Evaluation api <_autosummary/evaluation>  - |
+   Visualization api <_autosummary/visual>   - |
+```
+
+The `toctree` directive is used to create a table of contents for the documentation. At the same time
+it represents the navigation bar on the left side of the documentation page. The `:hidden:`
+flag hides the table of contents on the Home Page. The `self` flag links to the
+`index.rst` file. The `README`, `installation`, `getting_started`, and `tutorials` files are markdown
+.rst files and them main documentation files for the project. They are inside the `./docs` folder or
+have to be selected accordingly. The `detectors.rst`, `evaluation.rst`, and `visual.rst` files are the
+starting points for the recursive documentation.
 
 ## Configuring `conf.py`
 
@@ -234,4 +324,27 @@ the `./docs/_static` folder. We applied custom readthedocs css setting that can 
 ```python
 html_static_path = ['_static']
 html_css_files = ["readthedocs-custom.css"]
+```
+
+## Markdown Support
+
+Sphinx does not natively support markdown files. However, the `myst_parser` extension allows you
+to write markdown files and include them in your Sphinx project. To enable markdown support, install 
+the pip package and add the following line to the `conf.py` file:
+
+```python
+extensions = [
+    ...
+    'myst_parser',
+    ...
+]
+```
+
+If problems regarding header references occur, you can set the `myst_heading_anchors` variable in
+the `conf.py` file. The `myst_heading_anchors` variable specifies the minimum heading level that
+should be included in the table of contents. The default value is 2, but you can set it to 7 to
+include all headings:
+
+```python
+myst_heading_anchors = 7
 ```

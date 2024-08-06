@@ -6,7 +6,7 @@ NICE Toolbox
 #TODO: Perhaps add a paragraph about non-verbal communication
 
 NICE Toolbox is an ongoing project aims to develop a comprehensive and
-roboust framework for exploring nonverbal human communication, which
+robust framework for exploring nonverbal human communication, which
 enables the investigation of nonverbal cues and observable (behavioral)
 signs that reflect emotional and cognitive state of the individual, as
 well as the interpersonal dynamics between people in relatively fixed
@@ -30,7 +30,7 @@ NICE-Visual …
 Next Steps for the NICE Toolbox:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-1. Extention of toolbox with new components.
+1. Extension of toolbox with new components.
 
 In the future releases, we aim to extend the toolbox by adding new
 components, such as:

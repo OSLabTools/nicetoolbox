@@ -10,6 +10,9 @@ if "%SPHINXBUILD%" == "" (
 set SOURCEDIR=.
 set BUILDDIR=_build
 
+REM Directories to be removed before building
+set CLEAN_DIRS=_build _otherdir
+
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (
 	echo.
@@ -24,6 +27,14 @@ if errorlevel 9009 (
 )
 
 if "%1" == "" goto help
+
+REM Remove specified directories before building
+for %%d in (%CLEAN_DIRS%) do (
+    if exist %%d (
+        echo Removing directory %%d
+        rmdir /s /q %%d
+    )
+)
 
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 goto end
