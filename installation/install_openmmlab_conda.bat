@@ -40,7 +40,7 @@ mim install "mmpretrain>=1.0.0rc8"
 call :checkError
 
 echo Navigate Inside to mmpose directory
-cd ..\detectors\third_party\mmpose\mmpose
+cd .\detectors\third_party\mmpose\mmpose
 call :checkError
 
 echo Installing requirements from MMPose...

@@ -15,6 +15,7 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
     - [**How-to:**](#how-to)
       - [3.1. In Linux:](#31-in-linux)
       - [3.2. In Windows:](#32-in-windows)
+      - [4. Additional Notes:](#4-additional-notes)
 <!-- TOC -->
 
 ## 1. Clone the repositories
@@ -80,9 +81,9 @@ The installation script (`installation/install_all`):
 Open a terminal and navigate to main directory where isa-tool then type the followings into terminal
 
 ```
-cd isa-tool/installation/
-chmod +x installation_all.sh  # to add executable permission to the script
-./install_all.sh              # to install all necessary libraries
+cd /path/to/isa-tool/
+chmod +x ./installation/installation_all.sh  # to add executable permission to the script
+./installation/install_all.sh                # to install all necessary libraries
 ```
 
 #### 3.2. In Windows:  
@@ -90,8 +91,8 @@ chmod +x installation_all.sh  # to add executable permission to the script
 
 Open a cmd and navigate to main directory where isa-tool then type the following into cmd
 ```
-cd isa-tool/installation
-install_all.bat
+cd \path\to\isa-tool
+installation\install_all.bat
 ```
 
 #### 4. Additional Notes: 

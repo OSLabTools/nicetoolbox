@@ -15,7 +15,6 @@ sys.path.append(str(top_level_dir))
 from detectors.feature_detectors.base_feature import BaseFeature
 import detectors.feature_detectors.leaning.utils as lean_utils
 import utils.filehandling as fh
-import utils.config as cfg
 
 
 class BodyAngle(BaseFeature):
@@ -60,9 +59,9 @@ class BodyAngle(BaseFeature):
         joints_component, joints_algorithm = [l for l in config['input_detector_names'] 
                                           if any(['joints' in s for s in l])][0]
         pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, 'run_config')
-        pose_config = cfg.load_config(os.path.join(pose_config_folder, 'run_config.toml'))
+        pose_config = fh.load_config(os.path.join(pose_config_folder, 'run_config.toml'))
 
-        self.predictions_mapping = cfg.load_config("./detectors/configs/predictions_mapping.toml")[
+        self.predictions_mapping = fh.load_config("./detectors/configs/predictions_mapping.toml")[
                 "human_pose"][pose_config["keypoint_mapping"]]
         self.camera_names = pose_config["camera_names"]
 

@@ -18,7 +18,7 @@ from detectors.method_detectors.filters import SGFilter
 import detectors.method_detectors.body_joints.utils as utils
 
 import utils.triangulation as tri
-import utils.config as cfg
+import utils.filehandling as fh
 import utils.check_and_exception as check
 
 import detectors.configs.config_handler as confh
@@ -98,7 +98,7 @@ class MMPose(BaseDetector):
         #config['intermediate_results'] = io.get_detector_output_folder(main_component, self.algorithm, 'additional')
 
         # keypoints mapping
-        keypoints_indices = cfg.load_config("./detectors/configs/predictions_mapping.toml")[
+        keypoints_indices = fh.load_config("./detectors/configs/predictions_mapping.toml")[
                 "human_pose"][config["keypoint_mapping"]]['keypoints_index']
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config['keypoints_indices'], config['keypoints_description'] = mapping

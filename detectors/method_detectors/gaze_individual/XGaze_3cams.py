@@ -86,18 +86,18 @@ class XGaze3cams(BaseDetector):
             results_3d = prediction['3d']
             ## Apply filter
             logging.info("APPLYING filtering to Gaze Individual data...")
-            results_3d_filtered = results_3d.copy()
+            results_3d_filtered = results_3d.copy()[:, :, :, None]
             filter = SGFilter(self.filter_window_length, self.filter_polyorder)
             results_3d_filtered = filter.apply(results_3d_filtered, is_3d=True)
             data_description.update({'3d_filtered':data_description['3d']})
-            predictions_dict['3d_filtered'] = results_3d_filtered
+            predictions_dict['3d_filtered'] = results_3d_filtered[:, :, :, 0]
 
             if len(self.camera_names) ==1:
                 results_2d = prediction['2d']
-                results_2d_filtered = results_2d.copy()
+                results_2d_filtered = results_2d.copy()[:, :, :, None]
                 results_2d_filtered = filter.apply(results_2d_filtered, is_3d=False)
                 data_description.update({'2d_filtered': data_description['2d']})
-                predictions_dict['2d_filtered'] = results_2d_filtered
+                predictions_dict['2d_filtered'] = results_2d_filtered[:, :, :, 0]
 
             np.savez_compressed(prediction_file, **predictions_dict)
 

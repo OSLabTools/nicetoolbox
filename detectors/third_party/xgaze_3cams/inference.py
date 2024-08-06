@@ -9,7 +9,7 @@ from pathlib import Path
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir)) 
 sys.path.append(os.getcwd())
-import utils.config as cf
+import utils.filehandling as fh
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xgaze_3cams'))
 
 # internal and third-party imports
@@ -272,5 +272,5 @@ def main(config, debug=False):
 if __name__ == '__main__':
     config_path = sys.argv[1]
     # config_path = '/is/sg2/cschmitt/pis/experiments/20240710/mpi_inf_3dhp_S1_s20_l20/gaze_individual/xgaze_3cams/run_config.toml'
-    config = cf.load_config(config_path)
+    config = fh.load_config(config_path)
     main(config)

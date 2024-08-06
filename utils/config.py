@@ -26,38 +26,6 @@ def default(obj):
     raise TypeError('Unknown type:', type(obj))
 
 
-def load_config(config_file: str) -> dict:
-    """
-    Load a configuration file in YAML or TOML format.
-
-    Args:
-        config_file (str): The path to the configuration file.
-
-    Returns:
-        dict: The configuration data loaded from the file.
-
-    Raises:
-        NotImplementedError: If the file type is not supported.
-
-    Note:
-        If the operating system is Windows, the paths in the configuration data will 
-        be converted to Windows format.
-    """
-
-    if config_file.endswith('yml') or config_file.endswith('yaml'):
-        with open(config_file, 'r') as file:
-            config = list(yaml.safe_load_all(file))
-        if len(config) == 1:
-            config = config[0]
-    elif config_file.endswith('toml'):
-        config = toml.load(config_file)
-    else:
-        raise NotImplementedError(
-                f"config_file type {config_file} is not supported currently. "
-                f"Implemented are yaml/yml and toml.")
-    return config
-
-
 def save_config(configs: dict, config_file: str) -> None:
     """
     Save the given configuration data to the specified file.

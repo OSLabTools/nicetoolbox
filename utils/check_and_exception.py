@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 import numpy as np
-import utils.config as cf
+import utils.filehandling as fh
 
 
 def check_token_in_filepath(folder_name: str, token: str, description: str) -> None:
@@ -231,7 +231,7 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
     check_options(token, str, ['keys', 'values'])
 
     if file.endswith('.toml'):
-        loaded_dict = cf.load_config(file)
+        loaded_dict = fh.load_config(file)
         if has_sub_keys:
             for sub_key in sub_keys.split('.'):
                 loaded_dict = loaded_dict[sub_key]

@@ -85,3 +85,16 @@ data_input_folder = "<datasets_folder_path>/NICE_test_datasets/dc_resolution015_
 start_frame_index = 0
 fps = 10
 
+[20240701_res025_2people_avi]
+session_IDs = ['sitting', 'standing']
+sequence_IDs = ['']
+cam_front = "IOI_03"
+cam_top = "IOI_10"
+cam_face1 = "IOI_02"
+cam_face2 = "IOI_04"
+subjects_descr = ["pL", "pR"]  
+cam_sees_subjects = {IOI_02 = [0, 1], IOI_03 = [0, 1], IOI_04 = [0, 1], IOI_10 = [0, 1]} 
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/20240701_res025_2people_avi/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/20240701_res025_2people_avi/<session_ID>/avi/<camera_name>"
+start_frame_index = 0
+fps = 30

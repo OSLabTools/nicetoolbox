@@ -8,6 +8,7 @@ import logging
 import copy
 from utils.logging_utils import log_configs
 import utils.config as cfg
+import utils.filehandling as fh
 import utils.check_and_exception as exc
 
 
@@ -63,20 +64,20 @@ def add_to_filename(filename, addition):
 class Configuration:
     def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
-        self.run_config = cfg.load_config(run_config_file)
+        self.run_config = fh.load_config(run_config_file)
         self.run_config_check_file=add_to_filename(run_config_file, '_check')
-        self.machine_specific_config = cfg.load_config(machine_specifics_file)
+        self.machine_specific_config = fh.load_config(machine_specifics_file)
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
         # detector_config
-        self.detector_config = cfg.load_config(detector_config_file)
+        self.detector_config = fh.load_config(detector_config_file)
         for detector_name, detector_dict in self.detector_config['algorithms'].items():
             if 'framework' in detector_dict.keys():
                 framework = self.detector_config['frameworks'][detector_dict['framework']]
                 self.detector_config['algorithms'][detector_name].update(framework)
 
         dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
-        self.dataset_config = cfg.load_config(dataset_config_file)
+        self.dataset_config = fh.load_config(dataset_config_file)
         self.current_data_config = None
 
         #self.check_config()
@@ -191,7 +192,7 @@ class Configuration:
 
         # check USER INPUT
         logging.info(f"Start USER INPUT CHECK.")
-        run_config_check = cfg.load_config(self.run_config_check_file)
+        run_config_check = fh.load_config(self.run_config_check_file)
         localized_run_config = self.localize(self.run_config)
         exc.check_user_input_config(localized_run_config, run_config_check, "run_config")
         logging.info(f"User input check finished successfully.\n\n\n")
@@ -246,7 +247,7 @@ class Configuration:
             for saved_config_file in saved_config_files:
                 config_names = f'current and loaded ' \
                                f'({os.path.basename(saved_config_file)})'
-                saved_config = cfg.load_config(saved_config_file)
+                saved_config = fh.load_config(saved_config_file)
 
                 # compare top level dicts
                 compare_configs(get_top_level_dict(saved_config['config']),

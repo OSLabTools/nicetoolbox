@@ -4,6 +4,7 @@ import glob
 # internal imports
 import utils.visual_utils as vis_ut
 import utils.config as confh
+import utils.filehandling as fh
 
 class Configuration:
     def __init__(self, visualizer_config_file, machine_specifics_file):
@@ -13,8 +14,8 @@ class Configuration:
             )
         
         # load experiment config dicts - these can contain placeholders
-        self.visualizer_config = confh.load_config(visualizer_config_file)
-        self.machine_specific_config = confh.load_config(machine_specifics_file)
+        self.visualizer_config = fh.load_config(visualizer_config_file)
+        self.machine_specific_config = fh.load_config(machine_specifics_file)
         # load the latest config from the experiment output of isa-tool
         try:
             experiment_config_file = sorted(glob.glob(os.path.join(
@@ -25,7 +26,7 @@ class Configuration:
                   f"{self.localize(self.visualizer_config)['io']['experiment_folder']}\n\n")
             raise 
         
-        loaded_experiment_config = confh.load_config(experiment_config_file)
+        loaded_experiment_config = fh.load_config(experiment_config_file)
         self.experiment_run_config = loaded_experiment_config['run_config']
         self.experiment_detector_config = loaded_experiment_config['detector_config']
         self.dataset_properties = loaded_experiment_config['dataset_config']

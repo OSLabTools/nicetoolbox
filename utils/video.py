@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import subprocess
 
-import utils.config as cf
+import utils.filehandling as fh
 
 
 def run_command_line(string) -> None:
@@ -414,7 +414,7 @@ def crop_and_cut_video(video_file: str, tmp_folder: str, start_frame: int,
 if __name__ == '__main__':
 
     config_file = '/is/sg2/cschmitt/nextcloud/ISA_Data_Share/16_Presentations/20240222_meeting_michael/micro_actions/config.toml'
-    config = cf.load_config(config_file)
+    config = fh.load_config(config_file)
 
     for name in config['run']:
         crops = config[name]['crops']

@@ -22,7 +22,7 @@ face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
 pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
 face_detector_filename = "<assets>/xgaze_3cams/mmod_human_face_detector.dat"
 log_frame_idx_interval = 10
-filtered = false
+filtered = true
 window_length = 11
 polyorder = 2
 

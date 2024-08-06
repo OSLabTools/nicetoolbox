@@ -441,7 +441,7 @@ class Data:
             AssertionError: If the frame indices of different cameras do not match.        
         """
         # detect all video input files
-        video_files = sorted(glob.glob(os.path.join(self.data_input_folder, '*')))
+        video_files = sorted(glob.glob(os.path.join(self.data_input_folder.replace('<camera_name>', '*'), '*')))
 
         for video_file in video_files:
             camera_name_indices = [name.lower() in video_file.lower() 

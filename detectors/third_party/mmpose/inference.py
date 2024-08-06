@@ -16,7 +16,7 @@ sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mmpose'))
 
 # internal imports
-import utils.config as cf
+import utils.filehandling as fh
 
 
 #import output_sanity_checks as sc
@@ -179,7 +179,10 @@ def check_correct_and_sort_person_detections(data, num_subjects, bbox_conf_thres
             logging.error(f" Frame index: {i} - Number of detected people "
                           f"-{len(updated_frame_predictions)}- is not same as subject description."
                           f"previous frame detections will be used")
-            updated_frame_predictions_list.append(updated_frame_predictions_list[-1])
+            try:
+                updated_frame_predictions_list.append(updated_frame_predictions_list[-1])
+            except IndexError:
+                updated_frame_predictions_list.append([])
     return updated_frame_predictions_list
 
 def convert_output_to_numpy(data, num_persons):
@@ -359,5 +362,5 @@ def main(config):
 
 if __name__ == '__main__':
     config_path = sys.argv[1]
-    config = cf.load_config(config_path)
+    config = fh.load_config(config_path)
     main(config)

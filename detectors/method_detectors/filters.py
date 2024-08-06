@@ -58,7 +58,7 @@ class SGFilter(BaseFilter):
 
         Args:
             data (np.array): The input data to be filtered. The shape of the array should be
-                [#Frames, #Keypoints, XYZ].
+                [#Persons, #Cameras, #Frames, #Keypoints, XYZ].
 
             is_3d (bool, optional): A flag indicating whether the input data is 3D or not.
                 If True, the filter will be applied to the Z dimension.
