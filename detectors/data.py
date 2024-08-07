@@ -78,6 +78,7 @@ class Data:
             else config['video_skip_frames']
         self.annotation_interval = config['annotation_interval']
         self.subjects_descr = config['subjects_descr']
+        self.start_frame_index = config['start_frame_index']
         self.camera_mapping = dict((key, config[key]) for key in config.keys() if 'cam_' in key)
 
         # collect which data slices and formats are required
@@ -546,7 +547,9 @@ class Data:
             # guess for number of characters in filename base
             base_name = '.'.join(os.path.basename(input_frame_paths[0]).split('.')[:-1])
             chars = ''.join([b for b in base_name if not b.isdigit()])
-            if base_name[0].isdigit() and base_name[:-len(chars)].isdigit():
+            if base_name.isdigit():
+                filename_template = f"%0{len(base_name)}d.{input_format}"
+            elif base_name[0].isdigit() and base_name[:-len(chars)].isdigit():
                 # in case the filename starts with a digit and all letters are in the end
                 filename_template = f"%0{len(base_name[:-len(chars)])}d{chars}.{input_format}"
             elif not base_name[0].isdigit() and base_name[len(chars):].isdigit():
@@ -564,7 +567,7 @@ class Data:
                 camera_frames_list = []
 
                 skip = self.video_skip_frames if self.video_skip_frames is not None else 1
-                for frame_idx in range(self.video_start, self.video_start + self.video_length, skip):
+                for frame_idx in range(self.video_start + self.start_frame_index, self.video_start + self.video_length, skip):
 
                     input_frame_indices = np.where([filename_template % frame_idx in path for path in input_frame_paths])[0]
                     if len(input_frame_indices) != 1:

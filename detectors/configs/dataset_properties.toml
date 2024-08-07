@@ -25,7 +25,7 @@ cam_face2 = ''
 subjects_descr = ["person"]  # implies that the video shows a single person
 cam_sees_subjects = {video_5 = [0], video_8 = [0]}
 path_to_calibrations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<session_ID>/<sequence_ID>/<camera_name>"
+data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/oslab/frames/<session_ID>/<sequence_ID>/<camera_name>"
 start_frame_index = 1
 fps = 50
 
@@ -39,8 +39,22 @@ cam_face2 = 'view_right'
 subjects_descr = ["person_left", "person_right"]
 cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]} 
 path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/communication_multiview/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/NICE_test_datasets/communication_multiview/<session_ID>/"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/communication_multiview/<session_ID>"
 start_frame_index = 0
+fps = 30
+
+[nice_capture_hall]
+session_IDs = ["sitting", "standing"]
+sequence_IDs = ['']
+cam_front = 'IOI_03'
+cam_top = 'IOI_02'
+cam_face1 = ''
+cam_face2 = ''
+subjects_descr = ["personL", "personR"]
+cam_sees_subjects = {IOI_03 = [0, 1], IOI_02 = [0, 1]}
+path_to_calibrations = "<datasets_folder_path>/NICE_test_datasets/nice_capture_hall/Calibration/calibrations.npz"
+data_input_folder = "<datasets_folder_path>/NICE_test_datasets/nice_capture_hall/Frames/<session_ID>/<camera_name>"
+start_frame_index = 1
 fps = 30
 
 [communication_mono]

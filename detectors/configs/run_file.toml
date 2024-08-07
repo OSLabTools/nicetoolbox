@@ -30,10 +30,31 @@ leaning = ['body_angle']
 # - video_skip_frames (bool) is relevant for frames only
 # - annotation_interval (int) in seconds, length of segments
 
+[run.nice_capture_hall]
+components = ["body_joints", "hand_joints", "face_landmarks", "gaze_individual", "gaze_interaction", "kinematics", "proximity"]
+videos = [
+    {session_ID = "sitting", sequence_ID='', video_start = 0, video_length = 25, video_skip_frames = false, annotation_interval = 2.0},
+    {session_ID = "standing", sequence_ID='', video_start = 0, video_length = 25, video_skip_frames = false, annotation_interval = 2.0},
+]
+
 [run.communication_multiview]
 components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
 videos = [
    {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99, video_skip_frames = false, annotation_interval = 2.0},
+]
+
+[run.dyadic_communication]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
+videos = [
+   {session_ID = "PIS_ID_000", sequence_ID='', video_start = 17, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
+   {session_ID = "PIS_ID_04", sequence_ID='', video_start = 100, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
+]
+
+[run.mpi_inf_3dhp]
+components = ["body_joints", "gaze_individual", "kinematics", "proximity", "leaning"]
+videos = [
+    {session_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
+    {session_ID = "S2", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2.0}
 ]
 
 [io]
