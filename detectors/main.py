@@ -76,7 +76,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
     #        io.get_output_folder('output'))
 
     # check and save experiment configs
-    # config_handler.checker()
+    config_handler.checker()
     config_handler.save_experiment_config(io.get_config_file())
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

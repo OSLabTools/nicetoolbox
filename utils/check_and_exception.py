@@ -109,7 +109,7 @@ def error_log_and_raise(error, name, message):
     raise error(f"{name}: {message}")
 
 
-def check_user_input_config(config, check, config_name):
+def check_user_input_config(config, check, config_name, var=None):
     """ 
     Check a given configuration dictionary for correct user inputs
     based on a template dictionary describing the valid inputs.
@@ -137,11 +137,28 @@ def check_user_input_config(config, check, config_name):
     # the config dict contains all test-keys and test-values (tkey, tval)
     # the check dict contains all check-keys and check-values (ckey, cval)
     for (tkey, tval) in config.items():
-        if tkey not in check.keys():
+
+        # CHECKING KEYS
+        # given a definition of valid keys 
+        if '_valid_keys_' in check.keys():
+            check_user_input_config({'test': tkey}, {'test': check['_valid_keys_']}, config_name, var)
+
+        # if a key serves as a variable
+        if ['_var_'] == list(check.keys()) or set(['_var_', '_valid_keys_']) == set(list(check.keys())):
+            var = tkey
+            cval = check['_var_']
+
+        # if not, the validity criterion for its value(s) needs to be defined in the check dictionary
+        elif tkey not in check.keys():
             error_log_and_raise(LookupError, config_name, f"'{tkey}' not found in within the keys of the check dictionary.")
             break
 
-        cval = check[tkey]
+        # if key is no variable and validity criterion for its value is given, use this for checks
+        else:
+            cval = check[tkey]
+
+
+        # CHECKING VALUES
         
         # special case: the test value is a list
         if isinstance(tval, list):
@@ -149,12 +166,19 @@ def check_user_input_config(config, check, config_name):
                 pass
             else: 
                 for tvalue in tval: 
-                    check_user_input_config({tkey:tvalue}, check, config_name)
+                    check_user_input_config({tkey:tvalue}, check, config_name, var)
 
         else:
 
             # go through all options for the check-value (cval)
             if isinstance(cval, str):
+
+                # check whether there is a variable in the string to replace
+                if '_var_' in cval:
+                    if var is not None:
+                        cval = cval.replace('_var_', var)
+                    else:
+                        error_log_and_raise(LookupError, config_name, f"value '{cval}' requires the variable (_var_) to be defined.")
 
                 # type check
                 if cval.startswith('type'):
@@ -180,11 +204,11 @@ def check_user_input_config(config, check, config_name):
 
                 elif cval.startswith('keys'):
                     keys = load_dict_keys_values(cval, config_name)
-                    check_user_input_config({tkey: tval}, {tkey: keys}, config_name)
+                    check_user_input_config({tkey: tval}, {tkey: keys}, config_name, var)
                     
                 elif cval.startswith('values'):
                     values = load_dict_keys_values(cval, config_name)
-                    check_user_input_config({tkey: tval}, {tkey: values}, config_name)
+                    check_user_input_config({tkey: tval}, {tkey: values}, config_name, var)
 
                 elif cval.startswith('tbd'):
                     logging.warning(f"{config_name}: For key '{tkey}', no check argument is given. Skipping.")
@@ -199,7 +223,7 @@ def check_user_input_config(config, check, config_name):
 
             # recursive strategy for dicts    
             elif isinstance(cval, dict):
-                check_user_input_config(tval, cval, config_name)
+                check_user_input_config(tval, cval, config_name, var)
 
 
 def load_dict_keys_values(command: str, config_name: str) -> list:
