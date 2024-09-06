@@ -79,7 +79,7 @@ class Configuration:
                                                                                              cam_name)
             if (cam_rotation == None) | (cam_extrinsic == None):
                 assert ValueError(
-                    "The roation and extrinsic matrix of the camera could not found.\n"
+                    "The rotation and extrinsic matrix of the camera could not found.\n"
                     "Please either change the Visualizer_config 'camera_position' parameter to false \n"
                     "or provide extrinsics parameters of the camera")
 

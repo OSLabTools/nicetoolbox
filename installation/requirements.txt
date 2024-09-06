@@ -10,3 +10,5 @@ toml==0.10.2
 scikit-image==0.21.0
 matplotlib==3.7.2
 rerun-sdk==0.17.0
+streamlit==1.38.0
+tueplots==0.0.15

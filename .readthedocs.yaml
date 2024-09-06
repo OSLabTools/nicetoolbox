@@ -19,15 +19,15 @@ build:
 sphinx:
   builder: html
   configuration: docs/conf.py
+  fail_on_warning: false
 
 # Optionally build your docs in additional formats such as PDF and ePub
 formats:
    - pdf
-  #  - epub
 
 # Optional but recommended, declare the Python requirements required
 # to build your documentation
 # See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
-# python:
-#    install:
-#    - requirements: docs/requirements.txt
+python:
+   install:
+   - requirements: installation/requirements.txt

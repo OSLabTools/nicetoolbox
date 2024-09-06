@@ -1,3 +1,7 @@
+"""
+Main module for initializing and running the visualizer.
+"""
+
 import os
 import sys
 import cv2
@@ -13,6 +17,13 @@ from visual.media.components import GazeIndividualComponent, BodyJointsComponent
     FaceLandmarksComponent, GazeInteractionComponent, ProximityComponent, KinematicsComponent
 
 def main():
+    """
+    Main function to run the visualizer.
+
+    This function sets up the configuration, initializes the input/output handlers, loads calibration data,
+    and initializes the viewer for visualizing the components.
+    """
+    
     ############# CONFIGURATION - IO #############
     visualizer_config_file = "visual/configs/visualizer_config.toml"
     machine_specifics_file = "machine_specific_paths.toml"
