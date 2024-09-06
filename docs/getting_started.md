@@ -73,8 +73,11 @@ To run the toolbox, open a terminal or the API of your choice and execute:
 # navigate to the NICE toolbox source code folder
 cd /path/to/isa-tool/
 
-# activate the python environment
+# activate the python environment in LINUX
 source ./env/bin/activate
+
+# activate the python environment in WINDOWS
+env\Scripts\activate
 
 # run the toolbox
 python detectors/main.py

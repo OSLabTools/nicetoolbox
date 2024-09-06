@@ -3,7 +3,7 @@
 # Stop on error
 set -e
 
-cd $CI_PROJECT_DIR
+cd "$(dirname "$0")/.."
 
 ###GAZE DETECTOR INSTALLATION###
 echo "Setting up Python virtual environment for third_party/xgaze_3cams..."

@@ -1,30 +1,19 @@
 import os
 import copy
 
-def flatten_list(input_list):
-    if isinstance(input_list, str):
-        return [input_list]
-    elif isinstance(input_list, list):
-        output_list = []
-        for item in input_list:
-            output_list += flatten_list(item)
-        return output_list
-
 class IO:
     def __init__(self, config):
-        # self.dataset_folder = config["dataset_folder"]
         # Experiment details
-        self.nice_tool_input_folder = config['nice_tool_input_folder']
-        self.experiment_folder = config["experiment_folder"]
-        self.experiment_video_component_folder = config['experiment_video_component']
-
-    def initialization(self, dataset_config):
+        self.nice_tool_input_folder = config['io']['nice_tool_input_folder']
+        self.experiment_video_component_folder = config['io']['experiment_video_component']
         # Dataset properties
-        self.path_to_calibs = dataset_config['dataset_properties']["path_to_calibrations"]
+        self.path_to_calibs = config['dataset_properties']["path_to_calibrations"]
 
-        # Experiment details
+        # Update Experiment details
         self.experiment_video_component_folder = self.experiment_video_component_folder.replace(
-            '<video_name>', dataset_config['media']['video_name']) ## component output
+            '<experiment_folder>', config['io']["experiment_folder"])
+        self.experiment_video_component_folder = self.experiment_video_component_folder.replace(
+            '<video_name>', config['media']['video_name'])
 
     def get_component_nice_tool_input_folder(self, video_details, dataset_name):
         folder_path = copy.deepcopy(self.nice_tool_input_folder)

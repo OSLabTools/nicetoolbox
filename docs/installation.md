@@ -34,15 +34,34 @@ Please download the folder put it in `isa-tool/detectors/assets`.
 ### a. Python 3.10
 see https://www.python.org/downloads/
 
+If you are a windows user, please add python to PATH variables. 
+The detailed explanation can be found under https://www.educative.io/answers/how-to-add-python-to-path-variable-in-windows 
+
+
 ### b. Conda
 see https://conda.io/projects/conda/en/latest/user-guide/install/index.html
+
+Conda can be installed through different distributors—one of them is Anaconda. The "defaults" channel in Anaconda, which is used for the base environment, is subject to specific licensing. Another option is using Miniforge, which uses the conda-forge channel by default, offering only free and open-source packages.
+
+If you installed Conda through Anaconda, you can switch to the free conda-forge channel by following these steps:
+
+```
+# check what is currently set
+conda config --show channels
+
+# remove all channels other than conda-forge conda config --remove channels defaults
+
+# add conda-forge if not already present
+conda config --add channels conda-forge
+``` 
+To install Miniforge you can use https://github.com/conda-forge/miniforge
+
+
 
 ### c. Cuda 11.8 
 - For windows, see https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html
 - For Ubuntu, see https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 
-#TODO: if the code works without CUDA - specify here - and perhaps create openmmlab installation 
-have pytorch - cpu only installation 
 
 ### d. FFmpeg
 - For windows: 
@@ -60,16 +79,21 @@ Source: https://phoenixnap.com/kb/ffmpeg-windows
 - For Ubuntu: 
 see https://phoenixnap.com/kb/install-ffmpeg-ubuntu 
 
+### e. Turn Developer Mode on in Windows
+Nice Toolbox creates symlinks. In Windows, enable Developer Mode to make it posible.
+Go to Settings > Updates&Security > For Developers and turn Developer Mode to on.
+TODO -- check if it creates any security risk (windows gives a warning about) and whether there is a better way to do it.
 
-## 3. Install the necessary libraries 
+
+## 3. Install the necessary libraries
 
 The installation scripts presume that Conda, CUDA 11.8, and Python 3.10 are already installed on 
 your system. Installation via Conda is mandatory because of openmmlab installation (pose detector). 
 However, if you wish to use different versions of Python and CUDA, you can modify the corresponding 
 lines in the installation files.
 
-The installation script (`installation/install_all`): 
-1. Setup isa-tool environment
+The installation script (`installation/install_all`) does the follows: 
+1. Setup Nice Toolbox environment
 2. Setup conda environment for Openmmlab (pose detector)
 3. Setup venv environment for Gaze Detector
 
@@ -78,21 +102,21 @@ The installation script (`installation/install_all`):
 
 ### **How-to:**
 #### 3.1. In Linux:
-Open a terminal and navigate to main directory where isa-tool then type the followings into terminal
+Open a terminal and navigate to main directory where Nice Toolbox is then type the followings into terminal
 
 ```
-cd /path/to/isa-tool/
-chmod +x ./installation/installation_all.sh  # to add executable permission to the script
+cd /path/to/nice-toolbox/
+chmod +x ./installation/install_all.sh  # to add executable permission to the script
 ./installation/install_all.sh                # to install all necessary libraries
 ```
 
 #### 3.2. In Windows:  
 #TODO - Needs to be tested !!
 
-Open a cmd and navigate to main directory where isa-tool then type the following into cmd
+Open a cmd and navigate to main directory where Nice Toolbox is then type the following into cmd
 ```
-cd \path\to\isa-tool
-installation\install_all.bat
+cd \path\to\nice-toolbox
+installation\install_all.bat # to install all necessary libraries
 ```
 
 #### 4. Additional Notes: 
@@ -102,7 +126,7 @@ https://www.rerun.io/privacy
 
 It will be used in local mode. Still, the application will be collecting the user information. To disable these analytics: 
 
-1. activate envs/ under isa-tool, then run: 
+1. activate envs/ under nice-toolbox, then run: 
 ```
 rerun analytics config ##to see current configuration
 rerun analytics disable 

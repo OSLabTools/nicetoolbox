@@ -1,9 +1,9 @@
 #!/bin/bash
 
-cd $CI_PROJECT_DIR
+cd "$(dirname "$0")/.."
 
 # Ensure all scripts are executable
-chmod +x ./installation/install_isatool_venv.sh
+chmod +x ./installation/install_nicetoolbox_venv.sh
 chmod +x ./installation/install_xgaze_venv.sh
 chmod +x ./installation/install_openmmlab_conda.sh
 

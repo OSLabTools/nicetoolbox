@@ -3,7 +3,7 @@
 # Stop on error
 set -e
 
-cd $CI_PROJECT_DIR
+cd "$(dirname "$0")/.."
 
 ###OPENMMLAB INSTALLATION###
 # Create a conda environment
@@ -20,8 +20,9 @@ conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=
 # Install MMPose and its dependencies
 echo "Installing MMPose and dependencies..."
 pip install -U openmim
+conda install fsspec -c conda-forge -y
 pip install mmengine
-mim install "mmcv>=2.0.1"
+mim install "mmcv==2.1.0"
 mim install "mmdet>=3.1.0"
 mim install "mmpretrain>=1.0.0rc8"  # required for Vitpose
 echo "Navigate Inside to mmpose directory"

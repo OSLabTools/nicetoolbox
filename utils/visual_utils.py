@@ -28,23 +28,15 @@ def apply_savgol_filter(data, windows_length=11, polyorder=2):
 
 def load_calibration(calibration_file, video_input_config, camera_names='all'):
     calib = None
-    if video_input_config['sequence_ID'] == '':
-        loaded_calib = np.load(calibration_file, allow_pickle=True)[video_input_config['session_ID']].item()
-        if camera_names == 'all':
-            calib = dict((key, value) for key, value in loaded_calib.items())
-        else:
-            calib = dict((key, value) for key, value in loaded_calib.items()
-                         if key in camera_names)
-    else:
-        # TODO - test with other calibrations
-        loaded_calib = np.load(calibration_file, allow_pickle=True)[video_input_config['session_ID']].item()[video_input_config['sequence_ID']]
-        if camera_names == 'all':
-            calib = dict((f"video_{key}", value) for key, value in loaded_calib.items())
-        else:
-            calib = dict((f"video_{key}", value) for key, value in loaded_calib.items()
-                         if f"video_{key}" in camera_names)
-    return calib
 
+    calib_details = '__'.join([word for word in [video_input_config['session_ID'], video_input_config['sequence_ID']] if word])
+    loaded_calib = np.load(calibration_file, allow_pickle=True)[calib_details].item()
+    if camera_names == 'all':
+        calib = dict((key, value) for key, value in loaded_calib.items())
+    else:
+        calib = dict((key, value) for key, value in loaded_calib.items()
+                     if key in camera_names)
+    return calib
 
 def project_points_using_cv2(points, cam_int, cam_ext, dist):
     """

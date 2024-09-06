@@ -4,10 +4,16 @@ import rerun as rr
 class Viewer:
     def __init__(self, visualizer_config):
         self.visualizer_config = visualizer_config
-        self.canvas_list = self.create_canvas_list()
+
+        canvas_list = []
+        for component in self.visualizer_config['media']['visualize']['components']:
+            for canvases in self.visualizer_config['media'][component]['canvas'].values():
+                canvas_list.extend(canvases)
+        self.canvas_list = list(set(canvas_list))
+
         self.is_camera_position = visualizer_config['media']['visualize']['camera_position']
         self.fps =self.visualizer_config['dataset_properties']['fps']
-        self.create_canvas_roots()
+        self._create_canvas_roots()
 
 
     @staticmethod
@@ -37,14 +43,8 @@ class Viewer:
     def get_video_start(self):
         return self.visualizer_config['video']['video_start']
 
-    def create_canvas_list(self):
-        canvas_list = []
-        for component in self.visualizer_config['media']['visualize']['components']:
-            for canvases in self.visualizer_config['media'][component]['canvas'].values():
-                canvas_list.extend(canvases)
-        return list(set(canvas_list))
 
-    def create_canvas_roots(self):
+    def _create_canvas_roots(self):
         if '3D_Canvas' in self.canvas_list:
             self.ROOT3D = '3D_Canvas'
             if self.is_camera_position:
@@ -61,10 +61,10 @@ class Viewer:
             self.IMAGES_ROOT = 'cameras'
             self.ROOT3D = None
             self.CAMERAS_ROOT = None
+
     def get_camera_pos_entity_path(self, camera_name):
         return f'{self.CAMERAS_ROOT}/{camera_name}'
-    def get_root3d_entity_path(self):
-        return self.ROOT3D
+
     def get_images_entity_path(self, camera_name):
         return f'{self.IMAGES_ROOT}/{camera_name}'
 
@@ -92,7 +92,6 @@ class Viewer:
             raise ValueError(f"ERROR in generate_component_entity_path(): Component {component} did not implemented")
 
         return entity_path
-
 
     def log_camera(self, camera_calibration, entity_path):
         # intrinsic camera matrix

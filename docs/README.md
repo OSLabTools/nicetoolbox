@@ -88,6 +88,9 @@ The algorithm requires the intrinsics parameters of the used cameras. For more d
 ## Installation
 Please see the [Installation Instructions](installation.md)  for more information 
 
+## Getting Started
+Please see the [Getting Started](getting_started.md)  for more information 
+
 
 ## Acknowledgments 
 ISA-Visual is based on [rerun.io](https://rerun.io/). 

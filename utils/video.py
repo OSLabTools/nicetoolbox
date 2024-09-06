@@ -12,7 +12,7 @@ import pandas as pd
 import subprocess
 
 import utils.filehandling as fh
-
+import utils.system as oslab_sys
 
 def run_command_line(string) -> None:
     """
@@ -181,7 +181,10 @@ def split_into_frames(video_file: str, output_base: str, start_frame: int = None
         if keep_indices:
             new_idx = sequential2frame_number(old_idx, start_frame, skip_frames)
             new_filename = os.path.join(output_base, "%05d.png" % new_idx)
-            os.system(f"mv {file} {new_filename}")
+            if oslab_sys.detect_os_type()=='windows':
+                os.system(f"move {file} {new_filename}")
+            else:
+                os.system(f"mv {file} {new_filename}")
             frame_indices_list.append(new_idx)
             frames_list.append(new_filename)
         else:

@@ -20,13 +20,14 @@ def main():
     visualizer_config = config_handler.get_updated_visualizer_config()
 
     # IO
-    io = IO(config_handler.get_io_config(add_exp=True))
-    io.initialization(visualizer_config)
+    io = IO(visualizer_config)
+    #io.initialization(visualizer_config)
     nice_tool_input_folder = io.get_component_nice_tool_input_folder(visualizer_config['video'], visualizer_config['media']['dataset_name'])
 
     ### load calibration for the video
     calibration_file = io.get_calibration_file(visualizer_config['video'])
-    calib = vis_utils.load_calibration(calibration_file, visualizer_config['video'], camera_names='all')
+
+    calib = vis_utils.load_calibration(calibration_file, visualizer_config['video'], camera_names=config_handler.get_camera_names())
 
     ############## INITIALIZE VIEWER ############
     viewer = Viewer(visualizer_config)
@@ -63,36 +64,35 @@ def main():
     gaze_ind_component = GazeIndividualComponent(visualizer_config, io, viewer, "gaze_individual",
                                                  calib, eyes_middle_3d_data,
                                                  look_at_data_tuple) if 'gaze_individual' in components else None
+
     proximity_component = ProximityComponent(visualizer_config, io, viewer, "proximity",
                                              eyes_middle_3d_data,
                                              eyes_middle_2d_data) if 'proximity' in components else None
+
     kinematics_component = KinematicsComponent(visualizer_config, io, viewer,
                                                "kinematics") if 'kinematics' in components else None
 
     instances = [body_joints_component, hand_joints_component, face_landmarks_component,
                  gaze_ind_component, proximity_component, kinematics_component]
 
-
     ############## VISUALIZATION ###########
     # # initialize rerun visualizer
     viewer.spawn()
-
+    for camera in all_cameras:
+        if viewer.get_is_camera_position():
+            entity_path_cams = viewer.get_camera_pos_entity_path(camera)
+            viewer.log_camera(calib[camera], entity_path_cams)
     for frame_idx in range(viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()):
         viewer.go_to_timestamp(frame_idx)
-        frame_no = viewer.get_video_start() + frame_idx
+        frame_no = viewer.get_video_start() + frame_idx + config_handler.get_dataset_starting_index()
         image_name = f"{frame_no:05}.png"  ##TODO check in general cases
         for camera in all_cameras:
             # log camera into 3d canvas
             image_path = os.path.join(nice_tool_input_folder, camera, "frames",
                                       image_name).replace("\\", "/")
             image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
-            if viewer.get_is_camera_position():
-                entity_path_cams = viewer.get_camera_pos_entity_path(camera)
-                viewer.log_camera(calib[camera], entity_path_cams)
-
             entity_path_imgs = viewer.get_images_entity_path(camera)
             viewer.log_image(image, entity_path_imgs, img_quality=75)
-
         for instance in instances:
             if instance is not None:
                 instance.visualize(frame_idx)

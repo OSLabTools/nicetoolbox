@@ -1,11 +1,15 @@
 @echo off
+
 echo Starting main Installation Script...
 
+echo Changing working directory
+cd /d "%~dp0\.."
 
-echo Calling install_isatool_venv.bat...
-call .\installation\install_isatool_venv.bat
+
+echo Calling install_nicetoolbox_venv.bat...
+call .\installation\install_nicetoolbox_venv.bat
 if errorlevel 1 (
-    echo install_isatool_venv.bat encountered an error. Exiting...
+    echo install_nicetoolbox_venv.bat encountered an error. Exiting...
     exit /b %errorlevel%
 )
 
