@@ -18,8 +18,11 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
       - [4. Additional Notes:](#4-additional-notes)
 <!-- TOC -->
 
-## 1. Clone the repositories
-Clone the isa-tool repository and navigate into the isa-tool folder:
+## 1. Clone the repository
+1. Before cloning the repository, install git into your machine if it is not installed yet.
+See https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+
+2. Clone the isa-tool repository and navigate into the isa-tool folder:
 #TODO: UPDATE RENAME OF THE REPOSITORIES
 ```
 git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git 
@@ -41,7 +44,7 @@ The detailed explanation can be found under https://www.educative.io/answers/how
 ### b. Conda
 see https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 
-Conda can be installed through different distributors—one of them is Anaconda. The "defaults" channel in Anaconda, which is used for the base environment, is subject to specific licensing. Another option is using Miniforge, which uses the conda-forge channel by default, offering only free and open-source packages.
+Conda can be installed through different distributors. One of them is Anaconda. The "defaults" channel in Anaconda, which is used for the base environment, is subject to specific licensing. Another option is using Miniforge, which uses the conda-forge channel by default, offering only free and open-source packages.
 
 If you installed Conda through Anaconda, you can switch to the free conda-forge channel by following these steps:
 
@@ -56,12 +59,20 @@ conda config --add channels conda-forge
 ``` 
 To install Miniforge you can use https://github.com/conda-forge/miniforge
 
+**Important Notice for Conda Installation**
+
+During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter. 
+This is because **NiceToolbox** requires Python version **3.10** to be set as the default.
+
+![miniforge-defaultpyhthon.PNG](graphics%2Fminiforge-defaultpyhthon.PNG)
+
+Selecting this option during installation may result in errors or conflicts, 
+as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
 
 
 ### c. Cuda 11.8 
 - For windows, see https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html
 - For Ubuntu, see https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
-
 
 ### d. FFmpeg
 - For windows: 

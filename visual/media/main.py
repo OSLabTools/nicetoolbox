@@ -37,7 +37,6 @@ def main():
 
     ### load calibration for the video
     calibration_file = io.get_calibration_file(visualizer_config['video'])
-
     calib = vis_utils.load_calibration(calibration_file, visualizer_config['video'], camera_names=config_handler.get_camera_names())
 
     ############## INITIALIZE VIEWER ############
@@ -49,9 +48,16 @@ def main():
     for cam in all_cameras:
         config_handler.check_calibration(calib, cam)
     viewer.check_multiview()
+    visualizer_config = config_handler.check_and_update_canvas()
 
     ############# LOAD COMPONENTS DATA #############
     components = visualizer_config['media']['visualize']['components']
+    for component in components:
+        if component not in os.listdir(io.get_experiment_video_folder()):
+            print(f"WARNING: {component} Component is not found in video output. "
+                  f"It will not be visualized.\n To avoid this warning, consider removing "
+                  f"'{component}' from the components list in the visualizer_config.toml file")
+            components.remove(component)
 
     if 'body_joints' in components:
         body_joints_component = BodyJointsComponent(visualizer_config, io, viewer, "body_joints")
@@ -96,7 +102,7 @@ def main():
     for frame_idx in range(viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()):
         viewer.go_to_timestamp(frame_idx)
         frame_no = viewer.get_video_start() + frame_idx + config_handler.get_dataset_starting_index()
-        image_name = f"{frame_no:05}.png"  ##TODO check in general cases
+        image_name = f"{frame_no:05}.png"
         for camera in all_cameras:
             # log camera into 3d canvas
             image_path = os.path.join(nice_tool_input_folder, camera, "frames",
@@ -104,6 +110,7 @@ def main():
             image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
             entity_path_imgs = viewer.get_images_entity_path(camera)
             viewer.log_image(image, entity_path_imgs, img_quality=75)
+
         for instance in instances:
             if instance is not None:
                 instance.visualize(frame_idx)

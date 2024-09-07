@@ -70,6 +70,11 @@ class Configuration:
         camera_names = [value for key, value in self.visualizer_config['dataset_properties'].items() if (key.startswith("cam_")) & (value!='') & (type(value) is str)]
         return camera_names
 
+    def _get_camera_placeholders(self):
+        # Extracting camera names
+        camera_names = [key for key, value in self.visualizer_config['dataset_properties'].items() if (key.startswith("cam_")) & (value!='') & (type(value) is str)]
+        return camera_names
+
     def get_dataset_starting_index(self):
         return self.dataset_properties[self.dataset_name]['start_frame_index']
 
@@ -127,5 +132,26 @@ class Configuration:
                     raise ValueError(f"Algorithm {alg} is not found in {component} run file."
                                      f"Delete or correct {alg} from Visualizer_config[media.{component} algorithms")
 
+    # Extract lists from config, check, and update if necessary
+    def check_and_update_canvas(self):
+        """
+        Checks if the canvas list under a given section and key matches a condition,
+        and updates the list if not.
+        """
+        for component in self.visualizer_config['media']['visualize']['components']:
+            a = self.visualizer_config['media'][component]
+            for key, values in self.visualizer_config['media'][component]['canvas'].items():
+                removed_values = []
+                for value in values:
+                    if 'cam' in value:
+                        if value.strip('<>') not in self._get_camera_placeholders():
+                            removed_values.append(value)
+                if removed_values:
+                    print(f"WARNING: {removed_values} camera placeholders are not used in your dataset properties."
+                          f"They will not be visualized. \n To avoid this warning, consider removing "
+                          f"'{removed_values}' from the ['media'][{component}]['canvas'] list "
+                          f"in the visualizer_config.toml file")
+                    updated_list = [v for v in values if v not in removed_values]
+                    self.visualizer_config['media'][component]['canvas'][key] = updated_list
 
-
+        return self.get_updated_visualizer_config()

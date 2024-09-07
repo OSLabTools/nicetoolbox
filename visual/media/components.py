@@ -11,6 +11,7 @@ Classes:
     KinematicsComponent: Class for visualizing kinematics data.
 """
 
+import os
 import numpy as np
 import rerun as rr
 from pathlib import Path
@@ -45,11 +46,11 @@ class Component(ABC):
         self.visualizer_config = visualizer_config
         self.component_name = component_name
         self.logger = logger
-        self.algorithm_list = self.visualizer_config['media'][self.component_name]['algorithms']
         self.component_prediction_folder = io.get_component_results_folder(
             visualizer_config['media']['video_name'],
             component_name=component_name
         )
+        self.algorithm_list = self.visualizer_config['media'][self.component_name]['algorithms']
 
         # get canvas list from visualizer_config
         canvas_list = []
@@ -292,6 +293,8 @@ class BodyJointsComponent(Component):
         for canvas in self.canvas_list:
             if canvas == '3D_Canvas':
                 for alg_idx, alg_data in enumerate(self.canvas_data["3d"]):
+                    if frame_idx>=alg_data.shape[2]: # number of frames
+                        continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
                         subject_3d_points = alg_data[subject_idx, 0, frame_idx]
@@ -305,6 +308,8 @@ class BodyJointsComponent(Component):
                 camera_index = self.camera_names.index(cam_name)
                 for k in data_key:
                     for alg_idx, alg_data in enumerate(self.canvas_data[k]):
+                        if frame_idx >= alg_data.shape[2]:  # number of frames
+                            continue
                         alg_name = self.algorithm_list[alg_idx]
                         for subject_idx, subject in enumerate(self.subject_names):
                             subject_2d_points = alg_data[subject_idx, camera_index, frame_idx][:, :2] #select first 2 values, 3rd is confidence score
@@ -313,22 +318,6 @@ class BodyJointsComponent(Component):
                             self._log_data(entity_path, subject_2d_points, '2d', alg_idx)
                             self._log_skeleton(f'{entity_path}/skeleton', subject_2d_points, dimension=2,
                                               alg_idx=alg_idx)
-    
-    ## TODO: try again adding annotation context
-    # def log_annotation_context(self, label_description, component_name, alg_name, class_id, color):
-    #     rr.log(
-    #         f"/{component_name}_{alg_name}",
-    #         rr.AnnotationContext(
-    #             rr.ClassDescription(
-    #                 info=rr.AnnotationInfo(id=class_id, label=f"{component_name}_{alg_name}", color=color),
-    #                 keypoint_annotations=[
-    #                     rr.AnnotationInfo(id=i, label=label, color=np.array(color)) for i,label in enumerate(label_description)
-    #                 ]
-    #             )
-    #         ),
-    #          timeless=True,
-    #     )
-
 
 class HandJointsComponent(BodyJointsComponent):
     """
@@ -562,6 +551,8 @@ class GazeIndividualComponent(Component):
         for canvas in self.canvas_list:
             if canvas == '3D_Canvas':
                 for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
+                    if frame_idx>=alg_data.shape[2]: # number of frames
+                        continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
                         subject_gaze_individual = alg_data[subject_idx, 0, frame_idx]
@@ -583,11 +574,15 @@ class GazeIndividualComponent(Component):
             else:
                 cam_name = canvas
                 for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
+                    if frame_idx>=alg_data.shape[2]: # number of frames
+                        continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
                         if subject_idx in self.visualizer_config['dataset_properties']['cam_sees_subjects'][
                                     cam_name]:
                             camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
+                            if frame_idx >= camera_data.shape[1]:  # number of frames
+                                continue
                             frame_data = camera_data[subject_idx,frame_idx]
                             subject_eyes_mid = self.camera_view_subjects_middle_point_dict[canvas][subject_idx][frame_idx][:2]
                             entity_path = self.logger.generate_component_entity_path(
@@ -621,7 +616,6 @@ class GazeInteractionComponent(Component):
             component_name (str): The name of the component.
         """
         super().__init__(visualizer_config, io, logger, component_name)
-
         # selects first key - it might be distance_gaze_2d or distance_gaze_3d
         keyname = list(self.algorithms_results[0]['data_description'].item().keys())[0]
         self.camera_names = self.algorithms_results[0]['data_description'].item()[keyname]['axis1']
@@ -783,6 +777,8 @@ class ProximityComponent(Component):
             if canvas == '3D_Canvas':
                 for alg_idx, alg_data in enumerate(self.canvas_data["body_distance_3d"]):
                     alg_name = self.algorithm_list[alg_idx]
+                    if frame_idx>=alg_data.shape[2]: # number of frames
+                        continue
                     frame_proximity = alg_data[:,0,frame_idx,0][0]
                     entity_path = self.logger.generate_component_entity_path(
                         self.component_name, is_3d=True, alg_name=alg_name)
@@ -792,6 +788,8 @@ class ProximityComponent(Component):
                 for alg_idx, alg_data in enumerate(self.canvas_data["body_distance_2d"]):
                     alg_name = self.algorithm_list[alg_idx]
                     camera_idx = self.camera_names.index(canvas)
+                    if frame_idx>=alg_data.shape[2]: # number of frames
+                        continue
                     frame_proximity = alg_data[:,camera_idx, frame_idx,0][0]
                     entity_path = self.logger.generate_component_entity_path(
                         self.component_name, is_3d=False, alg_name=alg_name, cam_name=cam_name)
@@ -886,6 +884,8 @@ class KinematicsComponent(Component):
                     for idx, bodypart in enumerate(
                             self.visualizer_config['media'][self.component_name]['joints'].keys()):
                         if data_name == "velocity_body_3d":
+                            if frame_idx >= joints_bodypart_motion.shape[2]:  # number of frames
+                                continue
                             frame_bodypart_data = joints_bodypart_motion[subject_idx, 0, frame_idx][idx]
                             entity_path = self.logger.generate_component_entity_path(
                                 self.component_name, is_3d=True, alg_name=alg_name,
@@ -894,6 +894,8 @@ class KinematicsComponent(Component):
 
                         elif data_name == "velocity_body_2d":
                             for camera_idx, camera in enumerate(self.camera_names):
+                                if frame_idx >= joints_bodypart_motion.shape[2]:  # number of frames
+                                    continue
                                 frame_kinematic_2d = joints_bodypart_motion[subject_idx, camera_idx, frame_idx][idx]
                                 entity_path = self.logger.generate_component_entity_path(
                                     self.component_name, is_3d=False, alg_name=alg_name,

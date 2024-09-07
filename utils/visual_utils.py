@@ -6,25 +6,6 @@ import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 
-### ToDo apply_savgol_filter should be implemented in ISA-Tool gaze
-def apply_savgol_filter(data, windows_length=11, polyorder=2):
-    """
-    Takes data as an input and apply filter to each dimension of the data separately.
-
-    Parameters
-    ----------
-    data: for two people list - np array, shape - [#Frames, XYZ]
-    windows_length: int
-    polyorder: int - the degree of polynomial, should be less than windows_length
-
-    Returns:
-    smoothed data(np array, shape - [#Frames, XYZ]
-    """
-    smooth_data = np.zeros(data.shape)
-    for dim in range(data.shape[-1]):
-        smooth_data[:, dim] = signal.savgol_filter(data[:, dim], window_length=windows_length,
-                                                                 polyorder=polyorder)
-    return smooth_data
 
 def load_calibration(calibration_file, video_input_config, camera_names='all'):
     calib = None

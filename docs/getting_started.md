@@ -91,21 +91,21 @@ To watch the experiment run, check the log file `.../<out_folder>/ISA-Tool.log`.
 
 There are multiple options to visualize the results of NICE toolbox. 
 For an interactive experience, we recommend to use our `visual` code which is running `rerun`. 
-To do so, open `/isa-tool/visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder` and `media.video_name`:
+To do so, open `/isa-tool/visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
 
+A detailed description of visualizer configuration can be found in [Wiki config files](../docs/wiki_config_files.md#visualizer-config)
 ```toml
 [io]
-dataset_folder = "<datasets_folder_path>"
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" 
-experiment_folder = "<output_folder_path>/experiments/..."  # add the path to your output folder (the one containing the file 'ISA-Tool.log')
-experiment_video_folder = "<experiment_folder>/<video_name>" 
-experiment_video_component = "<experiment_folder>/<video_name>/<component_name>"
+dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
+nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
+experiment_folder = "<output_folder_path>/experiments/20240906_mm"        # NICE Toolbox experiment output
+experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video.
+experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
 
-[media]
-mode = 'isa-tool'
-dataset_name = 'communication_multiview'
-video_name = 'communication_multiview_session_xyz_s0_l99' # the folder name that got created inside your experiment_folder
-multi_view = true
+[media]                                # each Media session shows one video results.
+dataset_name = 'mpi_inf_3dhp'          # dataset of the video
+video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
+multi_view = true                      # true if you have multiple cameras, otherwise set it to false
 ```
 
 And last, from inside the top level of your code folder, start the visualizer by running

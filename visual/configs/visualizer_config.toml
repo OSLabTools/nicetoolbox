@@ -1,60 +1,62 @@
 [io]
-dataset_folder = "<datasets_folder_path>" # the main folder holds datasets
+dataset_folder = "<datasets_folder_path>" # main dataset folder
 nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
-experiment_folder = "<output_folder_path>/experiments/20240718" # NICE Toolbox output
-experiment_video_folder = "<experiment_folder>/<video_name>" # NICE Toolbox output folder for the selected video. Media part visualizes 1 video per session.
-experiment_video_component = "<experiment_folder>/<video_name>/<component_name>" # NICE Toolbox output folder for the selected method (new name will be component) inside the video output folder
+experiment_folder = "<output_folder_path>/experiments/20240906_mm" # NICE Toolbox experiment output
+experiment_video_folder = "<experiment_folder>/<video_name>" # NICE Toolbox output folder for the specific video
+experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
 
-[media]
-mode = 'isa-tool' # options: 'isa-tool', 'isa-eval'
-dataset_name = 'communication_multiview' # current options: 'dyadic_communication', 'mpi_inf_3dhp' 'communication_multiview' 'communication_mono'# each Media session shows one video results. Each video belongs a dataset
-video_name = 'communication_multiview_session_xyz_s0_l99' # each Media session shows one video results
-multi_view = true # set false if you don't have multiple cameras
-
-[media.visualize]
+[media]                                # each Media session shows one video results.
+dataset_name = 'mpi_inf_3dhp'          # dataset of the video
+video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
+multi_view = true                      # true if you have multiple cameras, otherwise set it to false
+[media.visualize]                      # specify what will be visualized
 components = ["body_joints", "hand_joints", "face_landmarks", "gaze_individual", "gaze_interaction", "kinematics", "proximity"]
-camera_position = true # set true if want to visuailize camera position -- requires extrinsic information of the camera
-start_frame = 0
-end_frame = -1  # -1 means process until the end of the video, if you want to stop before, write the frame number.
-visualize_interval = 1  # 1 means visualize every frame; change the parameter if you want to visualize every x frames
+camera_position = true                 # true if you want to visuailize camera position -- requires extrinsic information of the camera
+start_frame = 0                        # starting frame for the visualization
+end_frame = -1                         # end frame for the visualization, -1 means process until the end of the video
+visualize_interval = 1                 # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
 
-###### Setup Rerun Display Windows #####
-### You can configure which data will be shown in which rerun window
-### by changing the media.component.canvas items
-### The keys, i.e., '3d' or '2d_interpolated', are the name of the data provided by that component.
-### The lists define which canvases (rerun windows) will show this data:
-### '3D_Canvas': the data will be visualised in 3D canvas. It can be created only for multi-view datasets. (don't change the canvas's name)
-### cameras: the data will be visualized on that camera image. The name of camera has to be same as the camera folder (alsogiven in dataset_properties.toml)
-### metrics - shows the data on plot
-### empty list: the data will not visualized
+###### Configuring Component Data Display in Rerun Windows #####
+### You can control which data will be shown in specific rerun windows by adjusting the 'media.component.canvas' items
+### The keys (like '3d' or '2d_interpolated') represent different type of data provided by that component.
+### The value lists define which canvases (rerun windows) will show the data
+### 1. '3D_Canvas': This shows data in the 3D canvas. It is only for multi-view datasets. (Do not change the canvas name).
+### 2. Cameras: Data will be visualized on that specific camera image. The camera name must match the camera placeholder names in dataset_properties.toml
+### 3. Metrics - The displays the data as plots.
+### 4. Empty list: If you don't want the data to be visualized, leave the list empty.
 
-### algorithms parameter under media.component define which algorithms will be displayed.
-## In case there are multiple algorithms, such as hrnetw48 and vitpose in body_joints component,
-## you can define which algorithm results will be shown.
-## type both algorithm names if you want to see both of them.
+### Configuring Algorithm Display
+## Under 'media.component', the algorithms parameter let you choose which algorithms to display.
+## For example, if you have multiple algorithms (e.g., hrnetw48 and vitpose in the body_joints component),
+## you can specify which algorithm’s results to show.
+## If you want to see results from both algorithms, list both names.
+
+### Configuring Apearance
+## Under 'media.component.appearance', you can configure the color and radii (the size of the dots and lines).
 
 # Component: gaze individual
 [media.gaze_individual]
-algorithms = ['xgaze_3cams']
+algorithms = ['xgaze_3cams']            # list of algorithms
 
 [media.gaze_individual.canvas]
 3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
-## -- Note: Delete '3D_Canvas' if you don't have a multi-view setup.
+## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 
 [media.gaze_individual.appearance]
-colors = [[0,150, 90]]
-radii = {'3d'= 0.01, 'camera_view'= 4}
+colors = [[0,150, 90]]                  # define the color of individual gaze
+radii = {'3d'= 0.01, 'camera_view'= 4}  # define the size of gaze arrow in 3D_Canvas and camera views
 
 # Component: gaze interaction
 [media.gaze_interaction]
 algorithms = ['gaze_distance']
 
 [media.gaze_interaction.canvas]
-gaze_look_at_3d = ["3D_Canvas", "<cam_face1>", "<cam_face2>"]## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
-#gaze_look_at_2d = ["<cam_front>"] ## use data key gaze_look_at_2d if you don't have a multi-view setup.
+gaze_look_at_3d = ["3D_Canvas", "<cam_face1>", "<cam_face2>"] ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+#gaze_look_at_2d = ["<cam_front>"]                            ## use data key gaze_look_at_2d if you don't have a multi-view setup.
 
 [media.gaze_interaction.appearance]
-colors = [[[0,221, 22], [247, 13, 26]]] #vivid mala.. -green #vivid red -  [57,255,18] #neon green
+colors = [[[0,221, 22], [247, 13, 26]]] # first one is bright green and used when the person is
+                                        # look other person's face. Second color (red) is use when the persopn does'n look other person's face
 radii = {}
 
 
@@ -94,7 +96,6 @@ algorithms = ['hrnetw48']
 [media.face_landmarks.appearance]
 colors =  [[170,171,69]] #[255,255,4] yellow =- green j. [77, 188, 139]
 radii = {'3d'= 0.01, 'camera_view'= 4}
-
 
 # Component: kinematics
 [media.kinematics]

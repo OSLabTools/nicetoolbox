@@ -11,6 +11,7 @@ Classes:
 import numpy as np
 import rerun as rr
 
+
 class Viewer:
     """
     Class for visualizing the components.
@@ -48,8 +49,7 @@ class Viewer:
         Args:
             app_id (str): The ID of the visualization application. Defaults to "NICE Toolbox Visualization".
         """
-        rr.init(app_id)
-        rr.spawn()
+        rr.init(app_id, spawn=True)
         rr.set_time_seconds("time", 0)
 
     def go_to_timestamp(self, frame_idx: int) -> None:
