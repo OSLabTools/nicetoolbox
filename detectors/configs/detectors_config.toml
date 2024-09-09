@@ -37,6 +37,7 @@ device = "cuda:0" #cuda:0
 filtered = true
 window_length = 11
 polyorder = 2
+3d_results = true
 
 [algorithms.hrnetw48]
 framework = "mmpose"

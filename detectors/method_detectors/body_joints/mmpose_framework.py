@@ -338,7 +338,7 @@ class MMPose(BaseDetector):
                 data_description.update({
                     '3d': dict(
                         axis0=descr_2d["axis0"],
-                        axis1=None,
+                        axis1=['3d'],
                         axis2=descr_2d["axis2"],
                         axis3=descr_2d["axis3"],
                         axis4=['coordinate_x', 'coordinate_y', 'coordinate_z']

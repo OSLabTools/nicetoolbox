@@ -154,7 +154,7 @@ class GazeDistance(BaseFeature):
         #  save as npz file
         data_description = dict(
             axis0=subject_description,
-            axis1=None,
+            axis1=[dim],
             axis2=gaze_description['axis2']
             )
         out_dict = {

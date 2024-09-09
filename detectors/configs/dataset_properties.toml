@@ -25,9 +25,12 @@ cam_face2 = ''
 subjects_descr = ["person"]  # implies that the video shows a single person
 cam_sees_subjects = {video_5 = [0], video_8 = [0]}
 path_to_calibrations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/oslab/frames/<session_ID>/<sequence_ID>/<camera_name>"
+data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<session_ID>/<sequence_ID>/<camera_name>"
 start_frame_index = 1
 fps = 50
+path_to_annotations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/annotations.npz"
+annotation_types = ['keypoints']
+metric_types = ['point_cloud_metrics', 'keypoint_metrics']
 
 [communication_multiview]
 session_IDs = ["session_xyz"]
@@ -72,7 +75,7 @@ start_frame_index = 0
 fps = 30
 
 [dc_resolution015_fps10_videos]
-session_IDs = ['frames']
+session_IDs = ['videos']
 sequence_IDs = ['']
 cam_front = "8700A24"
 cam_top = "8700A23"

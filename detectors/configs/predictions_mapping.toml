@@ -69,6 +69,36 @@
 
 
 
+[human_pose.human36m.keypoints_index]
+'spine3' = 0 
+'spine4' = 1
+'spine2' = 2
+'spine' = 3
+'pelvis'= 4
+'neck' = 5
+'head' = 6
+'head_top' = 7
+'left_clavicle' = 8
+'left_shoulder' = 9
+'left_elbow' = 10
+'left_wrist' = 11
+'left_hand' = 12
+'right_clavicle' = 13
+'right_shoulder' = 14
+'right_elbow' = 15
+'right_wrist' = 16
+'right_hand' = 17
+'left_hip' = 18
+'left_knee' = 19
+'left_ankle' = 20
+'left_foot' = 21
+'left_toe' = 22
+'right_hip' = 23
+'right_knee' = 24
+'right_ankle' = 25
+'right_foot' = 26
+'right_toe' = 27
+
 
 
 

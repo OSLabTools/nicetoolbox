@@ -119,5 +119,3 @@ Similarly, if you do not know the distortion coefficients, set them to `0.0`:
 ```
 "distortions" or "d":           [0.0, 0.0, 0.0, 0.0, 0.0]
 ```
-
-Please find a more detailed description of the calibration file in the [wiki_calibration.md](wiki_calibration.md) and a tutorial for creating this file using the calibration converter in [Tutorial 2 - Calibration](tutorial2_calibration.md).

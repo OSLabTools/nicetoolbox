@@ -1,13 +1,12 @@
-# Tutorial 1 - Including a new dataset
+# Include a dataset with a single camera view
 
-This tutorial explains how to run the NICE Toolbox on your own dataset. The first part on [Datasets with a Single Camera View](#datasets-with-a-single-camera-view) covers datasets that contain videos of a single camera, without multi-view captures. The second part on [Datasets with a Multiple Camera Views](#datasets-with-a-multiple-camera-views) adds instructions specific for multiple calibrated cameras.
+This tutorial explains how to run the NICE Toolbox on your own dataset. It covers datasets that contain videos of a single camera, without multi-view captures. 
 
-If you are running the NICE Toolbox for the first time, please note that there is quick start guide as well - the [Getting Started](#getting-started) page explains how to run the NICE Toolbox on an example dataset.
+If you are running the NICE Toolbox for the first time, please note that there is quick start guide as well - the [getting started](getting_started.md) page explains how to run the NICE Toolbox on an example dataset.
+
+<br>
 
 
-## Contents  <!-- omit in toc -->
-
-[Datasets with a Single Camera View](#datasets-with-a-single-camera-view)
 1. [Create your machine-specific config](#1-create-your-machine-specific-config)
 2. [Prepare the dataset](#2-prepare-the-dataset)
     - [Folder structure](#folder-structure)
@@ -19,16 +18,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 4. [Define the experiment to run](#4-define-the-experiment-to-run)  
 5. [Run the toolbox](#5-run-the-toolbox)
 
-[Datasets with a Multiple Camera Views](#datasets-with-a-multiple-camera-views)  
-1. [Follow steps xxx to xxx]()
-2. [Update the dataset properties]()
-3. [Run the toolbox]()
-
-
-<br><br>
-
-
-# Datasets with a Single Camera View
+<br>
 
 
 ## 1. Create your machine-specific config
@@ -99,7 +89,7 @@ A few notes:
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0. See the example below.
 - `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be the strings `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
 
-A comprehensive and detailed description of the dataset properties file can also be found in [wiki_config_files.md](wiki_config_files.md#dataset-properties).
+A comprehensive and detailed description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](wiki_config_files.md#dataset-properties).
 
 
 ### Example
@@ -217,7 +207,7 @@ Some notes:
 - `io.experiment_name` defaults to the current date (in format YYYYMMDD). 
 - `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code. 
 
-A more detailed and complete description of the `./detectors/configs/run_file.toml` file can be found in in [wiki_config_files.md](wiki_config_files.md#run-file).
+A more detailed and complete description of the `./detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](wiki_config_files.md#run-file).
 
 
 
@@ -237,43 +227,8 @@ To watch the experiment run, check the log file `.../out_folder/ISA-Tool.log`.
 
 <br>
 
-Congratulations! You got your first experiment running :-)
+**Congratulations! You got your first experiment running :-)**
 
-<br><br><br>
+<br><br>
 
-
-
-# Datasets with a Multiple Camera Views
-
-WORK IN PROGRESS...
-
-The main difficulty here is to add the calibration information of all cameras.
-
-## 1. Follow steps xxx to xxx
-
-Much of the setup for a multi-view dataset equals the setup for the single-view case. Therefore, please follow the instructions for 
-- xzx
-- dgsdg
-
-
-Please find a more detailed description of the calibration file in the [wiki_calibration.md](wiki_calibration.md) and a tutorial for creating this file using the calibration converter in [Tutorial 2 - Calibration](tutorial2_calibration.md).
-
-
-
-## 2. Update the dataset properties
-
-We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. After adding the calibration file as described in the previous section [Calibration file](#calibration-file).
-To run on multi-view camera input, we now need to review the dataset config `./detectors/configs/dataset_properties.toml`. Make sure to update the following keys for your dataset:
-
-```toml
-cam_top = ''              # folder name of a frontal camera view from top (str, optional)
-cam_face1 = ''            # folder name of a camera view of one subject's face (str, optional)
-cam_face2 = ''            # folder name of a camera view of the second subject's face (str, optional)
-subjects_descr = []       # define an identifier for the subjects in each video or frame (list of str)
-cam_sees_subjects = {}    # define which camera view records which subject (dict: (cam_name, list of int))
-path_to_calibrations = "" # file path with placeholders for the calibration files (str, optional)
-```
-
-## 3. Run the toolbox
-
-Please follow the instructions in [5. Run the toolbox](#5-run-the-toolbox) for running the experiment. It will now use all cameras provided and specified in the [dataset_properties](#2-update-the-dataset-properties). Check the log-file to see it working.
+The next tutorial on [including a dataset with multiple camera views](tutorial2_dataset_multi_view.md) now adds instructions specific for multiple calibrated cameras.

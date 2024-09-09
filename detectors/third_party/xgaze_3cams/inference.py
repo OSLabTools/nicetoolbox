@@ -228,12 +228,12 @@ def main(config, debug=False):
     #  save as npz file
     out_dict = {
         '3d': results[None].transpose(2, 0, 1, 3),
-        'landmarks_2d': landmarks_2d.transpose(2, 1, 0, 3, 4),
+        'landmarks_2d': np.array(landmarks_2d, dtype=float).transpose(2, 1, 0, 3, 4),
         # 'landmarks_3d': landmarks_3d.transpose(2, 1, 0, 3, 4),
         'data_description': {
             '3d': dict(
                 axis0=config["subjects_descr"],
-                axis1=None,
+                axis1=['3d'],
                 axis2=frame_indices,
                 axis3=['coordinate_x', 'coordinate_y', 'coordinate_z']
             ),

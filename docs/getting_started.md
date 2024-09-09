@@ -1,6 +1,6 @@
 # Getting started
 
-## Contents  <!-- omit in toc -->
+<br> 
 
 1. [Create your machine-specific config](#1-create-your-machine-specific-config)
 2. [Download the example data](#2-download-the-example-data)
@@ -28,10 +28,10 @@ conda_path = ''
 ```
 
 ## 2. Download the example data
-The example data is uploaded to [keeper](https://keeper.mpdl.mpg.de/d/d38179804e1144a5880d/). Please download the folder `communication_multiview` and put it in your `datasets_folder_path` - the directory which is defined in your file `./machine_specific_paths.toml`, see above ([1. Create your machine-specific config](#1-create-your-machine-specific-config)). 
+The example data is uploaded to [keeper](https://keeper.mpdl.mpg.de/d/d38179804e1144a5880d/). Please download the folder `communication_multiview` and put it in your `datasets_folder_path` - the directory which is defined in your file `./machine_specific_paths.toml`, see [above](#1-create-your-machine-specific-config). 
 
 
-### 3. Define the dataset's properties
+## 3. Define the dataset's properties
 Check that the file `./detectors/configs/dataset_properties.toml` contains the following dictionary:
 ```toml
 [communication_multiview]
@@ -48,11 +48,11 @@ data_input_folder = "<datasets_folder_path>/communication_multiview/<session_ID>
 start_frame_index = 0
 fps = 30
 ```
-A detailed description of this file can be found in [Tutorial 1 - prepare the dataset](tutorial1_new_dataset.md#1-prepare-the-dataset).
+A detailed description of this file can be found in the wiki page on config files under [dataset properties](wiki_config_files.md#dataset-properties).
 
 
 ## 4. Add the experiment to run
-To run the NICE toolbox on our new dataset, we need to specify what exactly we want to run in our experiment. Open `./detectors/configs/run_file.toml` and make sure that the `[run]` dictionary details the following:
+To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./detectors/configs/run_file.toml` and make sure that the `[run]` dictionary details the following:
 
 ```toml
 [run]
@@ -63,7 +63,7 @@ videos = [
 ]
 
 ```
-More details can be found in [Tutorial 1 - define the experiment](tutorial1_new_dataset.md#3-define-the-experiment-to-run).
+More details can be found in the wiki page on config files under [run file](wiki_config_files.md#run-file).
 
 
 ## 5. Run the NICE Toolbox
@@ -84,29 +84,28 @@ python detectors/main.py
 ```
 
 The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders). 
-To watch the experiment run, check the log file `.../<out_folder>/ISA-Tool.log`. Expect the tool to take about 6min for this experiment.
+To watch the experiment run, check the log file `/path/to/<out_folder>/nicetoolbox.log`. Expect the tool to take about 6min for this experiment.
 
 
 ## 6. Visualize the results
 
 There are multiple options to visualize the results of NICE toolbox. 
 For an interactive experience, we recommend to use our `visual` code which is running `rerun`. 
-To do so, open `/isa-tool/visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
-
-A detailed description of visualizer configuration can be found in [Wiki config files](../docs/wiki_config_files.md#visualizer-config)
+To do so, open `./visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
 ```toml
 [io]
-dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
-experiment_folder = "<output_folder_path>/experiments/20240906_mm"        # NICE Toolbox experiment output
-experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video.
-experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
+dataset_folder = "<datasets_folder_path>"                          
+nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
+experiment_folder = "<output_folder_path>/experiments/..."                 # NICE Toolbox experiment output folder
+experiment_video_folder = "<experiment_folder>/<video_name>"        
+experiment_video_component = "<experiment_video_folder>/<component_name>" 
 
-[media]                                # each Media session shows one video results.
-dataset_name = 'mpi_inf_3dhp'          # dataset of the video
-video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
-multi_view = true                      # true if you have multiple cameras, otherwise set it to false
+[media]                            
+dataset_name = 'mpi_inf_3dhp'                                              # name of the video's dataset
+video_name = 'mpi_inf_3dhp_S1_s20_l20'                                     # name of video result folder
+multi_view = true                      
 ```
+A detailed description of visualizer configuration can be found in the wiki page on config files under [visualizer config](../docs/wiki_config_files.md#visualizer-config).
 
 And last, from inside the top level of your code folder, start the visualizer by running
 ```bash

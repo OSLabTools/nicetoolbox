@@ -149,9 +149,8 @@ camera_position = true                 # true if you want to visuailize camera p
 start_frame = 0                        # starting frame for the visualization
 end_frame = -1                         # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                 # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
-
 ```
-###### Configuring Component Data Display in Rerun Windows ######
+### Configuring Component Data Display in Rerun Windows
 You can control which data will be shown in specific rerun windows by adjusting the 'media.component.canvas' items
 The keys (like '3d' or '2d_interpolated') represent different type of data provided by that component.
 The value lists define which canvases (rerun windows) will show the data
@@ -194,17 +193,17 @@ velocity_body_3d = ["metric_velocity"] # if don't have multi-view, use velocity_
 "lower_body" = ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"]
 
 ```
-###### Configuring Rerun Viewer and Blueprint in Rerun ######
+### Configuring Rerun Viewer and Blueprint in Rerun
 When Rerun is initiated, it automatically creates a heuristic view for the windows. 
 You can manually change this by dragging the windows or adding new ones using the plus sign next to the Blueprint menu.
 
-![ReRunBlueprint.PNG](graphics%2FReRunBlueprint.PNG)  
+![rerun_blueprint.png](graphics/rerun_blueprint.png)  
 
 This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the 
 'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions. 
 You can reset the layout by clicking 'Reset Blueprint.'
 
-![ReRunViewer.PNG](graphics%2FReRunViewer.PNG)
+![rerun_viewer.png](graphics/rerun_viewer.png)
 
 If your new video does not have certain windows that the old dataset had, unused empty windows may appear. 
 To get a fresh heuristic layout, reset the blueprint.
