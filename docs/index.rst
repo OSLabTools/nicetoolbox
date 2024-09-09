@@ -5,8 +5,8 @@
    Project Overview <self>
    Installation <installation>
    Getting started <getting_started>
-   Tutorials <tutorials>
-   Wiki <wikis>
+   tutorials/index
+   wikis/index
    Detectors API <_autosummary/detectors>
    Evaluation API <_autosummary/evaluation>
    Visualization API <_autosummary/visual>
@@ -40,7 +40,7 @@ pose estimation and gaze tracking for each individual, as well as movement dynam
 calculation (kinematics), gaze interaction monitoring (mutual-gaze), and the measurement 
 of physical body distance between dyads. 
 This first set of components and algorithms is going to be extended in future releases.
-For more details, please see the `components overview <wiki_components.md>`__ page in 
+For more details, please see the :doc:`components overview <wikis/wiki_components>` page in 
 the wiki.
 
 The toolbox  also includes a visualizer module, which allows users to
@@ -51,11 +51,11 @@ Installation & getting started
 ------------------------------
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the 
-`installation instructions <installation.md>`__ page.
+:doc:`installation instructions <installation.md>` page.
 For a quick start into the toolbox, we provide an example dataset and documentation to
-set it up on the `getting started <getting_started.md>`__ page.
-Further tutorials and documentation can be found on the `tutorials <tutorials.rst>`__ 
-and `wiki <wikis.rst>`__ pages.
+set it up on the :doc:`getting started <getting_started.md>` page.
+Further tutorials and documentation can be found on the :doc:`tutorials <tutorials/index>` 
+and :doc:`wiki <wikis/index>` pages.
 
 
 

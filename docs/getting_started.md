@@ -2,12 +2,13 @@
 
 <br> 
 
-1. [Create your machine-specific config](#1-create-your-machine-specific-config)
-2. [Download the example data](#2-download-the-example-data)
-3. [Define the dataset's properties](#3-define-the-datasets-properties)
-4. [Add the experiment to run](#4-add-the-experiment-to-run)
-5. [Run the NICE Toolbox](#5-run-the-nice-toolbox)
-6. [Visualize the results](#6-visualize-the-results)
+- [Getting started](#getting-started)
+  - [1. Create your machine-specific config](#1-create-your-machine-specific-config)
+  - [2. Download the example data](#2-download-the-example-data)
+  - [3. Define the dataset's properties](#3-define-the-datasets-properties)
+  - [4. Add the experiment to run](#4-add-the-experiment-to-run)
+  - [5. Run the NICE Toolbox](#5-run-the-nice-toolbox)
+  - [6. Visualize the results](#6-visualize-the-results)
 
 <br>
 
