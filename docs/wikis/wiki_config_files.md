@@ -197,13 +197,13 @@ velocity_body_3d = ["metric_velocity"] # if don't have multi-view, use velocity_
 When Rerun is initiated, it automatically creates a heuristic view for the windows. 
 You can manually change this by dragging the windows or adding new ones using the plus sign next to the Blueprint menu.
 
-![rerun_blueprint.png](graphics/rerun_blueprint.png)  
+![../graphics/rerun_blueprint.png](../graphics/rerun_blueprint.png)  
 
 This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the 
 'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions. 
 You can reset the layout by clicking 'Reset Blueprint.'
 
-![rerun_viewer.png](graphics/rerun_viewer.png)
+![../graphics/rerun_viewer.png](../graphics/rerun_viewer.png)
 
 If your new video does not have certain windows that the old dataset had, unused empty windows may appear. 
 To get a fresh heuristic layout, reset the blueprint.

@@ -9,4 +9,4 @@ python3.10 -m venv ./env
 source ./env/bin/activate
 pip install -r ./installation/requirements.txt
 deactivate
-echo "Nice-toolbox Environment setup completed successfully."
+echo "NICE Toolbox environment setup completed successfully."

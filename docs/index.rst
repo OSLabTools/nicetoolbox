@@ -51,9 +51,9 @@ Installation & getting started
 ------------------------------
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the 
-:doc:`installation instructions <installation.md>` page.
+:doc:`installation instructions <installation>` page.
 For a quick start into the toolbox, we provide an example dataset and documentation to
-set it up on the :doc:`getting started <getting_started.md>` page.
+set it up on the :doc:`getting started <getting_started>` page.
 Further tutorials and documentation can be found on the :doc:`tutorials <tutorials/index>` 
 and :doc:`wiki <wikis/index>` pages.
 

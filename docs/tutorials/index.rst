@@ -12,4 +12,4 @@ And for more depth information about certain parts of the NICE Tolbox, have a lo
    
    tutorial1_dataset_single_view
    tutorial2_dataset_multi_view
-   tutorial3_calibration_convertion
+   tutorial3_calibration_conversion

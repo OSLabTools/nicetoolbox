@@ -28,7 +28,7 @@ Much of the setup for a multi-view dataset equals the setup for the single-view 
 
 ## 2. Update the dataset properties
 
-We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. First, add the calibration file as described in tutorial on [calibration convertion](tutorial3_calibration_convertion.md).
+We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. First, add the calibration file as described in tutorial on [calibration conversion](tutorial3_calibration_conversion.md).
 To run on multi-view camera input, we now need to review the dataset config `./detectors/configs/dataset_properties.toml`. Make sure to update the following keys for your dataset:
 
 ```toml

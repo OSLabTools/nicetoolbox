@@ -2,13 +2,12 @@
 
 <br> 
 
-- [Getting started](#getting-started)
-  - [1. Create your machine-specific config](#1-create-your-machine-specific-config)
-  - [2. Download the example data](#2-download-the-example-data)
-  - [3. Define the dataset's properties](#3-define-the-datasets-properties)
-  - [4. Add the experiment to run](#4-add-the-experiment-to-run)
-  - [5. Run the NICE Toolbox](#5-run-the-nice-toolbox)
-  - [6. Visualize the results](#6-visualize-the-results)
+1. [Create your machine-specific config](#1-create-your-machine-specific-config)
+2. [Download the example data](#2-download-the-example-data)
+3. [Define the dataset's properties](#3-define-the-datasets-properties)
+4. [Add the experiment to run](#4-add-the-experiment-to-run)
+5. [Run the NICE Toolbox](#5-run-the-nice-toolbox)
+6. [Visualize the results](#6-visualize-the-results)
 
 <br>
 
@@ -49,7 +48,7 @@ data_input_folder = "<datasets_folder_path>/communication_multiview/<session_ID>
 start_frame_index = 0
 fps = 30
 ```
-A detailed description of this file can be found in the wiki page on config files under [dataset properties](wiki_config_files.md#dataset-properties).
+A detailed description of this file can be found in the wiki page on config files under [dataset properties](wikis/wiki_config_files.md#dataset-properties).
 
 
 ## 4. Add the experiment to run
@@ -64,7 +63,7 @@ videos = [
 ]
 
 ```
-More details can be found in the wiki page on config files under [run file](wiki_config_files.md#run-file).
+More details can be found in the wiki page on config files under [run file](wikis/wiki_config_files.md#run-file).
 
 
 ## 5. Run the NICE Toolbox
@@ -106,7 +105,7 @@ dataset_name = 'mpi_inf_3dhp'                                              # nam
 video_name = 'mpi_inf_3dhp_S1_s20_l20'                                     # name of video result folder
 multi_view = true                      
 ```
-A detailed description of visualizer configuration can be found in the wiki page on config files under [visualizer config](../docs/wiki_config_files.md#visualizer-config).
+A detailed description of visualizer configuration can be found in the wiki page on config files under [visualizer config](wikis/wiki_config_files.md#visualizer-config).
 
 And last, from inside the top level of your code folder, start the visualizer by running
 ```bash

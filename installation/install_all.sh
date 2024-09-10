@@ -7,8 +7,8 @@ chmod +x ./installation/install_nicetoolbox_venv.sh
 chmod +x ./installation/install_xgaze_venv.sh
 chmod +x ./installation/install_openmmlab_conda.sh
 
-echo "Setting up Isa-tool environment..."
-./installation/install_isatool_venv.sh
+echo "Setting up Nice Toolbox environment..."
+./installation/install_nicetoolbox_venv.sh
 
 echo "Setting up XGaze environment..."
 ./installation/install_xgaze_venv.sh

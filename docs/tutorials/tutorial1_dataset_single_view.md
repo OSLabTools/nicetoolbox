@@ -2,7 +2,7 @@
 
 This tutorial explains how to run the NICE Toolbox on your own dataset. It covers datasets that contain videos of a single camera, without multi-view captures. 
 
-If you are running the NICE Toolbox for the first time, please note that there is quick start guide as well - the [getting started](getting_started.md) page explains how to run the NICE Toolbox on an example dataset.
+If you are running the NICE Toolbox for the first time, please note that there is quick start guide as well - the [getting started](../getting_started.md) page explains how to run the NICE Toolbox on an example dataset.
 
 <br>
 
@@ -24,7 +24,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 ## 1. Create your machine-specific config
 
 Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
-For more information, see [machine-specific config](getting_started.md#1-create-your-machine-specific-config).
+For more information, see [machine-specific config](../getting_started.md#1-create-your-machine-specific-config).
 
 **Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code. 
 Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
@@ -89,7 +89,7 @@ A few notes:
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0. See the example below.
 - `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be the strings `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
 
-A comprehensive and detailed description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](wiki_config_files.md#dataset-properties).
+A comprehensive and detailed description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](../wikis/wiki_config_files.md#dataset-properties).
 
 
 ### Example
@@ -168,7 +168,11 @@ The calibration converter offers multiple options to create, load, or change a c
 
 1. On the top, select "OpenCV" as the calibration format.
 2. Under "Calibration file path", enter the path to your newly created `single_view_calibration.toml` file or press "Select" to find it on your machine. Press "Load". The data should now show in the converter (click to enlarge):
-[<img src="graphics/calibration_converter_1.png" height="500">](graphics/calibration_converter_1.png)
+<style>
+img {display: block; margin-left: auto; margin-right: auto;}
+</style>
+[<img src="../graphics/calibration_converter_1.png" height="500">](../graphics/calibration_converter_1.png)
+
 3. On the bottom, enter the path to your dataset in "Output directory path" or press "Select" to find it on your system. Press "Save" to create the `calibrations.npz` file.
 4. When the file(s) have been saved correctly, exit the Calibration Converter by pressing "Quit" in the bootom right corner.
 
@@ -207,7 +211,7 @@ Some notes:
 - `io.experiment_name` defaults to the current date (in format YYYYMMDD). 
 - `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code. 
 
-A more detailed and complete description of the `./detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](wiki_config_files.md#run-file).
+A more detailed and complete description of the `./detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](../wikis/wiki_config_files.md#run-file).
 
 
 
