@@ -1,0 +1,10 @@
+chumpy
+json_tricks
+matplotlib
+munkres
+numpy ==1.24.3
+opencv-python
+pillow
+scipy
+torchvision
+xtcocotools>=1.12
