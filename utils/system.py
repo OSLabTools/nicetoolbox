@@ -1,3 +1,7 @@
+"""
+Helper functions for system-related operations.
+"""
+
 import platform
 
 def detect_os_type() -> str:

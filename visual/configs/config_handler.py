@@ -7,20 +7,37 @@ import utils.config as confh
 import utils.filehandling as fh
 
 class Configuration:
-    def __init__(self, visualizer_config_file, machine_specifics_file):
+    def __init__(
+        self, 
+        visualizer_config_file: str, 
+        machine_specifics_file: str,
+        stats_only: bool = False
+    ):
         self.config_files = dict(
             visualizer_config_file=visualizer_config_file,
             machine_specifics_file=machine_specifics_file,
-            )
+        )
         # load experiment config dicts - these can contain placeholders
         self.visualizer_config = fh.load_config(visualizer_config_file)
         self.machine_specific_config = fh.load_config(machine_specifics_file)
+        if stats_only:
+            self._initialize_statistics()
+        else:
+            self._initialize_media()
+        
+    def _initialize_statistics(self) -> None:
+        self.nice_tool_out_folder = self._localize(
+            self.visualizer_config)['io']['nice_tool_output_folder']
+        
+    def _initialize_media(self) -> None:
         # load the latest config from the experiment output of isa-tool
         try:
             experiment_config_file = sorted(glob.glob(os.path.join(
                 self._localize(self.visualizer_config)['io']['experiment_folder'], 'config_*.toml'
-            )))[-1]
+            )))[-1] # ! <---
         except IndexError:
+            # ! Only loads latest config file, but in a single exp folder can be multiple runs with different datasets
+            # ! If you want to visualize a dataset from a earlier run, this throws an error
             print("\nCould not find the latest experiment config file in "
                   f"{self._localize(self.visualizer_config)['io']['experiment_folder']}\n\n")
             raise 
@@ -65,6 +82,9 @@ class Configuration:
         return self._localize(self.visualizer_config, fill_io=False, fill_data=True,
                              dataset_name=self.dataset_name)
 
+    def get_isa_tool_out_folder(self):
+        return self.nice_tool_out_folder
+    
     def get_camera_names(self):
         # Extracting camera names
         camera_names = [value for key, value in self.visualizer_config['dataset_properties'].items() if (key.startswith("cam_")) & (value!='') & (type(value) is str)]

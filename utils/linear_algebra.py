@@ -1,3 +1,7 @@
+"""
+Linear algebra utility functions.
+"""
+
 import numpy as np
 from utils.logging_utils import assert_and_log
 

@@ -1,3 +1,7 @@
+"""
+Helper functions for triangulation of 3D points from stereo images.
+"""
+
 import cv2
 
 def undistort_points_pinhole(point_coords, intrinsics, distortions):

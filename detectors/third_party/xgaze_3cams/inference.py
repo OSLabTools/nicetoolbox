@@ -1,3 +1,7 @@
+"""
+Run gaze detection on the provided data.
+"""
+
 import os
 import sys
 import cv2

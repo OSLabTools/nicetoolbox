@@ -1,3 +1,7 @@
+"""
+Helper functions for the visualizer module.
+"""
+
 import numpy as np
 import os
 import scipy.signal as signal

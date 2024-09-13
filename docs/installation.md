@@ -23,13 +23,11 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
 ## 1. Clone the repository
 
 Before cloning the repository, install git if it is not installed yet.
-INstructions can be found [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
+Instructions can be found [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 Then clone the NICE Toolbox repository and navigate into its folder:
 
-! TODO: UPDATE RENAME OF THE REPOSITORIES
-
 ```bash
-git clone git@gitlab.tuebingen.mpg.de:cschmitt/isa-tool.git 
+git git@github.com:OSLabTools/nicetoolbox.git 
 cd nicetoolbox
 ```
 
@@ -38,8 +36,7 @@ cd nicetoolbox
 
 
 ## 2. Download assets
-Assets are uploaded to [keeper](https://keeper.mpdl.mpg.de/d/a9f91e7e60e84da69fc0/).
-Please download the folder put it in `nicetoolbox/detectors/assets`.
+Assets are available for download at [keeper](https://keeper.mpdl.mpg.de/d/a9f91e7e60e84da69fc0/). Please download the folder and place it in `nicetoolbox/detectors/assets`.
 
 
 
@@ -79,7 +76,7 @@ This is because the Nice Toolbox requires **Python version 3.10** to be set as t
 
 
 ### Cuda 11.8 
-Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and Linux [Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
+Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and [Linux Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
 ### FFmpeg
 On Linux Ubuntu, please find detailed instructions [here](https://phoenixnap.com/kb/install-ffmpeg-ubuntu).
@@ -97,8 +94,8 @@ e.g., ffmpeg-git-essentials.7z.
 
 
 ### On Windows: Turn developer mode on
-Nice Toolbox creates symlinks. To enable these, please enable Developer Mode on Windows.
-This can be done by going to `Settings` > `Updates&Security` > `For Developers` and turning Developer Mode to on.
+Nice Toolbox creates symlinks. To enable these, please activate Developer Mode on Windows.
+This can be done by going to `Settings` > `Updates & Security` > `For Developers` and turning Developer Mode on.
 
 
 TODO -- check if it creates any security risk (windows gives a warning about) and whether there is a better way to do it.
@@ -112,9 +109,9 @@ TODO -- check if it creates any security risk (windows gives a warning about) an
 
 Installation scripts are provided for Linux and Windows under `nicetoolbox/installation/install_all.sh` and `nicetoolbox/installation/install_all.bat`. They presume that Conda, CUDA 11.8, and Python 3.10 are already installed on your system. 
 Both will do the following: 
-1. Setup Nice Toolbox environment
-2. Setup conda environment for Openmmlab (pose detector)
+1. Setup venv environment for Nice Toolbox
 3. Setup venv environment for Gaze Detector
+2. Setup conda environment for Openmmlab (pose detector)
 
 
 **Notes:**
@@ -145,7 +142,7 @@ cd \path\to\nice-toolbox
 
 ## 5. Additional notes
 Please check [rerun privacy policies](https://www.rerun.io/privacy).
-Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environement in `envs/` and then run: 
+Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environement in `env/` and then run: 
 ```bash
 rerun analytics config   ##to see current configuration
 rerun analytics disable 

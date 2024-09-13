@@ -1,5 +1,5 @@
 """
-
+Helper functions for logging.
 """
 import sys
 import os

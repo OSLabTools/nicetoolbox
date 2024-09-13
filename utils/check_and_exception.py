@@ -1,3 +1,7 @@
+"""
+Check and exception handling functions.
+"""
+
 import os
 import sys
 import logging

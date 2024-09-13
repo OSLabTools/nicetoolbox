@@ -10,6 +10,7 @@
    Detectors API <_autosummary/detectors>
    Evaluation API <_autosummary/evaluation>
    Visualization API <_autosummary/visual>
+   Utils API <_autosummary/utils>
 
 
 Welcome to NICE Toolbox's documentation!
@@ -70,10 +71,9 @@ and micro-action recognition.
 Further, we will move beyond mere visual inspection and integrate a versatile 
 evaluation framework. Based on our experience in computer vision, we are aware that no 
 single algorithm can perform flawlessly across all capture settings.
-To support you to choose the best algorithms for your settings, we are developing an 
-evaluation workflow that better elucidates the limitations of the algorithms, that allows 
-for systematic comparisons of the algorithms, and that assess their accuracy within a 
-given setting.
+To help you choose the best algorithms for your settings, we are developing an evaluation 
+workflow. This workflow will clarify the limitations of the algorithms, allow for systematic 
+comparisons, and assess their accuracy within a given setting.
 Our goal is to provide comprehensive and objective evaluations of the algorithms, 
 ultimately creating a practically useful toolbox for researchers analyzing human 
 interaction and communication.
