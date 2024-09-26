@@ -567,21 +567,32 @@ class Data:
                 camera_frames_list = []
 
                 skip = self.video_skip_frames if self.video_skip_frames is not None else 1
-                for frame_idx in range(self.video_start + self.start_frame_index, self.video_start + self.video_length, skip):
+                for iteration, frame_idx in enumerate(range(self.video_start, self.video_start + self.video_length, skip)):
 
-                    input_frame_indices = np.where([filename_template % frame_idx in path for path in input_frame_paths])[0]
+                    dataset_frame_idx = frame_idx + self.start_frame_index
+
+                    input_frame_indices = np.where([filename_template % dataset_frame_idx in path for path in input_frame_paths])[0]
                     if len(input_frame_indices) != 1:
                         exc.error_log_and_raise(
                             NotImplementedError, 
                             'Create input data from frames.',
                             f"Detected dataset filename convention '{filename_template}', not applicable for " \
-                            f"camera name '{camera_name}' and frame index '{frame_idx}'."
+                            f"camera name '{camera_name}' and frame index '{dataset_frame_idx}'."
                             )
+                        
                     input_frame_idx = input_frame_indices[0]
 
                     in_framename = input_frame_paths[input_frame_idx]
                     out_filename = os.path.join(data_folder, 'frames', "%05d.png" % frame_idx)
 
+                    if (iteration == 0) and (input_frame_idx != self.video_start):
+                        exc.error_log_and_raise(
+                            IndexError, 
+                            'Create input data from frames.',
+                            f"First input frame index '{input_frame_idx}' does not match video start " \
+                            f"'{self.video_start}'. Dataset filename '{in_framename}' is likely incorrect."
+                            )
+                        
                     if not os.path.exists(out_filename):
                         # create system link
                         os.symlink(in_framename, out_filename)
