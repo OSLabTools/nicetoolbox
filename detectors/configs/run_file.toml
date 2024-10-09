@@ -46,8 +46,8 @@ videos = [
 [run.dyadic_communication]
 components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
 videos = [
-   {session_ID = "PIS_ID_000", sequence_ID='', video_start = 17, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
-   {session_ID = "PIS_ID_04", sequence_ID='', video_start = 100, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
+   {session_ID = "PIS_ID_000", sequence_ID='', video_start = 355, video_length = 12, video_skip_frames = false, annotation_interval = 2.0},
+   {session_ID = "PIS_ID_04", sequence_ID='', video_start = 505, video_length = 12, video_skip_frames = false, annotation_interval = 2.0},
 ]
 
 [run.mpi_inf_3dhp]

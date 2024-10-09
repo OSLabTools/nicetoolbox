@@ -14,6 +14,15 @@ path_to_calibrations = "<datasets_folder_path>/dyadic_communication/oslab/calibr
 data_input_folder = "<datasets_folder_path>/dyadic_communication/<session_ID>/IOI/compressed_25/withAudio"
 start_frame_index = 0
 fps = 30
+path_to_annotations = "<datasets_folder_path>/dyadic_communication/oslab/20240927_annotations.npz"
+evaluation = [
+    {annotation_components = ["gaze_interaction"], metric_types = ["categorical_metrics"]},
+    {annotation_components = ["none"], metric_types = ["keypoint_metrics"]}
+]
+[dyadic_communication.synonyms]
+axis0 = {th = 'personR', cl = 'personL'}
+axis3 = {eyes_lookth = 'look_at_personR', eyes_lookcl = 'look_at_personL', eyes_mutual = 'with_personL'}
+
 
 [mpi_inf_3dhp]
 session_IDs = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8']
@@ -28,9 +37,13 @@ path_to_calibrations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/calibrations.n
 data_input_folder = "<datasets_folder_path>/mpi_inf_3dhp/<session_ID>/<sequence_ID>/<camera_name>"
 start_frame_index = 1
 fps = 50
-path_to_annotations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/annotations.npz"
-annotation_types = ['keypoints']
-metric_types = ['point_cloud_metrics', 'keypoint_metrics']
+path_to_annotations = "<datasets_folder_path>/mpi_inf_3dhp/oslab/20240926_annotations.npz"
+evaluation = [
+    {annotation_components = ["body_joints", 'hand_joints', 'face_landmarks'], metric_types = ["point_cloud_metrics", "keypoint_metrics"]}
+]
+[mpi_inf_3dhp.synonyms]
+axis3 = {left_toe = 'left_bigtoe', right_toe = 'right_bigtoe'}
+
 
 [communication_multiview]
 session_IDs = ["session_xyz"]
