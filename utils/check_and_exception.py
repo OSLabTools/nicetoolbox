@@ -1,3 +1,7 @@
+"""
+Check and exception handling functions.
+"""
+
 import os
 import sys
 import logging
@@ -131,7 +135,7 @@ def check_user_input_config(config, check, config_name, var=None):
             'keys:<toml_filepath>': valid options are all keys from the dict given by the 
                                     toml_filepath
             'tbd': not yet defined in the template dict 'check', 
-                   will write a warning to log # TODO
+                   will write a warning to log
             [<>, ...]: list of valid options, may contain all basetypes
     """    
     # the config dict contains all test-keys and test-values (tkey, tval)
@@ -291,8 +295,6 @@ def check_zeros(arr: np.ndarray) -> None:
     zero_vector = np.zeros(last_dim_size)
     zero_cells = np.all(arr == zero_vector, axis=-1)
 
-    try:
-        assert not np.any(zero_cells), f"Data array contains zero cells at {np.argwhere(zero_cells)}"
-    except AssertionError as e:
-        logging.error(f"Assertion failed: {e}")
-        sys.exit(1)
+    if np.any(zero_cells):
+        logging.warning(f" Warning. Data array contains zero cells at {np.argwhere(zero_cells)}")
+

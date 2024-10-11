@@ -1,3 +1,7 @@
+"""
+Helper functions for the visualizer module.
+"""
+
 import numpy as np
 
 

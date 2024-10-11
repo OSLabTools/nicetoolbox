@@ -1,3 +1,3 @@
 """
-Rerun visualization
+Rerun visualization framework.
 """

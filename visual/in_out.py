@@ -1,3 +1,7 @@
+"""
+Input output class for the rerun visualizer module.
+"""
+
 import os
 import copy
 

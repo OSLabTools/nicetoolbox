@@ -1,8 +1,5 @@
-""" Handling configuration files, format: yaml
-
-    for configs: supports using placeholders from two sources
-    autofill:    <git_hash> <commit_message> <me> <today> <yyyymmdd> <time>
-    path_config: <pis_folder_path> <local_input_path> <local_output_path>
+""" 
+Funcitons for handling configuration files.
 """
 
 import os

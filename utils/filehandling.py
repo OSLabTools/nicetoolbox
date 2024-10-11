@@ -1,10 +1,11 @@
 """
-    Helper functions for reading, writing and parsing text files
+Helper functions for reading, writing and parsing files
 """
 import os
 import numpy as np
 import json
 import toml
+import yaml
 
 
 def load_config(config_file: str) -> dict:

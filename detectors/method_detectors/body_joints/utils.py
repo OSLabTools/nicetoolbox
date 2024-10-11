@@ -1,5 +1,5 @@
 """
-Pose estimation utilities. # TODO: Move to a more appropriate location?
+Pose estimation utilities.
 """
 
 import sys
@@ -15,7 +15,7 @@ top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 
 
-def interpolate_data(data, is_3d= True, max_empty=10): ## TODO make max_empty 1/3 of FPS
+def interpolate_data(data, is_3d= True, max_empty=10):
     """
     Interpolates missing data in the given multi-dimensional array using scipy's interp1d function.
 

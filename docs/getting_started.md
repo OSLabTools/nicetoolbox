@@ -13,8 +13,8 @@
 
 ## 1. Create your machine-specific config
 
-Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
-This machine specific configuration file should contain the following dictionary (to fill):
+Create a file named `./machine_specific_paths.toml`. Alternatively, you can copy and rename `./machine_specific_paths_template.toml`.
+This machine-specific configuration file should contain the following entries (to fill):
 
 ```toml
 # Absolute path to the directory in which all datasets are stored (str)
@@ -28,11 +28,12 @@ conda_path = ''
 ```
 
 ## 2. Download the example data
-The example data is uploaded to [keeper](https://keeper.mpdl.mpg.de/d/d38179804e1144a5880d/). Please download the folder `communication_multiview` and put it in your `datasets_folder_path` - the directory which is defined in your file `./machine_specific_paths.toml`, see [above](#1-create-your-machine-specific-config). 
+The example data is available on [keeper](https://keeper.mpdl.mpg.de/d/d38179804e1144a5880d/). Download the `communication_multiview` folder and place it in your `datasets_folder_path`, as defined in `./machine_specific_paths.toml` (see [above](#1-create-your-machine-specific-config)). 
 
 
 ## 3. Define the dataset's properties
-Check that the file `./detectors/configs/dataset_properties.toml` contains the following dictionary:
+Ensure that `./detectors/configs/dataset_properties.toml` contains the following dictionary:
+
 ```toml
 [communication_multiview]
 session_IDs = ["session_xyz"]
@@ -52,7 +53,7 @@ A detailed description of this file can be found in the wiki page on config file
 
 
 ## 4. Add the experiment to run
-To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./detectors/configs/run_file.toml` and make sure that the `[run]` dictionary details the following:
+To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./detectors/configs/run_file.toml` and ensure that the `[run]` dictionary includes the following:
 
 ```toml
 [run]
@@ -84,13 +85,13 @@ python detectors/main.py
 ```
 
 The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders). 
-To watch the experiment run, check the log file `/path/to/<out_folder>/nicetoolbox.log`. Expect the tool to take about 6min for this experiment.
+To monitor the experiment, check the log file at `/path/to/<out_folder>/nicetoolbox.log`. The tool is expected to take approximately 6 minutes for this experiment.
 
 
 ## 6. Visualize the results
 
 There are multiple options to visualize the results of NICE toolbox. 
-For an interactive experience, we recommend to use our `visual` code which is running `rerun`. 
+For an interactive experience, we recommend using our `visual` code, which runs `rerun`. 
 To do so, open `./visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
 ```toml
 [io]
@@ -107,7 +108,7 @@ multi_view = true
 ```
 A detailed description of visualizer configuration can be found in the wiki page on config files under [visualizer config](wikis/wiki_config_files.md#visualizer-config).
 
-And last, from inside the top level of your code folder, start the visualizer by running
+Finally, from the top level of your code folder, start the visualizer by running
 ```bash
 source ./env/bin/activate
 python visual/media/main.py
