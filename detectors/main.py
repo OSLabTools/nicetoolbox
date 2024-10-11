@@ -40,7 +40,7 @@ all_feature_detectors = dict(
     )
 
 
-def main(run_config_file, detector_config_file, machine_specifics_file):
+def main(run_config_file, machine_specifics_file):
     """
     The main function of the NICE Toolbox.
 
@@ -61,7 +61,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
     8. Runs the feature extraction pipeline specified in the configuration for each dataset.
     """
     # CONFIG I
-    config_handler = confh.Configuration(run_config_file, detector_config_file, machine_specifics_file)
+    config_handler = confh.Configuration(run_config_file, machine_specifics_file)
 
     # IO
     io = IO(config_handler.get_io_config())
@@ -127,8 +127,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_config", default="detectors/configs/run_file.toml", type=str, required=False)
-    parser.add_argument("--detectors_config", default="detectors/configs/detectors_config.toml", type=str, required=False)
     parser.add_argument("--machine_specifics", default="machine_specific_paths.toml", type=str, required=False)
     args = parser.parse_args()
 
-    main(args.run_config, args.detectors_config, args.machine_specifics)
+    main(args.run_config, args.machine_specifics)

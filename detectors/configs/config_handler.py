@@ -39,7 +39,7 @@ def add_to_filename(filename, addition):
 
 
 class Configuration:
-    def __init__(self, run_config_file, detector_config_file, machine_specifics_file):
+    def __init__(self, run_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
         self.run_config = fh.load_config(run_config_file)
         self.run_config_check_file=add_to_filename(run_config_file, '_check')
@@ -47,13 +47,14 @@ class Configuration:
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
         # detector_config
+        detector_config_file = self.localize(self.run_config, False)['io']['detectors_config']
         self.detector_config = fh.load_config(detector_config_file)
         for detector_name, detector_dict in self.detector_config['algorithms'].items():
             if 'framework' in detector_dict.keys():
                 framework = self.detector_config['frameworks'][detector_dict['framework']]
                 self.detector_config['algorithms'][detector_name].update(framework)
 
-        dataset_config_file = self.localize(self.run_config, False)['io']['dataset_config']
+        dataset_config_file = self.localize(self.run_config, False)['io']['dataset_properties']
         self.dataset_config = fh.load_config(dataset_config_file)
         self.current_data_config = None
 

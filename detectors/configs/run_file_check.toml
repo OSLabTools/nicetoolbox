@@ -26,7 +26,8 @@ video_length = 'type:int'
 experiment_name = 'type:str'
 out_folder = 'folder:base'
 out_sub_folder = 'folder:base'
-dataset_config = 'file:'
+dataset_properties = 'file:'
+detectors_config = 'file:'
 assets = 'folder:full'
 
 process_data_to = ['data_folder', 'tmp_folder']
