@@ -1,7 +1,7 @@
 import numpy as np
 import tkinter as tk
 
-from constants import all_fields, px, py
+from constants import all_fields
 
 
 def init_entries_3x3():

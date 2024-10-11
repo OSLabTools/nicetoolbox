@@ -6,7 +6,6 @@ import os
 import copy
 import logging
 
-# internal imports
 import utils.check_and_exception as exc
 
 
@@ -68,7 +67,7 @@ class IO:
         Returns:
             tuple: A tuple containing the path of the log file and the log level.
         """
-        return os.path.join(self.out_folder, "ISA-Tool.log"), self.log_level
+        return os.path.join(self.out_folder, "nicetoolbox.log"), self.log_level
 
     def get_config_file(self):
         """
@@ -115,23 +114,6 @@ class IO:
         self.detector_tmp_folder = config['detector_tmp_folder']
         self.detector_run_config_path = config['detector_run_config_path']
         self.detector_final_result_folder = config['detector_final_result_folder']
-
-    def get_all_tmp_folders(self):
-        """
-        Returns a list of all temporary folders used by the algorithm.
-
-        This method generates a list of temporary folders by replacing the '<algorithm_names>'
-        placeholder in the `detector_tmp_folder` with each algorithm name in `algorithm_names`.
-        The list includes the main `tmp_folder` and all the generated detector temporary folders.
-
-        Returns:
-            list: A list of temporary folders.
-
-        """
-        detector_tmp_folders = [
-            self.detector_tmp_folder.replace('<algorithm_names>', algorithm_names)
-            for algorithm_names in self.algorithm_names]
-        return [self.tmp_folder, *detector_tmp_folders]
 
     def get_input_folder(self):
         """

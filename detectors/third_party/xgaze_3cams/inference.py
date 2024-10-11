@@ -12,17 +12,15 @@ from pathlib import Path
 # Add top-level directory to sys.path depending on repo structure and not cwd
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir)) 
-sys.path.append(os.getcwd())
-import utils.filehandling as fh
+# sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xgaze_3cams'))
 
-# internal and third-party imports
+import utils.filehandling as fh
 import landmarks as lm
 from gaze_estimator import GazeEstimator
 from xgaze_utils import vector_to_pitchyaw, draw_gaze, get_cam_para_studio
 
 
-# TODO: Split into smaller functions: e.g. load_data, run_inference, visualize_gaze_direction, save_results
 def main(config, debug=False):
     """ 
     Run xgaze_3cams gaze detection on the provided data.
@@ -80,10 +78,9 @@ def main(config, debug=False):
     results = np.zeros((n_frames, n_subjects, 3))
     results_2d = np.zeros((n_frames, n_cams, n_subjects, 2))
     landmarks_2d = np.full((n_frames, n_cams, n_subjects, 6, 2), None)
-    # landmarks_3d = np.zeros((n_frames, n_cams, n_subjects, 6, 3))
 
     for frame_i, frame_files in enumerate(frames_list):
-        images = []  # (n_cams, h, w, 3)
+        images = []
 
         frame_name = [os.path.basename(file).strip('.png').strip('.jpg').strip('.jpeg') for file in frame_files]
         if len (set(frame_name)) != 1:
@@ -117,21 +114,6 @@ def main(config, debug=False):
 
                 landmarks_2d[frame_i, cam_i, subjects_by_cam] = landmark_predictions
                 
-            # # debugging
-            # for point in landmark_predictions.reshape(-1, 3):
-            #     cv2.circle(image, point[:2].astype(int), 3, (0,0,255), -1)
-            # cv2.imwrite('folder-path/image.png', image)
-
-            # # calculate 3D landmarks from 2.5D predictions
-            # cam_matrix, cam_distor, cam_rotation, cam_translation = get_cam_para_studio(
-            #     config['calibration'], camera_names[cam_i], image)
-            # # z * (u, v, 1)
-            # landmark_predictions[..., :2] *= landmark_predictions[..., 2:]
-            # # camera coords
-            # landmark_camera = np.matmul(landmark_predictions, np.linalg.inv(cam_matrix).T)
-            # # world coords
-            # landmarks_3d[frame_i, cam_i] = np.matmul((landmark_camera - cam_translation.reshape(1, 1, 3)), np.linalg.inv(cam_rotation).T)
-            
         # OK, now let's do gaze estimation - per subject
         for sub_id in range(n_subjects):  # loop it for each subject
             gaze_world = []  # the final gaze direction in the world coordinate system
@@ -148,10 +130,6 @@ def main(config, debug=False):
                 # where to find this subject 'sub_id' in camera 'cam_name'
                 sub_cam_id = subjects_by_cam.index(sub_id)
 
-                # DEBUGGING
-                # for p in landmarks[0]:
-                #     image[p.astype(int)[1], p.astype(int)[0]] = [0, 0, 255]
-                
                 cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(
                         config['calibration'], cam_name, image)
                 pred_gaze = gaze_estimator.gaze_estimation(
@@ -233,7 +211,6 @@ def main(config, debug=False):
     out_dict = {
         '3d': results[None].transpose(2, 0, 1, 3),
         'landmarks_2d': np.array(landmarks_2d, dtype=float).transpose(2, 1, 0, 3, 4),
-        # 'landmarks_3d': landmarks_3d.transpose(2, 1, 0, 3, 4),
         'data_description': {
             '3d': dict(
                 axis0=config["subjects_descr"],
@@ -248,13 +225,6 @@ def main(config, debug=False):
                 axis3=['right_eye_0', 'right_eye_1', 'left_eye_0', 'left_eye_1', 'mouth_0', "mouth_1"],
                 axis4=['coordinate_u', 'coordinate_v']
             ),
-            # 'landmarks_3d': dict(
-            #     axis0=config["subjects_descr"],
-            #     axis1=None,
-            #     axis2=frame_indices,
-            #     axis3='face_landmarks',
-            #     axis4=['coordinate_x', 'coordinate_y', 'coordinate_z']
-            # ),
         }
     }
     if len(camera_names) == 1:
@@ -275,6 +245,5 @@ def main(config, debug=False):
 
 if __name__ == '__main__':
     config_path = sys.argv[1]
-    # config_path = '/is/sg2/cschmitt/pis/experiments/20240710/mpi_inf_3dhp_S1_s20_l20/gaze_individual/xgaze_3cams/run_config.toml'
     config = fh.load_config(config_path)
     main(config)

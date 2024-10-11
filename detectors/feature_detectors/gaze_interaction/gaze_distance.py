@@ -69,7 +69,7 @@ class GazeDistance(BaseFeature):
         gaze_component, gaze_algorithm = [l for l in config['input_detector_names'] 
                                           if any(['gaze' in s for s in l])][0]
         gaze_out_folder = io.get_detector_output_folder(gaze_component, gaze_algorithm, 'output')
-        # TODO Remove hard-coded camera names
+        
         self.gaze_detector_file_list = [
             [os.path.join(gaze_out_folder, f) for f in os.listdir(gaze_out_folder) if 'cam3' in f],
             [os.path.join(gaze_out_folder, f) for f in os.listdir(gaze_out_folder) if 'cam4' in f]
@@ -180,8 +180,6 @@ class GazeDistance(BaseFeature):
         np.savez_compressed(filepath, **out_dict)
 
         logging.info(f"Computation of feature detector for {self.components} completed.")
-
-        # TODO: Return outdict
         return visualization_data
 
     def visualization(self, data):
@@ -225,7 +223,6 @@ class GazeDistance(BaseFeature):
             kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
                 input_data, categories, global_min, global_max, self.viz_folder,
                 self.subjects_descr)
-            # TODO Fix video creation and add correct plot titles!
             # kinematics_utils.create_video_evolving_linegraphs(
             #     self.gaze_detector_file_list[0], input_data, categories, global_min,
             #     global_max, self.viz_folder, 'distance_face_cam3', 3.0)

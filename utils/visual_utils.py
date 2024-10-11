@@ -3,12 +3,6 @@ Helper functions for the visualizer module.
 """
 
 import numpy as np
-import os
-import scipy.signal as signal
-import json
-import cv2
-import matplotlib.pyplot as plt
-from scipy.spatial.transform import Rotation as R
 
 
 def load_calibration(calibration_file, video_input_config, camera_names='all'):
@@ -22,20 +16,6 @@ def load_calibration(calibration_file, video_input_config, camera_names='all'):
         calib = dict((key, value) for key, value in loaded_calib.items()
                      if key in camera_names)
     return calib
-
-def project_points_using_cv2(points, cam_int, cam_ext, dist):
-    """
-    Project points using cv2 projectPoints function.
-    :param points: (N, 3) points (world space)
-    :param cam_int: (3,3) camera intrinsic matrix
-    :param cam_ext: (4,4) camera extrinsic matrix
-    :return: (N, 2) projected points
-    """
-    t_vec = cam_ext[:3, 3]
-    r_mat = cam_ext[:3, :3]
-    r_vec = R.from_matrix(r_mat).as_rotvec()
-    projected_points, _ = cv2.projectPoints(points, r_vec, t_vec, cam_int, dist)
-    return projected_points.squeeze()
 
 
 def get_cam_para_studio(content, cam):
@@ -57,12 +37,14 @@ def get_cam_para_studio(content, cam):
         cam_extrinsic = cam_extrinsic
     return cam_matrix, cam_distor, cam_rotation, cam_extrinsic
 
+
 def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):
     #(h, w) = image_in.shape[:2]
     length = image_width / length_ratio
     dx = (-length * np.sin(pitchyaw[:,1]) * np.cos(pitchyaw[:,0])).astype(int)
     dy = (-length * np.sin(pitchyaw[:,0])).astype(int)
     return dx, dy
+
 
 def vector_to_pitchyaw(vector):
     ##Convert given gaze vectors to yaw (:math:`\theta`) and pitch (:math:`\phi`) angles.

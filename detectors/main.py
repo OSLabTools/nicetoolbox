@@ -11,7 +11,6 @@ import argparse
 
 sys.path.append(os.getcwd())
 
-# internal imports
 import utils.logging_utils as log_ut
 import detectors.configs.config_handler as confh
 from detectors.in_out import IO
@@ -32,6 +31,7 @@ all_method_detectors = dict(
     vitpose=VitPose
     )
 
+
 all_feature_detectors = dict(
     velocity_body=VelocityBody,
     body_distance=BodyDistance,
@@ -40,9 +40,9 @@ all_feature_detectors = dict(
     )
 
 
-def main(run_config_file, detector_config_file, machine_specifics_file):
+def main(run_config_file, machine_specifics_file):
     """
-    The main function of the ISA-TOOL.
+    The main function of the NICE Toolbox.
 
     Args:
         run_config_file (str): The path to the run configuration file.
@@ -61,20 +61,15 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
     8. Runs the feature extraction pipeline specified in the configuration for each dataset.
     """
     # CONFIG I
-    config_handler = confh.Configuration(run_config_file, detector_config_file, machine_specifics_file)
+    config_handler = confh.Configuration(run_config_file, machine_specifics_file)
 
     # IO
     io = IO(config_handler.get_io_config())
 
     # LOGGING
     log_ut.setup_logging(*io.get_log_file_level())
-    logging.info(f"\n{'#' * 80}\n\nISA-TOOL STARTED. Saving results to '{io.out_folder}'.\n\n{'#' * 80}\n\n")
+    logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to '{io.out_folder}'.\n\n{'#' * 80}\n\n")
     
-    # CONFIG II
-    # check config consistency
-    #config_handler.check_config_consistency(
-    #        io.get_output_folder('output'))
-
     # check and save experiment configs
     config_handler.checker()
     config_handler.save_experiment_config(io.get_config_file())
@@ -132,8 +127,7 @@ def main(run_config_file, detector_config_file, machine_specifics_file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_config", default="detectors/configs/run_file.toml", type=str, required=False)
-    parser.add_argument("--detectors_config", default="detectors/configs/detectors_config.toml", type=str, required=False)
     parser.add_argument("--machine_specifics", default="machine_specific_paths.toml", type=str, required=False)
     args = parser.parse_args()
 
-    main(args.run_config, args.detectors_config, args.machine_specifics)
+    main(args.run_config, args.machine_specifics)

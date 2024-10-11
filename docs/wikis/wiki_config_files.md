@@ -1,55 +1,92 @@
-# Understanding the Config Files
+# Understanding the config files
 
 
-There are many more options to individualize and specify the experiment runs. We will cover them in the following.
+The configuration files are Python dictionaries saved in `.toml` - files that contain details about the machine on which the toolbox is running, the experiment that runs, the data the toolbox runs on, the detectors and algorithms it is using, a mapping between different data identifiers, as well as the visualization that shows the toolbox's results. Most of these configuration dictionaries may contain placeholders which are explained first.
 
-WORK IN PROGRESS...
+<br>
 
-## Contents
+- [Placeholders](#placeholders)
+- [Machine specifics](#machine-specifics)
+- [Run file](#run-file)
+    - [General properties](#general-properties)
+    - [Choosing algorithms per component](#choosing-algorithms-per-component)
+    - [Defining the experiments](#defining-the-experiments)
+    - [Input and output files](#input-and-output-files)
+- [Dataset properties](#dataset-properties)
+- [Detectors config](#detectors-config)
+    - [Method detectors](#method-detectors)
+    - [Feature detectors](#feature-detectors)
+- [Predictions mapping](#predictions-mapping)
+- [Visualizer config](#visualizer-config)
 
-- `./detectors/configs/run_file.toml`
-- `./detectors/configs/dataset_properties.toml`
-- `./machine_specific_paths.toml`
-- `./detectors/configs/detectors_config.toml`
-- `./detectors/configs/predictions_mapping.toml`
-- `./visual/configs/visualizer_config.toml`
+<br>
+
+
+
+
+
+
+## Placeholders
+
+Placeholders can be put into strings and are filled automatically during run-time. All configs support the use of placeholders, where reasonable.
+Placeholders are indicated by enclosing characters `<` and `>` and may take the following values:
+1. All keys in `./machine_specific_paths.toml`,
+2. All keys from `io` as defined in `./detectors/configs/run_file.toml`, 
+3. The keys `<dataset_name>`, `<component_name>`, `<algorithm_name>`, `<session_ID>`, `<sequence_ID>`, `<camera_name>`, `<video_start>`, and `<video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./detectors/configs/run_file.toml`,
+4. The options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
+
+
+Some examples:
+
+- The default output folder path defined in the [run file's io](#defining-input-and-output-files) is `"<output_folder_path>/experiments/<experiment_name>"`. During run time, the placeholder `<output_folder_path>` is filled from the [machine specifics](#machine-specifics) dictionary and the `<experiment_name>` is replaced by the value defined in the same dictionary as the output folder path, the [run file's io](#defining-input-and-output-files).
+- A typical example value for the data_input_folder in a [dataset's properties](#dataset-properties) is `"<datasets_folder_path>/test_dataset/<session_ID>/<camera_name>"`. The `<datasets_folder_path>` is filled from the [machine specifics](#machine-specifics) dictionary and both `<session_ID>` and `<camera_name>` are filled during run time individually for each experiment, as defined in the run file's [experiment selection](#defining-the-experiments).
+
+
+
+
+
+
+
+## Machine specifics 
+
+The dictionary stored in the `./machine_specific_paths.toml` file configures the paths that are specific to the machine used for running NICE Toolbox. This is the **only occurance of absolute paths** in the codebase. Therefore, this file is part of the repository's `.gitignore` file and needs to be created new on each machine. A template is available as `./machine_specific_paths_template.toml`, which can be duplicated and renamed.
+
+```toml
+datasets_folder_path = ''
+output_folder_path = ''
+conda_path = ''
+```
+- `datasets_folder_path` is the absolute path to the directory in which all datasets are stored (str).
+- `output_folder_path` defines the absolute path to the directory in which all toolbox output is saved (str).
+- `conda_path` contains the absolute path to the conda installation on the machine (str).
+
+
+
+
 
 
 ## Run file
 
+The run file `./detectors/configs/run_file.toml` defines the experiments to run. This config consists of four parts, that detail general properties, the chosen detectors, the dataset(s), and the experiment's output files. The config supports placeholders as described [here](#placeholders). Each part is described in the following.
+
+
+### General properties
+
+Properties that apply to all experiments.
+
 ```toml
-visualize = false               # save image/video visualizations of detectors
-...
-
-[run.dataset_name]              # change 'dataset_name' to your dataset
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
-videos = [
-    {                           # define which data to run on
-    session_ID = "",            # select the session_ID (str)
-    sequence_ID="",             # select the sequence_ID (str, may be empty)
-    video_start = 0,            # start of the video in frames, 0 for starting from beginnning (int)
-    video_length = 100,         # number of frames to run, defines the length of the video (int)
-    video_skip_frames = false   # whether to skip frames or run on all frames, default: false (bool)
-    },
-    ...
-]
-
-[io]
-experiment_name = "<yyyymmdd>"  # optionally, change the name of the experiment, default: date (str)
-out_folder = "<pis_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
-...
+git_hash = "<git_hash>"  
+visualize = true 
+save_csv = true 
 ```
-
-- `visualize` enables saving of intermediate results per detector. Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
-- `run.dataset_name.components` lists all the components that should run.
-- `run.dataset_name.videos` is a list of dictionaries. Each dictionary defines one video snipped to run. Possibility to extend as needed.
-- `io.experiment_name` defaults to the current date (in format YYYMMDD). `<yyyymmdd>` is a placeholder that gets filled automatically.
-- `io.out_folder` is the experiment output directory. It supports placeholders for all keys in `io`, all keys in `./machine_specific_paths.toml`, as well as the options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
+- `git_hash` is the identifier/hash of the current git commit (str), it is filled automatically by default.
+- `visualize` enables saving of intermediate results per detector (bool). Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
+- `save_csv` enables saving all results to 2d tables in csv-files (bool).
 
 
-### Choosing Detectors
+### Choosing algorithms per component
 
-Each component can be assigned to and run with multiple different algorithms. This is defined in `./detectors/configs/run_file.toml`:
+Each component can be assigned to and run with multiple different algorithms. When choosing a component to run, as described in [defining the experiment](#defining-the-experiments), this dictionary maps to the corresponding algorithm(s) that will run to predict the specific component.
 
 ```toml
 [component_algorithm_mapping]
@@ -62,67 +99,170 @@ kinematics = ['velocity_body']
 proximity = ['body_distance']
 leaning = ['body_angle']
 ```
+- The dictionary keys are all implemented component names (str). 
+- Per component, the value (list of str) lists which algorithms should run for its prediction. Note: One algorithm may predict multiple components and multiple algorithms may be chosen per component.
 
 
-### Defining Output Files
+### Defining the experiments
 
-There is one part of the `./detectors/configs/run_file.toml` we did not explain in detail yet, the `[io]`. This part of the config specifies where any out put of the NICE Toolbox gets saved.
+NICE Toolbox supports running multiple experiments with different components and datasets sequentially from a single program call. 
+Hereby, experiments on multiple datasets as well as multiple experiments per dataset are possible.
+Each experiment uses detectors to predict a set of diverse components.
+
+`[run]` is the dictionary defining these experiments. Each key is a dataset's name, the values specify the experiments to run with this dataset. This is how it looks:
+
+```toml
+[run.dataset_name]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
+data_selections = [
+    {session_ID = "", sequence_ID = "", video_start = 0, video_length = 100},
+    ...
+]
+```
+- `components` lists the components that are predicted for this dataset (list of str).
+- `data_selections` defines which data of the chosen dataset to run on (list of dict). Each dictionary of the form `{session_ID = "", ...}` selects one video snippet to run and defines a new experiment. Multiple such dictionaries, or experiments, in this list will run sequentially.
+    - `session_ID` select the dataset's session (str), must match a session_ID defined in the [dataset's properties](#dataset-properties).
+    - `sequence_ID` select the dataset's sequence, if applicable, may be an empty string (str, optional), must match a sequence_ID defined in the [dataset's properties](#dataset-properties).
+    - `video_start` starting point in frames, 0 for starting from beginnning of the video (int), must not exceed the total number of frames. 
+    - `video_length` number of frames to run, defines the length of the selected video (int), video_start + video_length must not exceed the total number of frames. 
+
+Note: The [folder structures](../tutorials/tutorial1_dataset_single_view.md#folder-structure) of a dataset inside the NICE Toolbox are designed such that the session ID and, if applicable, the sequence ID of a given dataset clearly define one video (stored as a video file or frames) of the data. The keys video_start and video_length refer to this video.
+
+
+
+### Input and output files
+
+The last part of the run file specifies where inputs can be found and any output of the NICE Toolbox gets saved.
 
 ```toml
 [io]
 experiment_name = "<yyyymmdd>"
-out_folder = "<pis_folder_path>/experiments/<experiment_name>"
+out_folder = "<output_folder_path>/experiments/<experiment_name>"
 out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
-dataset_config = "detectors/configs/dataset_properties.toml"
+dataset_properties = "detectors/configs/dataset_properties.toml"
+detectors_config = "detectors/configs/detectors_config.toml"
 assets = "<code_folder>/detectors/assets"
 
-process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
-data_folder = "<pis_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
-tmp_folder = "<pis_folder_path>/experiments/tmp"
+process_data_to = "data_folder" 
+data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
+tmp_folder = "<output_folder_path>/experiments/tmp"
 detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
 detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
 detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
 detector_tmp_folder = "<tmp_folder>/<component_name>/<algorithm_name>"
 detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
 detector_final_result_folder = "<out_sub_folder>/<component_name>"
+csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"
 ```
-- `out_folder` and `out_sub_folder` (str):
-- `dataset_config` (str):
-- `assets` (str):
-- `process_data_to` (str):
-- `data_folder`, `data_folder` (str):
-- `detector_out_folder`, `detector_visualization_folder`, `detector_additional_output_folder`, `detector_tmp_folder`, `detector_run_config_path`, `detector_final_result_folder` (str):
-- `code_folder` ():
-- `conda_path` ():
+- `experiment_name` define the name under which all experiments are run (str), defaults to today's date (in format YYYMMDD). 
+- `out_folder` is the top level directory where the results of all experiments are saved (str).
+- `out_sub_folder` is the output directory for a single experiment run (str).
+- `dataset_properties` and `detectors_config` store where to find the config files [dataset properties](#dataset-properties) and [detectors config](#detectors-config) (str).
+- `assets` stores the folder path of additional assets, like model checkpoints and weights (str). See [download assets](../installation.md#2-download-assets) in the installation instructions.
+- `process_data_to` currently only supports the option "data_folder" (str), defined in the next line.
+- `data_folder` is the path to the directory in which pre-processed input data gets stored during run time (str). As different algorithms require different file formats and folder structures as input, the NICE Toolbox prepares the given data accordingly. This pre-processed data is stored/cashed for faster run times when repeating runs over the same data.
+- `tmp_folder` currently not yet supported (str).
+- `detector_out_folder`, `detector_visualization_folder`, `detector_additional_output_folder`, `detector_tmp_folder`, `detector_run_config_path`, and `detector_final_result_folder` define where each detector stores (possible) intermediate outputs (str). Depending on the components and algorithms run per detector and the [visualization settings](#general-properties), different intermediate outputs are produced. The final results of all components and algorithms per detector are saved under `detector_final_result_folder`.
+- `code_folder` names the machine's folder path to the nicetoolbox repo (str), by default, it is filled automatically.
+- `conda_path` names the folder path to the machine's conda installation (str), by default, it is filled automatically. 
+
+
+
+
+
+
+
+
+
 
 
 ## Dataset properties
 
-Defined in `./detectors/configs/dataset_properties.toml`.
+Properties that are specific per dataset are collected in `./detectors/configs/dataset_properties.toml`. For each dataset, these include:
 
 ```toml
-[<dataset_name>]
-session_IDs = ['']        # identifiers for each session (list of str)
-sequence_IDs = ['']       # identifiers for individual sequences (list of str)
-cam_front = ''            # name of the camera with the most frontal view (str)
-cam_top = ''              # camera name of a frontal view from top (str, optional)
-cam_face1 = ''            # camera name of a view of one subject's face (str, optional)
-cam_face2 = ''            # caemra name of a view of a second subject's face (str, optional)
-subjects_descr = []       # define an identifier for the subjects in each video or frame (list of str)
-cam_sees_subjects = {}    # define which camera view records which subject (dict: (cam_name, list of int))
-path_to_calibrations = "" # file path with placeholders for the calibration files (str, optional)
-data_input_folder = ""    # folder path with placeholders to the video or image files (str)
-start_frame_index = 0     # how does the dataset index its data? usually, starting with 0 or 1 (int)
-fps = 30                  # frame-rate of video data (int, optional)
+[dataset_name]
+session_IDs = ['']
+sequence_IDs = ['']
+cam_front = '' 
+cam_top = '' 
+cam_face1 = ''
+cam_face2 = ''
+subjects_descr = []
+cam_sees_subjects = {}
+path_to_calibrations = ""
+data_input_folder = ""
+start_frame_index = 0
+fps = 30 
 ```
+- `session_IDs` lists all identifiers of the dataset's sessions (list of str).
+- `sequence_IDs` lists all identifiers of the dataset's sequences (list of str, optional).
+- `cam_front` contains the name of the camera view that observes the scene from the front (str). Best, it faces the subjects at about eye-height. 
+- `cam_top`, `cam_face1`, and `cam_face2` are the names of optional additional camera views for multi-view predictions (str, optional). These cameras include a frontal view from top and views of one or two subject's faces.
+- `subjects_descr` lists identifiers for the subjects in each video or frame, ordered from left to right (list of str). The number of identifiers must match the number of people visible in the videos/frames.
+- `cam_sees_subjects` defines which camera view records which subject (dict: (cam_name, list of int)). It is a dictionary with the camera_names from above as keys. For each camera, the value describes the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0.
+- `path_to_calibrations` defines the path to the calibration files (str, optional). It likely contains the placeholder `<datasets_folder_path>`.
+- `data_input_folder` defines the path to the video or image files of the dataset (str). It likely contains placeholders such as `<datasets_folder_path>`, `<session_ID>`, and `<sequence_ID>`.
+- `start_frame_index` details how the dataset indexes its data (int). Typically, frame indices start with 0 or 1.
+- `fps` is the frame rate of the video data (int).
 
-- `cam_front` should contain the name of the camera view that observes the scene from the front. Best, it faces the subjects at about eye-height. 
-- `cam_top`, `cam_face1`, and `cam_face2` are the names of optional additional camera views for multi-view predictions.
-- `subjects_descr` 
-- `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Each subject is represented by its index in subjects_descr, where indexing starts with 0.
-- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
+
+
+
+
+
+
+
+
+
+## Detectors config
+
+Internally, there are two types of detetors: method and feature detectors. For both, the configurations are defined inside the `./detectors/configs/detectors_config.toml` file. 
+
+
+### Method detectors
+
+For method detectors, the required properties are:
+```toml
+[algorithms.algorithm_name]
+input_data_format = "frames"
+camera_names = [""]
+env_name = "env_type:env_id"
+```
+- `input_data_format` describes which input type the algorithm expects (str). The currently supported option is "frames".
+- `camera_names` lists the camera views (as placeholders) of which the algorithm takes input data (list of str). Current options are "<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>". 
+- `env_name` defines the python or conda environment for running the algorithm (str). Options are "venv:env_id" for a python environment and "conda:env_id" for a conda environment, in both cases "env_id" is to replaced by the environment's name.
+
+
+### Feature detectors
+
+Feature detectors require the properties
+```toml
+[algorithms.algorithm_name]
+input_detector_names = [["component_name", "algorithm_name"]]
+```
+- `input_detector_names` (list of list of str)
+
+
+
+
+
+
+
+
+
+## Predictions mapping
+
+The config file `./detectors/configs/predictions_mapping.toml` contains information about mappings between different data identifiers. These are, for example, different conventions for selecting and naming human body joints, also called keypoints. The mappings are primarily used for internal purposes.
+
+
+
+
+
+
+
 
 
 ## Visualizer Config

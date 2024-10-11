@@ -1,7 +1,6 @@
 import os
 import json
 import numpy as np
-import utils.filehandling as fh
 
 
 def get_calibration_dict(matrix_dict):

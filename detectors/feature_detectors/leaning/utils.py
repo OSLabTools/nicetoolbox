@@ -48,6 +48,7 @@ def calculate_angle_btw_three_points(data):
     angles_deg = np.degrees(angles_rad)
     return angles_deg
 
+
 def visualize_lean_in_out_per_person(hip_angle, person_list, output_folder, camera_names=None):
     """
     Visualize the leaning angle between midpoint of shoulders, hips, and knees for each person.
@@ -84,14 +85,13 @@ def visualize_lean_in_out_per_person(hip_angle, person_list, output_folder, came
         axes[1, i].set_ylabel('Gradient of AxisAngle')
         axes[0, i].legend()
         axes[1, i].legend()
-        # axes[0, i].set_ylim(25, 120)
-        # axes[1, i].set_ylim(-10,10)
 
         # Adjust layout
         plt.tight_layout()
         # Save the plot
         camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
         plt.savefig(os.path.join(output_folder, f'leaning_angle_graph_{camera_name}.png'), dpi=500)
+
 
 def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
     """
@@ -127,6 +127,7 @@ def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
 
     combined_img = cv2.vconcat([frame, graph_img])
     return combined_img
+
 
 def create_video_canvas(num_of_frames, global_min, global_max):
     """

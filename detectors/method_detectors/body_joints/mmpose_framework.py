@@ -8,11 +8,11 @@ import numpy as np
 import logging
 import subprocess
 from pathlib import Path
+from abc import abstractmethod
 
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 
-# internal imports
 from detectors.method_detectors.base_detector import BaseDetector
 from detectors.method_detectors.filters import SGFilter
 import detectors.method_detectors.body_joints.utils as utils
@@ -74,9 +74,6 @@ class MMPose(BaseDetector):
 
         self.camera_names = config["camera_names"]
         self.video_start = data.video_start
-        # person_threshold: multiply 0.80 bec. rarely one person's bbox cross the x/2
-        # self.person_threshold = (config["resolution"][0]) / 2 * 0.80  
-        # config['person_threshold'] = self.person_threshold
         self.filtered = config["filtered"]
         if self.filtered:
             self.filter_window_length = config["window_length"]
@@ -95,7 +92,6 @@ class MMPose(BaseDetector):
         config['prediction_folders'] = self.prediction_folders
         config['image_folders'] = self.image_folders
         config['data_folder'] = self.data_folder
-        #config['intermediate_results'] = io.get_detector_output_folder(main_component, self.algorithm, 'additional')
 
         # keypoints mapping
         keypoints_indices = fh.load_config("./detectors/configs/predictions_mapping.toml")[
@@ -110,7 +106,7 @@ class MMPose(BaseDetector):
 
         logging.info(f"Inference Preparation completed.\n")
 
-    # TODO: Somehow mark this method as abstract and to be implemented by the derived classes (algorithms)
+    @abstractmethod
     def get_per_component_keypoint_mapping(self, keypoints_indices):
         """
         This method extracts the keypoint indices and descriptions for each pose estimation component.
@@ -159,7 +155,6 @@ class MMPose(BaseDetector):
             image_base = os.path.join(self.image_folders[camera],"%05d.png")
             output_path = os.path.join(self.viz_folder, f"{self.algorithm}_{camera}.mp4")
 
-            ##TODO put this function under utils video
             cmd = f"ffmpeg -framerate {data.fps} -start_number {int(self.video_start)} -i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
             # Use the subprocess module to execute the command
             cmd_result = subprocess.run(cmd, shell=True)
@@ -173,7 +168,6 @@ class MMPose(BaseDetector):
         else:
             logging.error(f"VISUALIZATION {self.components}, {self.algorithm} - FAILURE - Video file was not created")
 
-    # TODO: Split this method into smaller functions for better readability
     def post_inference(self):
         """
         Post-inference processing for pose estimation components such as body_joints, hand_joints,
@@ -238,7 +232,7 @@ class MMPose(BaseDetector):
             results_2d_interpolated = utils.interpolate_data(results_2d_interpolated, is_3d=False)
 
             data_description['2d_interpolated'] = data_description['2d']
-            if len(self.camera_names) != 2:
+            if len(self.camera_names) < 2:
                 if self.filtered:
 
                     data_description['2d_filtered'] = data_description['2d']
@@ -262,12 +256,13 @@ class MMPose(BaseDetector):
                     }
                     np.savez_compressed(prediction_file, **results_dict)
 
-                if len(self.camera_names) >2:
-                    logging.WARNING("WARNING - Currently No 3d implementation for more than 2 camera")
+            else:
+                logging.info("COMPUTING 3d position of the joints...")
 
-
-            elif len(self.camera_names) == 2:
-                logging.info("COMPUTING 3d position of the keypoints...")
+                if len(self.camera_names) > 2:
+                    logging.warning(f"WARNING - The 2D positions of the joints have been estimated for more than two cameras. \n"
+                                    f"The 3D positions will be computed using the first two cameras specified in the camera_names parameter in the detectors_config.toml file \n"
+                                    f"{self.camera_names[0]} & {self.camera_names[1]}")
 
                 ### It is using interpolated_2d results instead of original 2d
                 cam1_data, cam2_data = results_2d_interpolated[:, 0], results_2d_interpolated[:, 1]
@@ -279,19 +274,12 @@ class MMPose(BaseDetector):
                 for i in range(len(self.subjects_descr)):
                     person_cam1 = cam1_data[i]
                     person_cam2 = cam2_data[i]
-                    # log_ut.assert_and_log(len(camera_frames_list) == person_cam1.shape[0], \
-                    #     f"Different number of frames in frames list and frames in data. "
-                    #      f"camera_name:{self.camera_names[0]}, person: {person}")
-                    # log_ut.assert_and_log(len(camera_frames_list) == person_cam2.shape[0], \
-                    #     f"Different number of frames in frames list and frames in data. "
-                    #      f"camera_name:{self.camera_names[1]}, person: {person}")
 
                     # Extract the x and y values
                     xy_points_cam1 = person_cam1[:, :, :2].reshape(-1, 1, 2)
                     xy_points_cam2 = person_cam2[:, :, :2].reshape(-1, 1, 2)
 
-                    # Since it is using interpolated data.
-                    # There might be some missing values.
+                    # Since it is using interpolated data there might be some missing values.
                     # Create a combined mask for NaN values in either camera's data
                     nan_mask_cam1 = np.isnan(xy_points_cam1).any(axis=2)
                     nan_mask_cam2 = np.isnan(xy_points_cam2).any(axis=2)
@@ -325,8 +313,6 @@ class MMPose(BaseDetector):
                     output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d.T
 
                     reshaped_3D_points = output_data_3d.reshape(person_cam1.shape[0], person_cam1.shape[1], 3)
-                    #print(f"3d: {reshaped_3D_points[:2, 3:9, :]}")
-
                     person_data_list.append(reshaped_3D_points)
 
                 # check if any [0,0,0] prediction
@@ -346,7 +332,6 @@ class MMPose(BaseDetector):
                 })
                 if self.filtered:
                     data_description['2d_filtered'] = data_description['2d']
-                    # save results
                     results_dict = {
                         '2d': results_2d,
                         '2d_filtered': results_2d_filtered,
@@ -365,16 +350,6 @@ class MMPose(BaseDetector):
                         'data_description': data_description
                         }
                     np.savez_compressed(prediction_file, **results_dict)
-
-                # check 3d data values
-                # TODO: this check works only for videos with 2 subjects? 
-                # TODO: rewrite check for npz output
-                # utils.compare_saved3d_data_values_with_triangulation_through_json(
-                #     self.prediction_folders,
-                #     result_folder,
-                #     self.camera_names,
-                #     self.calibration,
-                #     self.person_threshold)
 
     def get_prediction_folders(self, make_dirs = False):
         """
@@ -413,24 +388,6 @@ class MMPose(BaseDetector):
             if make_dirs:
                 os.makedirs(out, exist_ok=True)
         return out_img
-
-    def get_camera_data(self):
-        """
-        Retrieves the camera data for each camera name.
-    
-        This function constructs a dictionary where the keys are the camera names
-        and the values are the corresponding camera folders. The camera folders are
-        obtained by joining the `data_folder` with the camera name.
-        
-        Returns:
-            dict: A dictionary containing the camera data, where the keys are the camera names
-                    and the values are the corresponding camera folders.
-        """
-        in_camera = {}
-        for camera in self.camera_names:
-            camera_folder = os.path.join(self.data_folder, camera)
-            in_camera[camera] = camera_folder
-        return in_camera
 
 
 def extract_key_per_value(input_dict):

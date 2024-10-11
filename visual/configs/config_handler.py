@@ -1,10 +1,10 @@
 import os
 import glob
 
-# internal imports
 import utils.visual_utils as vis_ut
 import utils.config as confh
 import utils.filehandling as fh
+
 
 class Configuration:
     def __init__(
@@ -30,14 +30,12 @@ class Configuration:
             self.visualizer_config)['io']['nice_tool_output_folder']
         
     def _initialize_media(self) -> None:
-        # load the latest config from the experiment output of isa-tool
+        # load the latest config from the experiment output of nicetoolbox
         try:
             experiment_config_file = sorted(glob.glob(os.path.join(
                 self._localize(self.visualizer_config)['io']['experiment_folder'], 'config_*.toml'
-            )))[-1] # ! <---
+            )))[-1]
         except IndexError:
-            # ! Only loads latest config file, but in a single exp folder can be multiple runs with different datasets
-            # ! If you want to visualize a dataset from a earlier run, this throws an error
             print("\nCould not find the latest experiment config file in "
                   f"{self._localize(self.visualizer_config)['io']['experiment_folder']}\n\n")
             raise 
@@ -74,7 +72,7 @@ class Configuration:
     def _get_io_config(self, add_exp=False):
         io_config = self._localize(self.visualizer_config['io'], fill_io=False)
         if add_exp:
-            # add to the return config the isa-tool experiment io
+            # add to the return config the NICE Toolbox experiment io
             io_config.update(experiment_io=self._localize(self._localize(self.experiment_run_config['io'])))
         return io_config
     

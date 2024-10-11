@@ -9,6 +9,7 @@ import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
+
 def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
     """
     Visualizes the proximity score for a given data array and saves the plots as images.

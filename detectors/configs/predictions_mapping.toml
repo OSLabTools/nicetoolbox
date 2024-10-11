@@ -27,7 +27,7 @@
 "right_smalltoe" = 21
 "right_heel" = 22
 [human_pose.coco_wholebody.keypoints_index.face]
-"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39] #exclusivelast element, i.e. 40
+"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39]
 "right_eyebrow" = [40,41,42,43,44]
 "left_eyebrow" = [45,46,47,48,49]
 "nose_up" = [50,51,52,53]

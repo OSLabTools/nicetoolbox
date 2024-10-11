@@ -1,9 +1,5 @@
-
 import os
 import sys
-import cv2
-import json
-import numpy as np
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askdirectory
@@ -35,9 +31,6 @@ def save(entries):
         entries['message'].set('Could not calculate all representations.')
         return
 
-    # print them to command out
-    # for name, mat in matrix_dict.items():
-    #     print(mut.matrix2printstring(mat, name))
     io.save_calibration_npz_json(entries, matrix_dict)
 
 

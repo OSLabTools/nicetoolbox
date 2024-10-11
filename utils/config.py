@@ -9,7 +9,6 @@ import yaml
 import toml
 import json
 import numpy as np
-import utils.system as os_sys
 from utils.git_utils import CustomRepo
 
 
@@ -120,8 +119,7 @@ def config_fill_auto(config, working_directory=None):
             me=os.getlogin(),
             yyyymmdd=time.strftime("%Y%m%d", time.localtime()),
             today=time.strftime("%Y%m%d", time.localtime()),
-            time=time.strftime("%H_%M", time.localtime()),
-            #pwd=working_directory,
+            time=time.strftime("%H_%M", time.localtime())
     )
 
     return config_fill_placeholders(config, placeholder_dict)

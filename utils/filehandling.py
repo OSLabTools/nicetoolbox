@@ -26,12 +26,7 @@ def load_config(config_file: str) -> dict:
         be converted to Windows format.
     """
 
-    if config_file.endswith('yml') or config_file.endswith('yaml'):
-        with open(config_file, 'r') as file:
-            config = list(yaml.safe_load_all(file))
-        if len(config) == 1:
-            config = config[0]
-    elif config_file.endswith('toml'):
+    if config_file.endswith('toml'):
         config = toml.load(config_file)
     else:
         raise NotImplementedError(
@@ -72,11 +67,6 @@ def find_npz_files(directory):
             if file.endswith(".npz"):
                 npz_files.append(os.path.join(root, file))
     return npz_files
-
-
-def save_toml(dic, file_path):
-    with open(file_path, 'w') as file:
-        string = toml.dump(dic, file)
 
 
 def load_toml(toml_path: str) -> dict:

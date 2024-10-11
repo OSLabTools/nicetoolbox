@@ -11,16 +11,15 @@ Classes:
     KinematicsComponent: Class for visualizing kinematics data.
 """
 
-import os
 import numpy as np
 import rerun as rr
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict
 
-# internal imports
 import utils.visual_utils as vis_ut
 import utils.filehandling as fh
+
 
 TOP_LEVEL_DIR = Path(__file__).resolve().parents[2]
 PREDICTIONS_MAPPING_FILE = str(Path(TOP_LEVEL_DIR / "detectors/configs/predictions_mapping.toml"))

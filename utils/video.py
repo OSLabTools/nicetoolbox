@@ -3,16 +3,14 @@
 """
 
 import os
-import sys
 import cv2
-import shutil
 import glob
 import numpy as np
 import pandas as pd
 import subprocess
 
-import utils.filehandling as fh
 import utils.system as oslab_sys
+
 
 def run_command_line(string) -> None:
     """
@@ -48,27 +46,6 @@ def get_fps(video_file) -> int:
         int: The frame rate of the video file.
     """
     return int(cv2.VideoCapture(video_file).get(cv2.CAP_PROP_FPS))
-
-
-def get_video_GOP(video_file: str, tmp_folder: str, save_keyframes: bool = True) -> None:
-    """
-    Retrieves the Group of Pictures (GOP) information from a video file.
-
-    Args:
-        video_file (str): The path to the video file.
-        tmp_folder (str): The path to the temporary folder where the keyframes.txt 
-            file will be saved.
-        save_keyframes (bool, optional): Whether to save the keyframes.txt file. 
-            Defaults to True.
-
-    Returns:
-        None
-    """
-    tmp_file = os.path.join(tmp_folder, "keyframes.txt")
-    string = f"ffprobe -hide_banner -v 32 -stats -y -skip_frame nokey " \
-             f"-select_streams v:0 -print_format compact -i {video_file} " \
-             f"-show_entries 'frame=pkt_pts_time' > '{tmp_file}'"
-    run_command_line(string)
 
 
 def get_ffmpeg_input_string(video_file: str, number_of_frames: int = None, start_frame: int = None, 
@@ -364,90 +341,4 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> 
     output = subprocess.run(command, shell=True)
     return output.returncode
 
-
-def crop_and_cut_video(video_file: str, tmp_folder: str, start_frame: int, 
-                       number_of_frames: int, corner_x: int, corner_y: int, 
-                       width: int, height: int, gif: bool = False) -> None:
-    """
-    Crop and cut a video file.
-    
-    This function crops a specified region from the video frames and then cuts a specified 
-    length from the cropped video. The cropped and cut video is saved as a new file.
-
-    Args:
-        video_file (str): Path to the video file.
-        tmp_folder (str): Path to the temporary folder.
-        start_frame (int): Starting frame index.
-        number_of_frames (int): Number of frames to process.
-        corner_x (int): X-coordinate of the top-left corner of the crop region.
-        corner_y (int): Y-coordinate of the top-left corner of the crop region.
-        width (int): Width of the crop region.
-        height (int): Height of the crop region.
-        gif (bool, optional): Whether to create a GIF. Defaults to False.
-
-    Returns:
-        None
-    """
-    try:
-        os.makedirs(tmp_folder, exist_ok=True)
-        fps = get_fps(video_file)
-
-        split_into_frames(video_file, tmp_folder, start_frame, number_of_frames,
-                          keep_indices=False)
-
-        image_files = glob.glob(os.path.join(tmp_folder, '*'))
-        for image_file in image_files:
-            image = cv2.imread(image_file)
-            cv2.imwrite(image_file.replace('_tmp', ''), image[corner_y: corner_y + height, corner_x: corner_x + width])
-            os.system(f'rm {image_file}')
-
-        if gif:
-            out_filename = '_crop.'.join([video_file.rsplit('.')[0], 'gif'])
-        else:
-            out_filename = '_crop.'.join(video_file.rsplit('.'))
-        returncode = frames_to_video(tmp_folder, out_filename, fps)
-
-        if returncode != 0:
-            print(f"WARNING: video creation (frames_to_video) returned code "
-                  f"{returncode}.")
-    finally:
-        shutil.rmtree(tmp_folder)
-
-
-if __name__ == '__main__':
-
-    config_file = '/is/sg2/cschmitt/nextcloud/ISA_Data_Share/16_Presentations/20240222_meeting_michael/micro_actions/config.toml'
-    config = fh.load_config(config_file)
-
-    for name in config['run']:
-        crops = config[name]['crops']
-        if not 'start_frame' in config[name]:
-            config[name]['start_frame'] = None
-        if not 'number_of_frames' in config[name]:
-            config[name]['number_of_frames'] = None
-
-        crop_and_cut_video(config[name]['video_file'], config['tmp_folder'],
-                           config[name]['start_frame'], config[name]['number_of_frames'],
-                           crops['corner_x'], crops['corner_y'], crops['width'],
-                           crops['height'], gif=True)
-
-
-
-    input_file = '/is/sg2/cschmitt/pis/PIS_ID_000/IOI/compressed_25/withAudio/PIS_ID_00_2_Cam1_20200811_043527.036_wAudio.mp4'
-    output_base = '/is/sg2/cschmitt/presentation/20231115_amazon_quarterly/our_dataset1'
-    video_start = 0
-    video_length = 600
-    video_skip_frames = None
-    frames_per_split = 10
-
-    frames_to_video('/is/sg2/cschmitt/nextcloud_documents/defense/presentations/2020_Feb_AVG_retreat/gfx/method/input_depth',
-                    '/is/sg2/cschmitt/nextcloud_documents/defense/presentations/2020_Feb_AVG_retreat/gfx/method/input_depth/vid.mp4',
-                    fps=2)
-
-    cut_length(input_file, output_base, start_frame=video_start, number_of_frames=video_length)
-
-    split_into_frames(input_file, output_base,
-                      start_frame=video_start,
-                      number_of_frames=video_length,
-                      skip_frames=video_skip_frames)
 

@@ -31,9 +31,12 @@ Instead, `datasets_folder_path` and `conda_path` are available in the other conf
 
 
 
+
+
+
 ## 2. Prepare the dataset
 
-The NICE Toolbox supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./detectors/configs/dataset_properties.toml`. To add a new dataset, first check and potentially adjust the dataset's folder structure, and then update the dataset properties file. You can find an example at the end of this section.
+The NICE Toolbox supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./detectors/configs/dataset_properties.toml`. To add a new dataset, first check and potentially adjust the dataset's folder structure, and then update the dataset properties file as described in the following. You can find an example at the end of this section.
 
 
 ### Folder structure
@@ -151,7 +154,7 @@ dist = [ 0.0, 0.0, 0.0, 0.0, 0.0 ]
 rvec = [ 0.0, 0.0, 0.0 ]
 tvec = [ [0.0], [0.0], [0.0] ]
 ```
-Recalling the example from the previous section, please find the accompaniing `single_view_calibration.toml` for this example on [keeper](https://keeper.mpdl.mpg.de/d/cdaa6540e0db4a63bbf9/) to download.
+Recalling the [example](#example) from the previous section, please find the accompaniing `single_view_calibration.toml` for this example on [keeper](https://keeper.mpdl.mpg.de/d/cdaa6540e0db4a63bbf9/) to download.
 
 
 ### Toml to npz file
@@ -160,13 +163,14 @@ Next, use the calibration converter GUI to convert this calibration description 
 On linux:
 
 ```bash
-cd isa-tool/
+cd /path/to/nicetoolbox/
 source ./env/bin/activate
 python ./utils/calibration_gui/calibration_converter.py
 ```
 The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. It outputs the calibration in two files: `calibrations.npz` which is required to run the NICE toolbox and `calibrations.toml` which displays the same calibration data in a human-readable (and changeable) file. 
 
 1. On the top, select "OpenCV" as the calibration format.
+
 2. Under "Calibration file path", enter the path to your newly created `single_view_calibration.toml` file or press "Select" to find it on your machine. Press "Load". The data should now show in the converter (click to enlarge):
 <style>
 img {display: block; margin-left: auto; margin-right: auto;}
@@ -174,7 +178,8 @@ img {display: block; margin-left: auto; margin-right: auto;}
 [<img src="../graphics/calibration_converter_1.png" height="500">](../graphics/calibration_converter_1.png)
 
 3. On the bottom, enter the path to your dataset in "Output directory path" or press "Select" to find it on your system. Press "Save" to create the `calibrations.npz` file.
-4. When the file(s) have been saved correctly, exit the Calibration Converter by pressing "Quit" in the bootom right corner.
+
+4. When the file(s) have been saved correctly, exit the Calibration Converter by pressing "Quit" in the bottom right corner.
 
 
 
@@ -194,7 +199,6 @@ videos = [
     sequence_ID="",             # select the sequence_ID (str, may be empty)
     video_start = 0,            # start of the video in frames, 0 for starting from beginnning (int)
     video_length = 100,         # number of frames to run, defines the length of the video (int)
-    video_skip_frames = false   # whether to skip frames or run on all frames, default: false (bool)
     },
     ...
 ]
@@ -220,14 +224,14 @@ A more detailed and complete description of the `./detectors/configs/run_file.to
 To run the code, open a terminal or the API of your choice and do:
 
 ```bash
-cd /path/to/isa-tool/
+cd /path/to/nicetoolbox/
 source ./env/bin/activate
 
 python detectors/main.py --run_config detectors/configs/run_file.toml --detectors_config detectors/configs/detectors_config.toml --machine_specifics machine_specific_paths.toml
 ```
 
 The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders).
-To watch the experiment run, check the log file `.../out_folder/ISA-Tool.log`.
+To watch the experiment run, check the log file `.../out_folder/nicetoolbox.log`.
 
 <br>
 

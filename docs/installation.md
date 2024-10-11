@@ -27,8 +27,8 @@ Instructions can be found [here](https://git-scm.com/book/en/v2/Getting-Started-
 Then clone the NICE Toolbox repository and navigate into its folder:
 
 ```bash
-git git@github.com:OSLabTools/nicetoolbox.git 
-cd nicetoolbox
+git clone git@github.com:OSLabTools/nicetoolbox.git
+cd /path/to/nicetoolbox
 ```
 
 
@@ -98,8 +98,6 @@ Nice Toolbox creates symlinks. To enable these, please activate Developer Mode o
 This can be done by going to `Settings` > `Updates & Security` > `For Developers` and turning Developer Mode on.
 
 
-TODO -- check if it creates any security risk (windows gives a warning about) and whether there is a better way to do it.
-
 
 
 
@@ -132,7 +130,7 @@ chmod +x ./installation/install_all.sh  # to add executable permission to the sc
 Open a command line and navigate to the directory of the repository and install the toolbox:
 
 ```bash
-cd \path\to\nice-toolbox
+cd \path\to\nicetoolbox
 .\installation\install_all.bat  # to install all necessary libraries
 ```
 

@@ -1,22 +1,6 @@
 import numpy as np
 import cv2
-import tkinter as tk
 import constants as const 
-
-
-def matrix2printstring(mat, name, precision=3):
-
-    def rd(number):
-        # return np.format_float_positional(number, precision=precision)
-        return str(number)
-    
-    string = name + ' = '
-    e = ' ' * 2
-  
-    for row in mat:
-        mat_str = [rd(m) for m in row]
-        string += '\n[' + e.join(mat_str) + ']' 
-    return string
 
 
 def nested_entries2matrix(entries):

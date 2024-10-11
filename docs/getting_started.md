@@ -60,7 +60,7 @@ To run the NICE toolbox on the dataset, we need to specify what exactly we want 
 [run.communication_multiview]
 components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
 videos = [
-   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99, video_skip_frames = false},
+   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]
 
 ```
@@ -72,7 +72,7 @@ To run the toolbox, open a terminal or the API of your choice and execute:
 
 ```bash
 # navigate to the NICE toolbox source code folder
-cd /path/to/isa-tool/
+cd /path/to/nicetoolbox/
 
 # activate the python environment in LINUX
 source ./env/bin/activate
@@ -96,7 +96,7 @@ To do so, open `./visual/configs/visualizer_config.toml` and update the entries 
 ```toml
 [io]
 dataset_folder = "<datasets_folder_path>"                          
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
+nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
 experiment_folder = "<output_folder_path>/experiments/..."                 # NICE Toolbox experiment output folder
 experiment_video_folder = "<experiment_folder>/<video_name>"        
 experiment_video_component = "<experiment_video_folder>/<component_name>" 

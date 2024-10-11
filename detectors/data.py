@@ -7,7 +7,6 @@ import glob
 import logging
 import numpy as np
 
-# internal imports
 import utils.system as oslab_sys
 import utils.video as vid
 import utils.check_and_exception as exc
@@ -29,7 +28,7 @@ class Data:
         video_length (int): The length of the video.
         video_start (int): The starting frame of the video.
         video_skip_frames (int or None): The number of frames to skip in the video.
-        annotation_interval (float): The interval for annotations.
+        annotation_interval (float): The time interval for segments.
         subjects_descr (str): The description of the subjects.
         camera_mapping (dict): The mapping of camera names.
         data_formats (list): The list of data formats required.
@@ -58,11 +57,7 @@ class Data:
             None
         """
         logging.info("Start DATA LOADING and processing.")
-        # TODO later: add caching for tmp folder
-
-        # check given data-config
-        #self.check_config(config)
-
+        
         # collect all required file/folder paths
         self.data_folder = io.get_data_folder()
         self.tmp_folder = io.get_output_folder('tmp')
@@ -74,9 +69,8 @@ class Data:
         self.sequence_ID = config['sequence_ID']
         self.video_length = config['video_length']
         self.video_start = config['video_start']
-        self.video_skip_frames = None if config['video_skip_frames'] is False \
-            else config['video_skip_frames']
-        self.annotation_interval = config['annotation_interval']
+        self.video_skip_frames = None
+        self.annotation_interval = 2.0
         self.subjects_descr = config['subjects_descr']
         self.start_frame_index = config['start_frame_index']
         self.camera_mapping = dict((key, config[key]) for key in config.keys() if 'cam_' in key)
@@ -175,92 +169,6 @@ class Data:
             return fps
         else:
             return config_fps
-
-    def check_config(self, config):
-        """
-        Checks the validity of the configuration for the detector methods.
-
-        Args:
-            config (dict): The configuration dictionary.
-
-        Raises:
-            KeyError: If a required key is missing in the configuration.
-            TypeError: If the value of a key is of an incorrect type.
-            ValueError: If the value of a key is out of bounds.
-        """
-        for detector in config['methods']['names']:
-            try:
-                config['methods'][detector]['input_data_format']
-            except KeyError:
-                # ToDo detector specific assert?
-                logging.exception(
-                    f"Please specify the key 'input_data_format' for detector "
-                    f"'{detector}'. Options are 'segments', 'frames', and "
-                    f"'snippets'.")
-                raise
-            try:
-                exc.check_options(
-                        config['methods'][detector]['input_data_format'],
-                        str, ["frames", "segments", "snippets"])
-            except (TypeError, ValueError):
-                logging.exception(
-                    f"Unsupported 'input data format' in '{detector}'. "
-                    f"Options are 'segments', 'frames', and 'snippets'.")
-                raise
-            try:
-                config['methods'][detector]['camera_names']
-            except KeyError:
-                logging.exception(
-                    f"Please create the key 'camera_names' for detector "
-                    f"'{detector}'.")
-                raise
-
-            # ensure that the detector runs on the given dataset
-            if 'exclude_datasets' in config['methods'][detector].keys():
-                if config['io']['dataset_name'] in config['methods'][detector]['exclude_datasets']:
-                    logging.warning(f"Detector {detector} excludes dataset {config['io']['dataset_name']}. "
-                                    f"Removing the detector from the methods to be run.")
-                    config['methods']['names'].remove(detector)
-
-        # check video details
-        data_input_files = sorted(glob.glob(os.path.join(config['io']['data_input_folder'], '*')))
-        total_frames = 0
-        # TODO update to data_input_files instead of video_files
-        for video_file in data_input_files:
-            total_frames = max(total_frames,
-                               vid.get_number_of_frames(video_file))
-
-        try:
-            exc.check_value_bounds(config['video_start'], int, object_min=0,
-                                   object_max=total_frames - 1)
-        except (TypeError, ValueError):
-            logging.exception(f"Invalid argument for video_start.")
-            raise
-        try:
-            exc.check_value_bounds(
-                config['video_length'], int,
-                object_max=total_frames - config['video_start'])
-        except (TypeError, ValueError):
-            logging.exception(f"Invalid argument for video_length.")
-            raise
-        try:
-            exc.check_value_bounds(config['annotation_interval'], float,
-                                   object_min=0, object_max=total_frames)
-        except (TypeError, ValueError):
-            logging.exception(f"Invalid argument for annotation_interval.")
-            raise
-        try:
-            if not isinstance(config['video_skip_frames'], bool):
-                exc.check_value_bounds(
-                    config['video_skip_frames'], int, object_min=1,
-                    object_max=config['video_length'])
-        except (TypeError, ValueError):
-            logging.exception(f"Invalid argument for video_skip_frames.")
-            raise
-
-        # frames_per_segment = self.annotation_interval * get_fps(
-        #                             video_files[0])
-        # total_frames (60) > frames_per_split (60)
 
     def load_calibration(self, calibration_file, dataset_name, all_dataset_names):
         """
@@ -603,44 +511,13 @@ class Data:
 
                 frames_list.append(camera_frames_list)
 
-            # TODO: Clean up or implement
             if 'segments' in self.data_formats:
                 raise NotImplementedError
-                os.makedirs(os.path.join(data_folder, 'segments'), exist_ok=True)
 
-                # calculate frames per annotation interval
-                frames_per_segment = self.annotation_interval * vid.get_fps(
-                        video_files[0])
-
-                # split video into segments of length annotation_interval
-                self.segments_list = vid.equal_splits_by_frames(
-                        video_file,
-                        os.path.join(data_folder, 'segments/'),
-                        frames_per_segment,
-                        keep_last_split=False,
-                        start_frame=self.video_start,
-                        number_of_frames=self.video_length
-                )
-
-            # TODO: Clean up or implement
             if 'snippets' in self.data_formats:
                 raise NotImplementedError
-                os.makedirs(os.path.join(data_folder, 'snippets'), exist_ok=True)
-                out_name = f'{camera_name}_s{self.video_start}_e' \
-                            f'{self.video_start + self.video_length}'
-                # cut video to the required number of frames
-                out_video_file = vid.cut_length(
-                        video_file,
-                        os.path.join(data_folder, f'snippets/{out_name}'),
-                        start_frame=self.video_start,
-                        number_of_frames=self.video_length
-                )
-
-                # read result list
-                self.snippets_list.append(out_video_file)
 
         self.frame_indices_list = list(frame_indices_list)
-        #self.frames_list = np.array(frames_list).T
         self.frames_list = [list(pair) for pair in zip(*frames_list)]
 
 

@@ -11,7 +11,6 @@ from pathlib import Path
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 
-# internal imports
 from detectors.feature_detectors.base_feature import BaseFeature
 import detectors.feature_detectors.kinematics.utils as kinematics_utils
 
@@ -217,7 +216,6 @@ class VelocityBody(BaseFeature):
                 (#persons, #cameras, #frames, #bodyparts) representing the 
                 sum of movement per body part.
         """
-        # motion_velocity.shape = (#persons, #cameras, #frames, #joints/keypoints, 1/velocity)
         bodypart_motion = []
         for joint_indices in self.predictions_mapping['bodypart_index'].values():
             bodypart_motion.append(np.nanmean(motion_velocity[:, :, :, joint_indices, :], axis=-2))

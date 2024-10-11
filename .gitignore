@@ -9,18 +9,26 @@ docs/release_notes/*.pdf
 
 builds/
 output/
+artifacts/
 
 **/assets/
 **/envs/
 **/env/
 **/*.pth
-
 **/*.bib
 **/*.aux
 **/*.fls
 **/*.log
 **/*.fdb_latexmk
 **/*.synctex.gz
+**/*.tar
+**/*.dat
+**/*.cpk
+**/*.ckpt
+**/*.nemo
+**/*.avi
+nicetoolbox/**/*.mp4
 
 machine_specific_paths.toml
-detectors/configs/tests_*
+detectors/configs/tests*
+detectors/*tests*

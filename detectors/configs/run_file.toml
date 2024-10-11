@@ -3,17 +3,12 @@
 # and all keys from your local 'machine_specific_paths.toml' as well as 'io'
 # and top layer dictionary entries
 
-# logging, consistency checks, and error handling depend on the chosen 'run_mode':
-# "experiment": for full runs, minimum logging with maximum consistency checks, and all errors interrupt
-# "development": for implementing and debugging: maximum logging, medium consistency checks, and only severe errors are thrown
-# "production": all logs but no consistency checks and swallow exceptions
-run_mode = "development"  # "experiment", "development", or "production"
 git_hash = "<git_hash>"
-visualize = true
-save_csv = true
+visualize = true              # whether to save image/video visualizations of detectors
+save_csv = true               # whether to save all results to csv-files
 
-[component_algorithm_mapping]
 # each component can be assigned to / run with multiple different algorithms
+[component_algorithm_mapping]
 gaze_individual = ['xgaze_3cams']
 gaze_interaction = ['gaze_distance']
 body_joints = ['hrnetw48', 'vitpose']
@@ -23,49 +18,24 @@ kinematics = ['velocity_body']
 proximity = ['body_distance']
 leaning = ['body_angle']
 
-[run]
-# the inPut video is processed into 'frames', 'segments' and 'snippets'
-# - video_length (int) is in frames, relevant for all
-# - video_start (int) is in frames, relevant for all
-# - video_skip_frames (bool) is relevant for frames only
-# - annotation_interval (int) in seconds, length of segments
-
-[run.nice_capture_hall]
-components = ["body_joints", "hand_joints", "face_landmarks", "gaze_individual", "gaze_interaction", "kinematics", "proximity"]
-videos = [
-    {session_ID = "sitting", sequence_ID='', video_start = 0, video_length = 25, video_skip_frames = false, annotation_interval = 2.0},
-    {session_ID = "standing", sequence_ID='', video_start = 0, video_length = 25, video_skip_frames = false, annotation_interval = 2.0},
-]
-
+# define which data to run on
+[run]          
 [run.communication_multiview]
 components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
 videos = [
-   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99, video_skip_frames = false, annotation_interval = 2.0},
-]
-
-[run.dyadic_communication]
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
-videos = [
-   {session_ID = "PIS_ID_000", sequence_ID='', video_start = 355, video_length = 12, video_skip_frames = false, annotation_interval = 2.0},
-   {session_ID = "PIS_ID_04", sequence_ID='', video_start = 505, video_length = 12, video_skip_frames = false, annotation_interval = 2.0},
-]
-
-[run.mpi_inf_3dhp]
-components = ["body_joints", "gaze_individual", "kinematics", "proximity", "leaning"]
-videos = [
-    {session_ID = "S1", sequence_ID='Seq1', video_start = 20, video_length = 20, video_skip_frames = false, annotation_interval = 2.0},
-    {session_ID = "S2", sequence_ID='Seq1', video_start = 50, video_length = 25, video_skip_frames = false, annotation_interval = 2.0}
+   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]
 
 [io]
-experiment_name = "<yyyymmdd>"
-out_folder = "<output_folder_path>/experiments/<experiment_name>"
+experiment_name = "<yyyymmdd>"                                     # define the name of the experiment (str), default: date as "<yyyymmdd>"
+out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
 out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
-dataset_config = "detectors/configs/dataset_properties.toml"
+dataset_properties = "detectors/configs/dataset_properties.toml"
+detectors_config = "detectors/configs/detectors_config.toml"
 assets = "<code_folder>/detectors/assets"
 
-process_data_to = "data_folder"  # options are 'data_folder' and 'tmp_folder'
-data_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>"
+process_data_to = "data_folder" 
+data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
 tmp_folder = "<output_folder_path>/experiments/tmp"
 detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
 detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"

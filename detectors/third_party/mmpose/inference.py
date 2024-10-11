@@ -12,15 +12,9 @@ from pathlib import Path
 # Add top-level directory to sys.path depending on repo structure and not cwd
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir)) 
-sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mmpose'))
 
-# internal imports
 import utils.filehandling as fh
-
-
-#import output_sanity_checks as sc
-#import tests.test_data as test_data
 
 
 def calculate_iou(box1, box2):
@@ -100,6 +94,7 @@ def filter_overlapping_bboxes(bboxes, confidence_scores, overlapping_threshold):
     # only add indices not marked for removal
     keep_indices = [i for i in range(len(bboxes)) if i not in removed]
     return keep_indices
+
 
 def check_correct_and_sort_person_detections(data, num_subjects, bbox_conf_threshold=0.7, 
                                              bbox_overlapping_threshold=0.8):
@@ -185,6 +180,7 @@ def check_correct_and_sort_person_detections(data, num_subjects, bbox_conf_thres
                 updated_frame_predictions_list.append([])
     return updated_frame_predictions_list
 
+
 def convert_output_to_numpy(data, num_persons):
     """
     Convert the output data from a pose estimation model to numpy arrays.
@@ -231,7 +227,7 @@ def convert_output_to_numpy(data, num_persons):
 
     return keypoints_array, bbox_array, data_description
 
-# TODO: Clean up function
+
 def main(config):
     """
     Main function to run the MMPose inference.
@@ -260,7 +256,7 @@ def main(config):
         det_cat_ids=[0], # the category id of 'human' class
         device=config['device']
     )
-    pass # TODO: pass?
+
     camera_keypoints_output = []
     camera_bbox_output = []
     frame_indices = None
@@ -271,19 +267,6 @@ def main(config):
 
         if not os.path.exists(camera_folder):
             logging.error(f"Data folder for camera: {camera_name} could not find")
-
-        # camera_frames_list = [f for sublist in config["frames_list"] for f in sublist if camera_name in f] #since each frame inside a list
-        #
-        # try:
-        #     assert len(camera_frames_list)==len(os.listdir(camera_folder)), \
-        #         f"Different number of frames in frames list and frames under {camera_folder}"
-        # except AssertionError as e:
-        #     logging.error(f"Assertion failed: {e}")
-        #     sys.exit(1)
-
-        #inference_log = os.path.join(config["method_tmp_folder"], "inference_log.txt") # ToDo add inference log
-        # inference
-        # Load the image
 
         result_generator = None
         if config["visualize"]:
@@ -305,12 +288,6 @@ def main(config):
         camera_keypoints_output.append(keypoints_array)
         camera_bbox_output.append(bbox_array)
 
-        # # data description
-        # if data_description is not None:
-        #     assert data_descr == data_description, f"Inference MMPose: Inconsistent data description!"
-        # else:
-        #     data_description = data_descr
-
         # get frame indices
         frame_inds = sorted(os.listdir(os.path.join(config['input_data_folder'], camera_name)))
         frame_inds = [s.strip('.png').strip('.jpg').strip('.jpeg') for s in frame_inds]
@@ -318,10 +295,6 @@ def main(config):
             assert frame_indices == frame_inds
         else:
             frame_indices = frame_inds
-
-        #check if any [0,0,0] prediction
-        #for person_results in person_results_list:
-        #    test_data.check_zeros(person_results) #raise assertion if there is any [0,0,0] inference
 
     #  save as npz files
     for component, result_folder in config["result_folders"].items():
@@ -351,14 +324,8 @@ def main(config):
         save_file_name = os.path.join(result_folder, f"{config['algorithm']}.npz")
         np.savez_compressed(save_file_name, **out_dict)
 
-    # check if numpy results same as json - randomly choose 5 file,keypoint -  ##raise assertion if fails
-    # sc.compare_data_values_with_saved_json(
-    #     config["prediction_folders"],
-    #     config["intermediate_results"],
-    #     config["frame_indices_list"],
-    #     config["person_threshold"]) ##TODO fix it - it gives an error when not start from 0
-
     logging.info(f'MMPOSE - {config["algorithm"]} COMPLETED!\n')
+
 
 if __name__ == '__main__':
     config_path = sys.argv[1]

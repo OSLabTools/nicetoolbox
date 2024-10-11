@@ -1,4 +1,3 @@
-run_mode = ["experiment", "development", "production"]
 git_hash = 'type:str'
 visualize = 'type:bool'
 save_csv = 'type:bool'
@@ -22,14 +21,13 @@ session_ID = 'values:./detectors/configs/dataset_properties.toml:_var_.session_I
 sequence_ID = 'values:./detectors/configs/dataset_properties.toml:_var_.sequence_IDs'
 video_start = 'type:int'
 video_length = 'type:int'
-video_skip_frames = 'type:bool'
-annotation_interval = 'type:float'
 
 [io]
 experiment_name = 'type:str'
 out_folder = 'folder:base'
 out_sub_folder = 'folder:base'
-dataset_config = 'file:'
+dataset_properties = 'file:'
+detectors_config = 'file:'
 assets = 'folder:full'
 
 process_data_to = ['data_folder', 'tmp_folder']

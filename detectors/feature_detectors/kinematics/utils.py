@@ -9,13 +9,6 @@ import cv2
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-PART_MAPPING = {
-    "body": {'color': '#AEC6CF', 'size': 12, 'indices': list(range(0, 17))}, #pastel Blue
-    "foot": {'color': '#00008B', 'size': 8, 'indices': list(range(17, 23))}, #dark blue
-    "face": {'color': '#FFFACD', 'size': 6, 'indices': list(range(23, 92))}, #pastelyellow
-    "Lhand": {'color': '#77DD77', 'size': 8, 'indices': list(range(92, 113))}, #pastel green
-    "Rhand": {'color': '#B19CD9', 'size': 8, 'indices': list(range(113, 134))} #pastel lavender
-}
 
 def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list, 
         global_min, global_max, output_folder, people_names=["PersonL", "PersonR"], camera_names=None) -> None:
@@ -38,9 +31,6 @@ def visualize_mean_of_motion_magnitude_by_bodypart(data, bodyparts_list,
     Returns:
         None
     """
-    # data.shape = (#persons, #cameras, #frames, #bodyparts(3))
-
-    # Number of people (numpy arrays) in the list
     num_people = len(data)
 
     for camera_idx in range(data.shape[1]):
@@ -174,59 +164,11 @@ def create_video_evolving_linegraphs(
         frame = cv2.imread(frame_path)
         if i % 100 == 0:
             logging.info(f"Image ind: {i}")
-        if i == 0:  # because there is no movement score for the first frame
-            out.write(frame)
+        if i == 0:
+            out.write(frame)  # because there is no movement score for the first frame
         else:
-            combined = frame_with_linegraph(frame, data, categories, i-1, global_min, global_max)  # i-1 because movement score data starts from the 2nd frame
+            # i-1 because movement score data starts from the 2nd frame
+            combined = frame_with_linegraph(frame, data, categories, i-1, global_min, global_max)  
             out.write(combined)
     out.release()
 
-
-def create_motion_heatmap(frames_data_list, data, output_folder):
-    """
-    Creates a motion heatmap video from a list of frames and corresponding motion data.
-
-    This function reads a list of frames and corresponding motion data, and creates a heatmap for 
-    each frame based on the motion data. The heatmaps are then overlaid on the original frames
-    with a certain transparency to create a motion heatmap video. The video is saved to the 
-    specified output folder.
-
-    Args:
-        frames_data_list (list of str): The list of paths to the frames to be included in the 
-            video.
-        data (list of numpy.ndarray): The motion data to be plotted. Each array represents motion 
-            data for a frame.
-        output_folder (str): The path to the folder where the video will be saved.
-
-    Returns:
-        None
-    """
-    # Read frames
-    frames = [cv2.imread(f) for f in frames_data_list]
-    # Assuming motion_data is a list where each item is a numpy array of shape (height, width, 3)
-    # representing the dx, dy, dz for each point in the corresponding frame
-    # This data structure might look like: [frame1_data, frame2_data, ...]
-    heatmapped_frames = []
-
-    for frame, movement in zip(frames[1:], data):
-
-        # Normalize the motion to range [0, 1] for heatmap conversion
-        normalized_movement = cv2.normalize(movement, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-
-        # Convert to a heatmap (using COLORMAP_JET here, but OpenCV offers many colormaps)
-        heatmap = cv2.applyColorMap(normalized_movement, cv2.COLORMAP_JET)
-
-        # Overlay heatmap onto original frame (adjust alpha for transparency)
-        alpha = 0.6
-        overlaid = cv2.addWeighted(frame, 1 - alpha, heatmap, alpha, 0)
-        heatmapped_frames.append(overlaid)
-
-    # Write to a video
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    output_path = os.path.join(output_folder, 'movement_heatmap_on_video.mp4')
-    out = cv2.VideoWriter(output_path, fourcc, 1.0, (frames[0].shape[1], frames[0].shape[0]))
-
-    for frame in heatmapped_frames:
-        out.write(frame)
-
-    out.release()

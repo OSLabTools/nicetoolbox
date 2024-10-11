@@ -8,13 +8,13 @@ import cv2
 
 sys.path.append(os.getcwd())
 
-# internal imports
 import visual.configs.config_handler as vis_cfg
 from visual.in_out import IO
 import utils.visual_utils as vis_utils
 from visual.media.viewer import Viewer
 from visual.media.components import GazeIndividualComponent, BodyJointsComponent, HandJointsComponent, \
     FaceLandmarksComponent, GazeInteractionComponent, ProximityComponent, KinematicsComponent
+
 
 def main():
     """
@@ -32,7 +32,6 @@ def main():
 
     # IO
     io = IO(visualizer_config)
-    #io.initialization(visualizer_config)
     nice_tool_input_folder = io.get_component_nice_tool_input_folder(visualizer_config['video'], visualizer_config['media']['dataset_name'])
 
     ### load calibration for the video

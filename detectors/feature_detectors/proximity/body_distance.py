@@ -12,10 +12,10 @@ from pathlib import Path
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 
-# internal imports
 from detectors.feature_detectors.base_feature import BaseFeature
 import detectors.feature_detectors.proximity.utils as pro_utils
 import utils.filehandling as fh
+
 
 class BodyDistance(BaseFeature):
     """

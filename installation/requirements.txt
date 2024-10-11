@@ -13,5 +13,5 @@ rerun-sdk==0.17.0
 streamlit==1.38.0
 tueplots==0.0.15
 sphinx==7.0.0
-sphinx-rtd-theme==2.0.0
+sphinx_rtd_theme==2.0.0
 myst_parser==3.0.1

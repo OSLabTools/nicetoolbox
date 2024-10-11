@@ -135,7 +135,7 @@ def check_user_input_config(config, check, config_name, var=None):
             'keys:<toml_filepath>': valid options are all keys from the dict given by the 
                                     toml_filepath
             'tbd': not yet defined in the template dict 'check', 
-                   will write a warning to log # TODO
+                   will write a warning to log
             [<>, ...]: list of valid options, may contain all basetypes
     """    
     # the config dict contains all test-keys and test-values (tkey, tval)
@@ -248,7 +248,6 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
         NotImplementedError: If the file format is not supported.
         AssertionError: If the token is neither 'keys' nor 'values'.
     """
-    # command has the form 'token:file:key(s)' or 'token:file'
     has_sub_keys = len(command.split(':')) != 2
     if not has_sub_keys:
         token, file = command.split(':')
@@ -274,6 +273,7 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
     
     return list(keys_values)
 
+
 def check_zeros(arr: np.ndarray) -> None:
     """
     Check if any vectors in the last dimension of an array are zero vectors.
@@ -295,8 +295,6 @@ def check_zeros(arr: np.ndarray) -> None:
     zero_vector = np.zeros(last_dim_size)
     zero_cells = np.all(arr == zero_vector, axis=-1)
 
-    try:
-        assert not np.any(zero_cells), f"Data array contains zero cells at {np.argwhere(zero_cells)}"
-    except AssertionError as e:
-        logging.error(f"Assertion failed: {e}")
-        sys.exit(1)
+    if np.any(zero_cells):
+        logging.warning(f" Warning. Data array contains zero cells at {np.argwhere(zero_cells)}")
+

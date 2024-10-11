@@ -5,18 +5,8 @@ import numpy as np
 import scipy.signal as signal
 from abc import ABC, abstractmethod
 
-# TODO: Remove base class if not needed
-class BaseFilter(ABC):
-    """
-    Class to apply filters to the 3D pose estimation results
-    """
 
-    def __init__(self):
-        pass
-    def apply(self, data):
-        pass
-
-class SGFilter(BaseFilter):
+class SGFilter():
     """
     A class designed to apply a 1D Savitzky-Golay filter to smooth and/or differentiate data.
 

@@ -15,7 +15,6 @@ eval "$(conda shell.bash hook)"  # This line is crucial for conda activation to 
 conda activate openmmlab
 # Install PyTorch with CUDA
 echo "Installing PyTorch and dependencies..."
-#conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 cpuonly -c pytorch  ##cpu only version
 conda install pytorch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 pytorch-cuda=11.8 -c pytorch -c nvidia -y   ## need to specify the pytorch version because mmcv does not work with 2.2.0 (which is most updated version
 # Install MMPose and its dependencies
 echo "Installing MMPose and dependencies..."

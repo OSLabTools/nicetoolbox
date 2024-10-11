@@ -10,6 +10,3 @@ output_folder_path = ''
 
 # Where to find your conda (miniconda or anaconda) installation as absolute path (str)
 conda_path = ''          
-
-
-# TODO: add a assertion for the case that the machine_specific_paths toml is empty

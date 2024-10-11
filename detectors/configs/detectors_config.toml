@@ -1,18 +1,7 @@
-# This config supports using placeholders.
+# This config supports the use of placeholders.
 # options are, e.g., all keys from your local 'machine_specific_paths.toml'
 
-[algorithms.nodding_pigeon]
-input_data_format = "segments"
-camera_names = ["<cam_face1>", "<cam_face2>"]
-env_name = "venv:env"
-
-[algorithms.ethXgaze]
-input_data_format = "frames"
-camera_names = ["<cam_face1>", "<cam_face2>"]
-shape_predictor_filename = "<assets>/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
-face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
-pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
-
+# gaze_individual
 [algorithms.xgaze_3cams]
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
@@ -26,14 +15,15 @@ filtered = true
 window_length = 11
 polyorder = 2
 
+# body_joints, hand_joints, face_landmarks
 [frameworks.mmpose]
 input_data_format = "frames"
 camera_names = ["<cam_top>", "<cam_front>"]
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
-resolution = [1000, 700] # ToDo - after implement bbox intersection calculation, get rid of this
-device = "cuda:0" #cuda:0
+resolution = [1000, 700]
+device = "cuda:0"
 filtered = true
 window_length = 11
 polyorder = 2
@@ -57,35 +47,13 @@ detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_2020
 keypoint_mapping = "coco_wholebody"
 min_detection_confidence = 0.5
 
-
-[algorithms.emoca]
-input_data_format = "frames"
-camera_names = ["<cam_face1>", "<cam_face2>"]
-env_name = "venv:env"
-
-[algorithms.active_speaker]
-input_data_format = "snippets"
-camera_names = ["<cam_top>", "<cam_front>"]
-env_name = "venv:env"
-ASC_model_weights = '<assets>/active_speaker/checkpoints/SPELL_audiovisual_feature_extraction_checkpoints/resnet18-tsm-aug.pth'
-ASC_model_name = 'resnet18-tsm-aug'
-# Two options for the edge connection mode.
-# 'csi': Connect the nodes only with the same identities across the frames.
-# 'cdi': Connect different identities across the frames.
-graph_ec_mode = 'csi'
-graph_time_span = 90
-graph_tau = 0.9
-evaluation_type = 'AVA_ASD'
-GraViT_model = '<assets>/active_speaker/checkpoints/SPELL_ASD_default/ckpt_best.pt'
-GraViT_config = '<assets>/active_speaker/checkpoints/SPELL_ASD_default/cfg.yaml'
-
 # kinematics
 [algorithms.velocity_body]
 input_detector_names = [["body_joints", "hrnetw48"]]
 
 # proximity
 [algorithms.body_distance]
-used_keypoints = ["nose"] # if the list is more than one keypoint, the midpoint
+used_keypoints = ["nose"]  # if the list is more than one keypoint, the midpoint
 input_detector_names = [["body_joints", "hrnetw48"]]
 
 # leaning

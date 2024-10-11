@@ -78,18 +78,3 @@ def results_to_csv(results_folder, csv_output_folder):
     npz_files_list = fh.find_npz_files(results_folder)
     for file in npz_files_list:
         convert_npz_to_csv_files(file, csv_output_folder)
-
-
-if __name__ == '__main__':
-    VIDEO_FOLDER = "/mnt/84346C42346C3976/pis/example_data/input_data/dyadic_communication/experiments/functional_test_experiment/mpi_inf_3dhp_S1_s421_l10"
-    OUTPUT_FOLDER = r"/mnt/84346C42346C3976/pis/example_data/csv_files"
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    #path = r'F:\example_data\runner_functional_test_experiment\mpi_inf_3dhp_S1_s421_l10\body_joints\hrnetw48.npz'
-    #data = read_npz_file(path)
-    # for key in data:
-    #     print(key)
-    #     print(data[key])
-
-    npz_files_list = find_npz_files(VIDEO_FOLDER)
-    for file in npz_files_list:
-        convert_npz_to_csv_files(file, OUTPUT_FOLDER)

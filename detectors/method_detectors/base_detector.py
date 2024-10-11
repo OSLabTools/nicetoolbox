@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 top_level_dir = Path(__file__).resolve().parents[2]
 sys.path.append(str(top_level_dir))
 
-# internal imports
 from utils.system import detect_os_type
 from utils.config import save_config
 import utils.system as system
@@ -132,9 +131,7 @@ class BaseDetector(ABC):
         if system.detect_os_type() == 'windows':
             cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True)
         else:
-            #logging.info(f"Run command '{command}'.")
             cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, executable="/bin/bash")
-
 
         if cmd_result.returncode == 0:
             logging.info(f"INFERENCE Pipeline - SUCCESS.")

@@ -1,12 +1,11 @@
 [io]
 dataset_folder = "<datasets_folder_path>" # the main folder holds datasets
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
+nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
 experiment_folder = "<output_folder_path>/experiments/20240719_communication_mono" # NICE Toolbox output
 experiment_video_folder = "<experiment_folder>/<video_name>" # NICE Toolbox output folder for the selected video. Media part visualizes 1 video per session.
 experiment_video_component = "<experiment_folder>/<video_name>/<component_name>" # NICE Toolbox output folder for the selected method (new name will be component) inside the video output folder
 
 [media]
-mode = 'isa-tool' # options: 'isa-tool', 'isa-eval'
 dataset_name = 'communication_mono' # current options: 'dyadic_communication', 'mpi_inf_3dhp' # each Media session shows one video results. Each video belongs a dataset
 video_name = 'communication_mono_day_1_s0_l30' # each Media session shows one video results
 multi_view = false # set false if you don't have multiple cameras

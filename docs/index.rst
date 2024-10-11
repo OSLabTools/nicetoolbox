@@ -8,7 +8,6 @@
    tutorials/index
    wikis/index
    Detectors API <_autosummary/detectors>
-   Evaluation API <_autosummary/evaluation>
    Visualization API <_autosummary/visual>
    Utils API <_autosummary/utils>
 
@@ -17,13 +16,8 @@ Welcome to NICE Toolbox's documentation!
 ========================================
 
 
-IMAGE
-
-
 Non-Verbal Interpersonal Communication Exploration Toolbox
 ----------------------------------------------------------
-
-**Gökce Ergün, Timo Lübbing, Senya Polikovsky, Carolin Schmitt**
 
 Project page: `https://nice.is.tue.mpg.de/ <https://nice.is.tue.mpg.de/>`__
 
@@ -57,6 +51,12 @@ For a quick start into the toolbox, we provide an example dataset and documentat
 set it up on the :doc:`getting started <getting_started>` page.
 Further tutorials and documentation can be found on the :doc:`tutorials <tutorials/index>` 
 and :doc:`wiki <wikis/index>` pages.
+
+
+Code Structure
+--------------
+
+.. image:: graphics/toolbox_design.png
 
 
 
@@ -94,27 +94,31 @@ The NICE Toolbox is using the following existing tools, methods, and frameworks:
 `rerun.io <https://rerun.io/>`__.
 
 
+Authors
+-------
+
+Carolin Schmitt
+Gökce Ergün
+Timo Lübbing
+Senya Polikovsky
+
+All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
+
+
+
 License
 -------
 
-NICE Toolbox is licensed under ….
+`NICE Toolbox <https://github.com/OSLabTools/nicetoolbox>`__ © 2024 by Carolin Schmitt, Gökce Ergün, 
+Timo Lübbing, Senya Polikovsky is licensed under 
+`CC BY-NC-SA 4.0 <https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1>`__
+, see :doc:`LICENSE.md <LICENSE>`.
 
-List of Licenses and Links to the 3rd party tools use in NICE toolbox
+Some components of the NICE Toolbox further use algorithms that are being distributed under the licenses 
+listed in :doc:`LICENSES_ALGORITHMS.md <LICENSES_ALGORITHMS>`.
 
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| 3rd         | License         | Link                                                                           |
-| Party       | Type            |                                                                                |
-| Name        |                 |                                                                                |
-+=============+=================+================================================================================+
-| MMPose      | Apache 2.0      | https://github.com/open-mmlab/mmpose/blob/main/LICENSE                         |
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| HigherHRNet | MIT             | https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/blob/master/LICENSE |
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| ViTPose     | Apache 2.0      | https://github.com/ViTAE-Transformer/ViTPose/blob/main/LICENSE                 |
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| DarkPose    | Apache 2.0      | https://github.com/ilovepose/DarkPose/blob/master/LICENSE                      |
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| ETH-XGaze   | CC BY-NC-SA 4.0 | https://creativecommons.org/licenses/by-nc-sa/4.0/                             |
-+-------------+-----------------+--------------------------------------------------------------------------------+
-| rerun.io    | MIT & Apache 2.0| https://rerun.io/docs/reference/about                                          |
-+-------------+-----------------+--------------------------------------------------------------------------------+
+
+Copyright
+---------
+
+Copyright 2024, Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems
