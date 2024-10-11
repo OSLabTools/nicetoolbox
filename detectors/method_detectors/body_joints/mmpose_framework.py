@@ -232,7 +232,7 @@ class MMPose(BaseDetector):
             results_2d_interpolated = utils.interpolate_data(results_2d_interpolated, is_3d=False)
 
             data_description['2d_interpolated'] = data_description['2d']
-            if len(self.camera_names) != 2:
+            if len(self.camera_names) < 2:
                 if self.filtered:
 
                     data_description['2d_filtered'] = data_description['2d']
@@ -256,12 +256,13 @@ class MMPose(BaseDetector):
                     }
                     np.savez_compressed(prediction_file, **results_dict)
 
-                if len(self.camera_names) >2:
-                    logging.WARNING("WARNING - Currently No 3d implementation for more than 2 camera")
+            else:
+                logging.info("COMPUTING 3d position of the joints...")
 
-
-            elif len(self.camera_names) == 2:
-                logging.info("COMPUTING 3d position of the keypoints...")
+                if len(self.camera_names) > 2:
+                    logging.warning(f"WARNING - The 2D positions of the joints have been estimated for more than two cameras. \n"
+                                    f"The 3D positions will be computed using the first two cameras specified in the camera_names parameter in the detectors_config.toml file \n"
+                                    f"{self.camera_names[0]} & {self.camera_names[1]}")
 
                 ### It is using interpolated_2d results instead of original 2d
                 cam1_data, cam2_data = results_2d_interpolated[:, 0], results_2d_interpolated[:, 1]
