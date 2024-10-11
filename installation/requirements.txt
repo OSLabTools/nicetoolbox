@@ -1,0 +1,17 @@
+pytest==7.4.1
+plotly==5.16.1
+numpy==1.24.3
+opencv-python==4.8.0.76
+pympi-ling==1.70.2
+pandas==2.1.0
+GitPython==3.1.35
+pyyaml==6.0.1
+toml==0.10.2
+scikit-image==0.21.0
+matplotlib==3.7.2
+rerun-sdk==0.17.0
+streamlit==1.38.0
+tueplots==0.0.15
+sphinx==7.0.0
+sphinx_rtd_theme==2.0.0
+myst_parser==3.0.1

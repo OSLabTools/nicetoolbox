@@ -1,92 +1,97 @@
-# Template Detector
+# Non-Verbal Interpersonal Communication Exploration Toolbox
+
+Project page: [https://nice.is.tue.mpg.de](https://nice.is.tue.mpg.de/)
+
+Documentation: []()
+
+
+NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication. 
+It aims to enable the investigation of observable signs that reflect the mental state 
+and behaviors of the individual. Additionally, these visual nonverbal cues reveal the 
+interpersonal dynamics between people in face-to-face conversations.
+
+NICE Toolbox incorporates a growing set of Computer Vision algorithms to track and 
+identify important visual components of nonverbal communication. Existing deep-learning 
+and rule-based algorithms are combined into a single, easy-to-use software toolbox. 
+Based on single- or multi-camera video data, the initial release encompasses whole-body 
+pose estimation and gaze tracking for each individual, as well as movement dynamics 
+calculation (kinematics), gaze interaction monitoring (mutual-gaze), and the measurement 
+of physical body distance between dyads. 
+This first set of components and algorithms is going to be extended in future releases.
+For more details, please see the [components overview](wikis/wiki_components) page in 
+the wiki.
+
+The toolbox  also includes a visualizer module, which allows users to
+visualize and investigate the algorithm’s outputs. 
 
 
 
-## Getting started
+## Installation & getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+For instructions on installing the toolbox on a Linux or Windows machine, please see the 
+[installation instructions](installation) page.
+For a quick start into the toolbox, we provide an example dataset and documentation to
+set it up on the [getting started](getting_started) page.
+Further tutorials and documentation can be found on the [tutorials](tutorials/index)
+and [wiki](wikis/index) pages.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-## Add your files
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## Future releases
 
-```
-cd existing_repo
-git remote add origin https://gitlab.tuebingen.mpg.de/cschmitt/template-detector.git
-git branch -M main
-git push -uf origin main
-```
+In future releases, we plan to extend the NICE Toolbox to include detectors for facial 
+expressions, head movements, eye closure, active speaking, emotional valence and arousal, 
+and micro-action recognition.
 
-## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.tuebingen.mpg.de/cschmitt/template-detector/-/settings/integrations)
+Further, we will move beyond mere visual inspection and integrate a versatile 
+evaluation framework. Based on our experience in computer vision, we are aware that no 
+single algorithm can perform flawlessly across all capture settings.
+To support you to choose the best algorithms for your settings, we are developing an 
+evaluation workflow that better elucidates the limitations of the algorithms, that allows 
+for systematic comparisons of the algorithms, and that assess their accuracy within a 
+given setting.
+Our goal is to provide comprehensive and objective evaluations of the algorithms, 
+ultimately creating a practically useful toolbox for researchers analyzing human 
+interaction and communication.
 
-## Collaborate with your team
+If you are interested in collaborating with us or contributing to the project, please 
+reach out to us at **nicetoolbox@tue.mpg.de**.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
 
-## Test and Deploy
+## Acknowledgments
 
-Use the built-in continuous integration in GitLab.
+The NICE Toolbox is using the following existing tools, methods, and frameworks:
+[HigherHRNet](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/tree/master),
+[ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main),
+[DarkPose](https://github.com/ilovepose/DarkPose/tree/master),
+[ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze), and
+[rerun.io](https://rerun.io/).
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
 
-***
+## Authors
 
-# Editing this README
+Dr. Carolin Schmitt
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Gökce Ergün
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Timo Lübbing
 
-## Name
-Choose a self-explaining name for your project.
+Dr. Senya Polikovsky
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+NICE Toolbox is licensed under Apache 2.0, see [LICENSE.md](LICENSE).
+
+Some components of the NICE Toolbox further use agorithms that are being distributed under other licenses. 
+All of them are listed in [LICENSES_ALGORITHMS.md](LICENSES_ALGORITHMS).
+Users should be careful about adopting these algorithms in any commercial matters.
+
+
+## Copyright
+
+Copyright 2024, Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems
