@@ -16,9 +16,6 @@ Welcome to NICE Toolbox's documentation!
 ========================================
 
 
-IMAGE
-
-
 Non-Verbal Interpersonal Communication Exploration Toolbox
 ----------------------------------------------------------
 
@@ -54,6 +51,12 @@ For a quick start into the toolbox, we provide an example dataset and documentat
 set it up on the :doc:`getting started <getting_started>` page.
 Further tutorials and documentation can be found on the :doc:`tutorials <tutorials/index>` 
 and :doc:`wiki <wikis/index>` pages.
+
+
+Code Structure
+--------------
+
+.. image:: graphics/toolbox_design.png
 
 
 
@@ -95,11 +98,8 @@ Authors
 -------
 
 Dr. Carolin Schmitt
-
 Gökce Ergün
-
 Timo Lübbing
-
 Dr. Senya Polikovsky
 
 All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
