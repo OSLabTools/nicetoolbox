@@ -1,3 +1,0 @@
-"""
-NICE toolbox utilities module.
-"""
