@@ -1,0 +1,69 @@
+[project]
+name = "nice_toolbox"
+dynamic = ["readme"]
+requires-python = ">3.7,<3.11"
+version = "0.0.0"
+dependencies = [
+  "numpy",
+  "opencv-python",
+  "pandas",
+  "pyyaml",
+  "scikit-image",
+  "toml",
+]
+
+#[project.scripts]
+# Would probably need to refactor this script first!
+# run_pipeline = "nice_toolbox.detectors.main:main"
+
+# Setuptools
+[tool.setuptools]
+packages = ["nice_toolbox"]
+
+[tool.setuptools.dynamic]
+readme = {file = "README.md"}
+
+[project.optional-dependencies]
+dev = ["autopep8", "codespell", "docker", "faker", "isort", "mypy", "pre-commit", "pylint", "tox", "unittest-xml-reporting"]
+visualization = ["matplotlib", "plotly", "rerun-sdk", "streamlit", "tueplots"]
+test = ["pytest"]
+
+# Autopep8
+[tool.autopep8]
+max_line_length = 100
+aggressive = 1
+
+# Pylint
+[tool.pylint.MASTER]
+disable = ["attribute-defined-outside-init"]
+
+[tool.pylint.FORMAT]
+max-line-length = 100
+
+[tool.pylint.MESSAGES_CONTROL]
+disable = "invalid-name"
+
+[tool.isort]
+profile = "google"
+force_single_line = false
+multi_line_output = 4
+line_length = 100
+src_paths = ["nice_toolbox"]
+
+# MyPy
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ['venv', '.venv']
+
+# Coverage
+[tool.coverage.run]
+branch = true
+source = ["nice_toolbox"]
+omit = [
+    "nice_toolbox/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.codespell]
+skip = "__pycache__,./.mypy_cache,.git,.idea,./venv,./env,./.tox"

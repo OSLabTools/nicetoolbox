@@ -1,3 +1,0 @@
-"""
-MMPose framework integreation module.
-"""
