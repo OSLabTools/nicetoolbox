@@ -1,6 +1,7 @@
 import tkinter as tk
 
 import numpy as np
+
 from .constants import all_fields
 
 
@@ -67,8 +68,7 @@ def init_entries_str():
 
 
 def get_fields(entries):
-
-    if not "chosen_matrices" in entries.keys():
+    if "chosen_matrices" not in entries:
         entries["message"].set("Please select a calibration format before loading.")
         return
 
@@ -85,8 +85,7 @@ def init_data_variables(fields):
     data_entries = {}
 
     # create tkinter variables for the selected camera matrix format
-    for field_name, field in fields.items():
-
+    for _field_name, field in fields.items():
         for variable in field["variables"]:
             if variable["type"] == "3x3":
                 data_entries[variable["name"]] = init_entries_3x3()
@@ -106,7 +105,7 @@ def init_data_variables(fields):
                 raise NotImplementedError(variable["type"])
 
     # set default values for rotation
-    if "R" in data_entries.keys():
+    if "R" in data_entries:
         data_entries["R"][0, 0].set(1.0)
         data_entries["R"][1, 1].set(1.0)
         data_entries["R"][2, 2].set(1.0)
@@ -115,7 +114,6 @@ def init_data_variables(fields):
 
 
 def init_calibration_format(entries, chosen_format):
-
     # which camera matrix formats are requested?
     match chosen_format.get():
         case "Camera Matrices":
@@ -133,7 +131,6 @@ def init_calibration_format(entries, chosen_format):
 
 
 def init_io_variables(entries):
-
     # add config entries
     entries["input_file"] = tk.StringVar()
     entries["input_directory"] = tk.StringVar()

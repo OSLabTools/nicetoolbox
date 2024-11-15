@@ -27,7 +27,8 @@ def triangulate_stereo(
     projection_matrix1, projection_matrix2, undistorted_points1, undistorted_points2
 ):
     """
-    Triangulates the 3D position of points in Euclidean coordinates from two camera views.
+    Triangulates the 3D position of points in Euclidean coordinates from two camera 
+    views.
 
     Args:
         projection_matrix1 (np.array): Projection matrix of the first camera.

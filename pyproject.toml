@@ -28,6 +28,40 @@ dev = ["autopep8", "codespell", "docker", "faker", "isort", "mypy", "pre-commit"
 visualization = ["matplotlib", "plotly", "rerun-sdk", "streamlit", "tueplots"]
 test = ["pytest"]
 
+# ruff
+[tool.ruff]
+line-length = 88
+exclude = ['./nicetoolbox/detectors/third_party/**']
+# include = ['./nicetoolbox/detectors/third_party/**/inference.py']
+
+[tool.ruff.format]
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true
+# Format all docstring code snippets with a line length of 88.
+docstring-code-line-length = 88
+# Existing trailing commas are used as an indication that short lines should be left separate. 
+# Set to true, to ignore the magic trailing comma.
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
 # Autopep8
 [tool.autopep8]
 max_line_length = 100

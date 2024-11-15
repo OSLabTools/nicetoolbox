@@ -4,9 +4,9 @@ Check and exception handling functions.
 
 import logging
 import os
-import sys
 
 import numpy as np
+
 from . import filehandling as fh
 
 
@@ -34,7 +34,8 @@ def check_token_in_filepath(folder_name: str, token: str, description: str) -> N
 
 def check_options(object, object_type, options) -> None:
     """
-    Check if an object is of a specific type and if it is within a given list of options.
+    Check if an object is of a specific type and if it is within a given 
+    list of options.
 
     Args:
         object (any): The object to be checked.
@@ -50,7 +51,8 @@ def check_options(object, object_type, options) -> None:
     """
     if not isinstance(object, object_type):
         raise TypeError(
-            f"Expected object of type {object_type.__name__}, got {type(object).__name__}"
+            f"Expected object of type {object_type.__name__}, "\
+            f"got {type(object).__name__}"
         )
     if object not in options:
         raise ValueError(
@@ -67,20 +69,26 @@ def check_value_bounds(
     Args:
         object (any): The object to be checked.
         object_type (type, optional): The expected type of the object. Defaults to None.
-        object_min (any, optional): The minimum value allowed for the object. Defaults to None.
-        object_max (any, optional): The maximum value allowed for the object. Defaults to None.
+        object_min (any, optional): The minimum value allowed for the object. 
+            Defaults to None.
+        object_max (any, optional): The maximum value allowed for the object. 
+            Defaults to None.
 
     Raises:
-        TypeError: If the object is not of the expected type (if object_type is provided).
-        ValueError: If the object's value is less than object_min (if object_min is provided).
-                If the object's value is greater than object_max (if object_max is provided).
+        TypeError: If the object is not of the expected type (if object_type is 
+            provided).
+        ValueError: If the object's value is less than object_min (if object_min 
+            is provided).
+                If the object's value is greater than object_max (if object_max 
+                is provided).
 
     Returns:
         None
     """
     if object_type is not None and not isinstance(object, object_type):
         raise TypeError(
-            f"Expected object of type {object_type.__name__}, got {type(object).__name__}"
+            f"Expected object of type {object_type.__name__}, "\
+            f"got {type(object).__name__}"
         )
     if object_min is not None and object < object_min:
         raise ValueError(
@@ -88,7 +96,8 @@ def check_value_bounds(
         )
     if object_max is not None and object > object_max:
         raise ValueError(
-            f"Object value {object} is greater than the maximum allowed value {object_max}"
+            f"Object value {object} is greater than the maximum allowed "\
+            f"value {object_max}"
         )
 
 
@@ -143,35 +152,35 @@ def check_user_input_config(config, check, config_name, var=None):
         The keys of 'check' must include the keys of 'config'.
         Syntax of the dict values:
             'type:<str/int/bool/...>': specifies the valid data type
-            'folder:<base/full>': requires existance of the folder (in case of 'full') or
-                                  parent-folder (in case of 'base')
+            'folder:<base/full>': requires existance of the folder (in case of 'full') 
+                                  or parent-folder (in case of 'base')
             'file': requires that the file is existing on the system
-            'keys:<toml_filepath>': valid options are all keys from the dict given by the
-                                    toml_filepath
-            'tbd': not yet defined in the template dict 'check', 
+            'keys:<toml_filepath>': valid options are all keys from the dict given 
+                                    by the toml_filepath
+            'tbd': not yet defined in the template dict 'check',
                    will write a warning to log
             [<>, ...]: list of valid options, may contain all basetypes
     """
     # the config dict contains all test-keys and test-values (tkey, tval)
     # the check dict contains all check-keys and check-values (ckey, cval)
     for tkey, tval in config.items():
-
         # CHECKING KEYS
         # given a definition of valid keys
-        if "_valid_keys_" in check.keys():
+        if "_valid_keys_" in check:
             check_user_input_config(
                 {"test": tkey}, {"test": check["_valid_keys_"]}, config_name, var
             )
 
         # if a key serves as a variable
-        if ["_var_"] == list(check.keys()) or set(["_var_", "_valid_keys_"]) == set(
+        if list(check.keys()) == ["_var_"] or set(["_var_", "_valid_keys_"]) == set(
             list(check.keys())
         ):
             var = tkey
             cval = check["_var_"]
 
-        # if not, the validity criterion for its value(s) needs to be defined in the check dictionary
-        elif tkey not in check.keys():
+        # if not, the validity criterion for its value(s) needs to be defined in the 
+        # check dictionary
+        elif tkey not in check:
             error_log_and_raise(
                 LookupError,
                 config_name,
@@ -179,7 +188,8 @@ def check_user_input_config(config, check, config_name, var=None):
             )
             break
 
-        # if key is no variable and validity criterion for its value is given, use this for checks
+        # if key is no variable and validity criterion for its value is given, use 
+        # this for checks
         else:
             cval = check[tkey]
 
@@ -194,10 +204,8 @@ def check_user_input_config(config, check, config_name, var=None):
                     check_user_input_config({tkey: tvalue}, check, config_name, var)
 
         else:
-
             # go through all options for the check-value (cval)
             if isinstance(cval, str):
-
                 # check whether there is a variable in the string to replace
                 if "_var_" in cval:
                     if var is not None:
@@ -206,7 +214,8 @@ def check_user_input_config(config, check, config_name, var=None):
                         error_log_and_raise(
                             LookupError,
                             config_name,
-                            f"value '{cval}' requires the variable (_var_) to be defined.",
+                            f"value '{cval}' requires the variable (_var_) "\
+                            "to be defined.",
                         )
 
                 # type check
@@ -216,7 +225,8 @@ def check_user_input_config(config, check, config_name, var=None):
                         error_log_and_raise(
                             TypeError,
                             config_name,
-                            f"Key '{tkey}' requires value of type {check_type}. The given value is '{tval}'.",
+                            f"Key '{tkey}' requires value of type {check_type}. "\
+                            f"The given value is '{tval}'.",
                         )
 
                 elif cval.startswith("folder"):
@@ -229,14 +239,16 @@ def check_user_input_config(config, check, config_name, var=None):
                         error_log_and_raise(
                             ValueError,
                             config_name,
-                            f"Unknown check value {folder_details}. Options are 'base' or 'full'.",
+                            f"Unknown check value {folder_details}. "\
+                            "Options are 'base' or 'full'.",
                         )
 
                     if not os.path.isdir(folder):
                         error_log_and_raise(
                             NotADirectoryError,
                             config_name,
-                            f"For key '{tkey}', the folder '{folder}' is not a directory.",
+                            f"For key '{tkey}', the folder '{folder}' "\
+                            "is not a directory.",
                         )
 
                 elif cval.startswith("file"):
@@ -261,14 +273,17 @@ def check_user_input_config(config, check, config_name, var=None):
 
                 elif cval.startswith("tbd"):
                     logging.warning(
-                        f"{config_name}: For key '{tkey}', no check argument is given. Skipping."
+                        f"{config_name}: For key '{tkey}', no check argument is "\
+                            "given. Skipping."
                     )
 
                 else:
                     error_log_and_raise(
                         NotImplementedError,
                         config_name,
-                        f"Check option '{cval.split(':')[0]}' is unknown. Currently supported options in strings are 'type', 'folder', 'file', 'keys', 'tbd'.",
+                        f"Check option '{cval.split(':')[0]}' is unknown. Currently "\
+                            "supported options in strings are 'type', 'folder', "\
+                            "'file', 'keys', 'tbd'.",
                     )
 
             # check given options
@@ -277,7 +292,8 @@ def check_user_input_config(config, check, config_name, var=None):
                     error_log_and_raise(
                         ValueError,
                         config_name,
-                        f"Key '{tkey}' can take values {cval}. The given value is '{tval}'.",
+                        f"Key '{tkey}' can take values {cval}. "\
+                        f"The given value is '{tval}'.",
                     )
 
             # recursive strategy for dicts
@@ -293,7 +309,8 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
         command (str): A string in the format 'token:file:key(s)' or 'token:file'.
             'token' should be either 'keys' or 'values'.
             'file' is the path to the .toml file.
-            'key(s)' is an optional parameter specifying the nested keys in the .toml file.
+            'key(s)' is an optional parameter specifying the nested keys in the 
+                .toml file.
         config_name (str): The name of the configuration for error logging.
 
     Returns:
@@ -323,7 +340,8 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
         error_log_and_raise(
             NotImplementedError,
             config_name,
-            f"Check option '{token}:<>' currently only supports '.toml' files to retrieve keys. Given argument: '{file}'",
+            f"Check option '{token}:<>' currently only supports '.toml' files "\
+            f"to retrieve keys. Given argument: '{file}'",
         )
 
     return list(keys_values)
@@ -337,7 +355,8 @@ def check_zeros(arr: np.ndarray) -> None:
         arr (ndarray): The input array.
 
     Raises
-        AssertionError: If there are any zero vectors found in the last dimension of the array.
+        AssertionError: If there are any zero vectors found in the last 
+        dimension of the array.
 
     Examples
     >>> arr_3d_example = np.random.randint(0, 255, (10, 10, 3))

@@ -11,7 +11,8 @@ from ..utils import check_and_exception as exc
 
 class IO:
     """
-    The IO class handles input/output operations and folder management for the NICE toolbox.
+    The IO class handles input/output operations and folder management for the 
+    NICE toolbox.
 
     Args:
         config (dict): A dictionary containing the configuration parameters.
@@ -27,11 +28,14 @@ class IO:
         conda_path (str): The path to the Conda installation directory.
         algorithm_names (list): A list of algorithm names.
         detector_out_folder (str): The path to the detector output folder.
-        detector_visualization_folder (str): The path to the detector visualization folder.
-        detector_additional_output_folder (str): The path to the detector additional output folder.
+        detector_visualization_folder (str): The path to the detector visualization 
+            folder.
+        detector_additional_output_folder (str): The path to the detector additional 
+            output folder.
         detector_tmp_folder (str): The path to the detector temporary folder.
         detector_run_config_path (str): The path to the detector run configuration file.
-        detector_final_result_folder (str): The path to the detector final result folder.
+        detector_final_result_folder (str): The path to the detector final result 
+            folder.
     """
 
     def __init__(self, config):
@@ -42,7 +46,8 @@ class IO:
             config (dict): A dictionary containing configuration parameters.
 
         Raises:
-            OSError: If there is an error creating the output folder or the base data folder.
+            OSError: If there is an error creating the output folder or the base data 
+                folder.
 
         """
         # create folders
@@ -236,8 +241,8 @@ class IO:
         """
         Creates the necessary output and data folders.
 
-        This method creates the output folder and data folder if they don't already exist.
-        If the folders cannot be created, an exception is raised.
+        This method creates the output folder and data folder if they don't already 
+        exist. If the folders cannot be created, an exception is raised.
 
         Raises:
             OSError: If the output folder or data folder cannot be created.
@@ -265,7 +270,8 @@ class IO:
 
         Raises:
             TypeError: If the 'process_data_to' value is not a string.
-            ValueError: If the 'process_data_to' value is not 'tmp_folder' or 'data_folder'.
+            ValueError: If the 'process_data_to' value is not 'tmp_folder' or 
+                'data_folder'.
             ValueError: If any of the detector input folders are invalid.
             OSError: If any of the detector input folders are not accessible.
 
@@ -277,8 +283,8 @@ class IO:
             )
         except (TypeError, ValueError):
             logging.exception(
-                f"Unsupported 'process_data_to' in io. "
-                f"Valid options are 'tmp_folder' and 'data_folder'."
+                "Unsupported 'process_data_to' in io. "
+                "Valid options are 'tmp_folder' and 'data_folder'."
             )
             raise
 

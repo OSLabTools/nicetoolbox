@@ -5,9 +5,7 @@ A template class for Detectors.
 import logging
 import os
 import subprocess
-import sys
 from abc import ABC, abstractmethod
-from pathlib import Path
 
 from ...utils import system
 from ...utils.config import save_config
@@ -16,7 +14,8 @@ from ...utils.system import detect_os_type
 
 class BaseDetector(ABC):
     """
-    Abstract class to setup and run existing computer vision research code, called method detectors.
+    Abstract class to setup and run existing computer vision research code, called 
+    method detectors.
 
     Attributes:
         components (list): A list of components associated with the method detector.
@@ -29,8 +28,10 @@ class BaseDetector(ABC):
         framework (str): The name of the framework used for the method detector.
         script_path (str): The path to the script used for the method detector.
         venv (str): The type of virtual environment used for the method detector.
-        env_name (str): The name of the virtual environment used for the method detector.
-        venv_path (str): The path to the virtual environment used for the method detector.
+        env_name (str): The name of the virtual environment used for the method 
+            detector.
+        venv_path (str): The path to the virtual environment used for the method 
+            detector.
     """
 
     def __init__(self, config, io, data, requires_out_folder=True) -> None:
@@ -43,8 +44,8 @@ class BaseDetector(ABC):
             config (dict): Configuration parameters for the detector.
             io (IO): An instance of the IO class for input/output operations.
             data (Data): An instance of the Data class for accessing data.
-            requires_out_folder (bool, optional): Indicates whether an output folder is required.
-                Defaults to True.
+            requires_out_folder (bool, optional): Indicates whether an output folder 
+                is required. Defaults to True.
         """
         # log file
         config["log_file"], config["log_level"] = io.get_log_file_level()
@@ -80,7 +81,7 @@ class BaseDetector(ABC):
 
         self.conda_path = io.get_conda_path()
         self.framework = (
-            config["framework"] if "framework" in config.keys() else self.algorithm
+            config["framework"] if "framework" in config.keys() else self.algorithm  # noqa: SIM118
         )
         self.script_path = data.get_inference_path(self.framework)
 
@@ -94,8 +95,8 @@ class BaseDetector(ABC):
         Returns a description of the method detector for printing.
 
         Returns:
-            str: A string representation of the method detector, including its components,
-                and the associated algorithm.
+            str: A string representation of the method detector, including its 
+                components, and the associated algorithm.
         """
         return (
             f"Instance of component {self.components} \n\t"
@@ -161,21 +162,23 @@ class BaseDetector(ABC):
             )
 
         if cmd_result.returncode == 0:
-            logging.info(f"INFERENCE Pipeline - SUCCESS.")
+            logging.info("INFERENCE Pipeline - SUCCESS.")
             self.post_inference()
 
         else:
             logging.error(
-                f"INFERENCE Pipeline - ERROR occurred with return code {cmd_result.returncode}"
+                f"INFERENCE Pipeline - ERROR occurred with return code "
+                f"{cmd_result.returncode}"
             )
             logging.error(f"INFERENCE Pipeline - ERROR: {cmd_result.stderr}")
             logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
 
-    def post_inference(self):
+    def post_inference(self):  # noqa: B027
         """
         Post-processing after inference.
 
-        This method is called after the inference step and is used for any post-processing tasks that need to be performed.
+        This method is called after the inference step and is used for any 
+        post-processing tasks that need to be performed.
         """
         pass
 
@@ -185,11 +188,12 @@ class BaseDetector(ABC):
         """
         Abstract property that returns the components of the method detector.
 
-        This property should be implemented in the derived classes to specify the components
-        that the method detector is associated with.
+        This property should be implemented in the derived classes to specify the 
+        components that the method detector is associated with.
 
         Returns:
-            list: A list of strings representing the components associated with the method detector.
+            list: A list of strings representing the components associated with the 
+                method detector.
 
         Raises:
             NotImplementedError: If the property is not set in the derived classes.
@@ -202,11 +206,11 @@ class BaseDetector(ABC):
         """
         Abstract property that returns the algorithm of the method detector.
 
-        This property should be implemented in the derived classes to specify the algorithm
-        that the method detector is associated with.
+        This property should be implemented in the derived classes to specify the 
+        algorithm that the method detector is associated with.
 
         Returns:
-            str: A string representing the algorithm associated with the method detector.
+            str: A string representing the algorithm associated with the method detector
 
         Raises:
             NotImplementedError: If the property is not set in the derived classes.
@@ -218,18 +222,19 @@ class BaseDetector(ABC):
         """
         Abstract method to visualize the output of the method, preferably as a video.
 
-        This method is intended to generate a visual representation of the method detector's
-        output. The visualization should be saved in the self.viz_folder.
+        This method is intended to generate a visual representation of the method 
+        detector's output. The visualization should be saved in the self.viz_folder.
 
         Args:
-            data (any): The data to be visualized. The type and content of this parameter depend on
-                the specific implementation of the method detector.
+            data (any): The data to be visualized. The type and content of this 
+                parameter depend on the specific implementation of the method detector.
 
         Returns:
-            None. This method does not return any value. However, it should save the visualization
-                in the self.viz_folder.
+            None. This method does not return any value. However, it should save the 
+                visualization in the self.viz_folder.
 
         Raises:
-            NotImplementedError: If this method is not implemented in the derived classes.
+            NotImplementedError: If this method is not implemented in the derived 
+                classes.
         """
         pass

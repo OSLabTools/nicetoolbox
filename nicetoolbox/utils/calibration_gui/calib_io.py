@@ -5,10 +5,8 @@ import numpy as np
 
 
 def get_calibration_dict(matrix_dict):
-
     calibration_dict = {}
     for camera_name, camera_dict in matrix_dict.items():
-
         calibration_dict.update(
             {
                 camera_name: dict(
@@ -38,7 +36,6 @@ def default(obj):
 
 
 def save_calibration_npz_json(entries, matrix_dict):
-
     calibration = {}
     # convert matrix_dict
     for session_name, session_data in matrix_dict.items():

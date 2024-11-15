@@ -7,6 +7,7 @@ import logging
 import os
 
 import numpy as np
+
 from ..utils import check_and_exception as exc
 from ..utils import in_out as ut_in_out
 from ..utils import system as oslab_sys
@@ -76,7 +77,7 @@ class Data:
         self.subjects_descr = config["subjects_descr"]
         self.start_frame_index = config["start_frame_index"]
         self.camera_mapping = dict(
-            (key, config[key]) for key in config.keys() if "cam_" in key
+            (key, config[key]) for key in config if "cam_" in key
         )
 
         # collect which data slices and formats are required
@@ -112,7 +113,12 @@ class Data:
             FileNotFoundError: If the inference script file does not exist.
         """
         filepath = os.path.join(
-            self.code_folder, "nicetoolbox", "detectors", "third_party", detector_name, "inference.py"
+            self.code_folder,
+            "nicetoolbox",
+            "detectors",
+            "third_party",
+            detector_name,
+            "inference.py",
         )
         try:
             exc.file_exists(filepath)
@@ -123,7 +129,8 @@ class Data:
 
     def get_venv_path(self, detector_name, env_name):
         """
-        Get the file path of the virtual environment for the given detector and environment name.
+        Get the file path of the virtual environment for the given detector and 
+        environment name.
 
         Args:
             detector_name (str): The name of the detector.
@@ -137,19 +144,10 @@ class Data:
         """
         os_type = oslab_sys.detect_os_type()
         if os_type == "linux":
-            filepath = os.path.join(
-                self.code_folder,
-                "envs",
-                env_name,
-                f"bin/activate",
-            )
+            filepath = os.path.join(self.code_folder, "envs", env_name, "bin/activate")
         elif os_type == "windows":
             filepath = os.path.join(
-                self.code_folder,
-                "envs",
-                env_name,
-                "Scripts",
-                "activate",
+                self.code_folder, "envs", env_name, "Scripts", "activate"
             )
         try:
             exc.file_exists(filepath)
@@ -169,8 +167,8 @@ class Data:
             config_fps (int): The desired fps specified in the configuration.
 
         Returns:
-            int: The fps of the input video files. If the input formats are not 'mp4' or 'avi',
-                 the config_fps value is returned.
+            int: The fps of the input video files. If the input formats are not 'mp4' 
+                or 'avi', the config_fps value is returned.
         """
         input_formats = self.get_input_format(self.all_camera_names)
         if input_formats in ["mp4", "avi"]:
@@ -181,7 +179,8 @@ class Data:
             fps = vid.get_fps(video_files[0])
             if fps != config_fps:
                 logging.warning(
-                    f"Detected fps = {fps} does not match fps given in the config = {config_fps}!"
+                    f"Detected fps = {fps} does not match fps given in the "
+                    f"config = {config_fps}!"
                 )
             return fps
         else:
@@ -191,7 +190,8 @@ class Data:
         """
         Load camera calibration from a file for a specific dataset.
 
-        Currently implemented for the datasets 'dyadic_communication' and 'mpi_inf_3dhp'.
+        Currently implemented for the datasets 'dyadic_communication' and 
+        'mpi_inf_3dhp'.
 
         Args:
             calibration_file (str): The path to the calibration file.
@@ -201,7 +201,8 @@ class Data:
             dict: A dictionary containing the loaded camera calibration.
 
         Raises:
-            NotImplementedError: If loading camera calibration for the specified dataset is not implemented.
+            NotImplementedError: If loading camera calibration for the specified 
+            dataset is not implemented.
         """
         try:
             exc.check_options(dataset_name, str, all_dataset_names)
@@ -210,7 +211,7 @@ class Data:
                 f"Loading camera calibration for dataset '{dataset_name}' is "
                 f"not implemented."
             )
-            raise NotImplementedError
+            raise NotImplementedError from None
 
         calib_details = "__".join(
             [word for word in [self.session_ID, self.sequence_ID] if word]
@@ -238,7 +239,8 @@ class Data:
             str: The input format for the given camera names.
 
         Raises:
-            ValueError: If multiple or no valid input format is found in the data input folder.
+            ValueError: If multiple or no valid input format is found in the data 
+            input folder.
         """
         example_input_folder = self.data_input_folder.replace(
             "<camera_name>", next(iter(camera_names))
@@ -251,7 +253,7 @@ class Data:
             exc.error_log_and_raise(
                 ValueError,
                 "Reading input data",
-                f"Multiple or no valid input format found in '{self.data_input_folder}'. "
+                f"Multiple/no valid input format found in '{self.data_input_folder}'. "
                 f"Found '{input_formats}', valid formats are ['mp4', 'avi'].",
             )
         input_format = ["mp4", "avi", "png", "jpg", "jpeg"][input_formats.index(True)]
@@ -297,7 +299,7 @@ class Data:
 
         elif data_format == "frames":
             skip = 1 if not self.video_skip_frames else self.video_skip_frames
-            file_names = [f"%05d.png" % x for x in range(start, end, skip)]
+            file_names = ["%05d.png" % x for x in range(start, end, skip)]
             for camera_name in camera_names:
                 inputs_list += [
                     os.path.join(self.data_folder, camera_name, "frames", n)
@@ -315,7 +317,8 @@ class Data:
         2. Creates a list of all input files required to run NICE toolbox.
         3. Checks whether all required data files exist.
         4. Initializes data lists for frames, segments, and snippets.
-        5. If the data exists, extracts frame indices and organizes frames by camera name.
+        5. If the data exists, extracts frame indices and organizes frames by camera 
+           name.
         6. If the data does not exist, creates the required data from video or frames.
         7. Logs the completion of data creation.
         """
@@ -361,7 +364,8 @@ class Data:
                     [file for file in frames_list if camera_name in file]
                 )
                 self.frames_list.append(cam_frames)
-            self.frames_list = [l.tolist() for l in np.array(self.frames_list).T]
+            self.frames_list = [frame.tolist() 
+                                for frame in np.array(self.frames_list).T]
 
         else:
             logging.info(
@@ -374,18 +378,18 @@ class Data:
             elif input_format in ["png", "jpg", "jpeg"]:
                 self.create_inputs_from_frames(input_format)
 
-            logging.info(f"DATA creation completed.")
+            logging.info("DATA creation completed.")
 
     def create_inputs_from_video(self):
         """
         Create inputs from video files.
 
-        This method detects video input files, splits them into frames, and organizes the frames
-        into different data formats which are frames, segments, and snippets.
+        This method detects video input files, splits them into frames, and organizes 
+        the frames into different data formats which are frames, segments, and snippets.
 
         Raises:
-            AssertionError: If the length of the frame indices list does not match the specified
-                video length.
+            AssertionError: If the length of the frame indices list does not match 
+                the specified video length.
             AssertionError: If the frame indices of different cameras do not match.
         """
         # detect all video input files
@@ -475,25 +479,27 @@ class Data:
         Processes frames and organizes them into specified data formats for further
         processing in the NICE pipeline.
 
-        This method iterates through all camera names, and for each camera, it performs the
-        following operations based on the given data formats:
+        This method iterates through all camera names, and for each camera, it performs 
+        the following operations based on the given data formats:
 
-        1. Frames: For each frame in the specified range, it checks if the frame exists in the
-        input directory. If it does, the method creates a symbolic link in the output directory
-        under a 'frames' subdirectory.
+        1. Frames: For each frame in the specified range, it checks if the frame exists 
+        in the input directory. If it does, the method creates a symbolic link in the 
+        output directory under a 'frames' subdirectory.
 
-        2. Segments: (Not Implemented) This part is intended to split the video into segments of a
-        specified length based on the annotation interval.
+        2. Segments: (Not Implemented) This part is intended to split the video into 
+        segments of a specified length based on the annotation interval.
 
-        3. Snippets: (Not Implemented) This part is intended to cut the video into snippets based
-        on the specified start and length.
+        3. Snippets: (Not Implemented) This part is intended to cut the video into 
+        snippets based on the specified start and length.
 
         Args:
-            input_format (str): The file format of the input frames (e.g., 'jpg', 'png').
+            input_format (str): The file format of the input frames 
+                (e.g., 'jpg', 'png').
 
         Raises:
-            NotImplementedError: If the filename convention inferred from the first frame's
-            filename does not apply to any frame or if the 'segments' or 'snippets' data formats are specified, as these are not implemented.
+            NotImplementedError: If the filename convention inferred from the first 
+            frame's filename does not apply to any frame or if the 'segments' or 
+            'snippets' data formats are specified, as these are not implemented.
         """
         frames_list = []
         frame_indices_list = set()
@@ -512,12 +518,14 @@ class Data:
             if base_name.isdigit():
                 filename_template = f"%0{len(base_name)}d.{input_format}"
             elif base_name[0].isdigit() and base_name[: -len(chars)].isdigit():
-                # in case the filename starts with a digit and all letters are in the end
+                # in case the filename starts with a digit and all letters are in 
+                # the end
                 filename_template = (
                     f"%0{len(base_name[:-len(chars)])}d{chars}.{input_format}"
                 )
             elif not base_name[0].isdigit() and base_name[len(chars) :].isdigit():
-                # in case the filename starts with a letter and all digits are in the end
+                # in case the filename starts with a letter and all digits are in 
+                # the end
                 filename_template = (
                     f"{chars}%0{len(base_name[len(chars):])}d.{input_format}"
                 )
@@ -540,7 +548,6 @@ class Data:
                 for iteration, frame_idx in enumerate(
                     range(self.video_start, self.video_start + self.video_length, skip)
                 ):
-
                     dataset_frame_idx = frame_idx + self.start_frame_index
 
                     input_frame_indices = np.where(
@@ -552,9 +559,10 @@ class Data:
                     if len(input_frame_indices) != 1:
                         exc.error_log_and_raise(
                             NotImplementedError,
-                            "Create input data from frames.",
-                            f"Detected dataset filename convention '{filename_template}', not applicable for "
-                            f"camera name '{camera_name}' and frame index '{dataset_frame_idx}'.",
+                            "Create input data from frames. Detected dataset filename ",
+                            f"convention '{filename_template}', not applicable for "
+                            f"camera name '{camera_name}' and frame index "
+                            f"'{dataset_frame_idx}'.",
                         )
 
                     input_frame_idx = input_frame_indices[0]
@@ -568,8 +576,9 @@ class Data:
                         exc.error_log_and_raise(
                             IndexError,
                             "Create input data from frames.",
-                            f"First input frame index '{input_frame_idx}' does not match video start "
-                            f"'{self.video_start}'. Dataset filename '{in_framename}' is likely incorrect.",
+                            f"First input frame index '{input_frame_idx}' does not "
+                            f"match video start '{self.video_start}'. Dataset "
+                            f"filename '{in_framename}' is likely incorrect.",
                         )
 
                     if not os.path.exists(out_filename):
@@ -615,20 +624,21 @@ class Data:
         # Check if the data folder & symlinks inside is already exists.
         if os.path.isdir(data_folder):
             logging.info(
-                f"Data folder is found'{data_folder}' - Checking if the symlinks are valid"
+                f"Data folder is found'{data_folder}' - Checking if symlinks are valid"
             )
             existing_symlink_list = ut_in_out.list_files_under_root(data_folder)
             if len(source_file_list) != len(existing_symlink_list):
                 logging.info(
-                    f"Checking data folder - Number of files in the existing data folder does not match. "
-                    f"New symlinks will be created"
+                    "Checking data folder - Number of files in the existing data "
+                    "folder does not match. New symlinks will be created"
                 )
                 # delete already existing symlinks
                 ut_in_out.delete_files_into_list(existing_symlink_list)
             # check if the first file into list is a valid file
             elif not os.path.isfile(existing_symlink_list[0]):
                 logging.info(
-                    f"Checking data folder - Symlink is not valid New symlinks will be created"
+                    "Checking data folder - Symlink is not valid New symlinks will "
+                    "be created"
                 )
                 # delete already existing symlinks
                 ut_in_out.delete_files_into_list(existing_symlink_list)

@@ -5,11 +5,9 @@ classes to run method detectors and feature detectors on the provided datasets.
 
 import argparse
 import logging
-import os
-import sys
 import time
 
-
+from ..utils import logging_utils as log_ut
 from .configs import config_handler as confh
 from .data import Data
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
@@ -20,7 +18,6 @@ from .in_out import IO
 from .method_detectors.body_joints.mmpose_framework import HRNetw48, VitPose
 from .method_detectors.gaze_individual.XGaze_3cams import XGaze3cams
 from .result_conversion import to_csv as csv
-from ..utils import logging_utils as log_ut
 
 all_method_detectors = dict(xgaze_3cams=XGaze3cams, hrnetw48=HRNetw48, vitpose=VitPose)
 
@@ -42,16 +39,19 @@ def main(run_config_file, machine_specifics_file):
         detector_config_file (str): The path to the detector configuration file.
         machine_specifics_file (str): The path to the machine specifics file.
 
-    This function is the entry point of the NICE toolbox. It performs the following steps:
+    This function is the entry point of the NICE toolbox. It performs the following 
+    steps:
 
     1. Initializes the configuration handler with the provided configuration files.
-    2. Initializes the IO module with the IO configuration from the configuration handler.
+    2. Initializes the IO module with the IO configuration from the configuration 
+        handler.
     3. Sets up logging and logs the start of the NICE toolbox.
     4. Checks the configuration consistency and saves the experiment configuration.
     5. Runs the datasets specified in the configuration.
     6. For each dataset, initializes the IO module and prepares the data.
     7. Runs the method detectors specified in the configuration for each dataset.
-    8. Runs the feature extraction pipeline specified in the configuration for each dataset.
+    8. Runs the feature extraction pipeline specified in the configuration for each 
+        dataset.
     """
     # CONFIG I
     config_handler = confh.Configuration(run_config_file, machine_specifics_file)
@@ -62,7 +62,8 @@ def main(run_config_file, machine_specifics_file):
     # LOGGING
     log_ut.setup_logging(*io.get_log_file_level())
     logging.info(
-        f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to '{io.out_folder}'.\n\n{'#' * 80}\n\n"
+        f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to "
+        f"'{io.out_folder}'.\n\n{'#' * 80}\n\n"
     )
 
     # check and save experiment configs
@@ -78,10 +79,10 @@ def main(run_config_file, machine_specifics_file):
         )
         algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
         method_names = [
-            alg for alg in algorithm_names if alg in all_method_detectors.keys()
+            alg for alg in algorithm_names if alg in all_method_detectors
         ]
         feature_names = [
-            alg for alg in algorithm_names if alg in all_feature_detectors.keys()
+            alg for alg in algorithm_names if alg in all_feature_detectors
         ]
 
         # IO
@@ -127,9 +128,9 @@ def main(run_config_file, machine_specifics_file):
     # convert results
     logging.info(f"Detectors finished.\n{'-' * 80}")
     if config_handler.save_csv():
-        logging.info(f"START converting results to CSV-files.")
+        logging.info("START converting results to CSV-files.")
         csv.results_to_csv(io.get_output_folder("main"), io.get_output_folder("csv"))
-        logging.info(f"FINISHED converting results to CSV-files.")
+        logging.info("FINISHED converting results to CSV-files.")
 
 
 if __name__ == "__main__":

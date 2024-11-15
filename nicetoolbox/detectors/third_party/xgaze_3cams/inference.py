@@ -13,26 +13,30 @@ import numpy as np
 # Add top-level directory to sys.path depending on repo structure and not cwd
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
-from utils import filehandling as fh
-
-from xgaze_3cams import landmarks as lm
-from xgaze_3cams.gaze_estimator import GazeEstimator
-from xgaze_3cams.xgaze_utils import draw_gaze, get_cam_para_studio, vector_to_pitchyaw
+from utils import filehandling as fh  # noqa: E402
+from xgaze_3cams import landmarks as lm  # noqa: E402
+from xgaze_3cams.gaze_estimator import GazeEstimator  # noqa: E402
+from xgaze_3cams.xgaze_utils import (  # noqa: E402
+    draw_gaze,
+    get_cam_para_studio,
+    vector_to_pitchyaw,
+)
 
 
 def main(config, debug=False):
     """
     Run xgaze_3cams gaze detection on the provided data.
 
-    The function uses the 'xgaze_3cams' library to estimate gaze vectors for each camera.
-    The estimated gaze vectors are then converted to pitch and yaw angles using a simple
-    linear transformation. The resulting angles are saved in a .npz file with the following
-    structure:
+    The function uses the 'xgaze_3cams' library to estimate gaze vectors for each 
+    camera. The estimated gaze vectors are then converted to pitch and yaw angles 
+    using a simple linear transformation. The resulting angles are saved in a .npz 
+    file with the following structure:
         - 3d: Numpy array of shape (n_frames, n_subjects, 3)
         - data_description: A dictionary containing the description of the data.
 
     Args:
-        config (dict): The configuration dictionary containing parameters for gaze detection.
+        config (dict): The configuration dictionary containing parameters for gaze 
+            detection.
         debug (bool, optional): A flag indicating whether to print debug information.
             Defaults to False.
     """
@@ -67,7 +71,7 @@ def main(config, debug=False):
         frames_list = config["frames_list"]
     n_frames = len(frames_list) // n_cams
     frames_list = np.array(sorted(frames_list)).reshape(n_cams, n_frames).T
-    frames_list = [list(l) for l in frames_list]
+    frames_list = [list(frame) for frame in frames_list]
 
     # start gaze detection
     logging.info("Load gaze estimator and start detection.")
@@ -108,7 +112,6 @@ def main(config, debug=False):
             camera_name = [name for name in camera_names if name in frame_file][0]
             subjects_by_cam = config["cam_sees_subjects"][camera_name]
             if landmark_predictions is not None:
-
                 if landmark_predictions.shape[0] > len(subjects_by_cam):
                     scores = score.mean(axis=1)
                     max_value_indices = sorted(scores.argsort()[-n_subjects:])
@@ -132,7 +135,6 @@ def main(config, debug=False):
             for image, landmarks, cam_name in zip(
                 images, landmarks_2d[frame_i], camera_names
             ):
-
                 # is this subject visible in the camera? and were landmarks predicted?
                 subjects_by_cam = config["cam_sees_subjects"][cam_name]
                 if (
@@ -182,11 +184,11 @@ def main(config, debug=False):
             results_2d[frame_i, 0] = np.stack((dx, dy), axis=-1)
 
         if config["visualize"] and (results[frame_i] == results[frame_i]).all():
-            # visualization on each image, project the gaze back to each cam to draw the gaze direction
+            # visualization on each image, project the gaze back to each cam to draw 
+            # the gaze direction
             for image, landmarks, cam_name, file_path in zip(
                 images, landmarks_2d[frame_i], camera_names, frames_list[frame_i]
             ):
-
                 if (landmarks == landmarks).all() and (
                     len(landmarks) == len(config["cam_sees_subjects"][cam_name])
                 ):

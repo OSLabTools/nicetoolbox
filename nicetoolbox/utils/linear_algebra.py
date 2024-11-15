@@ -3,6 +3,7 @@ Linear algebra utility functions.
 """
 
 import numpy as np
+
 from .logging_utils import assert_and_log
 
 
@@ -30,7 +31,7 @@ def distance_line_point(line_point, line_direction, point):
     )
     assert_and_log(
         line_direction.shape == line_point.shape == point.shape,
-        f"inconsistent shapes inputted to distance_line_point",
+        "inconsistent shapes inputted to distance_line_point",
     )
 
     scalarprod = (line_direction * (point - line_point)).sum(axis=-1, keepdims=True)

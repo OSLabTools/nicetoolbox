@@ -1,7 +1,4 @@
-import os
-import sys
 import tkinter as tk
-from tkinter import ttk
 from tkinter.filedialog import askdirectory
 
 from . import calib_io as io
@@ -12,8 +9,7 @@ from .constants import px, py
 
 
 def save(entries):
-
-    if "data" not in entries.keys():
+    if "data" not in entries:
         entries["message"].set(
             "No data for saving. Please load or create calibration data."
         )
@@ -36,11 +32,10 @@ def save(entries):
 
 
 def select_calibration_format(main_frame, entries, chosen_format):
-
     # clear the main frame, empty form to start fresh
     mf.clear_frame(main_frame)
 
-    if "data" in entries.keys():
+    if "data" in entries:
         del entries["data"]
 
     entries["message"].set(f"Format '{chosen_format.get()}' selected.")

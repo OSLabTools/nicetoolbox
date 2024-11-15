@@ -8,13 +8,14 @@ import sys
 from pathlib import Path
 
 import numpy as np
-
 from mmpose.apis import MMPoseInferencer
+
+# sdjgka;djfgakdfjgak;dlfjgal;skjdgl;a'sikfa[peigtoaejgalsdjgl;'SKDGSdigkal;sdhretueuertujetyjetyjgs;dkf;'SIGFxcvsdgadgPSdkg]
 
 # Add top-level directory to sys.path depending on repo structure and not cwd
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
-from utils import filehandling as fh
+from utils import filehandling as fh  # noqa: E402
 
 
 def calculate_iou(box1, box2):
@@ -22,10 +23,12 @@ def calculate_iou(box1, box2):
     Calculate the Intersection over Union (IoU) of two bounding boxes.
 
     Args:
-        box1 (array_like): Bounding box coordinates of the first box in the format [x1, y1, x2, y2].
-            (x1, y1) represents the top-left coordinate and (x2, y2) represents the bottom-right coordinate.
-        box2 (array_like): Bounding box coordinates of the second box in the format [x1, y1, x2, y2].
-            (x1, y1) represents the top-left coordinate and (x2, y2) represents the bottom-right coordinate.
+        box1 (array_like): Bounding box coordinates of the first box in the format 
+            [x1, y1, x2, y2]. (x1, y1) represents the top-left coordinate and (x2, y2) 
+            represents the bottom-right coordinate.
+        box2 (array_like): Bounding box coordinates of the second box in the format 
+            [x1, y1, x2, y2]. (x1, y1) represents the top-left coordinate and (x2, y2) 
+            represents the bottom-right coordinate.
 
     Returns:
         float: The Intersection over Union (IoU) overlap between the two bounding boxes.
@@ -63,18 +66,19 @@ def filter_overlapping_bboxes(bboxes, confidence_scores, overlapping_threshold):
     among those that overlap significantly.
 
     Args:
-        bboxes (list of lists): A list where each element is a bounding box defined as a list of
-            four integers [x1, y1, x2, y2], where (x1, y1) are the coordinates of the top-left
-            corner, and (x2, y2) are the coordinates of the bottom-right corner of the bounding box.
-        confidence_scores (list of float): A list of confidence scores corresponding to each
-            bounding box in `bboxes`.
-        overlapping_threshold (float): A float number (< 1) which defines the threshold. If the
-            IoU of two bounding boxes exceeds this threshold, the bounding box with the lower
-            confidence score is marked for removal. The default is 0.8.
+        bboxes (list of lists): A list where each element is a bounding box defined as 
+            a list of four integers [x1, y1, x2, y2], where (x1, y1) are the coordinates
+            of the top-left corner, and (x2, y2) are the coordinates of the bottom-right
+            corner of the bounding box.
+        confidence_scores (list of float): A list of confidence scores corresponding to 
+            each bounding box in `bboxes`.
+        overlapping_threshold (float): A float number (< 1) which defines the threshold.
+            If the IoU of two bounding boxes exceeds this threshold, the bounding box 
+            with the lower confidence score is marked for removal. The default is 0.8.
 
     Returns:
-        keep_indices (list of int): The indices of the bounding boxes that are kept, referring to
-            their positions in the original `bboxes` list.
+        keep_indices (list of int): The indices of the bounding boxes that are kept, 
+            referring to their positions in the original `bboxes` list.
     """
     removed = set()
     for i in range(len(bboxes)):
@@ -103,37 +107,44 @@ def check_correct_and_sort_person_detections(
     Check the person detections, correct and sort them from Left to Right (based on
     image 2d bbox coords).
 
-    1. Check bounding box confidence score of each the person detected person in each frame
-        if  the confidence score is bbox_conf_threshold delete this detection
-    2. Check if number of detected person (after the correction in previous step) is equal to
-        num_subjects in dataset config subjects descriptions.
+    1. Check bounding box confidence score of each the person detected person in each 
+        frame if  the confidence score is bbox_conf_threshold delete this detection
+    2. Check if number of detected person (after the correction in previous step) is 
+        equal to num_subjects in dataset config subjects descriptions.
         if not: check if there is any overlapping bbox and delete them if exists.
     3. Check again if number of detected subjects is correct.
-        if yes: sort the person detections from left to right in image 2d corrdinates (based on bbox top_left_x coord)
+        if yes: sort the person detections from left to right in image 2d corrdinates 
+        (based on bbox top_left_x coord)
         if no: save the results of previous frame
 
     Args
-        data (list of dict): A list where each element is frame results. MMpose inference result.
+        data (list of dict): A list where each element is frame results. MMpose 
+            inference result.
             ### Explanation about results structure of mmpose ###
-            ### frame['predictions'][0] # list of dict. Each detect is a detected person.
+            ### frame['predictions'][0] # list of dict. Each detect is a detected 
+            ### person.
             ### the keys for each person dictionary:
-            # keypoints: [[x1,y1], [x2,y2], [x3,y3], ..., [xn,yn]], coords. of keypoints, where n = # of keypoints (i.e., n=133 for coco-wholebody)
-            # keypoint_score: [c1, c2, c3, ..., cn], confidence score of keypoints (min=0.0, max=1.0), n = # of keypoints
+            # keypoints: [[x1,y1], [x2,y2], [x3,y3], ..., [xn,yn]], coords. of 
+            # keypoints, where n = # of keypoints (i.e., n=133 for coco-wholebody)
+            # keypoint_score: [c1, c2, c3, ..., cn], confidence score of keypoints 
+            # (min=0.0, max=1.0), n = # of keypoints
             # bbox: ([x1,y1,x2,y2]), corners of bbox, x1y1 is top left corner
             # bbox_score: int, confidence score of bbox (person detection
 
-        num_subjects (integer): An Integer that defines the number of expected subjects in dataset.
+        num_subjects (integer): An Integer that defines the number of expected subjects 
+            in dataset.
 
-        bbox_conf_threshold (float): Threshold < 1. The person detections whose bounding boxes
-            confidence level is below this threshold, will be removed.
+        bbox_conf_threshold (float): Threshold < 1. The person detections whose 
+            bounding boxesconfidence level is below this threshold, will be removed.
             The default is 0.7.
 
-        bbox_overlapping_threshold (float): Threshold < 1.0. If the IoU of two bounding boxes
-            exceeds this threshold, the bounding box with the lower confidence score is marked
-            for removal. The default is 0.8.
+        bbox_overlapping_threshold (float): Threshold < 1.0. If the IoU of two bounding 
+            boxes exceeds this threshold, the bounding box with the lower confidence 
+            score is marked for removal. The default is 0.8.
 
     Returns:
-        updated_frame_predictions_list (list of dict): A list of corrected and sorted frame results.
+        updated_frame_predictions_list (list of dict): A list of corrected and sorted 
+        frame results.
     """
     logging.info("Starting... Check correct and sort person detections")
     updated_frame_predictions_list = []
@@ -145,7 +156,6 @@ def check_correct_and_sort_person_detections(
         bbox_list = []
         bbox_score_list = []
         for person in frame_predictions:
-            # logging.info(f"person bbox: {person['bbox'][0]}, bbox_conf_score = {person['bbox_score']}")
             bbox_list.append(person["bbox"][0])
             bbox_score_list.append(person["bbox_score"])
         bboxes = np.array(bbox_list)
@@ -173,7 +183,8 @@ def check_correct_and_sort_person_detections(
             is_correct_num_detections = True
 
         if is_correct_num_detections:
-            # Sort detected people from left to right - lowest top_left x value wiil be first
+            # Sort detected people from left to right - lowest top_left x value wiil be 
+            # first
             sorted_indices = sorted(
                 range(len(updated_bboxes)), key=lambda i: updated_bboxes[i][0]
             )
@@ -184,8 +195,8 @@ def check_correct_and_sort_person_detections(
         else:
             logging.error(
                 f" Frame index: {i} - Number of detected people "
-                f"-{len(updated_frame_predictions)}- is not same as subject description."
-                f"previous frame detections will be used"
+                f"-{len(updated_frame_predictions)}- is not same as subject "
+                f"description. previous frame detections will be used"
             )
             try:
                 updated_frame_predictions_list.append(
@@ -202,9 +213,11 @@ def convert_output_to_numpy(data, num_persons):
 
     The output has the following structure:
     - 2d: Numpy array of shape
-        (num_persons, num_frames, num_keypoints, [coordinate_x, coordinate_y, confidence_score])
+        (num_persons, num_frames, num_keypoints, 
+        [coordinate_x, coordinate_y, confidence_score])
     - bbox_2d: Numpy array of shape
-        (num_persons, num_frames, 1, [top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score])
+        (num_persons, num_frames, 1, 
+        [top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score])
     - data_description: A dictionary containing the description of the data.
 
     Args:
@@ -223,7 +236,8 @@ def convert_output_to_numpy(data, num_persons):
         len(data[0]["predictions"][0][0]["keypoints"][0]) + 1
     )  # x, y, [z], and confidence_score
     logging.info(
-        f"frames: {num_frames}, keypoints: {num_keypoints}, estimations: {num_estimations}"
+        f"frames: {num_frames}, keypoints: {num_keypoints}, "\
+        f"estimations: {num_estimations}"
     )
     sorted_frame_predictions = check_correct_and_sort_person_detections(
         data, num_persons
@@ -279,14 +293,16 @@ def main(config):
 
     Saves the results as npz files to the output folder with the following structure:
     - 2d: Numpy array of shape
-        (num_persons, num_cameras, num_frames, num_keypoints, [coordinate_x, coordinate_y, confidence_score])
+        (num_persons, num_cameras, num_frames, num_keypoints, 
+        [coordinate_x, coordinate_y, confidence_score])
     - bbox_2d: Numpy array of shape
-        (num_persons, num_frames, 1, [top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score])
+        (num_persons, num_frames, 1, 
+        [top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score])
     - data_description: A dictionary containing the description of the data.
 
     Args:
-        config (dict): A dictionary containing the configuration parameters for the MMPose
-            inference algorithm.
+        config (dict): A dictionary containing the configuration parameters for the 
+            MMPose inference algorithm.
     """
     logging.basicConfig(
         filename=config["log_file"],

@@ -1,9 +1,11 @@
-import os
 import argparse
-from nicetoolbox.detectors.main import main as detectors_main
-from nicetoolbox.visual.media.main import main as visual_media_main
-from nicetoolbox.utils.calibration_gui.calibration_converter import calibration_converter
+import os
 
+from nicetoolbox.detectors.main import main as detectors_main
+from nicetoolbox.utils.calibration_gui.calibration_converter import (
+    calibration_converter,
+)
+from nicetoolbox.visual.media.main import main as visual_media_main
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -35,6 +37,7 @@ if __name__ == "__main__":
         calibration_converter()
 
     else:
-        print("Unknown argument! Please call 'main.py' with one of the following arguments: "\
-              "'detectors', 'visual_media', 'visual_stats', or 'calibration_converter'.")
+        print("Unknown argument! Please call 'main.py' with one of the following "
+              "arguments: 'detectors', 'visual_media', 'visual_stats', or "
+              "'calibration_converter'.")
     

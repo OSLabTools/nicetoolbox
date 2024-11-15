@@ -42,12 +42,12 @@ class Configuration:
                         "config_*.toml",
                     )
                 )
-            )[
-                -1
-            ]  # ! <---
+            )[-1]  # ! <---
         except IndexError:
-            # ! Only loads latest config file, but in a single exp folder can be multiple runs with different datasets
-            # ! If you want to visualize a dataset from a earlier run, this throws an error
+            # ! Only loads latest config file, but in a single exp folder can be
+            # ! multiple runs with different datasets
+            # ! If you want to visualize a dataset from a earlier run, this throws
+            # ! an error
             print(
                 "\nCould not find the latest experiment config file in "
                 f"{self._localize(self.visualizer_config)['io']['experiment_folder']}\n\n"
@@ -145,15 +145,15 @@ class Configuration:
         return self.dataset_properties[self.dataset_name]["start_frame_index"]
 
     def check_calibration(self, calib, cam_name):
-        if self.visualizer_config["media"]["visualize"]["camera_position"] == True:
+        if self.visualizer_config["media"]["visualize"]["camera_position"] is True:
             cam_matrix, cam_distor, cam_rotation, cam_extrinsic = (
                 vis_ut.get_cam_para_studio(calib, cam_name)
             )
-            if (cam_rotation == None) | (cam_extrinsic == None):
+            if (cam_rotation is None) | (cam_extrinsic is None):
                 assert ValueError(
                     "The rotation and extrinsic matrix of the camera could not found.\n"
-                    "Please either change the Visualizer_config 'camera_position' parameter to false \n"
-                    "or provide extrinsics parameters of the camera"
+                    "Please either change the Visualizer_config 'camera_position' "
+                    "parameter to false or provide extrinsics parameters of the camera"
                 )
 
     def check_config(self):
@@ -167,19 +167,19 @@ class Configuration:
         # check start frame
         if self.visualizer_config["media"]["visualize"]["start_frame"] < 0:
             raise ValueError(
-                f"Visualizer_config 'start_frame' parameter cannot be negative."
+                "Visualizer_config 'start_frame' parameter cannot be negative."
             )
         elif self.visualizer_config["media"]["visualize"]["start_frame"] > video_length:
             raise ValueError(
-                f"Visualizer_config 'start_frame' parameter cannot be greater than the video length. \n"
-                f"Video length: {video_length} frames."
+                f"Visualizer_config 'start_frame' parameter cannot be greater than the "
+                f"video length. \nVideo length: {video_length} frames."
             )
 
         # check stop frame
         if self.visualizer_config["media"]["visualize"]["end_frame"] > video_length:
             raise ValueError(
-                f"Visualizer_config 'end_frame' parameter cannot be greater than the video length. \n"
-                f"Video length: {video_length} frames."
+                f"Visualizer_config 'end_frame' parameter cannot be greater than the "
+                f"video length. \nVideo length: {video_length} frames."
             )
 
         # check visualize interval
@@ -188,8 +188,8 @@ class Configuration:
             > video_length
         ):
             raise ValueError(
-                f"Visualizer_config 'visualize_interval' parameter cannot be greater than the video length. \n"
-                f"Video length: {video_length} frames."
+                f"Visualizer_config 'visualize_interval' parameter cannot be greater "
+                f"than the video length. \nVideo length: {video_length} frames."
             )
 
     def _check_component_name(self):
@@ -197,10 +197,11 @@ class Configuration:
             "component_algorithm_mapping"
         ]
         for component in self.visualizer_config["media"]["visualize"]["components"]:
-            if component not in component_algorithm_mapping.keys():
+            if component not in component_algorithm_mapping:
                 raise ValueError(
                     f"Component {component} is not found in run file.\n"
-                    f"Delete or correct {component} from Visualizer_config[media.visualize.components]"
+                    f"Delete or correct {component} from "
+                    "Visualizer_config[media.visualize.components]"
                 )
 
     def _check_algorithms(self):
@@ -213,7 +214,8 @@ class Configuration:
                 if alg not in component_algorithm_mapping[component]:
                     raise ValueError(
                         f"Algorithm {alg} is not found in {component} run file."
-                        f"Delete or correct {alg} from Visualizer_config[media.{component} algorithms"
+                        f"Delete or correct {alg} from Visualizer_config[media."
+                        f"{component} algorithms"
                     )
 
     # Extract lists from config, check, and update if necessary
@@ -223,25 +225,25 @@ class Configuration:
         and updates the list if not.
         """
         for component in self.visualizer_config["media"]["visualize"]["components"]:
-            a = self.visualizer_config["media"][component]
             for key, values in self.visualizer_config["media"][component][
                 "canvas"
             ].items():
                 removed_values = []
                 for value in values:
-                    if "cam" in value:
-                        if value.strip("<>") not in self._get_camera_placeholders():
-                            removed_values.append(value)
+                    if "cam" in value and (
+                        value.strip("<>") not in self._get_camera_placeholders()):
+                        removed_values.append(value)
                 if removed_values:
                     print(
-                        f"WARNING: {removed_values} camera placeholders are not used in your dataset properties."
-                        f"They will not be visualized. \n To avoid this warning, consider removing "
-                        f"'{removed_values}' from the ['media'][{component}]['canvas'] list "
+                        f"WARNING: {removed_values} camera placeholders are not used in"
+                        f" your dataset properties.They will not be visualized. \n To "
+                        f"avoid this warning, consider removing '{removed_values}' "
+                        f"from the ['media'][{component}]['canvas'] list "
                         f"in the visualizer_config.toml file"
                     )
                     updated_list = [v for v in values if v not in removed_values]
-                    self.visualizer_config["media"][component]["canvas"][
-                        key
-                    ] = updated_list
+                    self.visualizer_config["media"][component]["canvas"][key] = (
+                        updated_list
+                    )
 
         return self.get_updated_visualizer_config()

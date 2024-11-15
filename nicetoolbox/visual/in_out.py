@@ -19,7 +19,8 @@ class IO:
             .replace("<experiment_folder>", config["io"]["experiment_folder"])
             .replace("<video_name>", config["media"]["video_name"])
         )
-        # Replace the <component_name> placeholder for the experiment video component folder
+        # Replace the <component_name> placeholder for the experiment video component 
+        # folder
         self.experiment_video_component_folder = config["io"][
             "experiment_video_component"
         ].replace("<experiment_video_folder>", self.experiment_video_folder)
