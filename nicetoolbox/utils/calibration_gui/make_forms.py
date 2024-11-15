@@ -4,9 +4,10 @@ from tkinter import ttk
 from tkinter.filedialog import askdirectory, askopenfilename
 
 import numpy as np
+
+from ...utils import filehandling as fh
 from . import initialization as init
 from . import matrix_utils as mut
-from ...utils import filehandling as fh
 from .constants import px, py
 
 
@@ -70,7 +71,6 @@ def find_video_files(directory):
 
 
 def load_dataset_directory(frame, entries):
-
     if entries["input_directory"].get() == "":
         entries["message"].set("Please select a dataset directory path before loading.")
         return
@@ -80,7 +80,8 @@ def load_dataset_directory(frame, entries):
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and cameras might change
+    # delete current matrix variables as the folder structure of sessions and 
+    # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
     entries["data"] = {}
@@ -121,25 +122,25 @@ def load_dataset_directory(frame, entries):
                 camera_entries["name"][0][0].set(camera_name)
 
                 # add the matrix variables to the entries dict
-                entries["data"][session_name][sequence_name][
-                    camera_name
-                ] = camera_entries
+                entries["data"][session_name][sequence_name][camera_name] = (
+                    camera_entries
+                )
 
     # make the form for the calibration loaded
     make_content_form(frame, entries, fields)
 
     # done
-    entries["message"].set(f"Directory path loaded successfully.")
+    entries["message"].set("Directory path loaded successfully.")
 
 
 def load_new_file(frame, entries):
-
     # get fields
     fields = init.get_fields(entries)
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and cameras might change
+    # delete current matrix variables as the folder structure of sessions and 
+    # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
     entries["data"] = {}
@@ -166,11 +167,10 @@ def load_new_file(frame, entries):
     make_content_form(frame, entries, fields)
 
     # done
-    entries["message"].set(f"New file started.")
+    entries["message"].set("New file started.")
 
 
 def load_calibration_file(frame, entries):
-
     # get fields
     fields = init.get_fields(entries)
     if fields is None:
@@ -189,24 +189,25 @@ def load_calibration_file(frame, entries):
         load_type = "toml"
     else:
         entries["message"].set(
-            f"Calibration file is not a.npz, .json, or .toml file and currently not supported: '{calibration_file}'"
+            f"Calibration file is not a.npz, .json, or .toml file and currently "\
+            f"not supported: '{calibration_file}'"
         )
         return
 
-    # delete current matrix variables as the folder structure of sessions and cameras might change
+    # delete current matrix variables as the folder structure of sessions and 
+    # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
     entries["data"] = {}
 
     for session, calib in calibration_dict.items():
-
         # get session and sequence names
         if "__" in session:
             session_name, sequence_name = session.split("__")
         else:
             session_name, sequence_name = session, "None"
         # create dictionary entries
-        if session_name not in entries["data"].keys():
+        if session_name not in entries["data"]:
             entries["data"][session_name] = {}
         entries["data"][session_name][sequence_name] = {}
 
@@ -231,7 +232,7 @@ def load_calibration_file(frame, entries):
     make_content_form(frame, entries, fields)
 
     # done
-    entries["message"].set(f"Calibration file loaded successfully.")
+    entries["message"].set("Calibration file loaded successfully.")
 
 
 def make_input_form(frame, main, entries):
@@ -315,8 +316,7 @@ def make_camera_form(tab, fields, entries):
     label = tk.Label(header, text="Intrinsic and Extrinsic Camera Matrices")
     label.pack(padx=px, pady=py)
 
-    for field_name, field in fields.items():
-
+    for _field_name, field in fields.items():
         # write description
         label = tk.Label(tab, text=field["description"], anchor="w")
         label.pack(side=tk.TOP, fill=tk.X)
@@ -330,7 +330,6 @@ def make_camera_form(tab, fields, entries):
 
 
 def make_content_form(frame, entries, fields):
-
     def create_camera_tabs(tab, tab_entries, fields):
         # create camera tabs
         camera_tabs = ttk.Notebook(tab)

@@ -1,7 +1,7 @@
 import os
 
-import numpy as np
 import pandas as pd
+
 from ...utils import filehandling as fh
 
 
@@ -9,11 +9,13 @@ def convert_npz_to_csv_files(npz_path, output_folder):
     """
     Converts an NPZ file to multiple CSV files.
 
-    For each npy array in the NPZ file, a CSV file is created and saved in the output folder.
+    For each npy array in the NPZ file, a CSV file is created and saved in the output 
+    folder.
 
     Args:
         npz_path (str): The path to the NPZ file.
-        output_folder (str): The path to the output folder where the CSV files will be saved.
+        output_folder (str): The path to the output folder where the CSV files will 
+            be saved.
 
     Returns:
         None
@@ -38,7 +40,8 @@ def convert_npz_to_csv_files(npz_path, output_folder):
 
             # first 3 dimensions always, Subject, Camera, Frames
             # if array has 4 dimensions - column names will be dimension4[i]
-            # if array has 5 dimensions - column names will be dimension4[i]_dimension5[idx]
+            # if array has 5 dimensions - column names will be 
+            #   dimension4[i]_dimension5[idx]
             rows = []
             index_tuples = []
             for i in range(arr.shape[0]):

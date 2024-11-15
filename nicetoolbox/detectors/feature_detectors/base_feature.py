@@ -2,11 +2,8 @@
 A template class for Detectors.
 """
 
-import logging
 import os
-import sys
 from abc import ABC, abstractmethod
-from pathlib import Path
 
 from ...utils import logging_utils as log_ut
 from ...utils.config import save_config
@@ -14,8 +11,8 @@ from ...utils.config import save_config
 
 class BaseFeature(ABC):
     """
-    Abstract class to setup and run follow-up computations, called features detectors. Input is
-    always the output of any method detector.
+    Abstract class to setup and run follow-up computations, called features detectors. 
+    Input is always the output of any method detector.
 
     Attributes:
         input_folders (list): A list of input folders.
@@ -31,7 +28,8 @@ class BaseFeature(ABC):
         """
         Sets up the input and output folders based on the provided configurations
         and handles any necessary file checks. Input folders contain the the results
-        of the method detectors. Saves a copy of the configuration file for the feature detector.
+        of the method detectors. Saves a copy of the configuration file for the feature 
+        detector.
 
         Args:
             config (dict): The feature-specific configurations dictionary.
@@ -50,7 +48,8 @@ class BaseFeature(ABC):
             input_file = os.path.join(input_folder, f"{alg}.npz")
             if not os.path.isfile(input_file):
                 raise FileNotFoundError(
-                    f"Feature detector {self.components}: File '{input_file}' does not exist!"
+                    f"Feature detector {self.components}: File '{input_file}' does "
+                    "not exist!"
                 )
             self.input_folders.append(input_folder)
             self.input_files.append(input_file)
@@ -98,8 +97,8 @@ class BaseFeature(ABC):
         if listdir:
             input_list = sorted(os.listdir(input_list))
         detected = [f for f in input_list if token in f]
-        log_ut.assert_and_log(len(detected) != 0, f"Input file could not find.")
-        log_ut.assert_and_log(len(detected) == 1, f"There is more than one input file")
+        log_ut.assert_and_log(len(detected) != 0, "Input file could not find.")
+        log_ut.assert_and_log(len(detected) == 1, "There is more than one input file")
         return detected[0]
 
     def __str__(self):
@@ -107,8 +106,8 @@ class BaseFeature(ABC):
         Returns a description of the feature detector for printing.
 
         Returns:
-            str: A string representation of the feature detector, including its components,
-                and the associated algorithm.
+            str: A string representation of the feature detector, including its 
+                components, and the associated algorithm.
         """
         return (
             f"Instance of component {self.components} \n\t"
@@ -116,16 +115,18 @@ class BaseFeature(ABC):
             f"\n\t"
         ).join([f"{attr} = {value}" for (attr, value) in self.__dict__.items()])
 
+    @abstractmethod
     def compute(self):
         """
         Compute the components assiciated to the given feature detector.
 
-        This method is responsible for performing the main computation logic of the feature
-        detector. It should take the method detector output as input, process it, and generate
-        the desired components.
+        This method is responsible for performing the main computation logic of the 
+        feature detector. It should take the method detector output as input, process 
+        it, and generate the desired components.
         """
         pass
 
+    @abstractmethod
     def post_compute(self):
         """
         Post-processing after computation.
@@ -143,11 +144,12 @@ class BaseFeature(ABC):
         """
         Abstract property that returns the components of the feature.
 
-        This property should be implemented in the derived classes to specify the components
-        that the feature detector is associated with.
+        This property should be implemented in the derived classes to specify the 
+        components that the feature detector is associated with.
 
         Returns:
-            list: A list of strings representing the components associated with the feature detector.
+            list: A list of strings representing the components associated with the 
+                feature detector.
 
         Raises:
             NotImplementedError: If the property is not set in the derived classes.
@@ -160,11 +162,12 @@ class BaseFeature(ABC):
         """
         Abstract property that returns the algorithm of the feature detector.
 
-        This property should be implemented in the derived classes to specify the algorithm
-        that the feature detector is associated with.
+        This property should be implemented in the derived classes to specify the 
+        algorithm that the feature detector is associated with.
 
         Returns:
-            str: A string representing the algorithm associated with the feature detector.
+            str: A string representing the algorithm associated with the feature 
+                detector.
 
         Raises:
             NotImplementedError: If the property is not set in the derived classes.
@@ -176,18 +179,19 @@ class BaseFeature(ABC):
         """
         Abstract method to visualize the output of the method, preferably as a video.
 
-        This method is intended to generate a visual representation of the feature detector's
-        output. The visualization should be saved in the self.viz_folder.
+        This method is intended to generate a visual representation of the feature 
+        detector's output. The visualization should be saved in the self.viz_folder.
 
         Args:
-            data (any): The data to be visualized. The type and content of this parameter depend on
-                the specific implementation of the feature detector.
+            data (any): The data to be visualized. The type and content of this 
+                parameter depend on the specific implementation of the feature detector.
 
         Returns:
-            None: This method does not return any value. However, it should save the visualization
-                in the self.viz_folder.
+            None: This method does not return any value. However, it should save the 
+                visualization in the self.viz_folder.
 
         Raises:
-            NotImplementedError: If this method is not implemented in the derived classes.
+            NotImplementedError: If this method is not implemented in the derived 
+                classes.
         """
         pass

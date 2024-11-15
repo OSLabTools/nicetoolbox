@@ -1,5 +1,5 @@
 """
-    Helper functions for git integration of the code
+Helper functions for git integration of the code
 """
 
 import os
@@ -11,8 +11,8 @@ from git.exc import InvalidGitRepositoryError
 class CustomRepo(Repo):
     """Customize the Repo class from gitpython for easier access/use.
 
-    This class extends the base class `Repo` from gitpython and provides additional methods
-    for easier access and use of a git repository.
+    This class extends the base class `Repo` from gitpython and provides additional 
+    methods for easier access and use of a git repository.
 
     Args:
         repo_path (str): The path to the git repository.
@@ -33,7 +33,7 @@ class CustomRepo(Repo):
     def __init__(self, repo_path):
         assert os.path.isdir(repo_path), f"'{repo_path}' is not a directory"
         try:
-            super(CustomRepo, self).__init__(repo_path)
+            super().__init__(repo_path)
         except InvalidGitRepositoryError as error:
             raise RuntimeError(
                 f"'{repo_path}' is not a path of a git repository!"
@@ -44,7 +44,8 @@ class CustomRepo(Repo):
         Get the latest commit hash and message of the git repository.
 
         Returns:
-            tuple: A tuple containing the latest commit hash (string) and the commit message (string).
+            tuple: A tuple containing the latest commit hash (string) and the 
+                commit message (string).
 
         Raises:
             RuntimeError: If the repository is not a valid git repository.

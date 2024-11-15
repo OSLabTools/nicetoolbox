@@ -1,8 +1,8 @@
 """
 Viewer module for visualizing the components.
 
-This module defines the Viewer class, which is responsible for visualizing the components
-of the NICE toolbox.
+This module defines the Viewer class, which is responsible for visualizing the 
+components of the NICE toolbox.
 
 Classes:
     Viewer: Class for visualizing the components.
@@ -50,7 +50,8 @@ class Viewer:
         Spawns a rerun application with the given app_id.
 
         Args:
-            app_id (str): The ID of the visualization application. Defaults to "NICE Toolbox Visualization".
+            app_id (str): The ID of the visualization application. Defaults to 
+                "NICE Toolbox Visualization".
         """
         rr.init(app_id, spawn=True)
         rr.set_time_seconds("time", 0)
@@ -91,7 +92,8 @@ class Viewer:
 
     def get_step(self) -> int:
         """
-        Returns the frame step size for visualization specified in the visualizer config.
+        Returns the frame step size for visualization specified in the visualizer 
+        config.
 
         Only every step-th frame will be visualized.
 
@@ -157,7 +159,8 @@ class Viewer:
 
     def get_is_camera_position(self):
         """
-        Returns a boolean indicating whether to display the camera position in the viewer.
+        Returns a boolean indicating whether to display the camera position in the 
+        viewer.
 
         Returns:
             bool: Whether to display the camera position in the viewer.
@@ -178,7 +181,8 @@ class Viewer:
 
         Args:
             component (str): The name of the component.
-            is_3d (bool, optional): Flag indicating if the component is 3D. Defaults to True.
+            is_3d (bool, optional): Flag indicating if the component is 3D. 
+                Defaults to True.
             cam_name (str, optional): The name of the camera. Defaults to None.
             alg_name (str, optional): The name of the algorithm. Defaults to None.
             subject_name (str, optional): The name of the subject. Defaults to None.
@@ -197,7 +201,8 @@ class Viewer:
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
             else:
-                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/{subject_name}"
+                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"
+                f"{subject_name}"
         elif component == "proximity":
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}"
@@ -211,7 +216,8 @@ class Viewer:
 
         else:
             raise ValueError(
-                f"ERROR in generate_component_entity_path(): Component {component} did not implemented"
+                f"ERROR in generate_component_entity_path(): Component {component} "
+                "did not implemented"
             )
 
         return entity_path
@@ -233,9 +239,7 @@ class Viewer:
                 image_from_camera=K[:3, :3].flatten(),
             ),
         )
-        translation = np.array(camera_calibration["translation"]).reshape(
-            3,
-        )
+        translation = np.array(camera_calibration["translation"]).reshape(3)
         R = camera_calibration["rotation_matrix"]
         R_inv = np.linalg.inv(R)
         center = np.matmul(R_inv, -translation)
@@ -260,13 +264,15 @@ class Viewer:
         Checks the consistency of the multi-view parameter in the visualizer config.
 
         Raises:
-            ValueError: If the multi-view parameter is set to False but a 3D canvas is present.
+            ValueError: If the multi-view parameter is set to False but a 3D canvas is 
+                present.
         """
-        if self.visualizer_config["media"]["multi_view"] == False:
-            if "3D_Canvas" in self.canvas_list:
+        if (self.visualizer_config["media"]["multi_view"] is False) and (
+            "3D_Canvas" in self.canvas_list):
                 raise ValueError(
                     "ERROR: multi-view parameter in Visualizer_config set false,\n "
                     "But 3D_Canvas found in components, canvas lists.\n"
-                    "If you don't have multiple cameras, delete 3D_Canvas in all canvases\n"
-                    "If you have multiple cameras, change multi-view parameter as true\n"
+                    "If you don't have multiple cameras, delete 3D_Canvas in all "
+                    "canvases\nIf you have multiple cameras, change multi-view "
+                    "parameter as true\n"
                 )

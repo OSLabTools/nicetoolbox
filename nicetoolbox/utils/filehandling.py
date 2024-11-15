@@ -7,7 +7,6 @@ import os
 
 import numpy as np
 import toml
-import yaml
 
 
 def load_config(config_file: str) -> dict:
@@ -65,7 +64,7 @@ def find_npz_files(directory):
         npz_files (list): A list of paths to the npz files found in the directory.
     """
     npz_files = []
-    for root, dirs, files in os.walk(directory):
+    for root, _dirs, files in os.walk(directory):
         for file in files:
             if file.endswith(".npz"):
                 npz_files.append(os.path.join(root, file))
@@ -100,6 +99,6 @@ def load_json_file(json_path: str) -> dict:
         FileNotFoundError: If the file does not exist.
         json.JSONDecodeError: If the file contains invalid JSON data.
     """
-    with open(json_path, "r") as file:
+    with open(json_path) as file:
         data = json.load(file)
         return data

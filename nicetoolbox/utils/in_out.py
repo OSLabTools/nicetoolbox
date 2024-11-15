@@ -13,7 +13,8 @@ def list_files_under_root(root_path: str, ext: str = "") -> list:
 
     Args:
         root_path (str): The root path.
-        ext (str, optional): Extension of the requested file type. Default is an empty string.
+        ext (str, optional): Extension of the requested file type. Default is an empty 
+            string.
 
     Returns:
         list: If ext parameter is an empty string, lists all files under the given root.

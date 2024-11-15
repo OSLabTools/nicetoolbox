@@ -1,6 +1,7 @@
-from . import constants as const
 import cv2
 import numpy as np
+
+from . import constants as const
 
 
 def nested_entries2matrix(entries):
@@ -23,7 +24,6 @@ def nested_entries2matrix(entries):
 def entries2matrix(entries):
     matrix_dict = {}
     for name, vars in entries.items():
-
         # only convert matrics, no strings
         if not isinstance(vars, np.ndarray):
             continue
@@ -46,7 +46,6 @@ def matrix2entries(matrix_dict, entries):
     matrix_keys = list(matrix_dict.keys())
 
     for name, vars in entries.items():
-
         # check for variable being present in the given matrix dictionary
         synonyms = [syns for syns in const.matrix_name_synonyms if name in syns][0]
         matrix_key = [key for key in matrix_keys if key in synonyms]
@@ -65,13 +64,15 @@ def matrix2entries(matrix_dict, entries):
                 matrix[:, 3].flatten() - np.array(matrix_dict["translation"]).flatten()
             )
             if np.linalg.norm(t_dist) > 0.01:
-                return f"Loaded roation matrix of shape 3x4 does not align with the loaded translation vector."
+                return "Loaded roation matrix of shape 3x4 does not align with the "\
+                    "loaded translation vector."
             matrix = matrix[:, :3]
 
         try:
             matrix = matrix.reshape(vars.shape)
         except ValueError:
-            return f"Shape missmatch! Loaded '{matrix_key}' and variable '{name}' do not match."
+            return f"Shape missmatch! Loaded '{matrix_key}' and variable '{name}' "\
+                "do not match."
 
         for i, row in enumerate(vars):
             for j, item in enumerate(row):

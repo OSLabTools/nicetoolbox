@@ -1,5 +1,6 @@
 """
-Utility functions for visualizing leaning angles and calculating the angle between three points.
+Utility functions for visualizing leaning angles and calculating the angle between 
+three points.
 """
 
 import logging
@@ -16,13 +17,14 @@ def calculate_angle_btw_three_points(data):
     Calculate the angle between three points in a 3D space.
 
     Args:
-        data (numpy.ndarray): A 4D numpy array with shape (num_subjects, num_frames, num_points,
-            num_coordinates) representing the coordinates of points A, B, and C for each subject
-            and frame.
+        data (numpy.ndarray): A 4D numpy array with shape (num_subjects, num_frames, 
+            num_points, num_coordinates) representing the coordinates of points A, B, 
+            and C for each subject and frame.
 
     Returns:
-        numpy.ndarray: A 4D numpy array with shape (num_subjects, num_frames, num_points, 1)
-            containing the angle between the three points for each subject and frame.
+        numpy.ndarray: A 4D numpy array with shape (num_subjects, num_frames, 
+            num_points, 1) containing the angle between the three points for each 
+            subject and frame.
     """
     # Extract the coordinates of A, B, and C for all frames
     A = data[:, :, :, 0]
@@ -54,16 +56,19 @@ def visualize_lean_in_out_per_person(
     hip_angle, person_list, output_folder, camera_names=None
 ):
     """
-    Visualize the leaning angle between midpoint of shoulders, hips, and knees for each person.
+    Visualize the leaning angle between midpoint of shoulders, hips, and knees for each 
+    person.
 
     Args:
-        hip_angle (numpy.ndarray): A 4D numpy array with shape (num_subjects, num_cameras,
-            num_frames, 2) representing the leaning angles (axis angle and derivative) for each
-            subject, camera, and frame.
-        person_list (list): A list of strings representing the names of the persons in frame.
-        output_folder (str): The path to the output folder where the plots will be saved.
-        camera_names (list, optional): A list of strings representing the names of the cameras.
-            Defaults to None.
+        hip_angle (numpy.ndarray): A 4D numpy array with shape (num_subjects, 
+            num_cameras, num_frames, 2) representing the leaning angles (axis angle 
+            and derivative) for each subject, camera, and frame.
+        person_list (list): A list of strings representing the names of the persons 
+            in frame.
+        output_folder (str): The path to the output folder where the plots will be 
+            saved.
+        camera_names (list, optional): A list of strings representing the names of 
+            the cameras. Defaults to None.
 
     Returns:
         None
@@ -112,26 +117,28 @@ def visualize_lean_in_out_per_person(
 
 def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
     """
-    Combine a video frame with the plots for PersonL and PersonR up to the current frame.
+    Combine a video frame with the plots for PersonL and PersonR up to the 
+    current frame.
 
     Args:
         frame (numpy.ndarray): The current video frame as a numpy array.
         current_frame (int): The index of the current frame.
-        data (list): A list containing two numpy arrays, dataL and dataR, representing the
-            leaning angles for PersonL and PersonR respectively.
+        data (list): A list containing two numpy arrays, dataL and dataR, representing 
+            the leaning angles for PersonL and PersonR respectively.
         fig (matplotlib.figure.Figure): The matplotlib figure object.
-        canvas (matplotlib.backends.backend_agg.FigureCanvasAgg): The matplotlib canvas object.
+        canvas (matplotlib.backends.backend_agg.FigureCanvasAgg): The matplotlib 
+            canvas object.
         axL (matplotlib.axes._subplots.AxesSubplot): The left subplot axis for PersonL.
         axR (matplotlib.axes._subplots.AxesSubplot): The right subplot axis for PersonR.
 
     Returns:
-        numpy.ndarray: A numpy array representing the combined video frame and the plots.
-
+        numpy.ndarray: A numpy array representing the combined video frame and the 
+        plots.
     """
     colors = ["#98FB98", "#FFB347", "#DDA0DD", "#ADD8E6"]
     if len(data) != 2:
         logging.error(
-            f"The data shape is wrong. Data should be given as a list [dataL, dataR]"
+            "The data shape is wrong. Data should be given as a list [dataL, dataR]"
         )
     dataL, dataR = data
     axL.clear()
@@ -150,8 +157,8 @@ def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
 
 def create_video_canvas(num_of_frames, global_min, global_max):
     """
-    Create a matplotlib figure and canvas for creating a video with two subplots for PersonL
-    and PersonR.
+    Create a matplotlib figure and canvas for creating a video with two subplots for 
+    PersonL and PersonR.
 
     Args:
         num_of_frames (int): The total number of frames in the video.
@@ -160,7 +167,8 @@ def create_video_canvas(num_of_frames, global_min, global_max):
 
     Returns:
         fig (matplotlib.figure.Figure): The matplotlib figure object.
-        canvas (matplotlib.backends.backend_agg.FigureCanvasAgg): The matplotlib canvas object.
+        canvas (matplotlib.backends.backend_agg.FigureCanvasAgg): The matplotlib canvas 
+            object.
         axL (matplotlib.axes._subplots.AxesSubplot): The left subplot axis for PersonL.
         axR (matplotlib.axes._subplots.AxesSubplot): The right subplot axis for PersonR.
     """

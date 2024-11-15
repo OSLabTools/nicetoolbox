@@ -1,7 +1,8 @@
 """
 XGaze3cams method detector class.
 
-This code is by XuCong taken from /ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
+This code is by XuCong taken from 
+/ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
 """
 
 import glob
@@ -10,15 +11,17 @@ import os
 
 import cv2
 import numpy as np
+
 from ....utils import logging_utils as log_ut
+from ....utils.video import frames_to_video
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
-from ....utils.video import frames_to_video
 
 
 class XGaze3cams(BaseDetector):
     """
-    The XGaze3cams class is a method detector that computes the gaze_individual component.
+    The XGaze3cams class is a method detector that computes the gaze_individual 
+    component.
 
     The method detector computes the gaze of individuals in the scene using multiple
     cameras.It provides the necessary preparations and post-inference visualizations to
@@ -28,8 +31,10 @@ class XGaze3cams(BaseDetector):
 
     Attributes:
         components (list): A list containing the name of the component: gaze_individual.
-        algorithm (str): The name of the algorithm used to compute the gaze_individual component.
-        camera_names (list): A list of camera names used to capture the original input data.
+        algorithm (str): The name of the algorithm used to compute the gaze_individual 
+            component.
+        camera_names (list): A list of camera names used to capture the original input 
+            data.
     """
 
     components = ["gaze_individual"]
@@ -37,16 +42,19 @@ class XGaze3cams(BaseDetector):
 
     def __init__(self, config, io, data) -> None:
         """
-        Initialize the XGaze3cams method detector with all inference preparations completed.
+        Initialize the XGaze3cams method detector with all inference preparations 
+        completed.
 
         Args:
-            config (dict): A dictionary containing the configuration settings for the method detector.
+            config (dict): A dictionary containing the configuration settings for 
+                the method detector.
             io (class): An instance of the IO class for input-output operations.
             data (class): An instance of the Data class for accessing data.
         """
 
         logging.info(
-            f"Prepare Inference for '{self.algorithm}' and components {self.components}."
+            f"Prepare Inference for '{self.algorithm}' and "
+            f"components {self.components}."
         )
 
         config["frames_list"] = data.frames_list
@@ -64,13 +72,14 @@ class XGaze3cams(BaseDetector):
             self.filter_window_length = config["window_length"]
             self.filter_polyorder = config["polyorder"]
 
-        logging.info(f"Inference Preparation completed.\n")
+        logging.info("Inference Preparation completed.\n")
 
     def post_inference(self):
         """
         Post-processing after inference.
 
-        This method is called after the inference step and is used for any post-processing tasks that need to be performed.
+        This method is called after the inference step and is used for any 
+        post-processing tasks that need to be performed.
         """
         if self.filtered:
             prediction_file = os.path.join(self.result_folders, f"{self.algorithm}.npz")
@@ -100,30 +109,31 @@ class XGaze3cams(BaseDetector):
 
     def visualization(self, data):
         """
-        Visualizes the processed frames of the xgaze3cams algorithm as a video for all cameras.
+        Visualizes the processed frames of the xgaze3cams algorithm as a video for all 
+        cameras.
 
-        This function reads the processed frames from each camera, checks if all frames are
-        present, and verifies that the number of frames per camera is consistent. It then creates
-        a video for each camera using the processed frames.
+        This function reads the processed frames from each camera, checks if all 
+        frames are present, and verifies that the number of frames per camera is 
+        consistent. It then creates a video for each camera using the processed frames.
 
         Returns:
             None
 
         Raises:
-            AssertionError: If no frames are found for at least one camera or if the number of
-            frames per camera is not consistent.
+            AssertionError: If no frames are found for at least one camera or if the 
+            number of frames per camera is not consistent.
         """
         frames_lists = [
             sorted(glob.glob(os.path.join(self.out_folder, f"{cam}_*.png")))
             for cam in self.camera_names
         ]
         log_ut.assert_and_log(
-            np.all([len(l) != 0 for l in frames_lists]),
+            np.all([len(frame) != 0 for frame in frames_lists]),
             f"XGaze3cams visualization: no frames found for at least one camera "
             f"'{self.camera_names}' in '{self.out_folder}'.",
         )
         log_ut.assert_and_log(
-            np.all([len(frames_lists[0]) == len(l) for l in frames_lists[1:]]),
+            np.all([len(frames_lists[0]) == len(frame) for frame in frames_lists[1:]]),
             f"Not the same number of frames per camera in '{self.out_folder}'.",
         )
 

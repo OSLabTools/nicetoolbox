@@ -3,7 +3,6 @@
 """
 
 import copy
-import glob
 import logging
 import os
 
@@ -53,7 +52,7 @@ class Configuration:
         ]
         self.detector_config = fh.load_config(detector_config_file)
         for detector_name, detector_dict in self.detector_config["algorithms"].items():
-            if "framework" in detector_dict.keys():
+            if "framework" in detector_dict:
                 framework = self.detector_config["frameworks"][
                     detector_dict["framework"]
                 ]
@@ -104,7 +103,7 @@ class Configuration:
             )
             method_config["visualize"] = self.run_config["visualize"]
 
-            if "algorithm" in method_config.keys():
+            if "algorithm" in method_config:
                 method_config.update(
                     self.detector_config["methods"][method_name][
                         method_config["algorithm"]
@@ -136,7 +135,7 @@ class Configuration:
                 machine_specific_config=self.machine_specific_config,
             ),
             output_folder,
-            file_name=f"config_<time>",
+            file_name="config_<time>",
         )
 
     def get_all_detector_names(self):
@@ -144,7 +143,7 @@ class Configuration:
         feature_methods = [
             self.detector_config["algorithms"][name]["input_detector_names"]
             for name in algorithms
-            if "input_detector_names" in self.detector_config["algorithms"][name].keys()
+            if "input_detector_names" in self.detector_config["algorithms"][name]
         ]
         return list(set(flatten_list(algorithms + feature_methods)))
 
@@ -152,7 +151,7 @@ class Configuration:
         all_camera_names = set()
         detector_config = self.localize(self.detector_config, fill_data=True)
         for detector in algorithm_names:
-            if "camera_names" in detector_config["algorithms"][detector].keys():
+            if "camera_names" in detector_config["algorithms"][detector]:
                 all_camera_names.update(
                     detector_config["algorithms"][detector]["camera_names"]
                 )
@@ -165,7 +164,7 @@ class Configuration:
         for detector in algorithm_names:
             if (
                 "input_data_format"
-                in self.detector_config["algorithms"][detector].keys()
+                in self.detector_config["algorithms"][detector]
             ):
                 data_formats.add(
                     self.detector_config["algorithms"][detector]["input_data_format"]
@@ -179,12 +178,11 @@ class Configuration:
         return self.run_config["save_csv"]
 
     def checker(self):
-
         # check USER INPUT
-        logging.info(f"Start USER INPUT CHECK.")
+        logging.info("Start USER INPUT CHECK.")
         run_config_check = fh.load_config(self.run_config_check_file)
         localized_run_config = self.localize(self.run_config)
         exc.check_user_input_config(
             localized_run_config, run_config_check, "run_config"
         )
-        logging.info(f"User input check finished successfully.\n\n\n")
+        logging.info("User input check finished successfully.\n\n\n")

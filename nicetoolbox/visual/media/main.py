@@ -3,21 +3,21 @@ Main module for initializing and running the visualizer.
 """
 
 import os
-import sys
 
 import cv2
 
 from ...utils import visual_utils as vis_utils
 from ..configs import config_handler as vis_cfg
 from ..in_out import IO
-
-from .components import (BodyJointsComponent,
-                         FaceLandmarksComponent,
-                         GazeIndividualComponent,
-                         GazeInteractionComponent,
-                         HandJointsComponent,
-                         KinematicsComponent,
-                         ProximityComponent)
+from .components import (
+    BodyJointsComponent,
+    FaceLandmarksComponent,
+    GazeIndividualComponent,
+    GazeInteractionComponent,
+    HandJointsComponent,
+    KinematicsComponent,
+    ProximityComponent,
+)
 from .viewer import Viewer
 
 
@@ -25,8 +25,8 @@ def main():
     """
     Main function to run the visualizer.
 
-    This function sets up the configuration, initializes the input/output handlers, loads calibration data,
-    and initializes the viewer for visualizing the components.
+    This function sets up the configuration, initializes the input/output handlers, 
+    loads calibration data, and initializes the viewer for visualizing the components.
     """
 
     ############# CONFIGURATION - IO #############
@@ -68,8 +68,9 @@ def main():
         if component not in os.listdir(io.get_experiment_video_folder()):
             print(
                 f"WARNING: {component} Component is not found in video output. "
-                f"It will not be visualized.\n To avoid this warning, consider removing "
-                f"'{component}' from the components list in the visualizer_config.toml file"
+                f"It will not be visualized.\n To avoid this warning, consider "
+                f"removing '{component}' from the components list in the "
+                "visualizer_config.toml file"
             )
             components.remove(component)
 
@@ -80,7 +81,7 @@ def main():
         eyes_middle_2d_data = body_joints_component.calculate_middle_eyes(dimension=2)
         eyes_middle_3d_data = (
             body_joints_component.calculate_middle_eyes(dimension=3)
-            if visualizer_config["media"]["multi_view"] == True
+            if visualizer_config["media"]["multi_view"] is True
             else (None, None)
         )
     else:

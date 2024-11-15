@@ -10,6 +10,7 @@ import time
 import numpy as np
 import toml
 import yaml
+
 from .git_utils import CustomRepo
 
 
@@ -29,7 +30,8 @@ def save_config(configs: dict, config_file: str) -> None:
 
     Args:
         configs (dict): The configuration data to be saved.
-        config_file (str): The path to the file where the configuration data will be saved.
+        config_file (str): The path to the file where the configuration data 
+        will be saved.
 
     Raises:
         NotImplementedError: If the file type is not supported.
@@ -59,7 +61,8 @@ def save_config(configs: dict, config_file: str) -> None:
 
 def config_fill_placeholders(config, placeholders):
     """
-    Replace placeholders in the given configuration data with their corresponding values.
+    Replace placeholders in the given configuration data with their corresponding 
+    values.
 
     Args:
         config (dict or list): The configuration data to be processed.
@@ -73,7 +76,6 @@ def config_fill_placeholders(config, placeholders):
 
     # iterate over all placeholders
     for ph_key, ph_value in placeholders.items():
-
         for config_key, config_value in filled_config.items():
             if isinstance(config_value, dict):
                 filled_config[config_key] = config_fill_placeholders(
@@ -106,20 +108,23 @@ def config_fill_placeholders(config, placeholders):
 
 def config_fill_auto(config, working_directory=None):
     """
-    This function fills placeholders in the configuration data with auto-generated values.
+    This function fills placeholders in the configuration data with auto-generated 
+    values.
 
     Args:
         config (dict): The configuration data to be processed.
-        working_directory (str, optional): The directory where the git repository is located.
+        working_directory (str, optional): The directory where the git repository 
+        is located.
             Defaults to the current working directory.
 
     Returns:
-        dict: The configuration data with placeholders replaced with auto-generated values.
+        dict: The configuration data with placeholders replaced with auto-generated 
+        values.
 
     Note:
-        This function uses the `oslab_utils.git_utils` module to get the git hash and commit
-        message. The placeholders filled are: <git_hash>, <commit_message>, <me>, <yyyymmdd>,
-        <today>, and <time>.
+        This function uses the `oslab_utils.git_utils` module to get the git hash 
+        and commit message. The placeholders filled are: <git_hash>, 
+        <commit_message>, <me>, <yyyymmdd>, <today>, and <time>.
     """
     if working_directory is None:
         working_directory = os.getcwd()

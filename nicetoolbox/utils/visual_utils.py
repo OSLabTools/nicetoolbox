@@ -31,22 +31,22 @@ def load_calibration(calibration_file, video_input_config, camera_names="all"):
 def get_cam_para_studio(content, cam):
     cam_matrix = (
         content[cam]["intrinsic_matrix"]
-        if "intrinsic_matrix" in content[cam].keys()
+        if "intrinsic_matrix" in content[cam].keys()  # noqa: SIM118
         else None
     )
     cam_matrix = np.vstack(cam_matrix)
     cam_distor = (
-        content[cam]["distortions"] if "distortions" in content[cam].keys() else None
+        content[cam]["distortions"] if "distortions" in content[cam].keys() else None  # noqa: SIM118
     )
     cam_distor = np.hstack(cam_distor)
     cam_rotation = (
         content[cam]["rotation_matrix"]
-        if "rotation_matrix" in content[cam].keys()
+        if "rotation_matrix" in content[cam].keys()  # noqa: SIM118
         else None
     )
     cam_extrinsic = (
         content[cam]["extrinsics_matrix"]
-        if "extrinsics_matrix" in content[cam].keys()
+        if "extrinsics_matrix" in content[cam].keys()  # noqa: SIM118
         else None
     )
     if type(cam_rotation) is not list:
@@ -71,8 +71,8 @@ def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):
 
 
 def vector_to_pitchyaw(vector):
-    ##Convert given gaze vectors to yaw (:math:`\theta`) and pitch (:math:`\phi`) angles.
-    # Ensure vectors are in the shape (num_frames, 3)
+    # Convert given gaze vectors to yaw (:math:`\theta`) and pitch (:math:`\phi`) 
+    # angles.Ensure vectors are in the shape (num_frames, 3)
     assert vector.shape[1] == 3, "Input vectors must have shape (num_vectors, 3)"
 
     norm = np.linalg.norm(vector, axis=1, keepdims=True)
