@@ -35,7 +35,7 @@ A few details to pay attention to arise when creating the dataset properties dic
 
 ### Update the dataset properties
 
-Overall, the dataset's dictionary defined in the config file `./detectors/configs/dataset_properties.toml` has the same keys as described in the previous tutorial in [dataset properties](./tutorial1_dataset_single_view.md#dataset-properties). Some considerations for the multi-view case:
+Overall, the dataset's dictionary defined in the config file `./nicetoolbox/detectors/configs/dataset_properties.toml` has the same keys as described in the previous tutorial in [dataset properties](./tutorial1_dataset_single_view.md#dataset-properties). Some considerations for the multi-view case:
 
 - Map your dataset's cameras and their views of the scene best possible to the descriptions `cam_front`, `cam_top`, `cam_face1`, and `cam_face2`. As some algorithms assume a certain camera view of the scene, this is necessary to find the best cameras to use for each algorithm. Currently, these 4 camera view options are supported.
 - `cam_sees_subjects` should now have as many keys as the number of cameras and camera_names that you entered in `cam_front`, `cam_top`, `cam_face1`, and `cam_face2` (at most 4).
@@ -64,7 +64,7 @@ test_mv_dataset/
 └── calibration.npz
 ```
 
-To add this dataset to the NICE Toolbox, we need to add the following lines to `./detectors/configs/dataset_properties.toml`:
+To add this dataset to the NICE Toolbox, we need to add the following lines to `./nicetoolbox/detectors/configs/dataset_properties.toml`:
 
 ```toml
 [test_mv_dataset]                                          # folder name of the dataset
