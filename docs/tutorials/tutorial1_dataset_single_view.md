@@ -27,7 +27,7 @@ Create a file `./machine_specific_paths.toml`, you can also copy and rename the 
 For more information, see [machine-specific config](../getting_started.md#1-create-your-machine-specific-config).
 
 **Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code. 
-Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
+Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./nicetoolbox/detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
 
 
 
@@ -36,7 +36,7 @@ Instead, `datasets_folder_path` and `conda_path` are available in the other conf
 
 ## 2. Prepare the dataset
 
-The NICE Toolbox supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./detectors/configs/dataset_properties.toml`. To add a new dataset, first check and potentially adjust the dataset's folder structure, and then update the dataset properties file as described in the following. You can find an example at the end of this section.
+The NICE Toolbox supports datasets with video or image input data, multiple camera views, different number of subjects (1 or 2 currently), as well as various folder structures. These dataset-specific details are defined in `./nicetoolbox/detectors/configs/dataset_properties.toml`. To add a new dataset, first check and potentially adjust the dataset's folder structure, and then update the dataset properties file as described in the following. You can find an example at the end of this section.
 
 
 ### Folder structure
@@ -62,12 +62,12 @@ dataset_name/
 ...
 ```
 
-Note: the `calibration_file` (which also belongs to the dataset) does not have a specific location, as its filepath is defined in `./detectors/configs/dataset_properties.toml`, see below.
+Note: the `calibration_file` (which also belongs to the dataset) does not have a specific location, as its filepath is defined in `./nicetoolbox/detectors/configs/dataset_properties.toml`, see below.
 
 
 ### Dataset properties
 
-To add the new dataset to the toolbox, edit the file `./detectors/configs/dataset_properties.toml` by creating a new dictionary within:
+To add the new dataset to the toolbox, edit the file `./nicetoolbox/detectors/configs/dataset_properties.toml` by creating a new dictionary within:
 
 ```toml
 [dataset_name]
@@ -119,7 +119,7 @@ test_dataset/
 └── calibration.npz
 ```
 
-To add this dataset to the NICE Toolbox, we need to add the following lines to `./detectors/configs/dataset_properties.toml`:
+To add this dataset to the NICE Toolbox, we need to add the following lines to `./nicetoolbox/detectors/configs/dataset_properties.toml`:
 
 ```toml
 [test_dataset]                                             # folder name of the dataset
@@ -185,7 +185,7 @@ img {display: block; margin-left: auto; margin-right: auto;}
 
 ## 4. Define the experiment to run
 
-The main config file to run a specific experiment is `./detectors/configs/run_file.toml`. For the first run of an experiment, there are only a few things to adjust:
+The main config file to run a specific experiment is `./nicetoolbox/detectors/configs/run_file.toml`. For the first run of an experiment, there are only a few things to adjust:
 
 ```toml
 visualize = false               # save image/video visualizations of detectors
@@ -215,7 +215,7 @@ Some notes:
 - `io.experiment_name` defaults to the current date (in format YYYYMMDD). 
 - `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code. 
 
-A more detailed and complete description of the `./detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](../wikis/wiki_config_files.md#run-file).
+A more detailed and complete description of the `./nicetoolbox/detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](../wikis/wiki_config_files.md#run-file).
 
 
 
@@ -227,10 +227,10 @@ To run the code, open a terminal or the API of your choice and do:
 cd /path/to/nicetoolbox/
 source ./env/bin/activate
 
-python detectors/main.py --run_config detectors/configs/run_file.toml --detectors_config detectors/configs/detectors_config.toml --machine_specifics machine_specific_paths.toml
+python nicetoolbox/detectors/main.py --run_config nicetoolbox/detectors/configs/run_file.toml --detectors_config nicetoolbox/detectors/configs/detectors_config.toml --machine_specifics machine_specific_paths.toml
 ```
 
-The outputs will be saved in the folder defined in `./detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders).
+The outputs will be saved in the folder defined in `./nicetoolbox/detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders).
 To watch the experiment run, check the log file `.../out_folder/nicetoolbox.log`.
 
 <br>

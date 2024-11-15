@@ -1,5 +1,5 @@
 [project]
-name = "nice_toolbox"
+name = "nicetoolbox"
 dynamic = ["readme"]
 requires-python = ">3.7,<3.11"
 version = "0.0.0"
@@ -14,11 +14,11 @@ dependencies = [
 
 #[project.scripts]
 # Would probably need to refactor this script first!
-# run_pipeline = "nice_toolbox.detectors.main:main"
+# run_pipeline = "nicetoolbox.detectors.main:main"
 
 # Setuptools
 [tool.setuptools]
-packages = ["nice_toolbox"]
+packages = ["nicetoolbox"]
 
 [tool.setuptools.dynamic]
 readme = {file = "README.md"}
@@ -48,7 +48,7 @@ profile = "google"
 force_single_line = false
 multi_line_output = 4
 line_length = 100
-src_paths = ["nice_toolbox"]
+src_paths = ["nicetoolbox"]
 
 # MyPy
 [tool.mypy]
@@ -58,9 +58,9 @@ exclude = ['venv', '.venv']
 # Coverage
 [tool.coverage.run]
 branch = true
-source = ["nice_toolbox"]
+source = ["nicetoolbox"]
 omit = [
-    "nice_toolbox/tests/*"]
+    "nicetoolbox/tests/*"]
 
 [tool.coverage.report]
 show_missing = true

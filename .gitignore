@@ -2,6 +2,7 @@
 .idea/
 __pycache__
 **/__pycache__
+**.egg-info
 
 docs/_build/
 docs/_autosummary/
@@ -31,5 +32,5 @@ artifacts/
 nicetoolbox/**/*.mp4
 
 machine_specific_paths.toml
-detectors/configs/tests*
-detectors/*tests*
+nicetoolbox/detectors/configs/tests*
+nicetoolbox/detectors/*tests*
