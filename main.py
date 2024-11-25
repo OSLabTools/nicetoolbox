@@ -2,6 +2,7 @@ import argparse
 import os
 
 from nicetoolbox.detectors.main import main as detectors_main
+from nicetoolbox.evaluation.main import main as evaluation_main
 from nicetoolbox.utils.calibration_gui.calibration_converter import (
     calibration_converter,
 )
@@ -14,7 +15,13 @@ if __name__ == "__main__":
         default="detectors",
         type=str,
         required=False,
-        choices=["detectors", "visual_media", "visual_stats", "calibration_converter"],
+        choices=[
+            "detectors",
+            "evaluation",
+            "visual_media",
+            "visual_stats",
+            "calibration_converter",
+        ],
     )
     args = parser.parse_args()
 
@@ -23,9 +30,13 @@ if __name__ == "__main__":
     if args.run == "detectors":
         run_config = f"{working_directory}/nicetoolbox/detectors/configs/run_file.toml"
         machine_specifics = f"{working_directory}/machine_specific_paths.toml"
-
         detectors_main(run_config, machine_specifics)
-
+        
+    elif args.run == "evaluation":
+        eval_config = f"{working_directory}/nicetoolbox/evaluation/configs/evaluation_config.toml"
+        machine_specifics = f"{working_directory}/machine_specific_paths.toml"
+        evaluation_main(eval_config, machine_specifics)
+        
     elif args.run == "visual_media":
         visual_media_main()
 

@@ -4,10 +4,10 @@ REM -- python -m pip install virtualenv
 cd /d "%~dp0\.."
 
 echo Create virtual environment
-python -m venv ./env
+python -m venv ./envs/nicetoolbox
 
 echo Activate virtual environment
-call .\env\Scripts\activate
+call .\envs\nicetoolbox\Scripts\activate
 
 echo Install requirements
 pip install -r .\installation\requirements.txt
