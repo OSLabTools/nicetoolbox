@@ -29,7 +29,7 @@ call mim install "mmdet>=3.1.0"
 call mim install "mmpretrain>=1.0.0rc8"
 
 echo Navigate Inside to mmpose directory
-cd .\detectors\third_party\mmpose\mmpose
+cd .\nicetoolbox\detectors\third_party\mmpose\mmpose
 
 echo Installing requirements from MMPose...
 call pip install -r requirements.txt

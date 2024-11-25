@@ -201,7 +201,7 @@ class Viewer:
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
             else:
-                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"
+                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"\
                 f"{subject_name}"
         elif component == "proximity":
             if is_3d:
