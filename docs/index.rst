@@ -7,13 +7,14 @@
    Getting started <getting_started>
    tutorials/index
    wikis/index
-   Detectors API <_autosummary/detectors>
-   Visualization API <_autosummary/visual>
-   Utils API <_autosummary/utils>
+   API <_autosummary/nicetoolbox>
 
 
 Welcome to NICE Toolbox's documentation!
 ========================================
+
+
+.. video:: ./graphics/nicetoolbox_480p.mp4
 
 
 Non-Verbal Interpersonal Communication Exploration Toolbox
@@ -102,7 +103,7 @@ Gökce Ergün
 Timo Lübbing
 Senya Polikovsky
 
-All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
+All authors are with the Optics and Sensing Laboratory at Max-Planck Institute for Intelligent Systems.
 
 
 
@@ -114,7 +115,7 @@ Timo Lübbing, Senya Polikovsky is licensed under
 `CC BY-NC-SA 4.0 <https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1>`__
 , see :doc:`LICENSE.md <LICENSE>`.
 
-Some components of the NICE Toolbox further use algorithms that are being distributed under the licenses 
+Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses 
 listed in :doc:`LICENSES_ALGORITHMS.md <LICENSES_ALGORITHMS>`.
 
 

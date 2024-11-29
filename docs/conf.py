@@ -39,6 +39,8 @@ extensions = [
     'sphinx.ext.viewcode',  
     # Markdown support
     'myst_parser', 
+    # to add video directly in the documentation
+    "sphinxcontrib.video",
     # # Include todos in the documentation
     # 'sphinx.ext.todo',  
     # # Automatically document param types (less noise in class signature)
