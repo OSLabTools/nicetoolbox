@@ -60,7 +60,7 @@ def get_ffmpeg_input_string(
 
     Args:
         video_file (str): The path to the video file.
-        number_of_frames (int, optional): The number of frames to process. 
+        number_of_frames (int, optional): The number of frames to process.
             Defaults to None.
         start_frame (int, optional): The starting frame position. Defaults to None.
         skip_frames (int, optional): The number of frames to skip. Defaults to None.
@@ -91,7 +91,7 @@ def get_ffmpeg_input_string(
 
 def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> int:
     """
-    Converts a sequential number to a frame number based on the given start frame 
+    Converts a sequential number to a frame number based on the given start frame
     and skip frames.
 
     Args:
@@ -105,8 +105,7 @@ def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> 
     """
     if skip_frames is None:
         return start_frame + (number - 1)
-    else:
-        return start_frame + (number - 1) * skip_frames
+    return start_frame + (number - 1) * skip_frames
 
 
 def split_into_frames(
@@ -127,24 +126,24 @@ def split_into_frames(
             Defaults to None.
         number_of_frames (int, optional): The number of frames to extract.
             Defaults to None.
-        skip_frames (int, optional): The number of frames to skip between each 
+        skip_frames (int, optional): The number of frames to skip between each
             extracted frame. Defaults to None.
-        keep_indices (bool, optional): Whether to keep the original frame indices 
+        keep_indices (bool, optional): Whether to keep the original frame indices
             or convert them to sequential numbers. Defaults to True.
 
     Returns:
-        Tuple[List[str], List[int]]: A tuple containing two lists - the list of 
+        Tuple[List[str], List[int]]: A tuple containing two lists - the list of
             extracted frame filenames and the list of corresponding frame indices.
 
     Raises:
         AssertionError: If splitting the video into frames fails.
 
     Note:
-        This function uses ffmpeg to split the video into frames. Make sure ffmpeg 
+        This function uses ffmpeg to split the video into frames. Make sure ffmpeg
             is installed and accessible in the system's PATH.
 
     Warning:
-        The `skip_frames` option is not properly working yet. Its output is not fully 
+        The `skip_frames` option is not properly working yet. Its output is not fully
             understood yet.
     """
     if skip_frames is not None:
@@ -172,7 +171,7 @@ def split_into_frames(
         old_idx = int(os.path.basename(file)[:5])
         if keep_indices:
             new_idx = sequential2frame_number(old_idx, start_frame, skip_frames)
-            new_filename = os.path.join(output_base, "%05d.png" % new_idx)
+            new_filename = os.path.join(output_base, f"{new_idx:05d}.png")
             if oslab_sys.detect_os_type() == "windows":
                 os.system(f"move {file} {new_filename}")
             else:
@@ -201,7 +200,7 @@ def equal_splits_by_frames(
         video_file (str): The path to the input video file.
         output_base (str): The base path for the output segments.
         frames_per_split (int): The number of frames per split segment.
-        keep_last_split (bool, optional): Whether to keep the last split segment if it 
+        keep_last_split (bool, optional): Whether to keep the last split segment if it
             is shorter than the others. Defaults to True.
         start_frame (int, optional): The starting frame index.
             Defaults to None.
@@ -256,7 +255,7 @@ def equal_splits_by_frames(
 
     # remove the very last segment if it is shorter than the others
     if not keep_last_split and total_frames % frames_per_split != 0:
-            remove_last_segment_from_file(segments_list_file)
+        remove_last_segment_from_file(segments_list_file)
 
     # change to descriptive filenames
     # convert continuous file numbers to actual frame indices
@@ -283,11 +282,11 @@ def cut_length(
 
     Args:
         video_file (str): The path to the input video file.
-        output_base (str): The base name for the output file. The file extension will 
+        output_base (str): The base name for the output file. The file extension will
             be added automatically.
-        start_frame (int, optional): The starting frame index for the cut. 
+        start_frame (int, optional): The starting frame index for the cut.
             Defaults to None.
-        number_of_frames (int, optional): The number of frames to include in the cut. 
+        number_of_frames (int, optional): The number of frames to include in the cut.
             Defaults to None.
 
     Returns:
@@ -313,12 +312,12 @@ def read_segments_list_from_file(segments_list_file: str) -> list:
     Reads a CSV file containing a list of segments and returns a list of tuples.
 
     Args:
-        segments_list_file (str): The path to the CSV file containing the list of 
+        segments_list_file (str): The path to the CSV file containing the list of
             segments. The CSV file should have columns named 'file', 'start', and 'end'.
 
     Returns:
-        List[Tuple[str, float, float]]: A list of tuples, where each tuple represents a 
-            segment. Each tuple contains the video file name, the start time of the 
+        List[Tuple[str, float, float]]: A list of tuples, where each tuple represents a
+            segment. Each tuple contains the video file name, the start time of the
             segment, and the end time of the segment.
     """
 
@@ -333,11 +332,11 @@ def remove_last_segment_from_file(segments_list_file: str) -> None:
     """
     Removes the last segment from the given segments list file.
 
-    This function reads the segments list file into a pandas DataFrame, drops the last 
+    This function reads the segments list file into a pandas DataFrame, drops the last
     row, and then writes the updated DataFrame back to the CSV file.
 
     Args:
-        segments_list_file (str): The path to the CSV file containing the list of 
+        segments_list_file (str): The path to the CSV file containing the list of
             segments.
 
     Returns:
@@ -374,5 +373,5 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> 
     else:
         command = f"ffmpeg -framerate {fps} -i {input_folder} {out_filename} -y"
 
-    output = subprocess.run(command, shell=True)
+    output = subprocess.run(command, shell=True, check=False)
     return output.returncode

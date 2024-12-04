@@ -52,7 +52,7 @@ def walk_directory(directory):
     folders = [f.path for f in os.scandir(directory) if f.is_dir()]
     for folder in folders:
         if "oslab" in folder:
-            folders.remove(folder)
+            folders.remove(folder)  # noqa: B909
     return folders
 
 
@@ -80,7 +80,7 @@ def load_dataset_directory(frame, entries):
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
@@ -139,7 +139,7 @@ def load_new_file(frame, entries):
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
@@ -189,12 +189,12 @@ def load_calibration_file(frame, entries):
         load_type = "toml"
     else:
         entries["message"].set(
-            f"Calibration file is not a.npz, .json, or .toml file and currently "\
+            f"Calibration file is not a.npz, .json, or .toml file and currently "
             f"not supported: '{calibration_file}'"
         )
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]

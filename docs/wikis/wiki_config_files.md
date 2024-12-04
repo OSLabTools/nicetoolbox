@@ -31,7 +31,7 @@ The configuration files are Python dictionaries saved in `.toml` - files that co
 Placeholders can be put into strings and are filled automatically during run-time. All configs support the use of placeholders, where reasonable.
 Placeholders are indicated by enclosing characters `<` and `>` and may take the following values:
 1. All keys in `./machine_specific_paths.toml`,
-2. All keys from `io` as defined in `./nicetoolbox/detectors/configs/run_file.toml`, 
+2. All keys from `io` as defined in `./nicetoolbox/detectors/configs/run_file.toml`,
 3. The keys `<dataset_name>`, `<component_name>`, `<algorithm_name>`, `<session_ID>`, `<sequence_ID>`, `<camera_name>`, `<video_start>`, and `<video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./nicetoolbox/detectors/configs/run_file.toml`,
 4. The options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
 
@@ -47,9 +47,9 @@ Some examples:
 
 
 
-## Machine specifics 
+## Machine specifics
 
-The dictionary stored in the `./machine_specific_paths.toml` file configures the paths that are specific to the machine used for running NICE Toolbox. This is the **only occurance of absolute paths** in the codebase. Therefore, this file is part of the repository's `.gitignore` file and needs to be created new on each machine. A template is available as `./machine_specific_paths_template.toml`, which can be duplicated and renamed.
+The dictionary stored in the `./machine_specific_paths.toml` file configures the paths that are specific to the machine used for running NICE Toolbox. This is the **only occurrence of absolute paths** in the codebase. Therefore, this file is part of the repository's `.gitignore` file and needs to be created new on each machine. A template is available as `./machine_specific_paths_template.toml`, which can be duplicated and renamed.
 
 ```toml
 datasets_folder_path = ''
@@ -75,9 +75,9 @@ The run file `./nicetoolbox/detectors/configs/run_file.toml` defines the experim
 Properties that apply to all experiments.
 
 ```toml
-git_hash = "<git_hash>"  
-visualize = true 
-save_csv = true 
+git_hash = "<git_hash>"
+visualize = true
+save_csv = true
 ```
 - `git_hash` is the identifier/hash of the current git commit (str), it is filled automatically by default.
 - `visualize` enables saving of intermediate results per detector (bool). Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
@@ -99,13 +99,13 @@ kinematics = ['velocity_body']
 proximity = ['body_distance']
 leaning = ['body_angle']
 ```
-- The dictionary keys are all implemented component names (str). 
+- The dictionary keys are all implemented component names (str).
 - Per component, the value (list of str) lists which algorithms should run for its prediction. Note: One algorithm may predict multiple components and multiple algorithms may be chosen per component.
 
 
 ### Defining the experiments
 
-NICE Toolbox supports running multiple experiments with different components and datasets sequentially from a single program call. 
+NICE Toolbox supports running multiple experiments with different components and datasets sequentially from a single program call.
 Hereby, experiments on multiple datasets as well as multiple experiments per dataset are possible.
 Each experiment uses detectors to predict a set of diverse components.
 
@@ -123,8 +123,8 @@ data_selections = [
 - `data_selections` defines which data of the chosen dataset to run on (list of dict). Each dictionary of the form `{session_ID = "", ...}` selects one video snippet to run and defines a new experiment. Multiple such dictionaries, or experiments, in this list will run sequentially.
     - `session_ID` select the dataset's session (str), must match a session_ID defined in the [dataset's properties](#dataset-properties).
     - `sequence_ID` select the dataset's sequence, if applicable, may be an empty string (str, optional), must match a sequence_ID defined in the [dataset's properties](#dataset-properties).
-    - `video_start` starting point in frames, 0 for starting from beginnning of the video (int), must not exceed the total number of frames. 
-    - `video_length` number of frames to run, defines the length of the selected video (int), video_start + video_length must not exceed the total number of frames. 
+    - `video_start` starting point in frames, 0 for starting from beginning of the video (int), must not exceed the total number of frames.
+    - `video_length` number of frames to run, defines the length of the selected video (int), video_start + video_length must not exceed the total number of frames.
 
 Note: The [folder structures](../tutorials/tutorial1_dataset_single_view.md#folder-structure) of a dataset inside the NICE Toolbox are designed such that the session ID and, if applicable, the sequence ID of a given dataset clearly define one video (stored as a video file or frames) of the data. The keys video_start and video_length refer to this video.
 
@@ -143,7 +143,7 @@ dataset_properties = "nicetoolbox/detectors/configs/dataset_properties.toml"
 detectors_config = "nicetoolbox/detectors/configs/detectors_config.toml"
 assets = "<code_folder>/nicetoolbox/detectors/assets"
 
-process_data_to = "data_folder" 
+process_data_to = "data_folder"
 data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
 tmp_folder = "<output_folder_path>/experiments/tmp"
 detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
@@ -156,7 +156,7 @@ csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"
 ```
-- `experiment_name` define the name under which all experiments are run (str), defaults to today's date (in format YYYMMDD). 
+- `experiment_name` define the name under which all experiments are run (str), defaults to today's date (in format YYYMMDD).
 - `out_folder` is the top level directory where the results of all experiments are saved (str).
 - `out_sub_folder` is the output directory for a single experiment run (str).
 - `dataset_properties` and `detectors_config` store where to find the config files [dataset properties](#dataset-properties) and [detectors config](#detectors-config) (str).
@@ -166,7 +166,7 @@ conda_path = "<conda_path>"
 - `tmp_folder` currently not yet supported (str).
 - `detector_out_folder`, `detector_visualization_folder`, `detector_additional_output_folder`, `detector_tmp_folder`, `detector_run_config_path`, and `detector_final_result_folder` define where each detector stores (possible) intermediate outputs (str). Depending on the components and algorithms run per detector and the [visualization settings](#general-properties), different intermediate outputs are produced. The final results of all components and algorithms per detector are saved under `detector_final_result_folder`.
 - `code_folder` names the machine's folder path to the nicetoolbox repo (str), by default, it is filled automatically.
-- `conda_path` names the folder path to the machine's conda installation (str), by default, it is filled automatically. 
+- `conda_path` names the folder path to the machine's conda installation (str), by default, it is filled automatically.
 
 
 
@@ -186,8 +186,8 @@ Properties that are specific per dataset are collected in `./nicetoolbox/detecto
 [dataset_name]
 session_IDs = ['']
 sequence_IDs = ['']
-cam_front = '' 
-cam_top = '' 
+cam_front = ''
+cam_top = ''
 cam_face1 = ''
 cam_face2 = ''
 subjects_descr = []
@@ -195,11 +195,11 @@ cam_sees_subjects = {}
 path_to_calibrations = ""
 data_input_folder = ""
 start_frame_index = 0
-fps = 30 
+fps = 30
 ```
 - `session_IDs` lists all identifiers of the dataset's sessions (list of str).
 - `sequence_IDs` lists all identifiers of the dataset's sequences (list of str, optional).
-- `cam_front` contains the name of the camera view that observes the scene from the front (str). Best, it faces the subjects at about eye-height. 
+- `cam_front` contains the name of the camera view that observes the scene from the front (str). Best, it faces the subjects at about eye-height.
 - `cam_top`, `cam_face1`, and `cam_face2` are the names of optional additional camera views for multi-view predictions (str, optional). These cameras include a frontal view from top and views of one or two subject's faces.
 - `subjects_descr` lists identifiers for the subjects in each video or frame, ordered from left to right (list of str). The number of identifiers must match the number of people visible in the videos/frames.
 - `cam_sees_subjects` defines which camera view records which subject (dict: (cam_name, list of int)). It is a dictionary with the camera_names from above as keys. For each camera, the value describes the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0.
@@ -219,7 +219,7 @@ fps = 30
 
 ## Detectors config
 
-Internally, there are two types of detetors: method and feature detectors. For both, the configurations are defined inside the `./nicetoolbox/detectors/configs/detectors_config.toml` file. 
+Internally, there are two types of detectors: method and feature detectors. For both, the configurations are defined inside the `./nicetoolbox/detectors/configs/detectors_config.toml` file.
 
 
 ### Method detectors
@@ -232,7 +232,7 @@ camera_names = [""]
 env_name = "env_type:env_id"
 ```
 - `input_data_format` describes which input type the algorithm expects (str). The currently supported option is "frames".
-- `camera_names` lists the camera views (as placeholders) of which the algorithm takes input data (list of str). Current options are "<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>". 
+- `camera_names` lists the camera views (as placeholders) of which the algorithm takes input data (list of str). Current options are "<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>".
 - `env_name` defines the python or conda environment for running the algorithm (str). Options are "venv:env_id" for a python environment and "conda:env_id" for a conda environment, in both cases "env_id" is to replaced by the environment's name.
 
 
@@ -269,7 +269,7 @@ The config file `./nicetoolbox/detectors/configs/predictions_mapping.toml` conta
 
 Defined in `./visual/configs/visualizer_config.toml`.
 
-Visualizer Config consists of three main part io, media, and component specifications. 
+Visualizer Config consists of three main part io, media, and component specifications.
 
 ```toml
 [io]
@@ -285,7 +285,7 @@ video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
 multi_view = true                      # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                      # specify what will be visualized
 components = [..]                     # list of components
-camera_position = true                 # true if you want to visuailize camera position -- requires extrinsic information of the camera
+camera_position = true                 # true if you want to visualize camera position -- requires extrinsic information of the camera
 start_frame = 0                        # starting frame for the visualization
 end_frame = -1                         # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                 # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -305,7 +305,7 @@ For example, if you have multiple algorithms (e.g., hrnetw48 and vitpose in the 
 you can specify which algorithm’s results to show.
 If you want to see results from both algorithms, list both names.
 
-**Configuring Apearance**
+**Configuring Appearance**
 Under 'media.component.appearance', you can configure the color and radii (the size of the dots and lines).
 
 ```toml
@@ -319,7 +319,7 @@ algorithms = ['xgaze_3cams']            # list of algorithms
 colors = [[0,150, 90]]                  # define the color of individual gaze
 radii = {'3d'= 0.01, 'camera_view'= 4}  # define the size of gaze arrow in 3D_Canvas and camera views
 
-# Component: kinematics  - An example for Metrics Display 
+# Component: kinematics  - An example for Metrics Display
 [media.kinematics]
 algorithms = ['velocity_body']
 
@@ -334,18 +334,16 @@ velocity_body_3d = ["metric_velocity"] # if don't have multi-view, use velocity_
 
 ```
 ### Configuring Rerun Viewer and Blueprint in Rerun
-When Rerun is initiated, it automatically creates a heuristic view for the windows. 
+When Rerun is initiated, it automatically creates a heuristic view for the windows.
 You can manually change this by dragging the windows or adding new ones using the plus sign next to the Blueprint menu.
 
-![../graphics/rerun_blueprint.png](../graphics/rerun_blueprint.png)  
+![../graphics/rerun_blueprint.png](../graphics/rerun_blueprint.png)
 
-This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the 
-'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions. 
+This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the
+'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions.
 You can reset the layout by clicking 'Reset Blueprint.'
 
 ![../graphics/rerun_viewer.png](../graphics/rerun_viewer.png)
 
-If your new video does not have certain windows that the old dataset had, unused empty windows may appear. 
+If your new video does not have certain windows that the old dataset had, unused empty windows may appear.
 To get a fresh heuristic layout, reset the blueprint.
-
- 

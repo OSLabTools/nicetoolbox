@@ -2,7 +2,7 @@
 
 This tutorial extends the previous tutorial on [including a dataset with a single camera view](tutorial1_dataset_single_view.md) to datasets with multiple camera views. As many of the steps are similar, this tutorial focuses on the instructions that are specific for multiple calibrated cameras and refers to the previous tutorial where possible.
 
-Probably, the main difference to the single camera case is that a multi-view capture setup requires time-synchronized and calibrated cameras. While we assume that syncronization and calibration of the cameras have been completed beforehand, we provide a calibration convertion tool for the NICE Toolbox. Instructions can be found in step [3. Create a multi-view calibration file](#3-create-a-multi-view-calibration-file).
+Probably, the main difference to the single camera case is that a multi-view capture setup requires time-synchronized and calibrated cameras. While we assume that synchronization and calibration of the cameras have been completed beforehand, we provide a calibration conversion tool for the NICE Toolbox. Instructions can be found in step [3. Create a multi-view calibration file](#3-create-a-multi-view-calibration-file).
 
 <br>
 
@@ -39,7 +39,7 @@ Overall, the dataset's dictionary defined in the config file `./nicetoolbox/dete
 
 - Map your dataset's cameras and their views of the scene best possible to the descriptions `cam_front`, `cam_top`, `cam_face1`, and `cam_face2`. As some algorithms assume a certain camera view of the scene, this is necessary to find the best cameras to use for each algorithm. Currently, these 4 camera view options are supported.
 - `cam_sees_subjects` should now have as many keys as the number of cameras and camera_names that you entered in `cam_front`, `cam_top`, `cam_face1`, and `cam_face2` (at most 4).
-- In case your dataset's folder structure includes any folders named like the cameras, e.g., ".../path/to/camera_1/...", use the placeholder `<camera_name>` in the value of your `data_input_folder`. 
+- In case your dataset's folder structure includes any folders named like the cameras, e.g., ".../path/to/camera_1/...", use the placeholder `<camera_name>` in the value of your `data_input_folder`.
 In case the camera's names are in the filenames, e.g., ".../camera_1.mp4", you do not need the placeholder for the `data_input_folder` as the camera names are not part of the folder path.
 - The toolbox expects all cameras to capture at a shared framerate, which is given under key `fps`.
 
@@ -71,13 +71,13 @@ To add this dataset to the NICE Toolbox, we need to add the following lines to `
 session_IDs = ["day_1", "day_2"]                           # folder names of the sessions
 sequence_IDs = []                                          # no sequences
 cam_front = 'view_front'                                   # camera with frontal view
-cam_top = ''  
+cam_top = ''
 cam_face1 = 'view_bob'                                     # a camera seeing Bob
 cam_face2 = 'view_alice'                                   # a camera seeing Alice
 subjects_descr = ["Bob", "Alice"]                          # Alice and Bob are visible in the scene
 cam_sees_subjects = {view_front=[0, 1], view_bob=[0], view_alice=[1]}            # one camera sees both people, the others only one each
 path_to_calibrations = "<datasets_folder_path>/test_mv_dataset/calibration.npz"  # file path of the calibration file
-data_input_folder = "<datasets_folder_path>/test_mv_dataset/<session_ID>"        # file path of the video files 
+data_input_folder = "<datasets_folder_path>/test_mv_dataset/<session_ID>"        # file path of the video files
 start_frame_index = 0                                      # given video files, enter the default 0
 fps = 25                                                   # all cameras capture 25 frames per second
 ```
@@ -90,10 +90,10 @@ fps = 25                                                   # all cameras capture
 
 ## 3. Create a multi-view calibration file
 
-We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically. 
-To create the `calibration.npz` file that the NICE Toolbox understands, we recommend using our calibration converter GUI. 
+We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically.
+To create the `calibration.npz` file that the NICE Toolbox understands, we recommend using our calibration converter GUI.
 It can process calibration parameters from two formats:
-- **Camera Matrices:** This format stores intrinsic calibration parameters in a 3x3 "intrisic matrix K" and extrisic parameters in a 3x3 "rotation matrix R" and a 3 dimensional "translation vector t". Distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "d".
+- **Camera Matrices:** This format stores intrinsic calibration parameters in a 3x3 "intrinsic matrix K" and extrinsic parameters in a 3x3 "rotation matrix R" and a 3 dimensional "translation vector t". Distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "d".
 - **OpenCV:** The format that OpenCV's camera calibration routines output. The intrinsic or camera parameters are stored in a 3x3 matrix "mtx" and the extrinsic parameters are given as a 3 dimensional Rodrigues rotation vectors "rvec" and a 3 dimensional translation vectors "tvec". Again, distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "dist".
 
 
@@ -113,7 +113,7 @@ python .\utils\calibration_gui\calibration_converter.py
 The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. Here, we show how to create a new file from scratch, given the dataset's directory path.
 
 1. On the top, select "Camera Matrices" or "OpenCV" as the calibration format, depending on your calibration data.
-2. To create a new file from your dataset's directory path, enter the absolut path to the dataset under "Dataset directory path" or press "Select" to find it on your machine. Press "Load". The GUI will now show the folder structure of your data directory with default values for all calibration parameters (click to enlarge):
+2. To create a new file from your dataset's directory path, enter the absolute path to the dataset under "Dataset directory path" or press "Select" to find it on your machine. Press "Load". The GUI will now show the folder structure of your data directory with default values for all calibration parameters (click to enlarge):
 [<img src="../graphics/tutorial2_calibration_converter_1.png" height="500">](../graphics/tutorial2_calibration_converter_1.png)
 [<img src="../graphics/tutorial2_calibration_converter_2.png" height="500">](../graphics/tutorial2_calibration_converter_2.png)
 
@@ -131,6 +131,3 @@ The calibration converter offers multiple options to create, load, or change a c
 ## 4. Define the experiments and run the toolbox
 
 Please follow the instructions in [define the experiment to run](./tutorial1_dataset_single_view.md#4-define-the-experiment-to-run) to create your experiments and in [run the toolbox](tutorial1_dataset_single_view.md#5-run-the-toolbox) for starting the experiment. It will now use all cameras provided and specified in the [dataset_properties](#2-update-the-dataset-properties). Check the log-file `.../out_folder/nicetoolbox.log` to see it working.
-
-
-

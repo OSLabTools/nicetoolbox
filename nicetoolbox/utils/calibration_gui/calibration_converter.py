@@ -103,7 +103,7 @@ def calibration_converter():
     # place the main window
     main.pack(side=tk.TOP, fill=tk.BOTH, padx=px, pady=py)
 
-    # deine the output directory path
+    # define the output directory path
     frame_output = tk.Frame(root)
     frame_output.pack(side=tk.TOP, padx=px, pady=py)
     label_output = tk.Label(

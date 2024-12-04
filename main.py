@@ -32,33 +32,30 @@ if __name__ == "__main__":
     if args.run == "detectors":
         run_config = f"{working_directory}/nicetoolbox/detectors/configs/run_file.toml"
         detectors_main(run_config, machine_specifics)
-        
+
     elif args.run == "evaluation":
-        eval_config = f"{working_directory}/nicetoolbox/evaluation/configs/evaluation_config.toml"
+        eval_config = (
+            f"{working_directory}/nicetoolbox/evaluation/configs/evaluation_config.toml"
+        )
         evaluation_main(eval_config, machine_specifics)
-        
+
     elif args.run == "visual_media":
         visual_media_main()
 
     elif args.run == "visual_stats":
-    
         main = "main_statistics.py"
         script_command = f"streamlit run {main}"
         venv_path = "envs/nicetoolbox/bin/activate"
         command = f"source {venv_path} && {script_command}"
-        
-        subprocess.run(
-            command, 
-            text=True,
-            shell=True,
-            executable="/bin/bash"
-        )
+
+        subprocess.run(command, text=True, shell=True, executable="/bin/bash")
 
     elif args.run == "calibration_converter":
         calibration_converter()
 
     else:
-        print("Unknown argument! Please call 'main.py' with one of the following "
-              "arguments: 'detectors', 'visual_media', 'visual_stats', or "
-              "'calibration_converter'.")
-    
+        print(
+            "Unknown argument! Please call 'main.py' with one of the following "
+            "arguments: 'detectors', 'visual_media', 'visual_stats', or "
+            "'calibration_converter'."
+        )

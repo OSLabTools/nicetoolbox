@@ -17,11 +17,12 @@ def flatten_list(input_list):
         return [input_list]
     if isinstance(input_list, int):
         return [input_list]
-    elif isinstance(input_list, list):
+    if isinstance(input_list, list):
         output_list = []
         for item in input_list:
             output_list += flatten_list(item)
         return output_list
+    raise NotImplementedError
 
 
 def flatten_dict(dictionary):
@@ -162,10 +163,7 @@ class Configuration:
     def get_all_input_data_formats(self, algorithm_names):
         data_formats = set()
         for detector in algorithm_names:
-            if (
-                "input_data_format"
-                in self.detector_config["algorithms"][detector]
-            ):
+            if "input_data_format" in self.detector_config["algorithms"][detector]:
                 data_formats.add(
                     self.detector_config["algorithms"][detector]["input_data_format"]
                 )

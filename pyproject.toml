@@ -31,7 +31,7 @@ test = ["pytest"]
 # ruff
 [tool.ruff]
 line-length = 88
-exclude = ['./nicetoolbox/detectors/third_party/**']
+# exclude = ['./nicetoolbox/detectors/third_party/**']
 # include = ['./nicetoolbox/detectors/third_party/**/inference.py']
 
 [tool.ruff.format]
@@ -39,65 +39,45 @@ exclude = ['./nicetoolbox/detectors/third_party/**']
 docstring-code-format = true
 # Format all docstring code snippets with a line length of 88.
 docstring-code-line-length = 88
-# Existing trailing commas are used as an indication that short lines should be left separate. 
+# Existing trailing commas are used as an indication that short lines should be left separate.
 # Set to true, to ignore the magic trailing comma.
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 select = [
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # flake8-bugbear
-    "B",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
+    "E",    # pycodestyle
+    "W",    # pycodestyle
+    "F",    # Pyflakes
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",    # isort
+    "ARG",  # flake8-unused-arguments
+    "R",    # refactor from pylint
+    # TODO: add pylint!
+    # "PL"    # pylint
+    # TODO: add pydocstyle
+    # "D"     # pydocstyle
+    # TODO: add ruff-specific rules
+    # "RUF",  # ruff-specific rules
 ]
+preview = true
+ignore = ["RET504"]  # TODO fix later
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false
-
-# Autopep8
-[tool.autopep8]
-max_line_length = 100
-aggressive = 1
+force-sort-within-sections = false
 
 # Pylint
 [tool.pylint.MASTER]
-disable = ["attribute-defined-outside-init"]
-
-[tool.pylint.FORMAT]
-max-line-length = 100
+# TODO add (some?) pylint rules to pre-commit
+# E.g., W0221 (arguments-differ) from pylint is not yet supported in ruff
+# see https://github.com/astral-sh/ruff/issues/970
+disable = "all"
+enable = ["W0221"]
 
 [tool.pylint.MESSAGES_CONTROL]
 disable = "invalid-name"
-
-[tool.isort]
-profile = "google"
-force_single_line = false
-multi_line_output = 4
-line_length = 100
-src_paths = ["nicetoolbox"]
-
-# MyPy
-[tool.mypy]
-ignore_missing_imports = true
-exclude = ['venv', '.venv']
-
-# Coverage
-[tool.coverage.run]
-branch = true
-source = ["nicetoolbox"]
-omit = [
-    "nicetoolbox/tests/*"]
-
-[tool.coverage.report]
-show_missing = true
 
 [tool.codespell]
 skip = "__pycache__,./.mypy_cache,.git,.idea,./venv,./env,./.tox"

@@ -1,6 +1,6 @@
 # Include a dataset with a single camera view
 
-This tutorial explains how to run the NICE Toolbox on your own dataset. It covers datasets that contain videos of a single camera, without multi-view captures. 
+This tutorial explains how to run the NICE Toolbox on your own dataset. It covers datasets that contain videos of a single camera, without multi-view captures.
 
 If you are running the NICE Toolbox for the first time, please note that there is quick start guide as well - the [getting started](../getting_started.md) page explains how to run the NICE Toolbox on an example dataset.
 
@@ -15,7 +15,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 3. [Create a calibration file](#3-create-a-calibration-file)
     - [Calibration toml file](#calibration-toml-file)
     - [Toml to npz file](#toml-to-npz-file)
-4. [Define the experiment to run](#4-define-the-experiment-to-run)  
+4. [Define the experiment to run](#4-define-the-experiment-to-run)
 5. [Run the toolbox](#5-run-the-toolbox)
 
 <br>
@@ -26,7 +26,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
 For more information, see [machine-specific config](../getting_started.md#1-create-your-machine-specific-config).
 
-**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code. 
+**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute paths do not cause errors, they hinder collaboration and greatly decrease the readability of code.
 Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./nicetoolbox/detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
 
 
@@ -86,7 +86,7 @@ fps = 30                  # frame-rate of video data (int, optional)
 ```
 
 A few notes:
-- `cam_front` should contain the name of the camera view that observes the scene from the front. Best, it faces the subjects at about eye-height. 
+- `cam_front` should contain the name of the camera view that observes the scene from the front. Best, it faces the subjects at about eye-height.
 - `cam_top`, `cam_face1`, and `cam_face2` are only used for multi-view datasets. These can be left as an empty string.
 - `subjects_descr` The length of this list reflects the number of people visible in the data. For each person visible, add an identifier.
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0. See the example below.
@@ -132,14 +132,14 @@ cam_face2 = ''
 subjects_descr = ["personL", "personR"]                    # there are 2 people visible in the video
 cam_sees_subjects = {view_1 = [0, 1]}                      # one camera ("view_1") and the order of the subjects named in 'subjects_descr'
 path_to_calibrations = "<datasets_folder_path>/test_dataset/calibration.npz"           # where to find the calibration file (reflects the folder structure above)
-data_input_folder = "<datasets_folder_path>/test_dataset/<session_ID>/<sequence_ID>/"  # where to find the video/frames data (reflects the folder structure above) 
+data_input_folder = "<datasets_folder_path>/test_dataset/<session_ID>/<sequence_ID>/"  # where to find the video/frames data (reflects the folder structure above)
 start_frame_index = 0                                      # the dataset provides frames that are indexed starting from 0
 fps = 30                                                   # the camera captures at a framerate of 30 frames per second
 ```
 
 ## 3. Create a calibration file
 
-The NICE Toolbox expects a `calibration.npz` file containing the calibration details of the cameras for each dataset. In the single-view case, it can be created by the following two steps: 
+The NICE Toolbox expects a `calibration.npz` file containing the calibration details of the cameras for each dataset. In the single-view case, it can be created by the following two steps:
 
 
 ### Calibration toml file
@@ -167,7 +167,7 @@ cd /path/to/nicetoolbox/
 source ./env/bin/activate
 python ./utils/calibration_gui/calibration_converter.py
 ```
-The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. It outputs the calibration in two files: `calibrations.npz` which is required to run the NICE toolbox and `calibrations.toml` which displays the same calibration data in a human-readable (and changeable) file. 
+The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. It outputs the calibration in two files: `calibrations.npz` which is required to run the NICE toolbox and `calibrations.toml` which displays the same calibration data in a human-readable (and changeable) file.
 
 1. On the top, select "OpenCV" as the calibration format.
 
@@ -197,7 +197,7 @@ videos = [
     {                           # define which data to run on
     session_ID = "",            # select the session_ID (str)
     sequence_ID="",             # select the sequence_ID (str, may be empty)
-    video_start = 0,            # start of the video in frames, 0 for starting from beginnning (int)
+    video_start = 0,            # start of the video in frames, 0 for starting from beginning (int)
     video_length = 100,         # number of frames to run, defines the length of the video (int)
     },
     ...
@@ -212,8 +212,8 @@ out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define wher
 Some notes:
 - `visualize` enables saving of intermediate results per detector. Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
 - `run.dataset_name.videos` contains the information of the video that should be processed. Enter the details for your dataset's video here. You can extend the list with more dictionaries to run multiple videos.
-- `io.experiment_name` defaults to the current date (in format YYYYMMDD). 
-- `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code. 
+- `io.experiment_name` defaults to the current date (in format YYYYMMDD).
+- `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code.
 
 A more detailed and complete description of the `./nicetoolbox/detectors/configs/run_file.toml` file can be found in the wiki page on config files under [run file](../wikis/wiki_config_files.md#run-file).
 

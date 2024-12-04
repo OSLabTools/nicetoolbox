@@ -14,33 +14,33 @@ from ..kinematics import utils as kinematics_utils
 
 class GazeDistance(BaseFeature):
     """
-    The GazeDistance class is a feature detector that computes the gaze_interaction 
+    The GazeDistance class is a feature detector that computes the gaze_interaction
     component.
 
-    The GazeDistance feature detector accepts two primary inputs: the gaze_individual 
-    and face_landmarks components. These components are computed using the 
-    gaze_individual and body_joints method detectors, respectively. This feature 
-    detector calculates the smallest distance between a gaze direction vector and face 
-    landmarks within a 2-person context. 
+    The GazeDistance feature detector accepts two primary inputs: the gaze_individual
+    and face_landmarks components. These components are computed using the
+    gaze_individual and body_joints method detectors, respectively. This feature
+    detector calculates the smallest distance between a gaze direction vector and face
+    landmarks within a 2-person context.
     Additionally, it has the ability to determine whether the gaze is directed
     at the face and if the gaze interaction is mutual.
 
     Component: gaze_interaction
 
     Attributes:
-        components (list): A list containing the name of the component this class is 
+        components (list): A list containing the name of the component this class is
         responsible for:
             gaze_interaction:
-                - distance_gaze , distances from the gaze (of person 1) to the face 
+                - distance_gaze , distances from the gaze (of person 1) to the face
                     (of person 2)
-                - gaze_look_at  , boolean array indicating whether the gaze is directed 
+                - gaze_look_at  , boolean array indicating whether the gaze is directed
                     at the face
                 - gaze_mutual   , boolean array indicating whether the gaze is mutual
-        algorithm (str): The name of the algorithm used to compute the components 
+        algorithm (str): The name of the algorithm used to compute the components
             (gaze_interaction).
-        gaze_detector_file_list (list): A list of file paths for the gaze detector 
+        gaze_detector_file_list (list): A list of file paths for the gaze detector
             output.
-        threshold_look_at (float): The threshold value for determining whether the 
+        threshold_look_at (float): The threshold value for determining whether the
             gaze is directed at the face.
     """
 
@@ -49,19 +49,19 @@ class GazeDistance(BaseFeature):
 
     def __init__(self, config, io, data):
         """
-        Setup the GazeDistance feature detector and extract gaze component from method 
+        Setup the GazeDistance feature detector and extract gaze component from method
         detector output.
 
-        This method initializes the GazeDistance class by setting up the necessary 
-        configurations, input/output handler, and data. It also extracts the gaze 
-        component and algorithm from the configuration and prepares the list of gaze 
+        This method initializes the GazeDistance class by setting up the necessary
+        configurations, input/output handler, and data. It also extracts the gaze
+        component and algorithm from the configuration and prepares the list of gaze
         detector output files. It supports handling of multiple cameras.
 
         Args:
-            config (dict): The configuration settings for the feature detector. It 
+            config (dict): The configuration settings for the feature detector. It
                 should include 'input_detector_names' key which contains gaze component
                 and algorithm.
-            io (class): The input/output handler , including 
+            io (class): The input/output handler , including
                 'get_detector_output_folder' method which returns the output folder for
                 the gaze detector.
             data (class): The data class.
@@ -71,7 +71,8 @@ class GazeDistance(BaseFeature):
 
         # Extract gaze component and algorithm from the config
         gaze_component, gaze_algorithm = [
-            name for name in config["input_detector_names"] 
+            name
+            for name in config["input_detector_names"]
             if any(["gaze" in s for s in name])
         ][0]
         gaze_out_folder = io.get_detector_output_folder(
@@ -99,28 +100,28 @@ class GazeDistance(BaseFeature):
         This method computes the gaze_interaction component and saves the results as a
         compressed .npz file.
 
-        It calculates the Euclidean distance between gaze direction vectors and face 
-        landmarks within a 2-person context. The distance is calculated between 
-        adjacent frames, measuring the change from t to t-1. The first frame will be 
+        It calculates the Euclidean distance between gaze direction vectors and face
+        landmarks within a 2-person context. The distance is calculated between
+        adjacent frames, measuring the change from t to t-1. The first frame will be
         empty.
 
-        The method also determines whether the gaze is directed at the face (look_at) 
+        The method also determines whether the gaze is directed at the face (look_at)
         and if the gaze interaction is mutual.
 
         The results are saved as a compressed .npz file with the following structure:
 
-        - distance_gaze: smallest distances from the gaze vector (of person A) to the 
+        - distance_gaze: smallest distances from the gaze vector (of person A) to the
             face (of person B), and vice versa.
-        - gaze_look_at: a boolean array indicating whether the gaze is directed at the 
+        - gaze_look_at: a boolean array indicating whether the gaze is directed at the
             face
         - gaze_mutual: a boolean array indicating whether the gaze is mutual
         - data_description: A dictionary containing the data description for all of the
-            above output numpy arrays. See the documentation of the output for more 
+            above output numpy arrays. See the documentation of the output for more
             details.
 
         Returns:
-            visualization_data (list): A list containing the distances from the gaze to 
-            the face, a boolean array indicating whether the gaze is directed at the 
+            visualization_data (list): A list containing the distances from the gaze to
+            the face, a boolean array indicating whether the gaze is directed at the
             face, and a boolean array indicating whether the gaze is mutual.
         """
 
@@ -257,12 +258,7 @@ class GazeDistance(BaseFeature):
             input_data = np.concatenate((distances, look_at, mutual), axis=-1)
             categories = ["distance_gaze_face", "gaze_look_at", "gaze_mutual"]
             kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
-                input_data,
-                categories,
-                global_min,
-                global_max,
-                self.viz_folder,
-                self.subjects_descr,
+                input_data, categories, self.viz_folder, self.subjects_descr
             )
             # kinematics_utils.create_video_evolving_linegraphs(
             #     self.gaze_detector_file_list[0], input_data, categories, global_min,

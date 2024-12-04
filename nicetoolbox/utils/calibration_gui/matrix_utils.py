@@ -24,7 +24,7 @@ def nested_entries2matrix(entries):
 def entries2matrix(entries):
     matrix_dict = {}
     for name, vars in entries.items():
-        # only convert matrics, no strings
+        # only convert matrices, no strings
         if not isinstance(vars, np.ndarray):
             continue
 
@@ -64,15 +64,19 @@ def matrix2entries(matrix_dict, entries):
                 matrix[:, 3].flatten() - np.array(matrix_dict["translation"]).flatten()
             )
             if np.linalg.norm(t_dist) > 0.01:
-                return "Loaded roation matrix of shape 3x4 does not align with the "\
+                return (
+                    "Loaded rotation matrix of shape 3x4 does not align with the "
                     "loaded translation vector."
+                )
             matrix = matrix[:, :3]
 
         try:
             matrix = matrix.reshape(vars.shape)
         except ValueError:
-            return f"Shape missmatch! Loaded '{matrix_key}' and variable '{name}' "\
+            return (
+                f"Shape mismatch! Loaded '{matrix_key}' and variable '{name}' "
                 "do not match."
+            )
 
         for i, row in enumerate(vars):
             for j, item in enumerate(row):

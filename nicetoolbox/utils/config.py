@@ -1,5 +1,5 @@
 """
-Funcitons for handling configuration files.
+Functions for handling configuration files.
 """
 
 import copy
@@ -19,8 +19,7 @@ def default(obj):
     if type(obj).__module__ == np.__name__:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        else:
-            return obj.item()
+        return obj.item()
     raise TypeError("Unknown type:", type(obj))
 
 
@@ -30,7 +29,7 @@ def save_config(configs: dict, config_file: str) -> None:
 
     Args:
         configs (dict): The configuration data to be saved.
-        config_file (str): The path to the file where the configuration data 
+        config_file (str): The path to the file where the configuration data
         will be saved.
 
     Raises:
@@ -61,7 +60,7 @@ def save_config(configs: dict, config_file: str) -> None:
 
 def config_fill_placeholders(config, placeholders):
     """
-    Replace placeholders in the given configuration data with their corresponding 
+    Replace placeholders in the given configuration data with their corresponding
     values.
 
     Args:
@@ -108,22 +107,22 @@ def config_fill_placeholders(config, placeholders):
 
 def config_fill_auto(config, working_directory=None):
     """
-    This function fills placeholders in the configuration data with auto-generated 
+    This function fills placeholders in the configuration data with auto-generated
     values.
 
     Args:
         config (dict): The configuration data to be processed.
-        working_directory (str, optional): The directory where the git repository 
+        working_directory (str, optional): The directory where the git repository
         is located.
             Defaults to the current working directory.
 
     Returns:
-        dict: The configuration data with placeholders replaced with auto-generated 
+        dict: The configuration data with placeholders replaced with auto-generated
         values.
 
     Note:
-        This function uses the `oslab_utils.git_utils` module to get the git hash 
-        and commit message. The placeholders filled are: <git_hash>, 
+        This function uses the `oslab_utils.git_utils` module to get the git hash
+        and commit message. The placeholders filled are: <git_hash>,
         <commit_message>, <me>, <yyyymmdd>, <today>, and <time>.
     """
     if working_directory is None:

@@ -9,12 +9,12 @@ def convert_npz_to_csv_files(npz_path, output_folder):
     """
     Converts an NPZ file to multiple CSV files.
 
-    For each npy array in the NPZ file, a CSV file is created and saved in the output 
+    For each npy array in the NPZ file, a CSV file is created and saved in the output
     folder.
 
     Args:
         npz_path (str): The path to the NPZ file.
-        output_folder (str): The path to the output folder where the CSV files will 
+        output_folder (str): The path to the output folder where the CSV files will
             be saved.
 
     Returns:
@@ -40,7 +40,7 @@ def convert_npz_to_csv_files(npz_path, output_folder):
 
             # first 3 dimensions always, Subject, Camera, Frames
             # if array has 4 dimensions - column names will be dimension4[i]
-            # if array has 5 dimensions - column names will be 
+            # if array has 5 dimensions - column names will be
             #   dimension4[i]_dimension5[idx]
             rows = []
             index_tuples = []
@@ -57,7 +57,8 @@ def convert_npz_to_csv_files(npz_path, output_folder):
                         elif arr_dimensions == 5:
                             last_dim = arr.shape[-1]
                             column_labels = [
-                                f"{data_desc_arr['axis3'][idx//last_dim]}_{data_desc_arr['axis4'][int(idx%last_dim)]}"
+                                f"{data_desc_arr['axis3'][idx // last_dim]}_"
+                                f"{data_desc_arr['axis4'][int(idx % last_dim)]}"
                                 for idx in range(len(flat_values))
                             ]
                         rows.append(flat_values)

@@ -108,12 +108,11 @@ class Component(ABC):
             return self.visualizer_config["media"][self.component_name]["appearance"][
                 "radii"
             ]["3d"]
-        elif type == "camera_view":
+        if type == "camera_view":
             return self.visualizer_config["media"][self.component_name]["appearance"][
                 "radii"
             ]["camera_view"]
-        else:
-            raise ValueError("Invalid type. Use either '3d' or 'camera_view'")
+        raise ValueError("Invalid type. Use either '3d' or 'camera_view'")
 
     @abstractmethod
     def _get_algorithms_labels(self):
@@ -144,10 +143,10 @@ class BodyJointsComponent(Component):
 
     def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
         super().__init__(visualizer_config, io, logger, component_name)
-        # note: All these numpy arrays share a common structure in their first 3 
+        # note: All these numpy arrays share a common structure in their first 3
         # dimension : [number_of_subjects, number_of_cameras, number_of_frames]
-        # by design all algorithms in same component shares the same cameras and 
-        # subjects -- therefore the camera_names and subject_names results will be 
+        # by design all algorithms in same component shares the same cameras and
+        # subjects -- therefore the camera_names and subject_names results will be
         # read from first algorithm data description axis0 gives subject information
         self.subject_names = self.algorithms_results[0]["data_description"].item()[
             "2d"
@@ -197,7 +196,7 @@ class BodyJointsComponent(Component):
         self, alg_idx: int, predictions_mapping: Dict
     ) -> List[List[str]]:
         """
-        Get the skeleton connections for the algorithm index from the predictions 
+        Get the skeleton connections for the algorithm index from the predictions
         mapping.
 
         Args:
@@ -310,7 +309,7 @@ class BodyJointsComponent(Component):
         """
         Visualize the body joints component.
 
-        Combines the _log_data and _log_skeleton methods to visualize the body joints 
+        Combines the _log_data and _log_skeleton methods to visualize the body joints
         component in either 2D or 3D.
 
         Args:
@@ -375,7 +374,7 @@ class HandJointsComponent(BodyJointsComponent):
 
     def __init__(self, visualizer_config, io, logger, component_name):
         """
-        Initialize the HandJointsComponent by calling the BodyJointsComponent 
+        Initialize the HandJointsComponent by calling the BodyJointsComponent
         constructor.
 
         Args:
@@ -406,11 +405,11 @@ class GazeIndividualComponent(Component):
         subject_names (List[str]): The subject names.
         landmarks_2d (np.ndarray): The 2D landmarks data.
         eyes_middle_3d_data (np.ndarray): The 3D eyes middle data.
-        camera_view_subjects_middle_point_dict (Dict): The camera view subjects middle 
+        camera_view_subjects_middle_point_dict (Dict): The camera view subjects middle
             point dictionary.
         look_at_data (np.ndarray): The look at data.
         look_at_labels (List[str]): The look at labels.
-        projected_gaze_data_algs (List[Dict]): The projected gaze data for the 
+        projected_gaze_data_algs (List[Dict]): The projected gaze data for the
             algorithms.
     """
 
@@ -433,15 +432,15 @@ class GazeIndividualComponent(Component):
             logger (viewer.Viewer): The viewer rerun object.
             component_name (str): The name of the component.
             calib (Dict): The calibration parameters.
-            eyes_middle_3d_data (np.ndarray, optional): The 3D eyes middle data. 
+            eyes_middle_3d_data (np.ndarray, optional): The 3D eyes middle data.
                 Defaults to None.
-            look_at_data_tuple (bool, optional): The look at data tuple. 
+            look_at_data_tuple (bool, optional): The look at data tuple.
                 Defaults to None.
         """
         super().__init__(visualizer_config, io, logger, component_name)
         self.calib = calib
         # the camera_names and subject_names results will be read from first algorithm
-        ##we are getting camera names from landmarks_2d because 3d doesn't have any 
+        # we are getting camera names from landmarks_2d because 3d doesn't have any
         # camera info
         self.camera_names = self.algorithms_results[0]["data_description"].item()[
             "landmarks_2d"
@@ -451,9 +450,9 @@ class GazeIndividualComponent(Component):
         ]["axis0"]  # axis0 gives subject info
         self.landmarks_2d = self.algorithms_results[0]["landmarks_2d"]
 
-        ## create subjects middle of face
+        # create subjects middle of face
         # 3d
-        self.eyes_middle_3d_data, cams = eyes_middle_3d_data
+        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
         # camera view
         # create the camera view -- middle of subjects' face point dictionary
         mean_face = np.nanmean(self.landmarks_2d.astype(float)[:, :, :, :4, :], axis=3)
@@ -477,11 +476,11 @@ class GazeIndividualComponent(Component):
         """
         Projects the 3D gaze data to the 2D camera views.
 
-        This method takes the 3D gaze data and projects it onto the 2D camera views for 
-        each algorithm in the algorithm list. It iterates over all cameras and computes 
-        the projected gaze data for each camera view. The projection is done using the 
-        camera parameters such as the camera matrix, distortion coefficients, rotation 
-        vectors, and extrinsic parameters. The method handles the transformation of 3D 
+        This method takes the 3D gaze data and projects it onto the 2D camera views for
+        each algorithm in the algorithm list. It iterates over all cameras and computes
+        the projected gaze data for each camera view. The projection is done using the
+        camera parameters such as the camera matrix, distortion coefficients, rotation
+        vectors, and extrinsic parameters. The method handles the transformation of 3D
         points to 2D points using these camera parameters.
 
         Returns:
@@ -497,16 +496,14 @@ class GazeIndividualComponent(Component):
             data = self.algorithms_results[alg_idx]["3d"]
 
             for cam_name in cameras_list:
-                cam_matrix, cam_distor, cam_rotation, cam_extrinsic = (
-                    vis_ut.get_cam_para_studio(self.calib, cam_name)
-                )
+                _, _, cam_rotation, _ = vis_ut.get_cam_para_studio(self.calib, cam_name)
 
                 # Check if self.calib[cam_name]['image_size'] is a list.
                 if isinstance(self.calib[cam_name]["image_size"][0], list):
                     # If it is a list, take the first element [0].
                     image_width = self.calib[cam_name]["image_size"][0][0]
                 else:
-                    # If it is not a list, assume it is already a single value and use 
+                    # If it is not a list, assume it is already a single value and use
                     # it directly.
                     image_width = self.calib[cam_name]["image_size"][0]
 
@@ -552,7 +549,7 @@ class GazeIndividualComponent(Component):
         self, sub_idx: int, alg_idx: int, look_to_subject: str, frame_idx: int
     ) -> List[int]:
         """
-        Get the look at color for the subject index, algorithm index, look to subject, 
+        Get the look at color for the subject index, algorithm index, look to subject,
         and frame index.
 
         Args:
@@ -618,7 +615,7 @@ class GazeIndividualComponent(Component):
         """
         Visualize the gaze individual component.
 
-        Combines the _log_data method to visualize the gaze individual component in 
+        Combines the _log_data method to visualize the gaze individual component in
         either 2D or 3D.
 
         Args:
@@ -646,10 +643,8 @@ class GazeIndividualComponent(Component):
                         )
                         # gaze interaction defines color
                         if self.look_at_data is not None:
-                            if (
-                                subject_idx + 1 < len(self.subject_names) - 1
-                            ):  
-                                # look at subject either one forward or one backward in 
+                            if subject_idx + 1 < len(self.subject_names) - 1:
+                                # look at subject either one forward or one backward in
                                 # index
                                 look_to_subject = self.subject_names[subject_idx + 1]
                             else:
@@ -699,10 +694,8 @@ class GazeIndividualComponent(Component):
                             )
                             # gaze interaction defines color
                             if self.look_at_data is not None:
-                                if (
-                                    subject_idx + 1 < len(self.subject_names) - 1
-                                ):  
-                                    # look at subject either one forward or one 
+                                if subject_idx + 1 < len(self.subject_names) - 1:
+                                    # look at subject either one forward or one
                                     # backward in index
                                     look_to_subject = self.subject_names[
                                         subject_idx + 1
@@ -756,10 +749,7 @@ class GazeInteractionComponent(Component):
             Tuple[np.ndarray, List[str]]: The look at data and the look at labels.
         """
         # read from first algorithm
-        if (
-            "gaze_look_at_3d"
-            in self.algorithms_results[0]["data_description"].item()
-        ):
+        if "gaze_look_at_3d" in self.algorithms_results[0]["data_description"].item():
             data_name = "gaze_look_at_3d"
         else:
             data_name = "gaze_look_at_2d"
@@ -816,9 +806,9 @@ class ProximityComponent(Component):
             io: The input/output object.
             logger (viewer.Viewer): The viewer rerun object.
             component_name (str): The name of the component.
-            eyes_middle_3d_data (Tuple[np.ndarray, List[str]], optional): 
+            eyes_middle_3d_data (Tuple[np.ndarray, List[str]], optional):
                 The 3D eyes middle data. Defaults to None.
-            eyes_middle_2d_data (Tuple[np.ndarray, List[str]], optional): 
+            eyes_middle_2d_data (Tuple[np.ndarray, List[str]], optional):
                 The 2D eyes middle data. Defaults to None.
         """
         super().__init__(visualizer_config, io, logger, component_name)
@@ -831,7 +821,7 @@ class ProximityComponent(Component):
 
         # create subjects middle data
         # 3d
-        self.eyes_middle_3d_data, cams = eyes_middle_3d_data
+        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
         if self.eyes_middle_3d_data is not None:
             first_subject_eyes_middle_data = self.eyes_middle_3d_data[0, 0, :].mean(
                 axis=0
@@ -843,7 +833,7 @@ class ProximityComponent(Component):
                 first_subject_eyes_middle_data + second_subject_eyes_middle_data
             ) / 2
         # 2d - camera view
-        self.eyes_middle_2d_data, middle_eye_camera_names = eyes_middle_2d_data
+        self.eyes_middle_2d_data, _ = eyes_middle_2d_data
         # create camera view - middle point dictionary
         self.camera_view_middle_point_dict = {}
         for cam in self.camera_names:
@@ -934,7 +924,7 @@ class ProximityComponent(Component):
         """
         Visualize the proximity component.
 
-        Uses the _log_data method to visualize the proximity component in either 2D or 
+        Uses the _log_data method to visualize the proximity component in either 2D or
         3D.
 
         Args:

@@ -2,29 +2,28 @@
 Pose estimation utilities. # TODO: Move to a more appropriate location?
 """
 
-
 import numpy as np
 import scipy.interpolate as interp
 
 
-def interpolate_data(data, is_3d=True, max_empty=10):  ## TODO make max_empty 1/3 of FPS
+def interpolate_data(data, is_3d=True, max_empty=10):  # TODO make max_empty 1/3 of FPS
     """
-    Interpolates missing data in the given multi-dimensional array using scipy's 
+    Interpolates missing data in the given multi-dimensional array using scipy's
     interp1d function.
 
     Args:
-        data (ndarray): The input data array with shape 
+        data (ndarray): The input data array with shape
             (num_persons, num_cameras, num_frames, num_keypoints, _).
-        is_3d (bool, optional): Indicates whether the data is 3D or not. 
+        is_3d (bool, optional): Indicates whether the data is 3D or not.
             Defaults to True.
-        max_empty (int, optional): The maximum number of consecutive empty frames 
+        max_empty (int, optional): The maximum number of consecutive empty frames
             allowed. Defaults to 10.
 
     Returns:
         ndarray: The interpolated data array with the same shape as the input data.
 
     """
-    num_people, num_cameras, num_frames, num_keypoints, _ = data.shape
+    num_people, num_cameras, _, num_keypoints, _ = data.shape
     for i in range(num_people):
         for j in range(num_cameras):
             for k in range(num_keypoints):

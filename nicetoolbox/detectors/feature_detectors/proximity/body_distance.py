@@ -16,28 +16,28 @@ class BodyDistance(BaseFeature):
     """
     The BodyDistance class is a feature detector that computes the proximity component.
 
-    The BodyDistance feature detector calculates the Euclidean distance between 
-    keypoints of different individuals in the scene, essentially determining the 
+    The BodyDistance feature detector calculates the Euclidean distance between
+    keypoints of different individuals in the scene, essentially determining the
     proximity between individuals from one frame to the next.
 
     Component: proximity
 
     Attributes:
-        components (list): A list containing the name of the component this class is 
+        components (list): A list containing the name of the component this class is
             responsible for: proximity.
-        algorithm (str): The name of the algorithm used to compute the proximity 
+        algorithm (str): The name of the algorithm used to compute the proximity
             component.
             body_distance: the Euclidean distance between individuals in the scene
-        valid_run (bool): A boolean value indicating whether the feature detector can 
+        valid_run (bool): A boolean value indicating whether the feature detector can
             run with the given input data.
-        predictions_mapping (dict): A dictionary containing the mapping of body parts 
-            to their respective indices, used to identify the keypoints for distance 
+        predictions_mapping (dict): A dictionary containing the mapping of body parts
+            to their respective indices, used to identify the keypoints for distance
             calculation.
-        camera_names (list): A list containing the names of the cameras used to capture 
+        camera_names (list): A list containing the names of the cameras used to capture
             the original input data.
-        used_keypoints (list): A list containing the names of the keypoints used for 
+        used_keypoints (list): A list containing the names of the keypoints used for
             calculating the distance.
-        keypoint_index (list): A list containing the indices of the keypoints used for 
+        keypoint_index (list): A list containing the indices of the keypoints used for
         calculating
     """
 
@@ -46,12 +46,12 @@ class BodyDistance(BaseFeature):
 
     def __init__(self, config, io, data):
         """Initialize Movement class.
-        Setup the BodyDistance feature detector and extract gaze component from method 
+        Setup the BodyDistance feature detector and extract gaze component from method
         detector output.
 
-        This method initializes the BodyDistance class by setting up the necessary 
-        configurations, input/output handler, and data. It extracts the body_joints 
-        component and prepares the used keypoints and keypoint indices given the 
+        This method initializes the BodyDistance class by setting up the necessary
+        configurations, input/output handler, and data. It extracts the body_joints
+        component and prepares the used keypoints and keypoint indices given the
         predictions mapping.
 
         Args:
@@ -72,7 +72,8 @@ class BodyDistance(BaseFeature):
 
         # POSE
         joints_component, joints_algorithm = [
-            name for name in config["input_detector_names"] 
+            name
+            for name in config["input_detector_names"]
             if any(["joints" in s for s in name])
         ][0]
         pose_config_folder = io.get_detector_output_folder(
@@ -88,17 +89,14 @@ class BodyDistance(BaseFeature):
 
         # # will be used during visualizations
         # viz_camera_name = config['viz_camera_name'].strip('<').strip('>')
-        # self.frames_data = os.path.join(pose_config['input_data_folder'], 
+        # self.frames_data = os.path.join(pose_config['input_data_folder'],
         # data.camera_mapping[viz_camera_name])
-        # self.frames_data_list = [os.path.join(self.frames_data, f) 
+        # self.frames_data_list = [os.path.join(self.frames_data, f)
         # for f in sorted(os.listdir(self.frames_data))]
         self.used_keypoints = config["used_keypoints"]
         # proximity index
         for keypoint in self.used_keypoints:
-            if (
-                keypoint
-                not in self.predictions_mapping["keypoints_index"]["body"]
-            ):
+            if keypoint not in self.predictions_mapping["keypoints_index"]["body"]:
                 logging.error(
                     f"Given used_keypoint could not find in "
                     f"predictions_mapping {keypoint}"
@@ -114,18 +112,18 @@ class BodyDistance(BaseFeature):
         """
         Computes the proximity component.
 
-        This method calculates the Euclidean distance between the keypoints of personL 
-        and personR. If the length of the keypoint index list is greater than 1, the 
+        This method calculates the Euclidean distance between the keypoints of personL
+        and personR. If the length of the keypoint index list is greater than 1, the
         midpoint of the keypoints will be used in the proximity measure.
 
         The results are saved in a numpy .npz file with the following structure:
         - body_distance_2d: A numpy array containing the proximity scores in 2D.
         - body_distance_3d: A numpy array containing the proximity scores in 3D.
-        - data_description: A dictionary containing the data description for the above 
+        - data_description: A dictionary containing the data description for the above
             output numpy arrays. See the documentation of the output for more details.
 
         Returns:
-            out_dict (dict): A dictionary containing the proximity scores 
+            out_dict (dict): A dictionary containing the proximity scores
             (2D and/or 3D).
 
         """
@@ -150,7 +148,7 @@ class BodyDistance(BaseFeature):
 
             personL, personR = data
 
-            # Calculate the average coordinates for the selected keypoints in both 
+            # Calculate the average coordinates for the selected keypoints in both
             # objects for each frame
             average_coords_L = np.mean(
                 personL[:, :, self.keypoint_index, :], axis=2, keepdims=True
@@ -159,7 +157,7 @@ class BodyDistance(BaseFeature):
                 personR[:, :, self.keypoint_index, :], axis=2, keepdims=True
             )
 
-            # Calculate the Euclidean distance between the average coordinates for 
+            # Calculate the Euclidean distance between the average coordinates for
             # each frame
             proximity_score = np.linalg.norm(
                 average_coords_L - average_coords_R, axis=-1
@@ -193,15 +191,15 @@ class BodyDistance(BaseFeature):
         """
         Creates visualizations for the computed proximity component.
 
-        The visualization includes a line graph of the proximity scores over time, 
+        The visualization includes a line graph of the proximity scores over time,
         and the proximity scores are also displayed on top of the original video frames.
-        The video is saved as 'proximity_score_on_video.mp4' in the visualization 
+        The video is saved as 'proximity_score_on_video.mp4' in the visualization
         folder.
 
         Args:
-            out_dict (dict): A dictionary containing the proximity scores computed by 
+            out_dict (dict): A dictionary containing the proximity scores computed by
                 the feature detector. It should contain keys 'body_distance_2d' and/or
-            'body_distance_3d', each mapping to a numpy array containing the proximity 
+            'body_distance_3d', each mapping to a numpy array containing the proximity
                 scores for the respective dimension.
         """
         if out_dict is not None:
@@ -226,9 +224,9 @@ class BodyDistance(BaseFeature):
                 # sample_combined_img = pro_utils.frame_with_linegraph(
                 #   sample_frame, data, 0, global_min, global_max)
                 # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
-                # output_path = os.path.join(self.viz_folder, 
+                # output_path = os.path.join(self.viz_folder,
                 #   'proximity_score_on_video.mp4')
-                # out = cv2.VideoWriter(output_path, fourcc, 30.0, 
+                # out = cv2.VideoWriter(output_path, fourcc, 30.0,
                 #   (sample_combined_img.shape[1], sample_combined_img.shape[0]))
                 #
                 # for i, frame_path in enumerate(self.frames_data_list):

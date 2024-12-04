@@ -11,7 +11,7 @@ from git.exc import InvalidGitRepositoryError
 class CustomRepo(Repo):
     """Customize the Repo class from gitpython for easier access/use.
 
-    This class extends the base class `Repo` from gitpython and provides additional 
+    This class extends the base class `Repo` from gitpython and provides additional
     methods for easier access and use of a git repository.
 
     Args:
@@ -44,7 +44,7 @@ class CustomRepo(Repo):
         Get the latest commit hash and message of the git repository.
 
         Returns:
-            tuple: A tuple containing the latest commit hash (string) and the 
+            tuple: A tuple containing the latest commit hash (string) and the
                 commit message (string).
 
         Raises:

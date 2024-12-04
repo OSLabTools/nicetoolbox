@@ -12,13 +12,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
 def visualize_mean_of_motion_magnitude_by_bodypart(
-    data,
-    bodyparts_list,
-    global_min,
-    global_max,
-    output_folder,
-    people_names=None,
-    camera_names=None,
+    data, bodyparts_list, output_folder, people_names=None, camera_names=None
 ) -> None:
     """
     Visualizes the mean of motion magnitude by body part across frames for multiple
@@ -28,9 +22,7 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
         data (ndarray): The input data array of shape
             (#persons, #cameras, #frames, #bodyparts(3)).
         bodyparts_list (list): The list of body parts to visualize.
-        global_min (float): The global minimum value for the y-axis.
-        global_max (float): The global maximum value for the y-axis.
-        output_folder (str): The path to the output folder where the plots will be 
+        output_folder (str): The path to the output folder where the plots will be
             saved.
         people_names (list, optional): The list of names for each person.
             Defaults to None.
@@ -43,7 +35,7 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
     num_people = len(data)
 
     for camera_idx in range(data.shape[1]):
-        fig, axs = plt.subplots(num_people, 1, figsize=(10, 15))
+        _, axs = plt.subplots(num_people, 1, figsize=(10, 15))
 
         # Ensure axs is a list in case num_people is 1
         if num_people == 1:
@@ -80,26 +72,31 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
 
 
 def frame_with_linegraph(
-    frame, data, categories, current_frame, global_min, global_max
+    frame,
+    data,
+    categories,
+    current_frame,
+    global_min,  # noqa: ARG001
+    global_max,  # noqa: ARG001
 ):
     """
-    Combines a video frame with the plots for PersonL and PersonR up to the current 
+    Combines a video frame with the plots for PersonL and PersonR up to the current
     frame.
 
-    This function takes a video frame and data for two people, and combines the frame 
+    This function takes a video frame and data for two people, and combines the frame
     with line graphs of the data up to the current frame.
 
     Args:
         frame (numpy.ndarray): The video frame to which the line graphs will be added.
-        data (list of numpy.ndarray): The data to be plotted. Each array represents 
+        data (list of numpy.ndarray): The data to be plotted. Each array represents
             data for a person.
         categories (list of str): The categories for the data. Each category corresponds
             to a line on the graph.
-        current_frame (int): The current frame number. Only data up to this frame will 
+        current_frame (int): The current frame number. Only data up to this frame will
             be plotted.
-        global_min (float): The minimum value across all data. Used to set the y-axis 
+        global_min (float): The minimum value across all data. Used to set the y-axis
             limit.
-        global_max (float): The maximum value across all data. Used to set the y-axis 
+        global_max (float): The maximum value across all data. Used to set the y-axis
             limit.
 
     Returns:
@@ -165,23 +162,23 @@ def create_video_evolving_linegraphs(
     """
     Creates a video with evolving line graphs for each frame.
 
-    This function takes a list of frames and data for two people, and creates a video 
-    where each frame is combined with line graphs of the data up to that frame. The 
+    This function takes a list of frames and data for two people, and creates a video
+    where each frame is combined with line graphs of the data up to that frame. The
     line graphs are color-coded based on categories.
 
     Args:
-        frames_data_list (list of str): The list of paths to the frames to be included 
+        frames_data_list (list of str): The list of paths to the frames to be included
             in the video.
-        data (list of numpy.ndarray): The data to be plotted. Each array represents 
+        data (list of numpy.ndarray): The data to be plotted. Each array represents
             data for a person.
-        categories (list of str): The categories for the data. Each category 
+        categories (list of str): The categories for the data. Each category
             corresponds to a line on the graph.
-        global_min (float): The minimum value across all data. Used to set the y-axis 
+        global_min (float): The minimum value across all data. Used to set the y-axis
             limit.
-        global_max (float): The maximum value across all data. Used to set the y-axis 
+        global_max (float): The maximum value across all data. Used to set the y-axis
             limit.
         output_folder (str): The path to the folder where the video will be saved.
-        file_name (str, optional): The name of the output video file. If not provided, 
+        file_name (str, optional): The name of the output video file. If not provided,
             defaults to 'movement_score_on_video'.
         video_fps (float, optional): The frames per second of the output video.
             Defaults to 30.0.

@@ -14,7 +14,7 @@ from ...utils.system import detect_os_type
 
 class BaseDetector(ABC):
     """
-    Abstract class to setup and run existing computer vision research code, called 
+    Abstract class to setup and run existing computer vision research code, called
     method detectors.
 
     Attributes:
@@ -28,9 +28,9 @@ class BaseDetector(ABC):
         framework (str): The name of the framework used for the method detector.
         script_path (str): The path to the script used for the method detector.
         venv (str): The type of virtual environment used for the method detector.
-        env_name (str): The name of the virtual environment used for the method 
+        env_name (str): The name of the virtual environment used for the method
             detector.
-        venv_path (str): The path to the virtual environment used for the method 
+        venv_path (str): The path to the virtual environment used for the method
             detector.
     """
 
@@ -44,7 +44,7 @@ class BaseDetector(ABC):
             config (dict): Configuration parameters for the detector.
             io (IO): An instance of the IO class for input/output operations.
             data (Data): An instance of the Data class for accessing data.
-            requires_out_folder (bool, optional): Indicates whether an output folder 
+            requires_out_folder (bool, optional): Indicates whether an output folder
                 is required. Defaults to True.
         """
         # log file
@@ -95,7 +95,7 @@ class BaseDetector(ABC):
         Returns a description of the method detector for printing.
 
         Returns:
-            str: A string representation of the method detector, including its 
+            str: A string representation of the method detector, including its
                 components, and the associated algorithm.
         """
         return (
@@ -150,7 +150,7 @@ class BaseDetector(ABC):
         # run in terminal/cmd
         if system.detect_os_type() == "windows":
             cmd_result = subprocess.run(
-                command, capture_output=True, text=True, shell=True
+                command, capture_output=True, text=True, shell=True, check=False
             )
         else:
             cmd_result = subprocess.run(
@@ -159,6 +159,7 @@ class BaseDetector(ABC):
                 text=True,
                 shell=True,
                 executable="/bin/bash",
+                check=False,
             )
 
         if cmd_result.returncode == 0:
@@ -177,7 +178,7 @@ class BaseDetector(ABC):
         """
         Post-processing after inference.
 
-        This method is called after the inference step and is used for any 
+        This method is called after the inference step and is used for any
         post-processing tasks that need to be performed.
         """
         pass
@@ -188,11 +189,11 @@ class BaseDetector(ABC):
         """
         Abstract property that returns the components of the method detector.
 
-        This property should be implemented in the derived classes to specify the 
+        This property should be implemented in the derived classes to specify the
         components that the method detector is associated with.
 
         Returns:
-            list: A list of strings representing the components associated with the 
+            list: A list of strings representing the components associated with the
                 method detector.
 
         Raises:
@@ -206,7 +207,7 @@ class BaseDetector(ABC):
         """
         Abstract property that returns the algorithm of the method detector.
 
-        This property should be implemented in the derived classes to specify the 
+        This property should be implemented in the derived classes to specify the
         algorithm that the method detector is associated with.
 
         Returns:
@@ -222,19 +223,19 @@ class BaseDetector(ABC):
         """
         Abstract method to visualize the output of the method, preferably as a video.
 
-        This method is intended to generate a visual representation of the method 
+        This method is intended to generate a visual representation of the method
         detector's output. The visualization should be saved in the self.viz_folder.
 
         Args:
-            data (any): The data to be visualized. The type and content of this 
+            data (any): The data to be visualized. The type and content of this
                 parameter depend on the specific implementation of the method detector.
 
         Returns:
-            None. This method does not return any value. However, it should save the 
+            None. This method does not return any value. However, it should save the
                 visualization in the self.viz_folder.
 
         Raises:
-            NotImplementedError: If this method is not implemented in the derived 
+            NotImplementedError: If this method is not implemented in the derived
                 classes.
         """
         pass

@@ -39,18 +39,18 @@ def main(run_config_file, machine_specifics_file):
         detector_config_file (str): The path to the detector configuration file.
         machine_specifics_file (str): The path to the machine specifics file.
 
-    This function is the entry point of the NICE toolbox. It performs the following 
+    This function is the entry point of the NICE toolbox. It performs the following
     steps:
 
     1. Initializes the configuration handler with the provided configuration files.
-    2. Initializes the IO module with the IO configuration from the configuration 
+    2. Initializes the IO module with the IO configuration from the configuration
         handler.
     3. Sets up logging and logs the start of the NICE toolbox.
     4. Checks the configuration consistency and saves the experiment configuration.
     5. Runs the datasets specified in the configuration.
     6. For each dataset, initializes the IO module and prepares the data.
     7. Runs the method detectors specified in the configuration for each dataset.
-    8. Runs the feature extraction pipeline specified in the configuration for each 
+    8. Runs the feature extraction pipeline specified in the configuration for each
         dataset.
     """
     # CONFIG I
@@ -78,12 +78,8 @@ def main(run_config_file, machine_specifics_file):
             f"{dataset_config['session_ID']}.\n{'=' * 80}\n\n"
         )
         algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
-        method_names = [
-            alg for alg in algorithm_names if alg in all_method_detectors
-        ]
-        feature_names = [
-            alg for alg in algorithm_names if alg in all_feature_detectors
-        ]
+        method_names = [alg for alg in algorithm_names if alg in all_method_detectors]
+        feature_names = [alg for alg in algorithm_names if alg in all_feature_detectors]
 
         # IO
         io.initialization(dataset_config, config_handler.get_all_detector_names())
