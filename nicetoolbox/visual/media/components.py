@@ -21,10 +21,8 @@ import rerun as rr
 from ...utils import filehandling as fh
 from ...utils import visual_utils as vis_ut
 
-TOP_LEVEL_DIR = Path(__file__).resolve().parents[2]
-PREDICTIONS_MAPPING_FILE = str(
-    Path(TOP_LEVEL_DIR / "detectors/configs/predictions_mapping.toml")
-)
+TOP_LEVEL_DIR = Path(__file__).resolve().parents[3]
+PREDICTIONS_MAPPING_FILE = str(Path(TOP_LEVEL_DIR / "configs/predictions_mapping.toml"))
 PREDICTIONS_MAPPING = fh.load_config(PREDICTIONS_MAPPING_FILE)
 
 

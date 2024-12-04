@@ -32,7 +32,7 @@ It will open a window like this one:
 
 ## Visualizer config
 
-The visualizer config `./visual/configs/visualizer_config.toml` consists of three main part io, media, and component specifications.
+The visualizer config `./configs/visualizer_config.toml` consists of three main part io, media, and component specifications.
 
 ```toml
 [io]

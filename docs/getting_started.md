@@ -32,7 +32,7 @@ The example data is available on [keeper](https://keeper.mpdl.mpg.de/d/d38179804
 
 
 ## 3. Define the dataset's properties
-Ensure that `./nicetoolbox/detectors/configs/dataset_properties.toml` contains the following dictionary:
+Ensure that `./configs/dataset_properties.toml` contains the following dictionary:
 
 ```toml
 [communication_multiview]
@@ -53,7 +53,7 @@ A detailed description of this file can be found in the wiki page on config file
 
 
 ## 4. Add the experiment to run
-To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./nicetoolbox/detectors/configs/run_file.toml` and ensure that the `[run]` dictionary includes the following:
+To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./configs/detectors_run_file.toml` and ensure that the `[run]` dictionary includes the following:
 
 ```toml
 [run]
@@ -84,7 +84,7 @@ env\Scripts\activate
 python nicetoolbox/detectors/main.py
 ```
 
-The outputs will be saved in the folder defined in `./nicetoolbox/detectors/configs/run_file.toml` under `io.out_folder` (with filled-in placeholders).
+The outputs will be saved in the folder defined in `./configs/detectors_run_file.toml` under `io.out_folder` (with filled-in placeholders).
 To monitor the experiment, check the log file at `/path/to/<out_folder>/nicetoolbox.log`. The tool is expected to take approximately 6 minutes for this experiment.
 
 
@@ -92,7 +92,7 @@ To monitor the experiment, check the log file at `/path/to/<out_folder>/nicetool
 
 There are multiple options to visualize the results of NICE toolbox.
 For an interactive experience, we recommend using our `visual` code, which runs `rerun`.
-To do so, open `./visual/configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
+To do so, open `./configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
 ```toml
 [io]
 dataset_folder = "<datasets_folder_path>"

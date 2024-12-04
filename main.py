@@ -30,13 +30,11 @@ if __name__ == "__main__":
     machine_specifics = f"{working_directory}/machine_specific_paths.toml"
 
     if args.run == "detectors":
-        run_config = f"{working_directory}/nicetoolbox/detectors/configs/run_file.toml"
+        run_config = f"{working_directory}/configs/detectors_run_file.toml"
         detectors_main(run_config, machine_specifics)
 
     elif args.run == "evaluation":
-        eval_config = (
-            f"{working_directory}/nicetoolbox/evaluation/configs/evaluation_config.toml"
-        )
+        eval_config = f"{working_directory}/configs/evaluation_config.toml"
         evaluation_main(eval_config, machine_specifics)
 
     elif args.run == "visual_media":

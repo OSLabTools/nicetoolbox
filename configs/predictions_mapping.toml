@@ -27,7 +27,7 @@
 "right_smalltoe" = 21
 "right_heel" = 22
 [human_pose.coco_wholebody.keypoints_index.face]
-"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39]
+"face_landmarks" =  [23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39] #exclusive last element, i.e. 40
 "right_eyebrow" = [40,41,42,43,44]
 "left_eyebrow" = [45,46,47,48,49]
 "nose_up" = [50,51,52,53]
@@ -56,6 +56,7 @@
     [21,23],[23,26],[26,30],[30,34],[34,38],[21,38],[23,25],[26, 29],[30,33],[34,37],[38,41]]
 'face_landmarks' = []
 
+
 [human_pose.human36m.connections]
 'body_joints' = [
     ["head_top", "head", "neck", "spine4", "spine3", "spine2"],
@@ -66,8 +67,6 @@
 
 'hand_joints' = []
 'face_landmarks' = []
-
-
 
 [human_pose.human36m.keypoints_index]
 'spine3' = 0
@@ -98,3 +97,73 @@
 'right_ankle' = 25
 'right_foot' = 26
 'right_toe' = 27
+
+
+[human_pose.bodypart_names]
+head = ["nose", "left_eye", "right_eye", "left_ear", "right_ear"]
+upper_body = ["left_shoulder", "right_shoulder", "left_elbow", "right_elbow", "left_wrist", "right_wrist"]
+lower_body = ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"]
+
+[human_pose.bone_dict]
+"eye_distance" = ["left_eye", "right_eye"]
+"left_upper_arm" = ["left_shoulder", "left_elbow"]
+"left_lower_arm" = ["left_elbow", "left_wrist"]
+"right_upper_arm"= ["right_shoulder", "right_elbow"]
+"right_lower_arm"= ["right_elbow", "right_wrist"]
+"left_upper_leg" = ["left_hip", "left_knee"]
+"left_lower_leg" = ["left_knee", "left_ankle"]
+"right_upper_leg" = ["right_hip", "right_knee"]
+"right_lower_leg"= ["right_knee", "right_ankle"]
+
+[human_pose.joint_diameter_size] #in meter
+"left_eye" = 0.025
+"right_eye" = 0.025
+"nose" = 0.040
+"left_ear" = 0.035
+"right_ear" = 0.035
+"left_shoulder" = 0.070
+"right_shoulder" = 0.070
+"left_elbow" = 0.065
+"right_elbow" = 0.065
+"left_wrist" =  0.045
+"right_wrist" = 0.045
+"left_hip" = 0.075
+"right_hip" = 0.075
+"left_knee" = 0.080
+"right_knee" = 0.080
+"left_ankle" = 0.055
+"right_ankle" = 0.055
+#"left_bigtoe" = 0.030
+#"right_bigtoe" = 0.030
+#"left_heel" = 0.040
+#"right_heel" = 0.040
+
+
+[order]
+keypoints = [
+    "nose", "left_eye", "right_eye", "left_ear", "right_ear", 'neck', 'head', 'head_top',
+    "left_shoulder", "right_shoulder", 'left_clavicle', 'right_clavicle',
+    'spine3', 'spine4', 'spine2', 'spine',
+    "left_elbow", "right_elbow", "left_wrist", "right_wrist", 'left_hand', 'right_hand',
+    "left_hip", "right_hip", 'pelvis', "left_knee", "right_knee",
+    'left_foot', 'right_foot', "left_ankle", "right_ankle", "left_heel", "right_heel",
+    "left_bigtoe", "right_bigtoe", "left_smalltoe", "right_smalltoe"
+    ]
+bones = [
+    "eye_distance", "left_upper_arm", "left_lower_arm", "right_upper_arm", "right_lower_arm",
+    "left_upper_leg", "left_lower_leg", "right_upper_leg", "right_lower_leg"
+    ]
+microactions = [
+    'eyes_eymov', 'eyes_eyga', 'eyes_eybd', 'eyes_eysml', 'eyes_eycry', 'eyes_eyrb', 'eyes_eycl',
+    'lips_lsm', 'lips_lau', 'lips_lpu', 'lips_lbi',
+    'head_hnod', 'head_hshk', 'head_hmov', 'head_htrn', 'head_hup', 'head_hdn', 'head_hsd',
+    'lobo_lgcr', 'lobo_lgucr', 'lobo_fmov',
+    'hands_hrep', 'hands_htfa', 'hands_hthd', 'hands_gest', 'hands_htbd', 'hands_hadj', 'hands_note', 'hands_wipe',
+    'upbo_flean', 'upbo_blean', 'upbo_shrai',
+    'fubo_readj',
+    'eyebrows_ebr', 'eyebrows_efrn'
+]
+
+[microactions.daya]
+'eyes_eymov' = 1
+'eyes_eyga' = 2

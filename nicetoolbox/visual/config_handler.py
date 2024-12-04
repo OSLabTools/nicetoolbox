@@ -1,9 +1,9 @@
 import glob
 import os
 
-from ...utils import config as confh
-from ...utils import filehandling as fh
-from ...utils import visual_utils as vis_ut
+from ..utils import config as confh
+from ..utils import filehandling as fh
+from ..utils import visual_utils as vis_ut
 
 
 class Configuration:

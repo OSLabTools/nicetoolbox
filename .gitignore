@@ -33,5 +33,3 @@ artifacts/
 nicetoolbox/**/*.mp4
 
 machine_specific_paths.toml
-nicetoolbox/detectors/configs/tests*
-nicetoolbox/detectors/*tests*

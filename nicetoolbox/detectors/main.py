@@ -8,7 +8,7 @@ import logging
 import time
 
 from ..utils import logging_utils as log_ut
-from .configs import config_handler as confh
+from . import config_handler as confh
 from .data import Data
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
 from .feature_detectors.kinematics.velocity_body import VelocityBody
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--run_config",
-        default="nicetoolbox/detectors/configs/run_file.toml",
+        default="configs/detectors_run_file.toml",
         type=str,
         required=False,
     )

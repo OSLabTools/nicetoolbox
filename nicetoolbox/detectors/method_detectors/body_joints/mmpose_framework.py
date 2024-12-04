@@ -12,7 +12,7 @@ import numpy as np
 from ....utils import check_and_exception as check
 from ....utils import filehandling as fh
 from ....utils import triangulation as tri
-from ...configs import config_handler as confh
+from ... import config_handler as confh
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
 from . import utils
@@ -102,9 +102,9 @@ class MMPose(BaseDetector):
         config["data_folder"] = self.data_folder
 
         # keypoints mapping
-        keypoints_indices = fh.load_config(
-            "./nicetoolbox/detectors/configs/predictions_mapping.toml"
-        )["human_pose"][config["keypoint_mapping"]]["keypoints_index"]
+        keypoints_indices = fh.load_config("./configs/predictions_mapping.toml")[
+            "human_pose"
+        ][config["keypoint_mapping"]]["keypoints_index"]
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config["keypoints_indices"], config["keypoints_description"] = mapping
 

@@ -6,10 +6,10 @@ import copy
 import logging
 import os
 
-from ...utils import check_and_exception as exc
-from ...utils import config as cfg
-from ...utils import filehandling as fh
-from ...utils.logging_utils import log_configs
+from ..utils import check_and_exception as exc
+from ..utils import config as cfg
+from ..utils import filehandling as fh
+from ..utils.logging_utils import log_configs
 
 
 def flatten_list(input_list):
