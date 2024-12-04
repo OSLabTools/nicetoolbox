@@ -53,9 +53,10 @@ visualization = [
     "tueplots==0.0.15",
 ]
 
-#[project.scripts]
-# Would probably need to refactor this script first!
-# run_pipeline = "nicetoolbox.detectors.main:main"
+[project.scripts]
+run_detectors = "nicetoolbox.detectors.main:entry_point"
+run_evaluation = "nicetoolbox.evaluation.main:entry_point"
+run_visualization = "nicetoolbox.visual.media.main:entry_point"
 
 # Setuptools
 [tool.setuptools]
