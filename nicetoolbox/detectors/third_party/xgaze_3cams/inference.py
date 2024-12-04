@@ -64,7 +64,7 @@ def main(config, debug=False):
     if len(np.array(config["frames_list"]).shape) == 2:
         assert np.array(config["frames_list"]).shape[1] == n_cams, (
             "Number of cameras do not match! Please check the camera's definitions "
-            "in nicetoolbox/detectors/configs/datset_properties.toml."
+            "in configs/datset_properties.toml."
         )
         frames_list = np.array(config["frames_list"]).flatten()
     else:

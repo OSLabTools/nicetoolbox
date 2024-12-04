@@ -7,7 +7,7 @@ import os
 import cv2
 
 from ...utils import visual_utils as vis_utils
-from ..configs import config_handler as vis_cfg
+from .. import config_handler as vis_cfg
 from ..in_out import IO
 from .components import (
     BodyJointsComponent,
@@ -30,7 +30,7 @@ def main():
     """
 
     # CONFIGURATION - IO
-    visualizer_config_file = "nicetoolbox/visual/configs/visualizer_config.toml"
+    visualizer_config_file = "configs/visualizer_config.toml"
     machine_specifics_file = "machine_specific_paths.toml"
     config_handler = vis_cfg.Configuration(
         visualizer_config_file, machine_specifics_file

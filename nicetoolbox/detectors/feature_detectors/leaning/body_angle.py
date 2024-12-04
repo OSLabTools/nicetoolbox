@@ -65,9 +65,9 @@ class BodyAngle(BaseFeature):
             os.path.join(pose_config_folder, "run_config.toml")
         )
 
-        self.predictions_mapping = fh.load_config(
-            "./nicetoolbox/detectors/configs/predictions_mapping.toml"
-        )["human_pose"][pose_config["keypoint_mapping"]]
+        self.predictions_mapping = fh.load_config("./configs/predictions_mapping.toml")[
+            "human_pose"
+        ][pose_config["keypoint_mapping"]]
         self.camera_names = pose_config["camera_names"]
 
         # will be used during visualizations

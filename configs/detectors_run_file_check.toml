@@ -1,0 +1,45 @@
+git_hash = 'type:str'
+visualize = 'type:bool'
+save_csv = 'type:bool'
+
+[component_algorithm_mapping]
+gaze_individual = 'keys:configs/detectors_config.toml:algorithms'
+gaze_interaction = 'keys:configs/detectors_config.toml:algorithms'
+body_joints = 'keys:configs/detectors_config.toml:algorithms'
+hand_joints = 'keys:configs/detectors_config.toml:algorithms'
+face_landmarks = 'keys:configs/detectors_config.toml:algorithms'
+kinematics = 'keys:configs/detectors_config.toml:algorithms'
+proximity = 'keys:configs/detectors_config.toml:algorithms'
+leaning = 'keys:configs/detectors_config.toml:algorithms'
+
+[run]
+_valid_keys_ = 'keys:configs/dataset_properties.toml'
+[run._var_]
+components = 'keys:configs/detectors_run_file_check.toml:component_algorithm_mapping'
+[run._var_.videos]
+session_ID = 'values:configs/dataset_properties.toml:_var_.session_IDs'
+sequence_ID = 'values:configs/dataset_properties.toml:_var_.sequence_IDs'
+video_start = 'type:int'
+video_length = 'type:int'
+
+[io]
+experiment_name = 'type:str'
+out_folder = 'folder:base'
+out_sub_folder = 'folder:base'
+dataset_properties = 'file:'
+detectors_config = 'file:'
+assets = 'folder:full'
+
+process_data_to = ['data_folder', 'tmp_folder']
+data_folder = 'folder:base'
+tmp_folder = 'folder:base'
+detector_out_folder = 'tbd'
+detector_visualization_folder = 'tbd'
+detector_additional_output_folder = 'tbd'
+detector_tmp_folder = 'tbd'
+detector_run_config_path = 'tbd'
+detector_final_result_folder = 'tbd'
+csv_out_folder = 'folder:base'
+code_folder = 'folder:full'
+conda_path = 'folder:full'
+log_level = 'type:int'

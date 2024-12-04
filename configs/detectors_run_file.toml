@@ -30,8 +30,8 @@ videos = [
 experiment_name = "<yyyymmdd>"                                     # define the name of the experiment (str), default: date as "<yyyymmdd>"
 out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
 out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
-dataset_properties = "nicetoolbox/detectors/configs/dataset_properties.toml"
-detectors_config = "nicetoolbox/detectors/configs/detectors_config.toml"
+dataset_properties = "configs/dataset_properties.toml"
+detectors_config = "configs/detectors_config.toml"
 assets = "<code_folder>/nicetoolbox/detectors/assets"
 
 process_data_to = "data_folder"

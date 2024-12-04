@@ -31,8 +31,8 @@ The configuration files are Python dictionaries saved in `.toml` - files that co
 Placeholders can be put into strings and are filled automatically during run-time. All configs support the use of placeholders, where reasonable.
 Placeholders are indicated by enclosing characters `<` and `>` and may take the following values:
 1. All keys in `./machine_specific_paths.toml`,
-2. All keys from `io` as defined in `./nicetoolbox/detectors/configs/run_file.toml`,
-3. The keys `<dataset_name>`, `<component_name>`, `<algorithm_name>`, `<session_ID>`, `<sequence_ID>`, `<camera_name>`, `<video_start>`, and `<video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./nicetoolbox/detectors/configs/run_file.toml`,
+2. All keys from `io` as defined in `./configs/detectors_run_file.toml`,
+3. The keys `<dataset_name>`, `<component_name>`, `<algorithm_name>`, `<session_ID>`, `<sequence_ID>`, `<camera_name>`, `<video_start>`, and `<video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./configs/detectors_run_file.toml`,
 4. The options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
 
 
@@ -67,7 +67,7 @@ conda_path = ''
 
 ## Run file
 
-The run file `./nicetoolbox/detectors/configs/run_file.toml` defines the experiments to run. This config consists of four parts, that detail general properties, the chosen detectors, the dataset(s), and the experiment's output files. The config supports placeholders as described [here](#placeholders). Each part is described in the following.
+The run file `./configs/detectors_run_file.toml` defines the experiments to run. This config consists of four parts, that detail general properties, the chosen detectors, the dataset(s), and the experiment's output files. The config supports placeholders as described [here](#placeholders). Each part is described in the following.
 
 
 ### General properties
@@ -139,8 +139,8 @@ The last part of the run file specifies where inputs can be found and any output
 experiment_name = "<yyyymmdd>"
 out_folder = "<output_folder_path>/experiments/<experiment_name>"
 out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
-dataset_properties = "nicetoolbox/detectors/configs/dataset_properties.toml"
-detectors_config = "nicetoolbox/detectors/configs/detectors_config.toml"
+dataset_properties = "configs/dataset_properties.toml"
+detectors_config = "configs/detectors_config.toml"
 assets = "<code_folder>/nicetoolbox/detectors/assets"
 
 process_data_to = "data_folder"
@@ -180,7 +180,7 @@ conda_path = "<conda_path>"
 
 ## Dataset properties
 
-Properties that are specific per dataset are collected in `./nicetoolbox/detectors/configs/dataset_properties.toml`. For each dataset, these include:
+Properties that are specific per dataset are collected in `./configs/dataset_properties.toml`. For each dataset, these include:
 
 ```toml
 [dataset_name]
@@ -219,7 +219,7 @@ fps = 30
 
 ## Detectors config
 
-Internally, there are two types of detectors: method and feature detectors. For both, the configurations are defined inside the `./nicetoolbox/detectors/configs/detectors_config.toml` file.
+Internally, there are two types of detectors: method and feature detectors. For both, the configurations are defined inside the `./configs/detectors_config.toml` file.
 
 
 ### Method detectors
@@ -255,7 +255,7 @@ input_detector_names = [["component_name", "algorithm_name"]]
 
 ## Predictions mapping
 
-The config file `./nicetoolbox/detectors/configs/predictions_mapping.toml` contains information about mappings between different data identifiers. These are, for example, different conventions for selecting and naming human body joints, also called keypoints. The mappings are primarily used for internal purposes.
+The config file `./configs/predictions_mapping.toml` contains information about mappings between different data identifiers. These are, for example, different conventions for selecting and naming human body joints, also called keypoints. The mappings are primarily used for internal purposes.
 
 
 
@@ -267,7 +267,7 @@ The config file `./nicetoolbox/detectors/configs/predictions_mapping.toml` conta
 
 ## Visualizer Config
 
-Defined in `./visual/configs/visualizer_config.toml`.
+Defined in `./configs/visualizer_config.toml`.
 
 Visualizer Config consists of three main part io, media, and component specifications.
 
