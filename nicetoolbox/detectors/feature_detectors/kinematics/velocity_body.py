@@ -68,7 +68,8 @@ class VelocityBody(BaseFeature):
         super().__init__(config, io, data, requires_out_folder=False)
 
         joints_component, joints_algorithm = [
-            name for name in config["input_detector_names"]
+            name
+            for name in config["input_detector_names"]
             if any(["joints" in s for s in name])
         ][0]
         pose_config_folder = io.get_detector_output_folder(
@@ -150,7 +151,7 @@ class VelocityBody(BaseFeature):
             motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)
             motion_velocity = motion_magnitude * self.fps
 
-            ## Standardized
+            # Standardized
             # motion_magnitude_mean = np.nanmean(motion_magnitude, axis=0)
             # motion_magnitude_std = np.nanstd(motion_magnitude, axis=0)
             # standardized_magnitudes = (motion_magnitude - motion_magnitude_mean) /
@@ -217,14 +218,12 @@ class VelocityBody(BaseFeature):
             motion_per_bodypart = self.post_compute(velocity_body)
 
             # Determine global_min and global_max - define y-lims of graphs
-            global_min = np.nanmin(motion_per_bodypart) - 0.05
-            global_max = np.nanmax(motion_per_bodypart) + 0.05
+            # global_min = np.nanmin(motion_per_bodypart) - 0.05
+            # global_max = np.nanmax(motion_per_bodypart) + 0.05
             camera_names = self.camera_names if dim == "2d" else ["3d"]
             kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
                 motion_per_bodypart,
                 self.bodyparts_list,
-                global_min,
-                global_max,
                 self.viz_folder,
                 self.subjects_descr,
                 camera_names,

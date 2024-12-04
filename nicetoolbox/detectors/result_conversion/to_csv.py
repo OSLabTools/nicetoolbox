@@ -57,7 +57,8 @@ def convert_npz_to_csv_files(npz_path, output_folder):
                         elif arr_dimensions == 5:
                             last_dim = arr.shape[-1]
                             column_labels = [
-                                f"{data_desc_arr['axis3'][idx//last_dim]}_{data_desc_arr['axis4'][int(idx%last_dim)]}"
+                                f"{data_desc_arr['axis3'][idx // last_dim]}_"
+                                f"{data_desc_arr['axis4'][int(idx % last_dim)]}"
                                 for idx in range(len(flat_values))
                             ]
                         rows.append(flat_values)

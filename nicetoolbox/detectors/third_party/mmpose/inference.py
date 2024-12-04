@@ -10,8 +10,6 @@ from pathlib import Path
 import numpy as np
 from mmpose.apis import MMPoseInferencer
 
-# sdjgka;djfgakdfjgak;dlfjgal;skjdgl;a'sikfa[peigtoaejgalsdjgl;'SKDGSdigkal;sdhretueuertujetyjetyjgs;dkf;'SIGFxcvsdgadgPSdkg]
-
 # Add top-level directory to sys.path depending on repo structure and not cwd
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
@@ -113,7 +111,7 @@ def check_correct_and_sort_person_detections(
         equal to num_subjects in dataset config subjects descriptions.
         if not: check if there is any overlapping bbox and delete them if exists.
     3. Check again if number of detected subjects is correct.
-        if yes: sort the person detections from left to right in image 2d corrdinates
+        if yes: sort the person detections from left to right in image 2d coordinates
         (based on bbox top_left_x coord)
         if no: save the results of previous frame
 
@@ -183,7 +181,7 @@ def check_correct_and_sort_person_detections(
             is_correct_num_detections = True
 
         if is_correct_num_detections:
-            # Sort detected people from left to right - lowest top_left x value wiil be
+            # Sort detected people from left to right - lowest top_left x value will be
             # first
             sorted_indices = sorted(
                 range(len(updated_bboxes)), key=lambda i: updated_bboxes[i][0]
@@ -236,7 +234,7 @@ def convert_output_to_numpy(data, num_persons):
         len(data[0]["predictions"][0][0]["keypoints"][0]) + 1
     )  # x, y, [z], and confidence_score
     logging.info(
-        f"frames: {num_frames}, keypoints: {num_keypoints}, "\
+        f"frames: {num_frames}, keypoints: {num_keypoints}, "
         f"estimations: {num_estimations}"
     )
     sorted_frame_predictions = check_correct_and_sort_person_detections(
@@ -350,7 +348,7 @@ def main(config):
         results = [r for r in result_generator]
         num_subjects = len(config["subjects_descr"])
 
-        ### convert results to numpy array
+        # convert results to numpy array
         keypoints_array, bbox_array, estimations_data_descr = convert_output_to_numpy(
             results, num_subjects
         )

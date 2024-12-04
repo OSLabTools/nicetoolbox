@@ -70,7 +70,7 @@ def init_entries_str():
 def get_fields(entries):
     if "chosen_matrices" not in entries:
         entries["message"].set("Please select a calibration format before loading.")
-        return
+        return None
 
     # get the subset of all_fileds that is chosen
     fields = all_fields.copy()

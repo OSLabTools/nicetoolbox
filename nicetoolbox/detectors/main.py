@@ -78,12 +78,8 @@ def main(run_config_file, machine_specifics_file):
             f"{dataset_config['session_ID']}.\n{'=' * 80}\n\n"
         )
         algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
-        method_names = [
-            alg for alg in algorithm_names if alg in all_method_detectors
-        ]
-        feature_names = [
-            alg for alg in algorithm_names if alg in all_feature_detectors
-        ]
+        method_names = [alg for alg in algorithm_names if alg in all_method_detectors]
+        feature_names = [alg for alg in algorithm_names if alg in all_feature_detectors]
 
         # IO
         io.initialization(dataset_config, config_handler.get_all_detector_names())

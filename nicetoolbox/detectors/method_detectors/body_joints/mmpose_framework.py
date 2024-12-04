@@ -121,7 +121,7 @@ class MMPose(BaseDetector):
         This method extracts the keypoint indices and descriptions for each pose
         estimation component.
 
-        It has to be implemented by the derived classes assoicated to the available
+        It has to be implemented by the derived classes associated to the available
         pose estimation algorithms. (See HRNetw48 and Vitpose classes below)
 
         Available algorithms are: hrnetw48, vitpose
@@ -177,7 +177,7 @@ class MMPose(BaseDetector):
             f"-start_number {int(self.video_start)} "
             f"-i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
             # Use the subprocess module to execute the command
-            cmd_result = subprocess.run(cmd, shell=True)
+            cmd_result = subprocess.run(cmd, shell=True, check=False)
             if cmd_result.returncode != 0:
                 logging.error(
                     f"FFMPEG video creation failed. Return code {cmd_result.returncode}"
@@ -242,14 +242,14 @@ class MMPose(BaseDetector):
             results_2d = prediction["2d"]
             results_2d_bbox = prediction["bbox_2d"]
 
-            ## Apply filter
+            # Apply filter
             if self.filtered:
                 logging.info("APPLYING filtering to 3d data...")
                 results_2d_filtered = results_2d.copy()
                 filter = SGFilter(self.filter_window_length, self.filter_polyorder)
                 results_2d_filtered = filter.apply(results_2d_filtered)
 
-            ## if apply filter 2d interpolation is done on filtered data
+            # if apply filter 2d interpolation is done on filtered data
             if self.filtered:
                 results_2d_interpolated = results_2d_filtered.copy()
             else:
@@ -303,7 +303,7 @@ class MMPose(BaseDetector):
                         f"{self.camera_names[0]} & {self.camera_names[1]}"
                     )
 
-                ### It is using interpolated_2d results instead of original 2d
+                # It is using interpolated_2d results instead of original 2d
                 cam1_data, cam2_data = (
                     results_2d_interpolated[:, 0],
                     results_2d_interpolated[:, 1],
@@ -487,17 +487,16 @@ def extract_key_per_value(input_dict):
     """
     if all(isinstance(val, int) for val in list(input_dict.values())):
         return list(input_dict.keys())
-    else:
-        return_keys = []
-        for key, value in input_dict.items():
-            if isinstance(value, int):
-                return_keys.append(value)
-            elif isinstance(value, list):
-                for idx, _ in enumerate(value):
-                    return_keys.append(f"{key}_{idx}")
-            else:
-                raise NotImplementedError
-        return return_keys
+    return_keys = []
+    for key, value in input_dict.items():
+        if isinstance(value, int):
+            return_keys.append(value)
+        elif isinstance(value, list):
+            for idx, _ in enumerate(value):
+                return_keys.append(f"{key}_{idx}")
+        else:
+            raise NotImplementedError
+    return return_keys
 
 
 class HRNetw48(MMPose):

@@ -183,8 +183,7 @@ class Data:
                     f"config = {config_fps}!"
                 )
             return fps
-        else:
-            return config_fps
+        return config_fps
 
     def load_calibration(self, calibration_file, dataset_name, all_dataset_names):
         """
@@ -299,7 +298,7 @@ class Data:
 
         elif data_format == "frames":
             skip = 1 if not self.video_skip_frames else self.video_skip_frames
-            file_names = ["%05d.png" % x for x in range(start, end, skip)]
+            file_names = [f"{x:05d}.png" for x in range(start, end, skip)]
             for camera_name in camera_names:
                 inputs_list += [
                     os.path.join(self.data_folder, camera_name, "frames", n)
@@ -364,8 +363,9 @@ class Data:
                     [file for file in frames_list if camera_name in file]
                 )
                 self.frames_list.append(cam_frames)
-            self.frames_list = [frame.tolist()
-                                for frame in np.array(self.frames_list).T]
+            self.frames_list = [
+                frame.tolist() for frame in np.array(self.frames_list).T
+            ]
 
         else:
             logging.info(
@@ -569,7 +569,7 @@ class Data:
 
                     in_framename = input_frame_paths[input_frame_idx]
                     out_filename = os.path.join(
-                        data_folder, "frames", "%05d.png" % frame_idx
+                        data_folder, "frames", "{frame_idx:05d}.png"
                     )
 
                     if (iteration == 0) and (input_frame_idx != self.video_start):

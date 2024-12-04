@@ -75,10 +75,7 @@ def setup_logging(log_path: str, level=logging.DEBUG) -> None:
     logging.basicConfig(
         level=level,
         format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
-        handlers=[
-            logging.FileHandler(log_path),
-            logging.StreamHandler(sys.stdout),
-        ],
+        handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.stdout)],
     )
 
 

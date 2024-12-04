@@ -2,7 +2,7 @@
 
 This tutorial extends the previous tutorial on [including a dataset with a single camera view](tutorial1_dataset_single_view.md) to datasets with multiple camera views. As many of the steps are similar, this tutorial focuses on the instructions that are specific for multiple calibrated cameras and refers to the previous tutorial where possible.
 
-Probably, the main difference to the single camera case is that a multi-view capture setup requires time-synchronized and calibrated cameras. While we assume that syncronization and calibration of the cameras have been completed beforehand, we provide a calibration convertion tool for the NICE Toolbox. Instructions can be found in step [3. Create a multi-view calibration file](#3-create-a-multi-view-calibration-file).
+Probably, the main difference to the single camera case is that a multi-view capture setup requires time-synchronized and calibrated cameras. While we assume that synchronization and calibration of the cameras have been completed beforehand, we provide a calibration conversion tool for the NICE Toolbox. Instructions can be found in step [3. Create a multi-view calibration file](#3-create-a-multi-view-calibration-file).
 
 <br>
 
@@ -93,7 +93,7 @@ fps = 25                                                   # all cameras capture
 We assume that the cameras are time-synchronized and calibrated intrinsically and extrinsically.
 To create the `calibration.npz` file that the NICE Toolbox understands, we recommend using our calibration converter GUI.
 It can process calibration parameters from two formats:
-- **Camera Matrices:** This format stores intrinsic calibration parameters in a 3x3 "intrisic matrix K" and extrisic parameters in a 3x3 "rotation matrix R" and a 3 dimensional "translation vector t". Distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "d".
+- **Camera Matrices:** This format stores intrinsic calibration parameters in a 3x3 "intrinsic matrix K" and extrinsic parameters in a 3x3 "rotation matrix R" and a 3 dimensional "translation vector t". Distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "d".
 - **OpenCV:** The format that OpenCV's camera calibration routines output. The intrinsic or camera parameters are stored in a 3x3 matrix "mtx" and the extrinsic parameters are given as a 3 dimensional Rodrigues rotation vectors "rvec" and a 3 dimensional translation vectors "tvec". Again, distortion coefficients (k1, k2, p1, p2, k3) are saved in a 5 dimensional vector "dist".
 
 
@@ -113,7 +113,7 @@ python .\utils\calibration_gui\calibration_converter.py
 The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. Here, we show how to create a new file from scratch, given the dataset's directory path.
 
 1. On the top, select "Camera Matrices" or "OpenCV" as the calibration format, depending on your calibration data.
-2. To create a new file from your dataset's directory path, enter the absolut path to the dataset under "Dataset directory path" or press "Select" to find it on your machine. Press "Load". The GUI will now show the folder structure of your data directory with default values for all calibration parameters (click to enlarge):
+2. To create a new file from your dataset's directory path, enter the absolute path to the dataset under "Dataset directory path" or press "Select" to find it on your machine. Press "Load". The GUI will now show the folder structure of your data directory with default values for all calibration parameters (click to enlarge):
 [<img src="../graphics/tutorial2_calibration_converter_1.png" height="500">](../graphics/tutorial2_calibration_converter_1.png)
 [<img src="../graphics/tutorial2_calibration_converter_2.png" height="500">](../graphics/tutorial2_calibration_converter_2.png)
 

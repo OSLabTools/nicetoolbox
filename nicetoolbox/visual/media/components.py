@@ -108,12 +108,11 @@ class Component(ABC):
             return self.visualizer_config["media"][self.component_name]["appearance"][
                 "radii"
             ]["3d"]
-        elif type == "camera_view":
+        if type == "camera_view":
             return self.visualizer_config["media"][self.component_name]["appearance"][
                 "radii"
             ]["camera_view"]
-        else:
-            raise ValueError("Invalid type. Use either '3d' or 'camera_view'")
+        raise ValueError("Invalid type. Use either '3d' or 'camera_view'")
 
     @abstractmethod
     def _get_algorithms_labels(self):
@@ -441,7 +440,7 @@ class GazeIndividualComponent(Component):
         super().__init__(visualizer_config, io, logger, component_name)
         self.calib = calib
         # the camera_names and subject_names results will be read from first algorithm
-        ##we are getting camera names from landmarks_2d because 3d doesn't have any
+        # we are getting camera names from landmarks_2d because 3d doesn't have any
         # camera info
         self.camera_names = self.algorithms_results[0]["data_description"].item()[
             "landmarks_2d"
@@ -451,9 +450,9 @@ class GazeIndividualComponent(Component):
         ]["axis0"]  # axis0 gives subject info
         self.landmarks_2d = self.algorithms_results[0]["landmarks_2d"]
 
-        ## create subjects middle of face
+        # create subjects middle of face
         # 3d
-        self.eyes_middle_3d_data, cams = eyes_middle_3d_data
+        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
         # camera view
         # create the camera view -- middle of subjects' face point dictionary
         mean_face = np.nanmean(self.landmarks_2d.astype(float)[:, :, :, :4, :], axis=3)
@@ -497,9 +496,7 @@ class GazeIndividualComponent(Component):
             data = self.algorithms_results[alg_idx]["3d"]
 
             for cam_name in cameras_list:
-                cam_matrix, cam_distor, cam_rotation, cam_extrinsic = (
-                    vis_ut.get_cam_para_studio(self.calib, cam_name)
-                )
+                _, _, cam_rotation, _ = vis_ut.get_cam_para_studio(self.calib, cam_name)
 
                 # Check if self.calib[cam_name]['image_size'] is a list.
                 if isinstance(self.calib[cam_name]["image_size"][0], list):
@@ -646,9 +643,7 @@ class GazeIndividualComponent(Component):
                         )
                         # gaze interaction defines color
                         if self.look_at_data is not None:
-                            if (
-                                subject_idx + 1 < len(self.subject_names) - 1
-                            ):
+                            if subject_idx + 1 < len(self.subject_names) - 1:
                                 # look at subject either one forward or one backward in
                                 # index
                                 look_to_subject = self.subject_names[subject_idx + 1]
@@ -699,9 +694,7 @@ class GazeIndividualComponent(Component):
                             )
                             # gaze interaction defines color
                             if self.look_at_data is not None:
-                                if (
-                                    subject_idx + 1 < len(self.subject_names) - 1
-                                ):
+                                if subject_idx + 1 < len(self.subject_names) - 1:
                                     # look at subject either one forward or one
                                     # backward in index
                                     look_to_subject = self.subject_names[
@@ -756,10 +749,7 @@ class GazeInteractionComponent(Component):
             Tuple[np.ndarray, List[str]]: The look at data and the look at labels.
         """
         # read from first algorithm
-        if (
-            "gaze_look_at_3d"
-            in self.algorithms_results[0]["data_description"].item()
-        ):
+        if "gaze_look_at_3d" in self.algorithms_results[0]["data_description"].item():
             data_name = "gaze_look_at_3d"
         else:
             data_name = "gaze_look_at_2d"
@@ -831,7 +821,7 @@ class ProximityComponent(Component):
 
         # create subjects middle data
         # 3d
-        self.eyes_middle_3d_data, cams = eyes_middle_3d_data
+        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
         if self.eyes_middle_3d_data is not None:
             first_subject_eyes_middle_data = self.eyes_middle_3d_data[0, 0, :].mean(
                 axis=0
@@ -843,7 +833,7 @@ class ProximityComponent(Component):
                 first_subject_eyes_middle_data + second_subject_eyes_middle_data
             ) / 2
         # 2d - camera view
-        self.eyes_middle_2d_data, middle_eye_camera_names = eyes_middle_2d_data
+        self.eyes_middle_2d_data, _ = eyes_middle_2d_data
         # create camera view - middle point dictionary
         self.camera_view_middle_point_dict = {}
         for cam in self.camera_names:

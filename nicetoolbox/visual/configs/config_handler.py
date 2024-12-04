@@ -146,8 +146,8 @@ class Configuration:
 
     def check_calibration(self, calib, cam_name):
         if self.visualizer_config["media"]["visualize"]["camera_position"] is True:
-            cam_matrix, cam_distor, cam_rotation, cam_extrinsic = (
-                vis_ut.get_cam_para_studio(calib, cam_name)
+            _, _, cam_rotation, cam_extrinsic = vis_ut.get_cam_para_studio(
+                calib, cam_name
             )
             if (cam_rotation is None) | (cam_extrinsic is None):
                 assert ValueError(
@@ -169,7 +169,7 @@ class Configuration:
             raise ValueError(
                 "Visualizer_config 'start_frame' parameter cannot be negative."
             )
-        elif self.visualizer_config["media"]["visualize"]["start_frame"] > video_length:
+        if self.visualizer_config["media"]["visualize"]["start_frame"] > video_length:
             raise ValueError(
                 f"Visualizer_config 'start_frame' parameter cannot be greater than the "
                 f"video length. \nVideo length: {video_length} frames."
@@ -231,7 +231,8 @@ class Configuration:
                 removed_values = []
                 for value in values:
                     if "cam" in value and (
-                        value.strip("<>") not in self._get_camera_placeholders()):
+                        value.strip("<>") not in self._get_camera_placeholders()
+                    ):
                         removed_values.append(value)
                 if removed_values:
                     print(

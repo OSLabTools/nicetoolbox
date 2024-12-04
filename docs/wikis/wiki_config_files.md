@@ -49,7 +49,7 @@ Some examples:
 
 ## Machine specifics
 
-The dictionary stored in the `./machine_specific_paths.toml` file configures the paths that are specific to the machine used for running NICE Toolbox. This is the **only occurance of absolute paths** in the codebase. Therefore, this file is part of the repository's `.gitignore` file and needs to be created new on each machine. A template is available as `./machine_specific_paths_template.toml`, which can be duplicated and renamed.
+The dictionary stored in the `./machine_specific_paths.toml` file configures the paths that are specific to the machine used for running NICE Toolbox. This is the **only occurrence of absolute paths** in the codebase. Therefore, this file is part of the repository's `.gitignore` file and needs to be created new on each machine. A template is available as `./machine_specific_paths_template.toml`, which can be duplicated and renamed.
 
 ```toml
 datasets_folder_path = ''
@@ -123,7 +123,7 @@ data_selections = [
 - `data_selections` defines which data of the chosen dataset to run on (list of dict). Each dictionary of the form `{session_ID = "", ...}` selects one video snippet to run and defines a new experiment. Multiple such dictionaries, or experiments, in this list will run sequentially.
     - `session_ID` select the dataset's session (str), must match a session_ID defined in the [dataset's properties](#dataset-properties).
     - `sequence_ID` select the dataset's sequence, if applicable, may be an empty string (str, optional), must match a sequence_ID defined in the [dataset's properties](#dataset-properties).
-    - `video_start` starting point in frames, 0 for starting from beginnning of the video (int), must not exceed the total number of frames.
+    - `video_start` starting point in frames, 0 for starting from beginning of the video (int), must not exceed the total number of frames.
     - `video_length` number of frames to run, defines the length of the selected video (int), video_start + video_length must not exceed the total number of frames.
 
 Note: The [folder structures](../tutorials/tutorial1_dataset_single_view.md#folder-structure) of a dataset inside the NICE Toolbox are designed such that the session ID and, if applicable, the sequence ID of a given dataset clearly define one video (stored as a video file or frames) of the data. The keys video_start and video_length refer to this video.
@@ -219,7 +219,7 @@ fps = 30
 
 ## Detectors config
 
-Internally, there are two types of detetors: method and feature detectors. For both, the configurations are defined inside the `./nicetoolbox/detectors/configs/detectors_config.toml` file.
+Internally, there are two types of detectors: method and feature detectors. For both, the configurations are defined inside the `./nicetoolbox/detectors/configs/detectors_config.toml` file.
 
 
 ### Method detectors
@@ -285,7 +285,7 @@ video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
 multi_view = true                      # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                      # specify what will be visualized
 components = [..]                     # list of components
-camera_position = true                 # true if you want to visuailize camera position -- requires extrinsic information of the camera
+camera_position = true                 # true if you want to visualize camera position -- requires extrinsic information of the camera
 start_frame = 0                        # starting frame for the visualization
 end_frame = -1                         # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                 # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -305,7 +305,7 @@ For example, if you have multiple algorithms (e.g., hrnetw48 and vitpose in the 
 you can specify which algorithm’s results to show.
 If you want to see results from both algorithms, list both names.
 
-**Configuring Apearance**
+**Configuring Appearance**
 Under 'media.component.appearance', you can configure the color and radii (the size of the dots and lines).
 
 ```toml

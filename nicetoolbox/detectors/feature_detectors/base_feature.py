@@ -118,7 +118,7 @@ class BaseFeature(ABC):
     @abstractmethod
     def compute(self):
         """
-        Compute the components assiciated to the given feature detector.
+        Compute the components associated to the given feature detector.
 
         This method is responsible for performing the main computation logic of the
         feature detector. It should take the method detector output as input, process

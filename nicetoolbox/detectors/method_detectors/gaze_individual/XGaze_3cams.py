@@ -87,7 +87,7 @@ class XGaze3cams(BaseDetector):
             predictions_dict = {key: prediction[key] for key in prediction.files}
             data_description = predictions_dict["data_description"].item()
             results_3d = prediction["3d"]
-            ## Apply filter
+            # Apply filter
             logging.info("APPLYING filtering to Gaze Individual data...")
             results_3d_filtered = results_3d.copy()[:, :, :, None]
             filter = SGFilter(self.filter_window_length, self.filter_polyorder)
@@ -107,7 +107,7 @@ class XGaze3cams(BaseDetector):
         else:
             pass
 
-    def visualization(self, data):
+    def visualization(self, data):  # noqa: ARG002
         """
         Visualizes the processed frames of the xgaze3cams algorithm as a video for all
         cameras.
@@ -143,7 +143,7 @@ class XGaze3cams(BaseDetector):
             for idx, file in enumerate(frames_list):
                 image = cv2.imread(file)
                 cv2.imwrite(
-                    os.path.join(self.viz_folder, camera_name, "%05d.png" % idx), image
+                    os.path.join(self.viz_folder, camera_name, f"{idx:05d}.png"), image
                 )
 
             out_filename = os.path.join(self.viz_folder, f"output_{camera_name}.mp4")

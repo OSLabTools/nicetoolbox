@@ -150,7 +150,7 @@ class BaseDetector(ABC):
         # run in terminal/cmd
         if system.detect_os_type() == "windows":
             cmd_result = subprocess.run(
-                command, capture_output=True, text=True, shell=True
+                command, capture_output=True, text=True, shell=True, check=False
             )
         else:
             cmd_result = subprocess.run(
@@ -159,6 +159,7 @@ class BaseDetector(ABC):
                 text=True,
                 shell=True,
                 executable="/bin/bash",
+                check=False,
             )
 
         if cmd_result.returncode == 0:

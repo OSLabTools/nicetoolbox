@@ -1,5 +1,5 @@
 """
-Funcitons for handling configuration files.
+Functions for handling configuration files.
 """
 
 import copy
@@ -19,8 +19,7 @@ def default(obj):
     if type(obj).__module__ == np.__name__:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        else:
-            return obj.item()
+        return obj.item()
     raise TypeError("Unknown type:", type(obj))
 
 

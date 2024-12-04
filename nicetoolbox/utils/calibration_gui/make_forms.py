@@ -52,7 +52,7 @@ def walk_directory(directory):
     folders = [f.path for f in os.scandir(directory) if f.is_dir()]
     for folder in folders:
         if "oslab" in folder:
-            folders.remove(folder)
+            folders.remove(folder)  # noqa: B909
     return folders
 
 
@@ -189,7 +189,7 @@ def load_calibration_file(frame, entries):
         load_type = "toml"
     else:
         entries["message"].set(
-            f"Calibration file is not a.npz, .json, or .toml file and currently "\
+            f"Calibration file is not a.npz, .json, or .toml file and currently "
             f"not supported: '{calibration_file}'"
         )
         return

@@ -12,13 +12,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
 def visualize_mean_of_motion_magnitude_by_bodypart(
-    data,
-    bodyparts_list,
-    global_min,
-    global_max,
-    output_folder,
-    people_names=None,
-    camera_names=None,
+    data, bodyparts_list, output_folder, people_names=None, camera_names=None
 ) -> None:
     """
     Visualizes the mean of motion magnitude by body part across frames for multiple
@@ -28,8 +22,6 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
         data (ndarray): The input data array of shape
             (#persons, #cameras, #frames, #bodyparts(3)).
         bodyparts_list (list): The list of body parts to visualize.
-        global_min (float): The global minimum value for the y-axis.
-        global_max (float): The global maximum value for the y-axis.
         output_folder (str): The path to the output folder where the plots will be
             saved.
         people_names (list, optional): The list of names for each person.
@@ -43,7 +35,7 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
     num_people = len(data)
 
     for camera_idx in range(data.shape[1]):
-        fig, axs = plt.subplots(num_people, 1, figsize=(10, 15))
+        _, axs = plt.subplots(num_people, 1, figsize=(10, 15))
 
         # Ensure axs is a list in case num_people is 1
         if num_people == 1:
@@ -80,7 +72,12 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
 
 
 def frame_with_linegraph(
-    frame, data, categories, current_frame, global_min, global_max
+    frame,
+    data,
+    categories,
+    current_frame,
+    global_min,  # noqa: ARG001
+    global_max,  # noqa: ARG001
 ):
     """
     Combines a video frame with the plots for PersonL and PersonR up to the current

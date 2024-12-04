@@ -140,7 +140,7 @@ cd \path\to\nicetoolbox
 
 ## 5. Additional notes
 Please check [rerun privacy policies](https://www.rerun.io/privacy).
-Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environement in `env/` and then run:
+Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environment in `env/` and then run:
 ```bash
 rerun analytics config   ##to see current configuration
 rerun analytics disable

@@ -201,8 +201,10 @@ class Viewer:
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
             else:
-                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"\
-                f"{subject_name}"
+                entity_path = (
+                    f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"
+                    f"{subject_name}"
+                )
         elif component == "proximity":
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}"
@@ -268,11 +270,12 @@ class Viewer:
                 present.
         """
         if (self.visualizer_config["media"]["multi_view"] is False) and (
-            "3D_Canvas" in self.canvas_list):
-                raise ValueError(
-                    "ERROR: multi-view parameter in Visualizer_config set false,\n "
-                    "But 3D_Canvas found in components, canvas lists.\n"
-                    "If you don't have multiple cameras, delete 3D_Canvas in all "
-                    "canvases\nIf you have multiple cameras, change multi-view "
-                    "parameter as true\n"
-                )
+            "3D_Canvas" in self.canvas_list
+        ):
+            raise ValueError(
+                "ERROR: multi-view parameter in Visualizer_config set false,\n "
+                "But 3D_Canvas found in components, canvas lists.\n"
+                "If you don't have multiple cameras, delete 3D_Canvas in all "
+                "canvases\nIf you have multiple cameras, change multi-view "
+                "parameter as true\n"
+            )

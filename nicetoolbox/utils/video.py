@@ -105,8 +105,7 @@ def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> 
     """
     if skip_frames is None:
         return start_frame + (number - 1)
-    else:
-        return start_frame + (number - 1) * skip_frames
+    return start_frame + (number - 1) * skip_frames
 
 
 def split_into_frames(
@@ -172,7 +171,7 @@ def split_into_frames(
         old_idx = int(os.path.basename(file)[:5])
         if keep_indices:
             new_idx = sequential2frame_number(old_idx, start_frame, skip_frames)
-            new_filename = os.path.join(output_base, "%05d.png" % new_idx)
+            new_filename = os.path.join(output_base, f"{new_idx:05d}.png")
             if oslab_sys.detect_os_type() == "windows":
                 os.system(f"move {file} {new_filename}")
             else:
@@ -256,7 +255,7 @@ def equal_splits_by_frames(
 
     # remove the very last segment if it is shorter than the others
     if not keep_last_split and total_frames % frames_per_split != 0:
-            remove_last_segment_from_file(segments_list_file)
+        remove_last_segment_from_file(segments_list_file)
 
     # change to descriptive filenames
     # convert continuous file numbers to actual frame indices
@@ -374,5 +373,5 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> 
     else:
         command = f"ffmpeg -framerate {fps} -i {input_folder} {out_filename} -y"
 
-    output = subprocess.run(command, shell=True)
+    output = subprocess.run(command, shell=True, check=False)
     return output.returncode

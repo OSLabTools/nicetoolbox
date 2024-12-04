@@ -54,7 +54,8 @@ class BodyAngle(BaseFeature):
 
         # POSE
         joints_component, joints_algorithm = [
-            name for name in config["input_detector_names"]
+            name
+            for name in config["input_detector_names"]
             if any(["joints" in s for s in name])
         ][0]
         pose_config_folder = io.get_detector_output_folder(
@@ -80,10 +81,7 @@ class BodyAngle(BaseFeature):
         # leaning index
         for pair in self.used_keypoints:
             for keypoint in pair:
-                if (
-                    keypoint
-                    not in self.predictions_mapping["keypoints_index"]["body"]
-                ):
+                if keypoint not in self.predictions_mapping["keypoints_index"]["body"]:
                     logging.error(
                         f"Given used_keypoint could not find in "
                         f"predictions_mapping {keypoint}"

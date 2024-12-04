@@ -184,11 +184,10 @@ class IO:
         if token == "csv":
             os.makedirs(self.csv_folder, exist_ok=True)
             return self.csv_folder
-        else:
-            raise NotImplementedError(
-                f"IO return output folder: Token '{token}' unknown! "
-                f"Supported are 'tmp', 'output', 'main', 'csv'."
-            )
+        raise NotImplementedError(
+            f"IO return output folder: Token '{token}' unknown! "
+            f"Supported are 'tmp', 'output', 'main', 'csv'."
+        )
 
     def get_detector_output_folder(self, component, algorithm, token):
         """

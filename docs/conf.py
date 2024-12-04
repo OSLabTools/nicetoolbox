@@ -13,32 +13,32 @@ import sys
 
 import sphinx_rtd_theme
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'NICE Toolbox'
-copyright = '2024, oslab'
-author = 'oslab'
-release = '0.0.1'
+project = "NICE Toolbox"
+copyright = "2024, oslab"
+author = "oslab"
+release = "0.0.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     # Support for NumPy and Google style docstrings
-    'sphinx.ext.napoleon',
+    "sphinx.ext.napoleon",
     # Core Sphinx library for auto html doc generation from docstrings
-    'sphinx.ext.autodoc',
+    "sphinx.ext.autodoc",
     # Create neat summary tables for modules/classes/methods etc
-    'sphinx.ext.autosummary',
+    "sphinx.ext.autosummary",
     # Link to other project's documentation (see mapping below)
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.intersphinx",
     # Add a link to the Python source code for classes, functions etc.
-    'sphinx.ext.viewcode',
+    "sphinx.ext.viewcode",
     # Markdown support
-    'myst_parser',
+    "myst_parser",
     # to add video directly in the documentation
     "sphinxcontrib.video",
     # # Include todos in the documentation
@@ -48,9 +48,13 @@ extensions = [
 ]
 
 autodoc_mock_imports = [
-    "mmpose.apis", "mmpose", "data",
-    "torch", "torchvision", "face_alignment"
-    ] # fix for failing imports using sphinx.ext.autodoc
+    "mmpose.apis",
+    "mmpose",
+    "data",
+    "torch",
+    "torchvision",
+    "face_alignment",
+]  # fix for failing imports using sphinx.ext.autodoc
 
 # Turn on sphinx.ext.autosummary
 autosummary_generate = True
@@ -65,9 +69,8 @@ set_type_checking_flag = True
 # fix for missing cross-references for headings
 myst_heading_anchors = 7
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -82,9 +85,9 @@ html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 html_theme_options = {
-    'collapse_navigation': False,  # Set to False to prevent collapsing of submenus
-    'titles_only': False,          # If set to True, only titles are shown
+    "collapse_navigation": False,  # Set to False to prevent collapsing of submenus
+    "titles_only": False,  # If set to True, only titles are shown
 }
 
-html_static_path = ['_static']
-html_css_files = ["readthedocs-custom.css"] # Override some CSS settings
+html_static_path = ["_static"]
+html_css_files = ["readthedocs-custom.css"]  # Override some CSS settings

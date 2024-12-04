@@ -71,7 +71,8 @@ class GazeDistance(BaseFeature):
 
         # Extract gaze component and algorithm from the config
         gaze_component, gaze_algorithm = [
-            name for name in config["input_detector_names"]
+            name
+            for name in config["input_detector_names"]
             if any(["gaze" in s for s in name])
         ][0]
         gaze_out_folder = io.get_detector_output_folder(
@@ -257,12 +258,7 @@ class GazeDistance(BaseFeature):
             input_data = np.concatenate((distances, look_at, mutual), axis=-1)
             categories = ["distance_gaze_face", "gaze_look_at", "gaze_mutual"]
             kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
-                input_data,
-                categories,
-                global_min,
-                global_max,
-                self.viz_folder,
-                self.subjects_descr,
+                input_data, categories, self.viz_folder, self.subjects_descr
             )
             # kinematics_utils.create_video_evolving_linegraphs(
             #     self.gaze_detector_file_list[0], input_data, categories, global_min,

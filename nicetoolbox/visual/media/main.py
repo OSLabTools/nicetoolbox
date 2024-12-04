@@ -29,7 +29,7 @@ def main():
     loads calibration data, and initializes the viewer for visualizing the components.
     """
 
-    ############# CONFIGURATION - IO #############
+    # CONFIGURATION - IO
     visualizer_config_file = "nicetoolbox/visual/configs/visualizer_config.toml"
     machine_specifics_file = "machine_specific_paths.toml"
     config_handler = vis_cfg.Configuration(
@@ -43,7 +43,7 @@ def main():
         visualizer_config["video"], visualizer_config["media"]["dataset_name"]
     )
 
-    ### load calibration for the video
+    # load calibration for the video
     calibration_file = io.get_calibration_file(visualizer_config["video"])
     calib = vis_utils.load_calibration(
         calibration_file,
@@ -51,10 +51,10 @@ def main():
         camera_names=config_handler.get_camera_names(),
     )
 
-    ############## INITIALIZE VIEWER ############
+    # INITIALIZE VIEWER
     viewer = Viewer(visualizer_config)
 
-    ############## CHECK CONFIGURATION ###########
+    # CHECK CONFIGURATION
     all_cameras = list(calib.keys())
     config_handler.check_config()
     for cam in all_cameras:
@@ -62,7 +62,7 @@ def main():
     viewer.check_multiview()
     visualizer_config = config_handler.check_and_update_canvas()
 
-    ############# LOAD COMPONENTS DATA #############
+    # LOAD COMPONENTS DATA
     components = visualizer_config["media"]["visualize"]["components"]
     for component in components:
         if component not in os.listdir(io.get_experiment_video_folder()):
@@ -72,7 +72,7 @@ def main():
                 f"removing '{component}' from the components list in the "
                 "visualizer_config.toml file"
             )
-            components.remove(component)
+            components.remove(component)  # noqa: B909
 
     if "body_joints" in components:
         body_joints_component = BodyJointsComponent(
@@ -153,8 +153,8 @@ def main():
         kinematics_component,
     ]
 
-    ############## VISUALIZATION ###########
-    # # initialize rerun visualizer
+    # VISUALIZATION
+    # initialize rerun visualizer
     viewer.spawn()
     for camera in all_cameras:
         if viewer.get_is_camera_position():

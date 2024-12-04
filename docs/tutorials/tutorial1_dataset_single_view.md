@@ -26,7 +26,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
 For more information, see [machine-specific config](../getting_started.md#1-create-your-machine-specific-config).
 
-**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute pahts do not cause errors, they hinder collaboration and greatly decrease the readability of code.
+**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute paths do not cause errors, they hinder collaboration and greatly decrease the readability of code.
 Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./nicetoolbox/detectors/configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
 
 
@@ -197,7 +197,7 @@ videos = [
     {                           # define which data to run on
     session_ID = "",            # select the session_ID (str)
     sequence_ID="",             # select the sequence_ID (str, may be empty)
-    video_start = 0,            # start of the video in frames, 0 for starting from beginnning (int)
+    video_start = 0,            # start of the video in frames, 0 for starting from beginning (int)
     video_length = 100,         # number of frames to run, defines the length of the video (int)
     },
     ...

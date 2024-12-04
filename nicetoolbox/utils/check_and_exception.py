@@ -51,7 +51,7 @@ def check_options(object, object_type, options) -> None:
     """
     if not isinstance(object, object_type):
         raise TypeError(
-            f"Expected object of type {object_type.__name__}, "\
+            f"Expected object of type {object_type.__name__}, "
             f"got {type(object).__name__}"
         )
     if object not in options:
@@ -87,7 +87,7 @@ def check_value_bounds(
     """
     if object_type is not None and not isinstance(object, object_type):
         raise TypeError(
-            f"Expected object of type {object_type.__name__}, "\
+            f"Expected object of type {object_type.__name__}, "
             f"got {type(object).__name__}"
         )
     if object_min is not None and object < object_min:
@@ -96,7 +96,7 @@ def check_value_bounds(
         )
     if object_max is not None and object > object_max:
         raise ValueError(
-            f"Object value {object} is greater than the maximum allowed "\
+            f"Object value {object} is greater than the maximum allowed "
             f"value {object_max}"
         )
 
@@ -152,7 +152,7 @@ def check_user_input_config(config, check, config_name, var=None):
         The keys of 'check' must include the keys of 'config'.
         Syntax of the dict values:
             'type:<str/int/bool/...>': specifies the valid data type
-            'folder:<base/full>': requires existance of the folder (in case of 'full')
+            'folder:<base/full>': requires existence of the folder (in case of 'full')
                                   or parent-folder (in case of 'base')
             'file': requires that the file is existing on the system
             'keys:<toml_filepath>': valid options are all keys from the dict given
@@ -203,102 +203,97 @@ def check_user_input_config(config, check, config_name, var=None):
                 for tvalue in tval:
                     check_user_input_config({tkey: tvalue}, check, config_name, var)
 
-        else:
-            # go through all options for the check-value (cval)
-            if isinstance(cval, str):
-                # check whether there is a variable in the string to replace
-                if "_var_" in cval:
-                    if var is not None:
-                        cval = cval.replace("_var_", var)
-                    else:
-                        error_log_and_raise(
-                            LookupError,
-                            config_name,
-                            f"value '{cval}' requires the variable (_var_) "\
-                            "to be defined.",
-                        )
-
-                # type check
-                if cval.startswith("type"):
-                    check_type = cval.split(":")[1]
-                    if not isinstance(tval, __builtins__[check_type]):
-                        error_log_and_raise(
-                            TypeError,
-                            config_name,
-                            f"Key '{tkey}' requires value of type {check_type}. "\
-                            f"The given value is '{tval}'.",
-                        )
-
-                elif cval.startswith("folder"):
-                    folder_details = cval.split(":")[1]
-                    if folder_details == "base":
-                        folder = os.path.dirname(tval)
-                    elif folder_details == "full":
-                        folder = tval
-                    else:
-                        error_log_and_raise(
-                            ValueError,
-                            config_name,
-                            f"Unknown check value {folder_details}. "\
-                            "Options are 'base' or 'full'.",
-                        )
-
-                    if not os.path.isdir(folder):
-                        error_log_and_raise(
-                            NotADirectoryError,
-                            config_name,
-                            f"For key '{tkey}', the folder '{folder}' "\
-                            "is not a directory.",
-                        )
-
-                elif cval.startswith("file"):
-                    if not os.path.isfile(tval):
-                        error_log_and_raise(
-                            FileNotFoundError,
-                            config_name,
-                            f"For key {tkey}, the file '{tval}' is not found.",
-                        )
-
-                elif cval.startswith("keys"):
-                    keys = load_dict_keys_values(cval, config_name)
-                    check_user_input_config(
-                        {tkey: tval}, {tkey: keys}, config_name, var
-                    )
-
-                elif cval.startswith("values"):
-                    values = load_dict_keys_values(cval, config_name)
-                    check_user_input_config(
-                        {tkey: tval}, {tkey: values}, config_name, var
-                    )
-
-                elif cval.startswith("tbd"):
-                    logging.warning(
-                        f"{config_name}: For key '{tkey}', no check argument is "\
-                            "given. Skipping."
-                    )
-
+        # go through all options for the check-value (cval)
+        elif isinstance(cval, str):
+            # check whether there is a variable in the string to replace
+            if "_var_" in cval:
+                if var is not None:
+                    cval = cval.replace("_var_", var)
                 else:
                     error_log_and_raise(
-                        NotImplementedError,
+                        LookupError,
                         config_name,
-                        f"Check option '{cval.split(':')[0]}' is unknown. Currently "\
-                            "supported options in strings are 'type', 'folder', "\
-                            "'file', 'keys', 'tbd'.",
+                        f"value '{cval}' requires the variable (_var_) "
+                        "to be defined.",
                     )
 
-            # check given options
-            elif isinstance(cval, list):
-                if tval not in cval:
+            # type check
+            if cval.startswith("type"):
+                check_type = cval.split(":")[1]
+                if not isinstance(tval, __builtins__[check_type]):
                     error_log_and_raise(
-                        ValueError,
+                        TypeError,
                         config_name,
-                        f"Key '{tkey}' can take values {cval}. "\
+                        f"Key '{tkey}' requires value of type {check_type}. "
                         f"The given value is '{tval}'.",
                     )
 
-            # recursive strategy for dicts
-            elif isinstance(cval, dict):
-                check_user_input_config(tval, cval, config_name, var)
+            elif cval.startswith("folder"):
+                folder_details = cval.split(":")[1]
+                if folder_details == "base":
+                    folder = os.path.dirname(tval)
+                elif folder_details == "full":
+                    folder = tval
+                else:
+                    error_log_and_raise(
+                        ValueError,
+                        config_name,
+                        f"Unknown check value {folder_details}. "
+                        "Options are 'base' or 'full'.",
+                    )
+
+                if not os.path.isdir(folder):
+                    error_log_and_raise(
+                        NotADirectoryError,
+                        config_name,
+                        f"For key '{tkey}', the folder '{folder}' "
+                        "is not a directory.",
+                    )
+
+            elif cval.startswith("file"):
+                if not os.path.isfile(tval):
+                    error_log_and_raise(
+                        FileNotFoundError,
+                        config_name,
+                        f"For key {tkey}, the file '{tval}' is not found.",
+                    )
+
+            elif cval.startswith("keys"):
+                keys = load_dict_keys_values(cval, config_name)
+                check_user_input_config({tkey: tval}, {tkey: keys}, config_name, var)
+
+            elif cval.startswith("values"):
+                values = load_dict_keys_values(cval, config_name)
+                check_user_input_config({tkey: tval}, {tkey: values}, config_name, var)
+
+            elif cval.startswith("tbd"):
+                logging.warning(
+                    f"{config_name}: For key '{tkey}', no check argument is "
+                    "given. Skipping."
+                )
+
+            else:
+                error_log_and_raise(
+                    NotImplementedError,
+                    config_name,
+                    f"Check option '{cval.split(':')[0]}' is unknown. Currently "
+                    "supported options in strings are 'type', 'folder', "
+                    "'file', 'keys', 'tbd'.",
+                )
+
+        # check given options
+        elif isinstance(cval, list):
+            if tval not in cval:
+                error_log_and_raise(
+                    ValueError,
+                    config_name,
+                    f"Key '{tkey}' can take values {cval}. "
+                    f"The given value is '{tval}'.",
+                )
+
+        # recursive strategy for dicts
+        elif isinstance(cval, dict):
+            check_user_input_config(tval, cval, config_name, var)
 
 
 def load_dict_keys_values(command: str, config_name: str) -> list:
@@ -340,7 +335,7 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
         error_log_and_raise(
             NotImplementedError,
             config_name,
-            f"Check option '{token}:<>' currently only supports '.toml' files "\
+            f"Check option '{token}:<>' currently only supports '.toml' files "
             f"to retrieve keys. Given argument: '{file}'",
         )
 

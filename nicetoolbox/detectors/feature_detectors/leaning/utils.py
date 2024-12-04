@@ -81,7 +81,7 @@ def visualize_lean_in_out_per_person(
             f"Leaning Angle between Midpoint of Shoulders, Hips, and Knees "
             f"({person_list})"
         )
-        fig, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
+        _, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
         axes = axes.reshape(2, len(person_list))
 
         for i in range(len(person_list)):
