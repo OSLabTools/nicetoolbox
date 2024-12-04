@@ -32,7 +32,7 @@ It will open a window like this one:
 
 ## Visualizer config
 
-The visualizer config `./visual/configs/visualizer_config.toml` consists of three main part io, media, and component specifications. 
+The visualizer config `./visual/configs/visualizer_config.toml` consists of three main part io, media, and component specifications.
 
 ```toml
 [io]
@@ -95,7 +95,7 @@ algorithms = ['xgaze_3cams']            # list of algorithms
 colors = [[0,150, 90]]                  # define the color of individual gaze
 radii = {'3d'= 0.01, 'camera_view'= 4}  # define the size of gaze arrow in 3D_Canvas and camera views
 
-# Component: kinematics  - An example for Metrics Display 
+# Component: kinematics  - An example for Metrics Display
 [media.kinematics]
 algorithms = ['velocity_body']
 
@@ -118,18 +118,16 @@ velocity_body_3d = ["metric_velocity"] # if don't have multi-view, use velocity_
 
 
 ## Configuring rerun viewer and blueprint in rerun
-When Rerun is initiated, it automatically creates a heuristic view for the windows. 
+When Rerun is initiated, it automatically creates a heuristic view for the windows.
 You can manually change this by dragging the windows or adding new ones using the plus sign next to the Blueprint menu.
 
-![../graphics/rerun_blueprint.png](../graphics/rerun_blueprint.png)  
+![../graphics/rerun_blueprint.png](../graphics/rerun_blueprint.png)
 
-This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the 
-'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions. 
+This Blueprint can be saved using the 'Save blueprint...' menu option and reopened later using the
+'Open' option. Once you configure the Rerun viewer, it will use the same blueprint for future sessions.
 You can reset the layout by clicking 'Reset Blueprint.'
 
 ![../graphics/rerun_viewer.png](../graphics/rerun_viewer.png)
 
-If your new video does not have certain windows that the old dataset had, unused empty windows may appear. 
+If your new video does not have certain windows that the old dataset had, unused empty windows may appear.
 To get a fresh heuristic layout, reset the blueprint.
-
- 

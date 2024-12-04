@@ -1,7 +1,7 @@
 """
 Viewer module for visualizing the components.
 
-This module defines the Viewer class, which is responsible for visualizing the 
+This module defines the Viewer class, which is responsible for visualizing the
 components of the NICE toolbox.
 
 Classes:
@@ -50,7 +50,7 @@ class Viewer:
         Spawns a rerun application with the given app_id.
 
         Args:
-            app_id (str): The ID of the visualization application. Defaults to 
+            app_id (str): The ID of the visualization application. Defaults to
                 "NICE Toolbox Visualization".
         """
         rr.init(app_id, spawn=True)
@@ -92,7 +92,7 @@ class Viewer:
 
     def get_step(self) -> int:
         """
-        Returns the frame step size for visualization specified in the visualizer 
+        Returns the frame step size for visualization specified in the visualizer
         config.
 
         Only every step-th frame will be visualized.
@@ -159,7 +159,7 @@ class Viewer:
 
     def get_is_camera_position(self):
         """
-        Returns a boolean indicating whether to display the camera position in the 
+        Returns a boolean indicating whether to display the camera position in the
         viewer.
 
         Returns:
@@ -181,7 +181,7 @@ class Viewer:
 
         Args:
             component (str): The name of the component.
-            is_3d (bool, optional): Flag indicating if the component is 3D. 
+            is_3d (bool, optional): Flag indicating if the component is 3D.
                 Defaults to True.
             cam_name (str, optional): The name of the camera. Defaults to None.
             alg_name (str, optional): The name of the algorithm. Defaults to None.
@@ -264,7 +264,7 @@ class Viewer:
         Checks the consistency of the multi-view parameter in the visualizer config.
 
         Raises:
-            ValueError: If the multi-view parameter is set to False but a 3D canvas is 
+            ValueError: If the multi-view parameter is set to False but a 3D canvas is
                 present.
         """
         if (self.visualizer_config["media"]["multi_view"] is False) and (

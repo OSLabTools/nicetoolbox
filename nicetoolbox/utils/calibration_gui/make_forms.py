@@ -80,7 +80,7 @@ def load_dataset_directory(frame, entries):
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
@@ -139,7 +139,7 @@ def load_new_file(frame, entries):
     if fields is None:
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]
@@ -194,7 +194,7 @@ def load_calibration_file(frame, entries):
         )
         return
 
-    # delete current matrix variables as the folder structure of sessions and 
+    # delete current matrix variables as the folder structure of sessions and
     # cameras might change
     if "data" in list(entries.keys()):
         del entries["data"]

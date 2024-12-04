@@ -129,7 +129,7 @@ class Data:
 
     def get_venv_path(self, detector_name, env_name):
         """
-        Get the file path of the virtual environment for the given detector and 
+        Get the file path of the virtual environment for the given detector and
         environment name.
 
         Args:
@@ -167,7 +167,7 @@ class Data:
             config_fps (int): The desired fps specified in the configuration.
 
         Returns:
-            int: The fps of the input video files. If the input formats are not 'mp4' 
+            int: The fps of the input video files. If the input formats are not 'mp4'
                 or 'avi', the config_fps value is returned.
         """
         input_formats = self.get_input_format(self.all_camera_names)
@@ -190,7 +190,7 @@ class Data:
         """
         Load camera calibration from a file for a specific dataset.
 
-        Currently implemented for the datasets 'dyadic_communication' and 
+        Currently implemented for the datasets 'dyadic_communication' and
         'mpi_inf_3dhp'.
 
         Args:
@@ -201,7 +201,7 @@ class Data:
             dict: A dictionary containing the loaded camera calibration.
 
         Raises:
-            NotImplementedError: If loading camera calibration for the specified 
+            NotImplementedError: If loading camera calibration for the specified
             dataset is not implemented.
         """
         try:
@@ -239,7 +239,7 @@ class Data:
             str: The input format for the given camera names.
 
         Raises:
-            ValueError: If multiple or no valid input format is found in the data 
+            ValueError: If multiple or no valid input format is found in the data
             input folder.
         """
         example_input_folder = self.data_input_folder.replace(
@@ -317,7 +317,7 @@ class Data:
         2. Creates a list of all input files required to run NICE toolbox.
         3. Checks whether all required data files exist.
         4. Initializes data lists for frames, segments, and snippets.
-        5. If the data exists, extracts frame indices and organizes frames by camera 
+        5. If the data exists, extracts frame indices and organizes frames by camera
            name.
         6. If the data does not exist, creates the required data from video or frames.
         7. Logs the completion of data creation.
@@ -364,7 +364,7 @@ class Data:
                     [file for file in frames_list if camera_name in file]
                 )
                 self.frames_list.append(cam_frames)
-            self.frames_list = [frame.tolist() 
+            self.frames_list = [frame.tolist()
                                 for frame in np.array(self.frames_list).T]
 
         else:
@@ -384,11 +384,11 @@ class Data:
         """
         Create inputs from video files.
 
-        This method detects video input files, splits them into frames, and organizes 
+        This method detects video input files, splits them into frames, and organizes
         the frames into different data formats which are frames, segments, and snippets.
 
         Raises:
-            AssertionError: If the length of the frame indices list does not match 
+            AssertionError: If the length of the frame indices list does not match
                 the specified video length.
             AssertionError: If the frame indices of different cameras do not match.
         """
@@ -479,26 +479,26 @@ class Data:
         Processes frames and organizes them into specified data formats for further
         processing in the NICE pipeline.
 
-        This method iterates through all camera names, and for each camera, it performs 
+        This method iterates through all camera names, and for each camera, it performs
         the following operations based on the given data formats:
 
-        1. Frames: For each frame in the specified range, it checks if the frame exists 
-        in the input directory. If it does, the method creates a symbolic link in the 
+        1. Frames: For each frame in the specified range, it checks if the frame exists
+        in the input directory. If it does, the method creates a symbolic link in the
         output directory under a 'frames' subdirectory.
 
-        2. Segments: (Not Implemented) This part is intended to split the video into 
+        2. Segments: (Not Implemented) This part is intended to split the video into
         segments of a specified length based on the annotation interval.
 
-        3. Snippets: (Not Implemented) This part is intended to cut the video into 
+        3. Snippets: (Not Implemented) This part is intended to cut the video into
         snippets based on the specified start and length.
 
         Args:
-            input_format (str): The file format of the input frames 
+            input_format (str): The file format of the input frames
                 (e.g., 'jpg', 'png').
 
         Raises:
-            NotImplementedError: If the filename convention inferred from the first 
-            frame's filename does not apply to any frame or if the 'segments' or 
+            NotImplementedError: If the filename convention inferred from the first
+            frame's filename does not apply to any frame or if the 'segments' or
             'snippets' data formats are specified, as these are not implemented.
         """
         frames_list = []
@@ -518,13 +518,13 @@ class Data:
             if base_name.isdigit():
                 filename_template = f"%0{len(base_name)}d.{input_format}"
             elif base_name[0].isdigit() and base_name[: -len(chars)].isdigit():
-                # in case the filename starts with a digit and all letters are in 
+                # in case the filename starts with a digit and all letters are in
                 # the end
                 filename_template = (
                     f"%0{len(base_name[:-len(chars)])}d{chars}.{input_format}"
                 )
             elif not base_name[0].isdigit() and base_name[len(chars) :].isdigit():
-                # in case the filename starts with a letter and all digits are in 
+                # in case the filename starts with a letter and all digits are in
                 # the end
                 filename_template = (
                     f"{chars}%0{len(base_name[len(chars):])}d.{input_format}"

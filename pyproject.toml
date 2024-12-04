@@ -39,7 +39,7 @@ exclude = ['./nicetoolbox/detectors/third_party/**']
 docstring-code-format = true
 # Format all docstring code snippets with a line length of 88.
 docstring-code-line-length = 88
-# Existing trailing commas are used as an indication that short lines should be left separate. 
+# Existing trailing commas are used as an indication that short lines should be left separate.
 # Set to true, to ignore the magic trailing comma.
 skip-magic-trailing-comma = true
 

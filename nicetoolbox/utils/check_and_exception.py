@@ -34,7 +34,7 @@ def check_token_in_filepath(folder_name: str, token: str, description: str) -> N
 
 def check_options(object, object_type, options) -> None:
     """
-    Check if an object is of a specific type and if it is within a given 
+    Check if an object is of a specific type and if it is within a given
     list of options.
 
     Args:
@@ -69,17 +69,17 @@ def check_value_bounds(
     Args:
         object (any): The object to be checked.
         object_type (type, optional): The expected type of the object. Defaults to None.
-        object_min (any, optional): The minimum value allowed for the object. 
+        object_min (any, optional): The minimum value allowed for the object.
             Defaults to None.
-        object_max (any, optional): The maximum value allowed for the object. 
+        object_max (any, optional): The maximum value allowed for the object.
             Defaults to None.
 
     Raises:
-        TypeError: If the object is not of the expected type (if object_type is 
+        TypeError: If the object is not of the expected type (if object_type is
             provided).
-        ValueError: If the object's value is less than object_min (if object_min 
+        ValueError: If the object's value is less than object_min (if object_min
             is provided).
-                If the object's value is greater than object_max (if object_max 
+                If the object's value is greater than object_max (if object_max
                 is provided).
 
     Returns:
@@ -152,10 +152,10 @@ def check_user_input_config(config, check, config_name, var=None):
         The keys of 'check' must include the keys of 'config'.
         Syntax of the dict values:
             'type:<str/int/bool/...>': specifies the valid data type
-            'folder:<base/full>': requires existance of the folder (in case of 'full') 
+            'folder:<base/full>': requires existance of the folder (in case of 'full')
                                   or parent-folder (in case of 'base')
             'file': requires that the file is existing on the system
-            'keys:<toml_filepath>': valid options are all keys from the dict given 
+            'keys:<toml_filepath>': valid options are all keys from the dict given
                                     by the toml_filepath
             'tbd': not yet defined in the template dict 'check',
                    will write a warning to log
@@ -178,7 +178,7 @@ def check_user_input_config(config, check, config_name, var=None):
             var = tkey
             cval = check["_var_"]
 
-        # if not, the validity criterion for its value(s) needs to be defined in the 
+        # if not, the validity criterion for its value(s) needs to be defined in the
         # check dictionary
         elif tkey not in check:
             error_log_and_raise(
@@ -188,7 +188,7 @@ def check_user_input_config(config, check, config_name, var=None):
             )
             break
 
-        # if key is no variable and validity criterion for its value is given, use 
+        # if key is no variable and validity criterion for its value is given, use
         # this for checks
         else:
             cval = check[tkey]
@@ -309,7 +309,7 @@ def load_dict_keys_values(command: str, config_name: str) -> list:
         command (str): A string in the format 'token:file:key(s)' or 'token:file'.
             'token' should be either 'keys' or 'values'.
             'file' is the path to the .toml file.
-            'key(s)' is an optional parameter specifying the nested keys in the 
+            'key(s)' is an optional parameter specifying the nested keys in the
                 .toml file.
         config_name (str): The name of the configuration for error logging.
 
@@ -355,7 +355,7 @@ def check_zeros(arr: np.ndarray) -> None:
         arr (ndarray): The input array.
 
     Raises
-        AssertionError: If there are any zero vectors found in the last 
+        AssertionError: If there are any zero vectors found in the last
         dimension of the array.
 
     Examples

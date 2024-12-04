@@ -1,7 +1,7 @@
 """
 XGaze3cams method detector class.
 
-This code is by XuCong taken from 
+This code is by XuCong taken from
 /ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
 """
 
@@ -20,7 +20,7 @@ from ..filters import SGFilter
 
 class XGaze3cams(BaseDetector):
     """
-    The XGaze3cams class is a method detector that computes the gaze_individual 
+    The XGaze3cams class is a method detector that computes the gaze_individual
     component.
 
     The method detector computes the gaze of individuals in the scene using multiple
@@ -31,9 +31,9 @@ class XGaze3cams(BaseDetector):
 
     Attributes:
         components (list): A list containing the name of the component: gaze_individual.
-        algorithm (str): The name of the algorithm used to compute the gaze_individual 
+        algorithm (str): The name of the algorithm used to compute the gaze_individual
             component.
-        camera_names (list): A list of camera names used to capture the original input 
+        camera_names (list): A list of camera names used to capture the original input
             data.
     """
 
@@ -42,11 +42,11 @@ class XGaze3cams(BaseDetector):
 
     def __init__(self, config, io, data) -> None:
         """
-        Initialize the XGaze3cams method detector with all inference preparations 
+        Initialize the XGaze3cams method detector with all inference preparations
         completed.
 
         Args:
-            config (dict): A dictionary containing the configuration settings for 
+            config (dict): A dictionary containing the configuration settings for
                 the method detector.
             io (class): An instance of the IO class for input-output operations.
             data (class): An instance of the Data class for accessing data.
@@ -78,7 +78,7 @@ class XGaze3cams(BaseDetector):
         """
         Post-processing after inference.
 
-        This method is called after the inference step and is used for any 
+        This method is called after the inference step and is used for any
         post-processing tasks that need to be performed.
         """
         if self.filtered:
@@ -109,18 +109,18 @@ class XGaze3cams(BaseDetector):
 
     def visualization(self, data):
         """
-        Visualizes the processed frames of the xgaze3cams algorithm as a video for all 
+        Visualizes the processed frames of the xgaze3cams algorithm as a video for all
         cameras.
 
-        This function reads the processed frames from each camera, checks if all 
-        frames are present, and verifies that the number of frames per camera is 
+        This function reads the processed frames from each camera, checks if all
+        frames are present, and verifies that the number of frames per camera is
         consistent. It then creates a video for each camera using the processed frames.
 
         Returns:
             None
 
         Raises:
-            AssertionError: If no frames are found for at least one camera or if the 
+            AssertionError: If no frames are found for at least one camera or if the
             number of frames per camera is not consistent.
         """
         frames_lists = [

@@ -11,7 +11,7 @@ from ...utils.config import save_config
 
 class BaseFeature(ABC):
     """
-    Abstract class to setup and run follow-up computations, called features detectors. 
+    Abstract class to setup and run follow-up computations, called features detectors.
     Input is always the output of any method detector.
 
     Attributes:
@@ -28,7 +28,7 @@ class BaseFeature(ABC):
         """
         Sets up the input and output folders based on the provided configurations
         and handles any necessary file checks. Input folders contain the the results
-        of the method detectors. Saves a copy of the configuration file for the feature 
+        of the method detectors. Saves a copy of the configuration file for the feature
         detector.
 
         Args:
@@ -106,7 +106,7 @@ class BaseFeature(ABC):
         Returns a description of the feature detector for printing.
 
         Returns:
-            str: A string representation of the feature detector, including its 
+            str: A string representation of the feature detector, including its
                 components, and the associated algorithm.
         """
         return (
@@ -120,8 +120,8 @@ class BaseFeature(ABC):
         """
         Compute the components assiciated to the given feature detector.
 
-        This method is responsible for performing the main computation logic of the 
-        feature detector. It should take the method detector output as input, process 
+        This method is responsible for performing the main computation logic of the
+        feature detector. It should take the method detector output as input, process
         it, and generate the desired components.
         """
         pass
@@ -144,11 +144,11 @@ class BaseFeature(ABC):
         """
         Abstract property that returns the components of the feature.
 
-        This property should be implemented in the derived classes to specify the 
+        This property should be implemented in the derived classes to specify the
         components that the feature detector is associated with.
 
         Returns:
-            list: A list of strings representing the components associated with the 
+            list: A list of strings representing the components associated with the
                 feature detector.
 
         Raises:
@@ -162,11 +162,11 @@ class BaseFeature(ABC):
         """
         Abstract property that returns the algorithm of the feature detector.
 
-        This property should be implemented in the derived classes to specify the 
+        This property should be implemented in the derived classes to specify the
         algorithm that the feature detector is associated with.
 
         Returns:
-            str: A string representing the algorithm associated with the feature 
+            str: A string representing the algorithm associated with the feature
                 detector.
 
         Raises:
@@ -179,19 +179,19 @@ class BaseFeature(ABC):
         """
         Abstract method to visualize the output of the method, preferably as a video.
 
-        This method is intended to generate a visual representation of the feature 
+        This method is intended to generate a visual representation of the feature
         detector's output. The visualization should be saved in the self.viz_folder.
 
         Args:
-            data (any): The data to be visualized. The type and content of this 
+            data (any): The data to be visualized. The type and content of this
                 parameter depend on the specific implementation of the feature detector.
 
         Returns:
-            None: This method does not return any value. However, it should save the 
+            None: This method does not return any value. However, it should save the
                 visualization in the self.viz_folder.
 
         Raises:
-            NotImplementedError: If this method is not implemented in the derived 
+            NotImplementedError: If this method is not implemented in the derived
                 classes.
         """
         pass

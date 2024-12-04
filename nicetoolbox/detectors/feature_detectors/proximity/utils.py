@@ -15,14 +15,14 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
     """
     Visualizes the proximity score for a given data array and saves the plots as images.
 
-    Images are created for each camera. If the number of keypoints is greater than 1, 
+    Images are created for each camera. If the number of keypoints is greater than 1,
     the proximity score is visualized for the center of the selected keypoints.
 
     Args:
         data (numpy.ndarray): The data array containing proximity scores.
-        output_folder (str): The path to the output folder where the images will be 
+        output_folder (str): The path to the output folder where the images will be
             saved.
-        keypoint (str or list): The name(s) of the keypoint(s) used for calculating 
+        keypoint (str or list): The name(s) of the keypoint(s) used for calculating
             proximity scores.
         camera_names (list, optional): The names of the cameras. Defaults to None.
 
@@ -32,7 +32,7 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
     for camera_idx in range(data.shape[1]):
         plt.clf()
         plt.figure(figsize=(10, 5))
-        # Plot the distances for the average coordinates of the selected keypoints 
+        # Plot the distances for the average coordinates of the selected keypoints
         # across all frames
         plt.plot(data[0, camera_idx])
         plt.xlabel("Frame Index")
@@ -61,7 +61,7 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
 
 def frame_with_linegraph(frame, data, current_frame, global_min, global_max):
     """
-    Combines a video frame with line graphs representing proximity scores up to the 
+    Combines a video frame with line graphs representing proximity scores up to the
     current frame.
 
     Args:

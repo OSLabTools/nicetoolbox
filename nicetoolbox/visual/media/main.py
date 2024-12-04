@@ -25,7 +25,7 @@ def main():
     """
     Main function to run the visualizer.
 
-    This function sets up the configuration, initializes the input/output handlers, 
+    This function sets up the configuration, initializes the input/output handlers,
     loads calibration data, and initializes the viewer for visualizing the components.
     """
 

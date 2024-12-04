@@ -9,4 +9,4 @@ datasets_folder_path = ''
 output_folder_path = ''
 
 # Where to find your conda (miniconda or anaconda) installation as absolute path (str)
-conda_path = ''          
+conda_path = ''

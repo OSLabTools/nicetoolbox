@@ -17,9 +17,9 @@ class BodyAngle(BaseFeature):
     The BodyAngle class is a feature detector that computes the leaning component.
 
     The BodyAngle feature detector accepts the body_joints component as input, which is
-    computed using the human_pose method detector. The leaning component of this 
-    feature detector calculates the angle between the midpoints of specified keypoint 
-    pairs on the body. The feature detector outputs the angle and its gradient with 
+    computed using the human_pose method detector. The leaning component of this
+    feature detector calculates the angle between the midpoints of specified keypoint
+    pairs on the body. The feature detector outputs the angle and its gradient with
     respect to the frames/time.
 
     Component: leaning
@@ -40,9 +40,9 @@ class BodyAngle(BaseFeature):
         """
         Setup input/output folders and data for the BodyAngle feature detector.
 
-        This method initializes the BodyAngle class by setting up the necessary 
-        configurations, input/output handler, and data. It extracts the body_joints 
-        component and prepares the used keypoints and keypoint indices given the 
+        This method initializes the BodyAngle class by setting up the necessary
+        configurations, input/output handler, and data. It extracts the body_joints
+        component and prepares the used keypoints and keypoint indices given the
         predictions mapping.
 
         Args:
@@ -54,7 +54,7 @@ class BodyAngle(BaseFeature):
 
         # POSE
         joints_component, joints_algorithm = [
-            name for name in config["input_detector_names"] 
+            name for name in config["input_detector_names"]
             if any(["joints" in s for s in name])
         ][0]
         pose_config_folder = io.get_detector_output_folder(
@@ -71,9 +71,9 @@ class BodyAngle(BaseFeature):
 
         # will be used during visualizations
         # viz_camera_name = config['viz_camera_name'].strip('<').strip('>')
-        # self.frames_data = os.path.join(pose_config['input_data_folder'], 
+        # self.frames_data = os.path.join(pose_config['input_data_folder'],
         #   data.camera_mapping[viz_camera_name])
-        # self.frames_data_list = [os.path.join(self.frames_data, f) 
+        # self.frames_data_list = [os.path.join(self.frames_data, f)
         #   for f in sorted(os.listdir(self.frames_data))]
         self.used_keypoints = config["used_keypoints"]
 
@@ -103,19 +103,19 @@ class BodyAngle(BaseFeature):
         """
         Computes the leaning component.
 
-        This method calculates the Euclidean distance between the keypoints of personL 
+        This method calculates the Euclidean distance between the keypoints of personL
         and personR. It first calculates the midpoint of each pair of keypoints, then
-        computes the angle between these midpoints. The leaning angle is calculated for 
+        computes the angle between these midpoints. The leaning angle is calculated for
         each frame, and its gradient with respect to time is computed as well.
 
         The results are saved in a numpy .npz file with the following structure:
         - body_angle_2d: A numpy array containing the leaning angle for 2D data.
         - body_angle_3d: A numpy array containing the leaning angle for 3D data.
-        - data_description: A dictionary containing the data description for the above 
+        - data_description: A dictionary containing the data description for the above
             output numpy arrays. See the documentation of the output for more details.
 
         Returns:
-            out_dict (dict): A dictionary containing the leaning angle and its gradient 
+            out_dict (dict): A dictionary containing the leaning angle and its gradient
                 for each dimension (2D and 3D).
 
         """
@@ -165,13 +165,13 @@ class BodyAngle(BaseFeature):
         """
         Creates visualizations for the computed leaning component.
 
-        This method takes the output dictionary of the compute method, extracts the 2D 
-        and 3D body angle data, and calls the visualization utility to create 
+        This method takes the output dictionary of the compute method, extracts the 2D
+        and 3D body angle data, and calls the visualization utility to create
         visualizations for each dimension.
 
         Args:
         out_dict (dict): The output dictionary from the compute method. It contains the
-            calculated leaning angles and their gradients for each dimension 
+            calculated leaning angles and their gradients for each dimension
             (2D and 3D).
 
         Returns:

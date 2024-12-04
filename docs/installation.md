@@ -59,33 +59,33 @@ If you installed Conda through Anaconda, you can switch to the free conda-forge 
 # check what is currently set
 conda config --show channels
 
-# remove all channels other than conda-forge 
+# remove all channels other than conda-forge
 conda config --remove channels defaults
 
 # add conda-forge if not already present
 conda config --add channels conda-forge
-``` 
+```
 
 
 > [!IMPORTANT]
-> During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter. 
+> During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter.
 This is because the Nice Toolbox requires **Python version 3.10** to be set as the default.
 >![miniforge_default_python.png](graphics/miniforge_default_python.png)
 >
 >Selecting this option during installation may result in errors or conflicts, as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
 
 
-### Cuda 11.8 
+### Cuda 11.8
 Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and [Linux Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
 ### FFmpeg
 On Linux Ubuntu, please find detailed instructions [here](https://phoenixnap.com/kb/install-ffmpeg-ubuntu).
 
 On Windows, you can follow [phoenixnap.com](https://phoenixnap.com/kb/ffmpeg-windows):
-1. Visit the official [FFmpeg website](https://ffmpeg.org/download.html) to get the latest version 
-of the FFmpeg package and binary files. 
+1. Visit the official [FFmpeg website](https://ffmpeg.org/download.html) to get the latest version
+of the FFmpeg package and binary files.
 2. Hover over the Windows icon with your mouse and click on 'Windows builds from gyan.dev'
-3. This redirects you to a page having FFmpeg binaries. Install the latest git master branch build, 
+3. This redirects you to a page having FFmpeg binaries. Install the latest git master branch build,
 e.g., ffmpeg-git-essentials.7z.
 4. Extract the downloaded files and rename the extracted folder as ffmpeg.
 5. Move the folder to the root of the C drive or the folder of your choice.
@@ -105,15 +105,15 @@ This can be done by going to `Settings` > `Updates & Security` > `For Developers
 
 ## 4. Install the necessary libraries
 
-Installation scripts are provided for Linux and Windows under `nicetoolbox/installation/install_all.sh` and `nicetoolbox/installation/install_all.bat`. They presume that Conda, CUDA 11.8, and Python 3.10 are already installed on your system. 
-Both will do the following: 
+Installation scripts are provided for Linux and Windows under `nicetoolbox/installation/install_all.sh` and `nicetoolbox/installation/install_all.bat`. They presume that Conda, CUDA 11.8, and Python 3.10 are already installed on your system.
+Both will do the following:
 1. Setup venv environment for Nice Toolbox
 3. Setup venv environment for Gaze Detector
 2. Setup conda environment for Openmmlab (pose detector)
 
 
 **Notes:**
-Conda is needed for the openmmlab installation (a pose detector). 
+Conda is needed for the openmmlab installation (a pose detector).
 And if you wish to use different versions of Python and CUDA, you can modify the corresponding lines in the installation files.
 
 
@@ -126,7 +126,7 @@ chmod +x ./installation/install_all.sh  # to add executable permission to the sc
 ./installation/install_all.sh           # to install all necessary libraries
 ```
 
-### On Windows 
+### On Windows
 Open a command line and navigate to the directory of the repository and install the toolbox:
 
 ```bash
@@ -140,10 +140,10 @@ cd \path\to\nicetoolbox
 
 ## 5. Additional notes
 Please check [rerun privacy policies](https://www.rerun.io/privacy).
-Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environement in `env/` and then run: 
+Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environement in `env/` and then run:
 ```bash
 rerun analytics config   ##to see current configuration
-rerun analytics disable 
+rerun analytics disable
 rerun analytics config   ## to check if the change is applied
 ```
 More information can be found [here](https://github.com/rerun-io/rerun/blob/main/crates/re_analytics/README.md).

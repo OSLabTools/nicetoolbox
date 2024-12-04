@@ -71,7 +71,7 @@ def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):
 
 
 def vector_to_pitchyaw(vector):
-    # Convert given gaze vectors to yaw (:math:`\theta`) and pitch (:math:`\phi`) 
+    # Convert given gaze vectors to yaw (:math:`\theta`) and pitch (:math:`\phi`)
     # angles.Ensure vectors are in the shape (num_frames, 3)
     assert vector.shape[1] == 3, "Input vectors must have shape (num_vectors, 3)"
 
