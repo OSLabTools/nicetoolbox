@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 # Ensure all scripts are executable
 chmod +x ./installation/install_nicetoolbox_venv.sh
 chmod +x ./installation/install_xgaze_venv.sh
+chmod +x ./installation/install_pyfeat_venv.sh
 chmod +x ./installation/install_openmmlab_conda.sh
 
 echo "Setting up Nice Toolbox environment..."
@@ -15,5 +16,8 @@ echo "Setting up XGaze environment..."
 
 echo "Setting up OpenMMlab conda environment..."
 ./installation/install_openmmlab_conda.sh
+
+echo "Setting up Py-Feat environment..."
+./installation/install_pyfeat_venv.sh
 
 echo "All environments have been set up."

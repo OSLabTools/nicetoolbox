@@ -29,5 +29,13 @@ if errorlevel 1 (
     exit /b %errorlevel%
 )
 
+:: Call the fourth batch file
+echo Calling install_pyfeat_venv.bat...
+call .\installation\install_pyfeat_venv.bat
+if errorlevel 1 (
+    echo install_pyfeat_venv.bat encountered an error. Exiting...
+    exit /b %errorlevel%
+)
+
 echo All installation scripts completed successfully.
 pause
