@@ -67,3 +67,12 @@ camera_names = ["3d"]
 input_detector_names = [["gaze_individual", "xgaze_3cams"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"
 threshold_look_at = 0.4
+
+# emotion_individual
+[algorithms.py_feat]
+input_data_format = "frames"
+camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
+env_name = "venv:py_feat"
+# shape_predictor_filename = "<assets>/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
+log_frame_idx_interval = 10
+batch_size = 10
