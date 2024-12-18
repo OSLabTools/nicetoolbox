@@ -8,9 +8,8 @@ python -m venv ./envs/py_feat
 echo Activate virtual environment --
 call ./envs/py_feat/Scripts/activate
 
-echo Install py-feat and pytorch with cu118
+echo Install pytorch with cu118
 python -m pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
-python -m pip install py-feat
 
 echo install the requirements
 python -m pip install -r ./nicetoolbox/detectors/third_party/py_feat/requirements.txt

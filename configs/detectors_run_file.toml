@@ -17,11 +17,12 @@ face_landmarks = ['hrnetw48']
 kinematics = ['velocity_body']
 proximity = ['body_distance']
 leaning = ['body_angle']
+emotion_individual = ['py_feat']
 
 # define which data to run on
 [run]
 [run.communication_multiview]
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning", "emotion_individual"]
 videos = [
    {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]
