@@ -34,9 +34,9 @@ def entries2matrix(entries):
             mat[i] = np.array([var.get() for var in row])
 
         if name == "name":
-            matrix_dict[name] = mat.astype(str)
+            matrix_dict[name] = " ".join(mat.flatten().astype(str))
         elif name == "size":
-            matrix_dict[name] = mat.astype(int)
+            matrix_dict[name] = mat.flatten().astype(int).tolist()
         else:
             matrix_dict[name] = mat.astype(float)
     return matrix_dict

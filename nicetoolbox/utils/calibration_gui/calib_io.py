@@ -10,8 +10,8 @@ def get_calibration_dict(matrix_dict):
         calibration_dict.update(
             {
                 camera_name: dict(
-                    camera_name=camera_dict["name"].tolist(),
-                    image_size=camera_dict["size"].tolist(),
+                    camera_name=camera_dict["name"],
+                    image_size=camera_dict["size"],
                     intrinsic_matrix=camera_dict["K"],
                     distortions=camera_dict["d"].squeeze(),
                     rotation_matrix=camera_dict["R"],
