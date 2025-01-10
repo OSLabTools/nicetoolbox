@@ -1,7 +1,6 @@
 .vscode/
 .idea/
 .ruff_cache/
-__pycache__
 **/__pycache__
 **.egg-info
 
@@ -13,6 +12,9 @@ builds/
 output/
 artifacts/
 
+**/builds/
+**/build/
+**/output/
 **/assets/
 **/envs/
 **/env/

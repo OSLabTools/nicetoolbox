@@ -11,14 +11,13 @@ version = "0.0.1"
 
 dependencies = [
     "GitPython==3.1.35",
-    "matplotlib==3.7.2",
+    "matplotlib",
     "numpy==1.24.3",
     "opencv-python==4.8.0.76",
     "pandas==2.1.0",
     "pathlib",
-    "plotly==5.16.1",
+    "plotly",
     "pympi-ling==1.70.2",
-    "pytest==7.4.1",
     "pyyaml==6.0.1",
     "rerun-sdk==0.17.0",
     "scikit-image==0.21.0",
@@ -30,14 +29,14 @@ dev = [
     "codespell==2.2.4",
     "myst_parser==3.0.1",
     # "mypy"  Yes/No?
-    "pillow==8.4.0",
+    "pillow",
     "pytest==7.4.1",
     "pre-commit==4.0.1",
     "ruff==0.8.0",
     "sphinx==7.0.0",
     "sphinx-rtd-theme==2.0.0",
     "sphinxcontrib-video==0.3.1",
-    "tox==3.24.4",
+    "tox",
 ]
 eval = [
     "icecream",
@@ -45,12 +44,12 @@ eval = [
     "scipy==1.11.2",
     "torchmetrics",
 ]
-visualization = [
-    "matplotlib==3.7.2",
-    "plotly==5.16.1",
-    "seaborn==0.11.2",
+visual = [
+    "matplotlib",
+    "plotly",
+    "seaborn",
     "streamlit",
-    "tueplots==0.0.15",
+    "tueplots",
 ]
 
 [project.scripts]
