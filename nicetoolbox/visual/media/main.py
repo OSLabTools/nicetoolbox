@@ -187,7 +187,7 @@ def entry_point():
     """Entry point for running NICE toolbox rerun visualizations."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--eval_config",
+        "--visual_config",
         default="configs/visualizer_config.toml",
         type=str,
         required=False,
@@ -200,4 +200,4 @@ def entry_point():
     )
     args = parser.parse_args()
 
-    main(args.run_config, args.machine_specifics)
+    main(args.visual_config, args.machine_specifics)
