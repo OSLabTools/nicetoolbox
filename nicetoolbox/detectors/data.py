@@ -669,12 +669,14 @@ class Data:
                     logging.error("Unknown os type in create_symlink_input_folder")
 
                 try:
-                    os.symlink(
-                        source_file,
-                        os.path.join(
-                            data_folder, cam_name, os.path.basename(source_file)
-                        ),
+                    source_file_abs_path = os.path.abspath(source_file)
+                    data_folder_abs_path = os.path.abspath(data_folder)
+                    target_abs_path = os.path.join(
+                        data_folder_abs_path, 
+                        cam_name, 
+                        os.path.basename(source_file)
                     )
+                    os.symlink(source_file_abs_path, target_abs_path)
                 except OSError as e:
                     logging.error(f"Error creating symlink: {e}")
 
