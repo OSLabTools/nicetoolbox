@@ -569,7 +569,7 @@ class Data:
 
                     in_framename = input_frame_paths[input_frame_idx]
                     out_filename = os.path.join(
-                        data_folder, "frames", "{frame_idx:05d}.png"
+                        data_folder, "frames", f"{frame_idx:05d}.png"
                     )
 
                     if (iteration == 0) and (input_frame_idx != self.video_start):
