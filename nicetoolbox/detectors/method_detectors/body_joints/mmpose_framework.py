@@ -15,7 +15,7 @@ from ....utils import triangulation as tri
 from ... import config_handler as confh
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
-from . import utils
+from . import pose_utils
 
 
 class MMPose(BaseDetector):
@@ -262,7 +262,7 @@ class MMPose(BaseDetector):
             # Applying the mask to set the first and second values of num_estimates
             # to NaN where the confidence is low
             results_2d_interpolated[low_confidence_mask, 0:2] = np.nan
-            results_2d_interpolated = utils.interpolate_data(
+            results_2d_interpolated = pose_utils.interpolate_data(
                 results_2d_interpolated, is_3d=False
             )
 

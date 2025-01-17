@@ -82,9 +82,17 @@ TODO -- check if it creates any security risk (windows gives a warning about) an
 Before cloning the repository, ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). Once Git is installed, clone the NICE Toolbox repository and navigate to its directory:
 
 ```bash
-git clone git@github.com:OSLabTools/nicetoolbox.git
+git clone --recurse-submodules git@github.com:OSLabTools/nicetoolbox.git
 cd /path/to/nicetoolbox
 ```
+
+The `--recurse-submodules` flag ensures that all submodules are are automatically initialized and updated. 
+Alternatively, you can run the following commands after having cloned the repository without this flag:
+```bash
+git submodule init           # to initialize your local configuration file
+git submodule update         # to fetch all the files from the submodules and check out the appropriate commit
+git submodule update --init  # to combine the git submodule init and git submodule update steps
+````
 
 ## Makefile installation
 

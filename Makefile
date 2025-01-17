@@ -6,7 +6,7 @@ VENV = nicetoolbox
 VENV_DIR = ./envs/$(VENV)
 DEV = false
 CONDA_DIR = $(shell conda info --base)
-MMPOSE = ./nicetoolbox/detectors/third_party/mmpose/install_openmmlab_conda.sh
+MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.sh
 MACHINE_SPECIFICS = machine_specific_paths.toml
 
 
@@ -144,7 +144,8 @@ install_xgaze:
 
 	@echo "Installing requirements for 'XGaze'..."
 	@./envs/xgaze_3cams/bin/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-	@./envs/xgaze_3cams/bin/pip install -r ./nicetoolbox/detectors/third_party/xgaze_3cams/requirements.txt
+	@./envs/xgaze_3cams/bin/pip install -r ./submodules/ETH-XGaze/requirment.txt  # codespell:ignore requirment
+	@./envs/xgaze_3cams/bin/pip install tensorboard h5py
 	@echo "'XGaze' environment setup completed successfully."
 
 
@@ -160,7 +161,7 @@ install_pyfeat:
 	@echo "Installing requirements for 'Py-Feat'..."
 	@./envs/py_feat/bin/pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
 	@./envs/py_feat/bin/pip install py-feat
-	@./envs/py_feat/bin/pip install -r ./nicetoolbox/detectors/third_party/py_feat/requirements.txt
+	@./envs/py_feat/bin/pip install -r ./nicetoolbox/detectors/method_detectors/emotion_individual/py_feat_requirements.txt
 	@echo "'Py-Feat' environment setup completed successfully."
 
 
