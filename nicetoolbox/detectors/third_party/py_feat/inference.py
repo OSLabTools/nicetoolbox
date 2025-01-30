@@ -3,11 +3,15 @@ Run Py-FEAT on the data.
 """
 
 import logging
+import multiprocessing
 import os
 import sys
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("Agg")
 import numpy as np
 import pandas as pd
 from feat import Detector
@@ -16,6 +20,115 @@ top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
 # Internal and third party imports
 from utils import filehandling as fh  # noqa: E402
+
+
+def process_view(detector, frames, batch_size):
+    return detector.detect_image(frames, batch_size=batch_size)
+
+
+def run_pyfeat(frames_list, config):
+    """
+    Process a single batch of frames using Py-Feat.
+    Args:
+        frames_batch (list): List of frames for one batch.
+        config (dict): Configuration dictionary.
+    Returns:
+        list: Outputs for centre, left, right, and top cameras.
+    """
+    logging.info("Load py-feat and start detection.")
+    try:
+        detector = Detector(
+            face_model="retinaface",
+            au_model="xgb",
+            emotion_model="resmasknet",
+            facepose_model="img2pose",
+            device="cuda",
+        )
+        # Prepare inputs for each camera
+        frames_list_centre = [str(imglist[0]) for imglist in frames_list]
+        frames_list_left = [str(imglist[1]) for imglist in frames_list]
+        frames_list_right = [str(imglist[2]) for imglist in frames_list]
+        frames_list_top = [str(imglist[3]) for imglist in frames_list]
+
+        num_workers = max(1, multiprocessing.cpu_count() // 2)
+
+        img_centre_output = detector.detect_image(
+            frames_list_centre,
+            batch_size=int(config["batch_size"]),
+            num_workers=num_workers,
+        )
+        img_left_output = detector.detect_image(
+            frames_list_left,
+            batch_size=int(config["batch_size"]),
+            num_workers=num_workers,
+        )
+        img_right_output = detector.detect_image(
+            frames_list_right,
+            batch_size=int(config["batch_size"]),
+            num_workers=num_workers,
+        )
+        # Switching Person_0 with Person_1 as for nice toolbox persons are counted
+        # from left(0) to right(1) and pyfeat labels person in the right image as
+        # Person_0
+        img_right_output["Identity"] = img_right_output["Identity"].replace(
+            "Person_0", "Person_1"
+        )
+        img_top_output = detector.detect_image(
+            frames_list_top,
+            batch_size=int(config["batch_size"]),
+            num_workers=num_workers,
+        )
+
+        return [img_centre_output, img_left_output, img_right_output, img_top_output]
+
+    except Exception as e:
+        logging.warning(f"Error in run_pyfeat: {e}", exc_info=True)
+        return None
+
+
+def save_frame(output, cam_name, frame_i, config):
+    """
+    Save a single frame's visualization using py-feat's plot_detections method.
+    Ensures proper cleanup to avoid memory issues.
+    """
+    frame_data = output[output["frame"] == frame_i]
+    if frame_data.empty:
+        return
+    frame_file_path = frame_data["input"].to_list()
+    try:
+        # Use py-feat's plot_detections to generate the plot
+        fig = frame_data.plot_detections()
+
+        # Add legends if multiple identities are detected
+        if frame_data["Identity"].nunique() > 1:
+            legend_config = {"loc": "upper right", "fontsize": 8}
+            fig[0].axes[1].legend(config["subjects_descr"], **legend_config)
+            fig[0].axes[2].legend(config["subjects_descr"], **legend_config)
+
+        # Save the visualization
+        _, file_name = os.path.split(frame_file_path[0])
+        save_file_name = os.path.join(config["out_folder"], f"{cam_name}_{file_name}")
+        fig[0].savefig(save_file_name)
+
+    finally:
+        # Explicitly close all figures to free memory
+        for f in fig:
+            f.clear()
+            del f
+
+
+def visualize_and_save_frames_parallel(outputs, camera_names, frame_i, config):
+    """
+    Parallelize saving visualized frames using ThreadPool.
+    """
+    with ThreadPool(processes=len(camera_names)) as pool:
+        pool.starmap(
+            save_frame,
+            [
+                (output, cam_name, frame_i, config)
+                for output, cam_name in zip(outputs, camera_names)
+            ],
+        )
 
 
 def main(config):
@@ -66,38 +179,14 @@ def main(config):
     frames_list = np.array(sorted(frames_list)).reshape(n_cams, n_frames).T
     frames_list = [list(l) for l in frames_list]  # noqa: E741
 
-    # Start Emotion Intensity detection
-    logging.info("Load py-feat and start detection.")
-    detector = Detector(
-        face_model="retinaface",
-        landmark_model="mobilefacenet",
-        au_model="xgb",
-        emotion_model="resmasknet",
-        facepose_model="img2pose",
-    )
+    results = run_pyfeat(frames_list=frames_list, config=config)
+    valid_results = [result for result in results if result is not None]
 
-    frames_list_centre = [str(imglist[0]) for imglist in frames_list]
-    frames_list_left = [str(imglist[1]) for imglist in frames_list]
-    frames_list_right = [str(imglist[2]) for imglist in frames_list]
-    frames_list_top = [str(imglist[3]) for imglist in frames_list]
+    if not valid_results:
+        logging.error("No valid results returned.")
+        return
 
-    img_centre_output = detector.detect_image(
-        frames_list_centre, batch_size=int(config["batch_size"])
-    )
-    img_left_output = detector.detect_image(
-        frames_list_left, batch_size=int(config["batch_size"])
-    )
-    img_right_output = detector.detect_image(
-        frames_list_right, batch_size=int(config["batch_size"])
-    )
-    # Switching Person_0 with Person_1 as for nice toolbox persons are counted
-    # from left(0) to right(1) and pyfeat labels person in the right image as Person_0
-    img_right_output["Identity"] = img_right_output["Identity"].replace(
-        "Person_0", "Person_1"
-    )
-    img_top_output = detector.detect_image(
-        frames_list_top, batch_size=int(config["batch_size"])
-    )
+    img_centre_output, img_left_output, img_right_output, img_top_output = valid_results
 
     all_identities = pd.concat(
         [
@@ -151,33 +240,15 @@ def main(config):
                 poses[frame_i, cam_i, subject_idx, :] = poses_data[rel_idx, :]
 
         # If visualize is true and the output numpy arrays have no NaNs
-        if (
-            config["visualize"]
-            and (faceboxes[frame_i] == faceboxes[frame_i]).all()
-            and (aus[frame_i] == aus[frame_i]).all()
-            and (emotions[frame_i] == emotions[frame_i]).all()
-            and (poses[frame_i] == poses[frame_i]).all()
-        ):
-            for output, cam_name in zip(outputs, camera_names):
-                frame_data = output[output["frame"] == frame_i]
-                frame_file_path = frame_data["input"].to_list()
-                # Visualization for frames
-                fig = frame_data.plot_detections()
-                # Add legend for multiple subject detection cases
-                if frame_data["Identity"].nunique() > 1:
-                    fig[0].axes[1].legend(
-                        config["subjects_descr"], loc="upper right", fontsize=8
-                    )
-                    fig[0].axes[2].legend(
-                        config["subjects_descr"], loc="upper right", fontsize=8
-                    )
-                # save the image
-                _, file_name = os.path.split(frame_file_path[0])
-                save_file_name = os.path.join(
-                    config["out_folder"], f"{cam_name}_{file_name}"
-                )
-                fig[0].savefig(str(save_file_name))
-                plt.close()
+        valid_frame = not (
+            np.isnan(faceboxes[frame_i]).any()
+            or np.isnan(aus[frame_i]).any()
+            or np.isnan(emotions[frame_i]).any()
+            or np.isnan(poses[frame_i]).any()
+        )
+        # Parallel visualization for the current frame
+        if config["visualize"] and valid_frame:
+            visualize_and_save_frames_parallel(outputs, camera_names, frame_i, config)
 
         if frame_i % config["log_frame_idx_interval"] == 0:
             logging.info(f"Finished frame {frame_i} / {n_frames}.")
