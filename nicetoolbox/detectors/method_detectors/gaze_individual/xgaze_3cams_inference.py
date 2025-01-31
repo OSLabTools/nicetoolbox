@@ -8,19 +8,17 @@ import sys
 from pathlib import Path
 
 import cv2
+import landmarks as lm
 import numpy as np
+import toml
+from gaze_estimator import GazeEstimator
+from xgaze_utils import draw_gaze, get_cam_para_studio
 
 # Add top-level directory to sys.path depending on repo structure and not cwd
-top_level_dir = Path(__file__).resolve().parents[3]
-sys.path.append(str(top_level_dir))
-from utils import filehandling as fh  # noqa: E402
-from xgaze_3cams import landmarks as lm  # noqa: E402
-from xgaze_3cams.gaze_estimator import GazeEstimator  # noqa: E402
-from xgaze_3cams.xgaze_utils import (  # noqa: E402
-    draw_gaze,
-    get_cam_para_studio,
-    vector_to_pitchyaw,
-)
+top_level_dir = Path(__file__).resolve().parents[4]
+
+sys.path.append(str(top_level_dir) + "/submodules/ETH-XGaze")
+from utils import vector_to_pitchyaw  # noqa: E402
 
 
 def main(config, debug=False):
@@ -205,7 +203,7 @@ def main(config, debug=False):
 
                         # convert the gaze to current camera coordinate system
                         gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
-                        draw_gaze_dir = vector_to_pitchyaw(gaze_cam).reshape(-1)
+                        draw_gaze_dir = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
                         face_center = np.mean(landmarks[sub_cam_id], axis=0)
                         draw_gaze(
                             image,
@@ -281,5 +279,5 @@ def main(config, debug=False):
 
 if __name__ == "__main__":
     config_path = sys.argv[1]
-    config = fh.load_config(config_path)
+    config = toml.load(config_path)
     main(config)

@@ -5,15 +5,10 @@ Run the MMPose inference algorithm and save the results as npz files.
 import logging
 import os
 import sys
-from pathlib import Path
 
 import numpy as np
+import toml
 from mmpose.apis import MMPoseInferencer
-
-# Add top-level directory to sys.path depending on repo structure and not cwd
-top_level_dir = Path(__file__).resolve().parents[3]
-sys.path.append(str(top_level_dir))
-from utils import filehandling as fh  # noqa: E402
 
 
 def calculate_iou(box1, box2):
@@ -399,5 +394,5 @@ def main(config):
 
 if __name__ == "__main__":
     config_path = sys.argv[1]
-    config = fh.load_config(config_path)
+    config = toml.load(config_path)
     main(config)
