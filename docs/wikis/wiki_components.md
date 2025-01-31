@@ -102,3 +102,13 @@ The *body-distance* algorithm measures the physical proximity between dyads by c
 
 For each camera view, the algorithm computes this distance based on the 2D positions of the selected joints (see `...body_distance_2d.csv` or `body_distance_2d.npy` data is saved inside the `<output_folder>/proximity/<algorithm_name>.npz`). With calibrated stereo cameras, the algorithm's measurement is based on 3D position of the joint/s (see `...body_distance_3d.csv` or `body_distance_3d.npy` file). 
 
+## Emotion Detection
+
+Utilizes **Py-Feat**, an open-source facial expression analysis tool, to detect **facial landmarks, Action Units (AUs), and emotions** from images. This module detects **seven fundamental emotions**: **Anger, Disgust, Fear, Happiness, Sadness, Surprise, Neutral**. By default, the **Detector** object in Py-Feat utilizes **CUDA acceleration** when available, ensuring faster **face detection, feature extraction, and emotion classification**. If a GPU is not available, processing falls back to the **CPU**.
+
+Results are stored in `.npz` files under `<output_folder>/emotion_individual/<algorithm_name>.npz`. The output includes **Face bounding boxes** (`faceboxes`), **Action Units (AUs)** (`aus`), **Emotion scores** (`emotions`), and **Head pose estimation** (`poses`)  
+
+### Detector Configuration
+- **Batch Size (`batch_size`)**: Determines the number of images processed in each inference batch. A **higher value improves efficiency** but requires more RAM.  
+- **Max Cores (`max_cores`)**: Controls the number of CPU cores used for **multiprocessing** during inference. Set to **-1** to use all available cores for maximum performance.
+---

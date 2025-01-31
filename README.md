@@ -15,10 +15,10 @@ identify important visual components of nonverbal communication. Existing deep-l
 and rule-based algorithms are combined into a single, easy-to-use software toolbox.
 Based on single- or multi-camera video data, the initial release encompasses whole-body
 pose estimation and gaze tracking for each individual, as well as movement dynamics
-calculation (kinematics), gaze interaction monitoring (mutual-gaze), and the measurement
-of physical body distance between dyads.
+calculation (kinematics), gaze interaction monitoring (mutual-gaze), the measurement
+of physical body distance between dyads, and emotion detection.
 This first set of components and algorithms is going to be extended in future releases.
-For more details, please see the [components overview](wikis/wiki_components) page in
+For more details, please see the [components overview](docs/wikis/wiki_components) page in
 the wiki.
 
 The toolbox  also includes a visualizer module, which allows users to
@@ -29,11 +29,11 @@ visualize and investigate the algorithm’s outputs.
 ## Installation & getting started
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the
-[installation instructions](installation) page.
+[installation instructions](docs/installation) page.
 For a quick start into the toolbox, we provide an example dataset and documentation to
-set it up on the [getting started](getting_started) page.
-Further tutorials and documentation can be found on the [tutorials](tutorials/index)
-and [wiki](wikis/index) pages.
+set it up on the [getting started](docs/getting_started) page.
+Further tutorials and documentation can be found on the [tutorials](docs/tutorials/index)
+and [wiki](docs/wikis/index) pages.
 
 
 
@@ -65,7 +65,8 @@ The NICE Toolbox is using the following existing tools, methods, and frameworks:
 [HigherHRNet](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/tree/master),
 [ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main),
 [DarkPose](https://github.com/ilovepose/DarkPose/tree/master),
-[ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze), and
+[ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze),
+[Py-FEAT](https://py-feat.org/pages/intro.html), and
 [rerun.io](https://rerun.io/).
 
 
