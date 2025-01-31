@@ -86,7 +86,7 @@ def get_ffmpeg_input_string(
     if skip_frames is not None:
         string += f"-r {skip_frames} "
 
-    return string
+    return string + "-loglevel error "
 
 
 def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> int:
@@ -367,11 +367,12 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> 
     out_format = os.path.basename(out_filename).rsplit(".")[-1]
     if out_format != "gif":
         command = (
-            f"ffmpeg -framerate {fps} -i {input_folder} -codec:v h264 "
+            f"ffmpeg -framerate {fps} -i -loglevel error {input_folder} -codec:v h264 "
             f"-pix_fmt yuv420p {out_filename} -y"
         )
     else:
-        command = f"ffmpeg -framerate {fps} -i {input_folder} {out_filename} -y"
+        command = f"ffmpeg -framerate {fps} -i -loglevel error {input_folder} \
+                   {out_filename} -y"
 
     output = subprocess.run(command, shell=True, check=False)
     return output.returncode
