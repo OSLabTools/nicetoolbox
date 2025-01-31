@@ -1,0 +1,6 @@
+[submodule "submodules/mmpose"]
+	path = submodules/mmpose
+	url = https://github.com/open-mmlab/mmpose
+[submodule "submodules/ETH-XGaze"]
+	path = submodules/ETH-XGaze
+	url = https://github.com/xucong-zhang/ETH-XGaze

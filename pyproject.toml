@@ -1,20 +1,61 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
 [project]
 name = "nicetoolbox"
+description = "NICE Toolbox provides tools for exploring nonverbal human communication using computer vision."
 dynamic = ["readme"]
 requires-python = ">3.7,<3.11"
-version = "0.0.0"
+version = "0.0.1"
+
 dependencies = [
-  "numpy",
-  "opencv-python",
-  "pandas",
-  "pyyaml",
-  "scikit-image",
-  "toml",
+    "GitPython==3.1.35",
+    "matplotlib",
+    "numpy==1.24.3",
+    "opencv-python==4.8.0.76",
+    "pandas==2.1.0",
+    "pathlib",
+    "plotly",
+    "pympi-ling==1.70.2",
+    "pyyaml==6.0.1",
+    "rerun-sdk==0.17.0",
+    "scikit-image==0.21.0",
+    "toml==0.10.2",
 ]
 
-#[project.scripts]
-# Would probably need to refactor this script first!
-# run_pipeline = "nicetoolbox.detectors.main:main"
+[project.optional-dependencies]
+dev = [
+    "codespell==2.2.4",
+    "myst_parser==3.0.1",
+    # "mypy"  Yes/No?
+    "pillow",
+    "pytest==7.4.1",
+    "pre-commit==4.0.1",
+    "ruff==0.8.0",
+    "sphinx==7.0.0",
+    "sphinx-rtd-theme==2.0.0",
+    "sphinxcontrib-video==0.3.1",
+    "tox",
+]
+eval = [
+    "icecream",
+    "scikit-learn==1.0.2",
+    "scipy==1.11.2",
+    "torchmetrics",
+]
+visual = [
+    "matplotlib",
+    "plotly",
+    "seaborn",
+    "streamlit",
+    "tueplots",
+]
+
+[project.scripts]
+run_detectors = "nicetoolbox.detectors.main:entry_point"
+run_evaluation = "nicetoolbox.evaluation.main:entry_point"
+run_visualization = "nicetoolbox.visual.media.main:entry_point"
 
 # Setuptools
 [tool.setuptools]
@@ -22,11 +63,6 @@ packages = ["nicetoolbox"]
 
 [tool.setuptools.dynamic]
 readme = {file = "README.md"}
-
-[project.optional-dependencies]
-dev = ["autopep8", "codespell", "docker", "faker", "isort", "mypy", "pre-commit", "pylint", "tox", "unittest-xml-reporting"]
-visualization = ["matplotlib", "plotly", "rerun-sdk", "streamlit", "tueplots"]
-test = ["pytest"]
 
 # ruff
 [tool.ruff]

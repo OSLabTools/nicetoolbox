@@ -2,6 +2,7 @@
 Main module for initializing and running the visualizer.
 """
 
+import argparse
 import os
 
 import cv2
@@ -21,7 +22,7 @@ from .components import (
 from .viewer import Viewer
 
 
-def main():
+def main(visualizer_config_file, machine_specifics_file):
     """
     Main function to run the visualizer.
 
@@ -30,8 +31,6 @@ def main():
     """
 
     # CONFIGURATION - IO
-    visualizer_config_file = "configs/visualizer_config.toml"
-    machine_specifics_file = "machine_specific_paths.toml"
     config_handler = vis_cfg.Configuration(
         visualizer_config_file, machine_specifics_file
     )
@@ -184,5 +183,21 @@ def main():
                 instance.visualize(frame_idx)
 
 
-if __name__ == "__main__":
-    main()
+def entry_point():
+    """Entry point for running NICE toolbox rerun visualizations."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--visual_config",
+        default="configs/visualizer_config.toml",
+        type=str,
+        required=False,
+    )
+    parser.add_argument(
+        "--machine_specifics",
+        default="machine_specific_paths.toml",
+        type=str,
+        required=False,
+    )
+    args = parser.parse_args()
+
+    main(args.visual_config, args.machine_specifics)

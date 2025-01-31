@@ -99,7 +99,7 @@ class Data:
 
         logging.info("Data loading and processing finished.\n\n")
 
-    def get_inference_path(self, detector_name):
+    def get_inference_path(self, component_name, detector_name):
         """
         Get the file path for the inference script of a given detector.
 
@@ -116,9 +116,9 @@ class Data:
             self.code_folder,
             "nicetoolbox",
             "detectors",
-            "third_party",
-            detector_name,
-            "inference.py",
+            "method_detectors",
+            component_name,
+            f"{detector_name}_inference.py",
         )
         try:
             exc.file_exists(filepath)
@@ -569,7 +569,7 @@ class Data:
 
                     in_framename = input_frame_paths[input_frame_idx]
                     out_filename = os.path.join(
-                        data_folder, "frames", "{frame_idx:05d}.png"
+                        data_folder, "frames", f"{frame_idx:05d}.png"
                     )
 
                     if (iteration == 0) and (input_frame_idx != self.video_start):
@@ -672,9 +672,7 @@ class Data:
                     source_file_abs_path = os.path.abspath(source_file)
                     data_folder_abs_path = os.path.abspath(data_folder)
                     target_abs_path = os.path.join(
-                        data_folder_abs_path, 
-                        cam_name, 
-                        os.path.basename(source_file)
+                        data_folder_abs_path, cam_name, os.path.basename(source_file)
                     )
                     os.symlink(source_file_abs_path, target_abs_path)
                 except OSError as e:

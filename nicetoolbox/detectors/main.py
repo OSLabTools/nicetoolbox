@@ -132,7 +132,8 @@ def main(run_config_file, machine_specifics_file):
         logging.info("FINISHED converting results to CSV-files.")
 
 
-if __name__ == "__main__":
+def entry_point():
+    """Entry point for running NICE toolbox detectors."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--run_config",

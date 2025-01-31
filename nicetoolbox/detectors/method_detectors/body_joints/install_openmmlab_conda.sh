@@ -3,8 +3,6 @@
 # Stop on error
 set -e
 
-cd "$(dirname "$0")/.."
-
 ###OPENMMLAB INSTALLATION###
 # Create a conda environment
 echo "Creating conda environment..."
@@ -25,13 +23,13 @@ mim install "mmcv==2.1.0"
 mim install "mmdet>=3.1.0"
 mim install "mmpretrain>=1.0.0rc8"  # required for Vitpose
 echo "Navigate Inside to mmpose directory"
-cd ./nicetoolbox/detectors/third_party/mmpose/mmpose
+cd ./submodules/mmpose/
 echo "Installing requirements from MMPose..."
 pip install -r requirements.txt
 pip install -e .
 echo "Installing additional dependencies..."
-conda install -c conda-forge pyparsing -y
-conda install -c conda-forge six -y
-conda install -c conda-forge toml -y
+conda install -c conda-forge pyparsing six toml -y
+# needed on Caro's machine: downgrade protobuf
+python -m pip install protobuf==3.20.3
 conda deactivate
 echo " OPENMMLab Environment setup completed successfully."
