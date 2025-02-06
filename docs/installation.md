@@ -43,13 +43,14 @@ conda config --remove channels defaults
 conda config --add channels conda-forge
 ```
 
-> [!IMPORTANT]
-> During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter.
+```{important}
+During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter.
 This is because the Nice Toolbox requires **Python version 3.10** to be set as the default.
->
->![miniforge_default_python.png](graphics/miniforge_default_python.png)
->
->Selecting this option during installation may result in errors or conflicts, as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
+
+![miniforge_default_python.png](graphics/miniforge_default_python.png)
+
+Selecting this option during installation may result in errors or conflicts, as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
+```
 
 ### Cuda 11.8
 
@@ -92,7 +93,7 @@ Alternatively, you can run the following commands after having cloned the reposi
 git submodule init           # to initialize your local configuration file
 git submodule update         # to fetch all the files from the submodules and check out the appropriate commit
 git submodule update --init  # to combine the git submodule init and git submodule update steps
-````
+```
 
 ## Makefile installation
 
@@ -100,13 +101,14 @@ The NICE Toolbox includes a Makefile that handles the installation of all requir
 
 - `make` or `make all`  - Run all the commands below.
 - `make create_machine_specifics` - Generate the configuration file.
-- `make check_and_download_assets` - Check and download assets.
-- `make check_and_download_dataset` - Check and download the example dataset.
+- `make download_assets` - Check and download assets.
+- `make download_dataset` - Check and download the example dataset.
 - `make install` - Install all dependencies.
 
-> [!NOTE]
-> Conda is required for installing the OpenMMLab environment (human pose estimation framework).
-> If you need to use different versions of Python or CUDA, you can adjust the relevant lines in the `Makefile` accordingly.
+```{note}
+Conda is required for installing the OpenMMLab environment (human pose estimation framework).
+If you need to use different versions of Python or CUDA, you can adjust the relevant lines in the `Makefile` accordingly.
+```
 
 ### On Linux
 

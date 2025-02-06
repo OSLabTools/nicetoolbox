@@ -67,8 +67,8 @@ readme = {file = "README.md"}
 # ruff
 [tool.ruff]
 line-length = 88
-# exclude = ['./nicetoolbox/detectors/third_party/**']
-# include = ['./nicetoolbox/detectors/third_party/**/inference.py']
+# exclude = ['./nicetoolbox/..']
+# include = ['./nicetoolbox/..']
 
 [tool.ruff.format]
 # Enable reformatting of code snippets in docstrings.

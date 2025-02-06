@@ -26,7 +26,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 Create a file `./machine_specific_paths.toml`, you can also copy and rename the file `./machine_specific_paths_template.toml`.
 For more information, see [machine-specific config](../getting_started.md#1-create-your-machine-specific-config).
 
-**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox Though absolute paths do not cause errors, they hinder collaboration and greatly decrease the readability of code.
+**Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox. Though absolute paths do not cause errors, they hinder collaboration and greatly decrease the readability of code.
 Instead, `datasets_folder_path` and `conda_path` are available in the other config files in `./configs/` as placeholders - use as `<datasets_folder_path>` and `<conda_path>` directly in strings.
 
 
@@ -62,7 +62,9 @@ dataset_name/
 ...
 ```
 
-Note: the `calibration_file` (which also belongs to the dataset) does not have a specific location, as its filepath is defined in `./configs/dataset_properties.toml`, see below.
+```{note}
+The `calibration_file` (which also belongs to the dataset) does not have a specific location, as its filepath is defined in `./configs/dataset_properties.toml`, see below.
+```
 
 
 ### Dataset properties
@@ -85,7 +87,7 @@ start_frame_index = 0     # how does the dataset index its data? usually, starti
 fps = 30                  # frame-rate of video data (int, optional)
 ```
 
-A few notes:
+A few details:
 - `cam_front` should contain the name of the camera view that observes the scene from the front. Best, it faces the subjects at about eye-height.
 - `cam_top`, `cam_face1`, and `cam_face2` are only used for multi-view datasets. These can be left as an empty string.
 - `subjects_descr` The length of this list reflects the number of people visible in the data. For each person visible, add an identifier.

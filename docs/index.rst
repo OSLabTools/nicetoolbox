@@ -7,6 +7,7 @@
    Getting started <getting_started>
    tutorials/index
    wikis/index
+   OSLab Internal <oslab_internal/index>
    API <_autosummary/nicetoolbox>
 
 

@@ -32,7 +32,6 @@ repos:
 
 exclude: |
     (?x)^(
-        nicetoolbox/detectors/third_party/mmpose/mmpose/.*|
         nicetoolbox/detectors/method_detectors/gaze_individual/gaze_estimator.py|
         nicetoolbox/detectors/method_detectors/gaze_individual/landmarks.py|
         nicetoolbox/detectors/method_detectors/gaze_individual/xgaze_utils.py|
