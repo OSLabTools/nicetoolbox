@@ -71,6 +71,11 @@ e.g., ffmpeg-git-essentials.7z.
 5. Move the folder to the root of the C drive or the folder of your choice.
 6. Add FFmpeg to `PATH` in Windows environment variables.
 
+### Git 
+
+Ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+
+
 ### On Windows: Turn developer mode on
 
 Nice Toolbox creates symlinks. To enable these, please activate Developer Mode on Windows.
@@ -78,9 +83,31 @@ This can be done by going to `Settings` > `Updates & Security` > `For Developers
 
 TODO -- check if it creates any security risk (windows gives a warning about) and whether there is a better way to do it.
 
+### On Windows: Make
+
+Nice Toolbox uses Makefiles for simple installation process. Follow these steps to install `make` on Windows for use with **Git Bash**:
+
+**Step 1:** Download `make` for Windows
+- Go to the official **ezwinports** SourceForge page:  
+   🔗 [https://sourceforge.net/projects/ezwinports/files/](https://sourceforge.net/projects/ezwinports/files/)
+- Download the latest version of **make**:  
+   - Look for a file named:  `make-<latest_version>-without-guile-w32-bin.zip`
+
+**Step 2:** Extract the ZIP File
+- Unzip the downloaded `make-<latest_version>-without-guile-w32-bin.zip` file.
+
+**Step 3:** Copy the Files to Git Bash’s MinGW64 Folder
+- Navigate to: `C:\Program Files\Git\mingw64`
+- Copy the contents of the extracted folder into `C:\Program Files\Git\mingw64`.
+- **IMPORTANT:** Do NOT overwrite or replace any existing files.
+
+**📌 Note:**  
+After copying the files, you must **restart Git Bash** for the changes to take effect.
+
+
 ## Clone the repository
 
-Before cloning the repository, ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git). Once Git is installed, clone the NICE Toolbox repository and navigate to its directory:
+Clone the NICE Toolbox repository and navigate to its directory:
 
 ```bash
 git clone --recurse-submodules git@github.com:OSLabTools/nicetoolbox.git
@@ -112,20 +139,11 @@ If you need to use different versions of Python or CUDA, you can adjust the rele
 
 ### On Linux
 
-Open a terminal and navigate to the directory of the repository, then run the command `make`:
+Open a **terminal** (on Linux) or **Git Bash** (on Windows) and navigate to the directory of the repository, then run the command `make`:
 
 ```bash
 cd /path/to/nicetoolbox/
 make        
-```
-
-### On Windows
-
-Open a command line and navigate to the directory of the repository and install the toolbox:
-
-```bash
-cd \path\to\nicetoolbox
-# TODO 
 ```
 
 ## Additional notes
