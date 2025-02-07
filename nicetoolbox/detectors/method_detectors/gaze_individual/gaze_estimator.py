@@ -29,7 +29,7 @@ def get_gaze_estimator(pretrained_model_filename):
     model.cuda()  # comment this line out if you are not using GPU
     if not os.path.isfile(pretrained_model_filename):
         print('the pre-trained gaze estimation model does not exist.')
-        exit(0)
+        sys.exit(1)
     else:
         print('load the pre-trained model: ', pretrained_model_filename)
     ckpt = torch.load(pretrained_model_filename)

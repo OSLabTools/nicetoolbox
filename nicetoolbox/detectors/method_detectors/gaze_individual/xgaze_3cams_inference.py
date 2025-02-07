@@ -112,7 +112,7 @@ def main(config, debug=False):
             if landmark_predictions is not None:
                 if landmark_predictions.shape[0] > len(subjects_by_cam):
                     scores = score.mean(axis=1)
-                    max_value_indices = sorted(scores.argsort()[-n_subjects:])
+                    max_value_indices = sorted(scores.argsort()[-subjects_by_cam:])
                     landmark_predictions = landmark_predictions[max_value_indices]
                 elif landmark_predictions.shape[0] < len(subjects_by_cam):
                     logging.error(
@@ -187,9 +187,8 @@ def main(config, debug=False):
             for image, landmarks, cam_name, file_path in zip(
                 images, landmarks_2d[frame_i], camera_names, frames_list[frame_i]
             ):
-                if (landmarks == landmarks).all() and (
-                    len(landmarks) == len(config["cam_sees_subjects"][cam_name])
-                ):
+                if (landmarks == landmarks).all():  # and (
+                    # len(landmarks) == len(config["cam_sees_subjects"][cam_name])):
                     cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(
                         config["calibration"], cam_name, image
                     )
@@ -198,13 +197,10 @@ def main(config, debug=False):
                         if sub_id not in config["cam_sees_subjects"][cam_name]:
                             continue
 
-                        # where to find this subject 'sub_id' in camera 'cam_name'
-                        sub_cam_id = config["cam_sees_subjects"][cam_name].index(sub_id)
-
                         # convert the gaze to current camera coordinate system
                         gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
                         draw_gaze_dir = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
-                        face_center = np.mean(landmarks[sub_cam_id], axis=0)
+                        face_center = np.mean(landmarks[sub_id], axis=0)
                         draw_gaze(
                             image,
                             draw_gaze_dir,
