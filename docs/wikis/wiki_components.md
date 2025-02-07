@@ -1,8 +1,61 @@
 # Components
 
-NICE Toolbox incorporates a growing set of Computer Vision algorithms to track and identify important visual components of nonverbal communication. The initial release encompasses whole-body pose estimation (body joints, hand joints, and face landmarks), gaze tracking, and movement dynamics calculation (kinematics) for each individual. In addition, it features gaze interaction monitoring (mutual gaze) and the measurement of physical body distance (proximity) between dyads. 
+NICE Toolbox incorporates a growing set of Computer Vision algorithms to track and identify important visual components of nonverbal communication. The initial release encompasses whole-body pose estimation (body joints, hand joints, and face landmarks), gaze tracking, movement dynamics calculation (kinematics), and emotion detection for each individual. In addition, it features gaze interaction monitoring (mutual gaze) and the measurement of physical body distance (proximity) between dyads. 
 
-The output of each component is saved in the corresponding component folder as an `<algorithm_name>.npz` file. The .npz file serves as a container that holds multiple arrays in the .npy format. The results for different algorithms were provided separately. The code snippet below shows how you can access the content of an .npz file in Python:
+This document first introduces the toolbox's output files and then details the detected components.
+
+```{contents} Contents
+:depth: 3
+```
+
+
+
+
+## Output files
+
+The output of each component is saved in the corresponding component folder as an `<algorithm_name>.npz` file. Additionally, if the `save_csv` parameter is set to true in the [`./configs/detectors_run_file.toml`](../../configs/detectors_run_file.toml) file, the outputs will also be saved in the csv_files folder as separate CSV files. For both file formats, the results for different algorithms are provided separately.
+
+### Numpy arrays
+Per component, each `<algorithm>.npz` file contains several numpy arrays plus a dictionary called `data_description`.
+
+| component | contained numpy arrays |
+| - | - |
+| body_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
+| hand_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
+| face_landmarks | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
+| gaze_individual | landmarks_2d, 3d, 3d_filtered |
+| gaze_interaction | distance_gaze_3d, gaze_look_at_3d, gaze_mutual_3d |
+| kinematics | displacement_vector_body_2d, velocity_body_2d, displacement_vector_body_3d, velocity_body_3d |
+| leaning | body_angle_2d, body_angle_3d |
+| proximity | body_distance_2d, body_distance_3d |
+| emotion_individual | faceboxes, aus, emotions, poses |
+
+All these numpy arrays share a common structure: the first 3 dimensions contain the subjects, cameras, and frames, the remaining dimensions vary with the respective entity.
+
+### Data description
+The `data_description` dictionary details the entries of all numpy files within on component's algorithm `.npz` file. `axis0` contains the subject descriptions, `axis1` the camera names or '3d', and `axis2` the frame numbers as a string of 5 digits. The remaining axis may take the following data:
+
+| array name | `axis3` | `axis4` |
+| - | - | - |
+| 2d, 2d_filtered, 2d_interpolated | list of all joint names | coordinate_x, coordinate_y, confidence_score |
+| 3d, displacement_vector_body_2d, displacement_vector_body_3d | list of all joint names | coordinate_x, coordinate_y, coordinate_z |
+| 3d, 3d_filtered | coordinate_x, coordinate_y, coordinate_z | --
+| bbox_2d | full_body | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score |
+| landmarks_2d | list of all landmarks | coordinate_u, coordinate_v |
+| distance_gaze_3d | per subject: to_face_<subject_name> | -- |
+| gaze_look_at_3d | per subject: look_at_<subject_name> | -- |
+| gaze_mutual_3d | per subject: with_<subject_name> | -- |
+| velocity_body_2d, velocity_body_3d | list of all joint names | velocity |
+| body_angle_2d, body_angle_3d | angle_deg, gradient_angle | -- |
+| body_distance_2d, body_distance_3d | distance | -- |
+| faceboxes | FaceRectX, FaceRectY, FaceRectWidth, FaceRectHeight, FaceScore | -- |
+| aus | list of action unit IDs | -- |
+| emotions | anger, disgust, fear, happiness, sadness, surprise, neutral | -- |
+| poses | Pitch, Roll, Yaw | -- |
+
+
+### Python code
+The code snippet below shows how you can access the content of an `.npz` file in Python:
 
 ```
 import numpy as np
@@ -25,22 +78,12 @@ print(arr['data_description'].item()['3d'])
 
 ```
 
-Additionally, if the `save_csv` parameter is set to true in the [`./configs/detectors_run_file.toml`](../../configs/detectors_run_file.toml) file, the outputs will also be saved in the csv_files folder as separate CSV files. Again, the results for different algorithms are provided separately.
 
-The detected components are detailed below.
 
-[Individual Components](#body-joints)
-- [Body joints](#body-joints)
-- [Hand joints](#hand-joints)
-- [Face landmarks](#face-landmarks)
-- [Gaze individual](#gaze-individual)
-- [Kinematics](#kinematics)
 
-[Interpersonal Components](#gaze-interaction)
-- [Gaze Interaction](#gaze-interaction)
-- [Proximity](#proximity)
 
-<br>
+
+
 
 ## Body joints
 Identifies and tracks the position of key body joints, (e.g., shoulders, elbows) to analyze body posture and movements. Available algorithms are *HRNet-w48* and *ViTPose*. The figure below illustrates the key body joints identified. *ViTPose* estimates full-body joints, including arms, shoulders, hips, wrists, and ankles, but excludes foot-specific joints like heels and toes. *HRNet-w48* includes these additional foot joints.

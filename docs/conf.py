@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "NICE Toolbox"
-copyright = "2024, oslab"
+copyright = "2025, oslab"
 author = "oslab"
 release = "0.0.1"
 
@@ -91,3 +91,9 @@ html_theme_options = {
 
 html_static_path = ["_static"]
 html_css_files = ["readthedocs-custom.css"]  # Override some CSS settings
+
+myst_enable_extensions = [
+    "attrs_block",      # Enable attribution in block quotes
+    "colon_fence",      # Enable ::: for my_st
+    "html_image",       # Enable including images via html: <img src="..."> 
+]

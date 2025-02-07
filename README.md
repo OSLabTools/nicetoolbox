@@ -1,9 +1,13 @@
+![](docs/graphics/nicetoolbox_480p.mp4)
+
 # Non-Verbal Interpersonal Communication Exploration Toolbox
 
-Project page: [https://nice.is.tue.mpg.de](https://nice.is.tue.mpg.de/)
+&emsp;&emsp;&emsp;
+[Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
+[Documentation](https://nicetoolbox.readthedocs.io/en/docs/index.html) &emsp;&emsp;&emsp;
+mailto: nicetoolbox@tue.mpg.de
 
-Documentation: []()
-
+<br>
 
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
@@ -36,6 +40,10 @@ Further tutorials and documentation can be found on the [tutorials](docs/tutoria
 and [wiki](docs/wikis/index) pages.
 
 
+## Code structure
+
+![toolbox_design.png](docs/graphics/toolbox_design.png)
+
 
 ## Future releases
 
@@ -62,6 +70,7 @@ reach out to us at **nicetoolbox@tue.mpg.de**.
 ## Acknowledgments
 
 The NICE Toolbox is using the following existing tools, methods, and frameworks:
+[MMPose](https://github.com/open-mmlab/mmpose/tree/main),
 [HigherHRNet](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/tree/master),
 [ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main),
 [DarkPose](https://github.com/ilovepose/DarkPose/tree/master),
@@ -72,13 +81,10 @@ The NICE Toolbox is using the following existing tools, methods, and frameworks:
 
 ## Authors
 
-Dr. Carolin Schmitt
-
-Gökce Ergün
-
-Timo Lübbing
-
-Dr. Senya Polikovsky
+Carolin Schmitt, 
+Gökce Ergün, 
+Timo Lübbing, 
+Senya Polikovsky
 
 All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
 
@@ -86,11 +92,14 @@ All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute fo
 
 ## License
 
-NICE Toolbox is licensed under Apache 2.0, see [LICENSE.md](LICENSE).
 
-Some components of the NICE Toolbox further use agorithms that are being distributed under other licenses.
-All of them are listed in [LICENSES_ALGORITHMS.md](LICENSES_ALGORITHMS).
-Users should be careful about adopting these algorithms in any commercial matters.
+[NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2024 by Carolin Schmitt, Gökce Ergün, 
+Timo Lübbing, Senya Polikovsky is licensed under 
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1), see [LICENSE.md](LICENSE).
+
+Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses 
+listed in [LICENSES_ALGORITHMS.md](LICENSES_ALGORITHMS).
+
 
 
 ## Copyright

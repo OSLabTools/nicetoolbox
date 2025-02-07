@@ -127,7 +127,9 @@ data_selections = [
     - `video_start` starting point in frames, 0 for starting from beginning of the video (int), must not exceed the total number of frames.
     - `video_length` number of frames to run, defines the length of the selected video (int), video_start + video_length must not exceed the total number of frames.
 
-Note: The [folder structures](../tutorials/tutorial1_dataset_single_view.md#folder-structure) of a dataset inside the NICE Toolbox are designed such that the session ID and, if applicable, the sequence ID of a given dataset clearly define one video (stored as a video file or frames) of the data. The keys video_start and video_length refer to this video.
+```{note}
+The [folder structures](../tutorials/tutorial1_dataset_single_view.md#folder-structure) of a dataset inside the NICE Toolbox are designed such that the session ID and, if applicable, the sequence ID of a given dataset clearly define one video (stored as a video file or frames) of the data. The keys video_start and video_length refer to this video.
+```
 
 
 
