@@ -5,9 +5,24 @@ TOOL_NAME = nicetoolbox
 VENV = nicetoolbox
 VENV_DIR = ./envs/$(VENV)
 DEV = false
-CONDA_DIR = $(shell conda info --base)
-MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.sh
 MACHINE_SPECIFICS = machine_specific_paths.toml
+
+# Define variables for third party venvs
+ifeq ($(OS), Windows_NT)
+	PYTHON_EXE = python
+    CONDA_DIR := $(shell conda info --base | tr '\\\\' '/')
+	MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.bat
+	VENV_EXE_DIR = $(VENV_DIR)/Scripts
+	XGAZE_EXE_DIR = ./envs/xgaze_3cams/Scripts
+	PYFEAT_EXE_DIR = ./envs/py_feat/Scripts
+else
+	PYTHON_EXE = python3.10
+    CONDA_DIR := $(shell conda info --base)
+	MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.sh
+	VENV_EXE_DIR = $(VENV_DIR)/bin
+	XGAZE_EXE_DIR = ./envs/xgaze_3cams/bin
+	PYFEAT_EXE_DIR = ./envs/py_feat/bin
+endif
 
 
 # Download data variables
@@ -39,11 +54,21 @@ clean:
 	@rm -rf $(VENV_DIR)
 
 # ------------------------
+# Create a separator
+# ------------------------
+.PHONY: create_separator
+create_separator:
+	@echo ""
+	@echo "*********************************************"
+	@echo ""
+
+# ------------------------
 # Create machine specifics
 # ------------------------
 create_machine_specifics: $(MACHINE_SPECIFICS)
 
 $(MACHINE_SPECIFICS):
+	@make create_separator
 	@touch $(MACHINE_SPECIFICS)
 	@echo "# Absolute path to the directory in which all datasets are stored (str)" > $(MACHINE_SPECIFICS)
 	@echo "datasets_folder_path = '$(DATASETS_DIR)'" >> $(MACHINE_SPECIFICS)
@@ -61,22 +86,32 @@ $(MACHINE_SPECIFICS):
 download_assets: $(ASSETS_DIR)/$(ASSETS)
 
 $(ASSETS_DIR)/$(ASSETS):
+	@make create_separator
 	@echo "Downloading keeper assets..."
 	@mkdir -p $(ASSETS_DIR)
+ifeq ($(OS), Windows_NT)
+	@curl -L -o $(ASSETS).zip $(ASSETS_URL)
+else
 	@wget --progress=bar:force $(ASSETS_URL) -O $(ASSETS).zip
+endif
 	@unzip $(ASSETS).zip -d $(ASSETS_DIR)
 	@rm $(ASSETS).zip
 	@echo "Checkpoint files downloaded to $(ASSETS_DIR)/$(ASSETS)"
-
+	
 # -----------------------
 # Download keeper example
 # -----------------------
 download_dataset: $(DATASETS_DIR)/$(EXAMPLE_DATASET)
 
 $(DATASETS_DIR)/$(EXAMPLE_DATASET):
+	@make create_separator
 	@echo "Downloading keeper example dataset..."
 	@mkdir -p $(DATASETS_DIR)
+ifeq ($(OS), Windows_NT)
+	@curl -L -o $(EXAMPLE_DATASET).zip $(EXAMPLE_DATASET_URL)
+else
 	@wget --progress=bar:force $(EXAMPLE_DATASET_URL) -O $(EXAMPLE_DATASET).zip
+endif
 	@unzip $(EXAMPLE_DATASET).zip -d $(DATASETS_DIR)
 	@rm $(EXAMPLE_DATASET).zip
 	@echo "Example dataset downloaded to $(DATASETS_DIR)/$(EXAMPLE_DATASET)."
@@ -84,19 +119,19 @@ $(DATASETS_DIR)/$(EXAMPLE_DATASET):
 # -------------------
 # Install nicetoolbox
 # -------------------
-install: $(VENV_DIR)/bin/activate
+install: $(VENV_EXE_DIR)/activate
 
 #	Install xgaze if not already installed
-ifeq ("$(wildcard ./envs/xgaze_3cams/bin/activate)","")
+ifeq ("$(wildcard $(XGAZE_EXE_DIR)/activate)","")
 	@make install_xgaze
 endif
 
 #	Install pyfeat if not already installed
-ifeq ("$(wildcard ./envs/py_feat/bin/activate)","")
+ifeq ("$(wildcard $(PYFEAT_EXE_DIR)/activate)","")
 	@make install_pyfeat
 endif
 
-#	 check for conda installation
+#	check for conda installation
 ifeq ($(which conda),"")
 	@echo "No CONDA installation found. Check the documentation for instructions: https://nicetoolbox.readthedocs.io/en/docs/installation.html."
 else
@@ -110,25 +145,25 @@ endif
 
 
 # Install the virtual environment
-$(VENV_DIR)/bin/activate: pyproject.toml
+$(VENV_EXE_DIR)/activate: pyproject.toml
 #	start clean
 	@make clean
 
 #	create virtual environment
+	@make create_separator
 	@echo "Creating virtual environment in $(VENV_DIR)..."
-	@python3.10 -m venv $(VENV_DIR)
-	@echo "Virtual environment created in $(VENV_DIR)"
+	@$(PYTHON_EXE) -m venv $(VENV_DIR)
 	
 ifeq ($(DEV), false)
 # 	basic installation
 	@echo "Installing $(TOOL_NAME)..."
-	@$(VENV_DIR)/bin/pip install .
+	@$(VENV_EXE_DIR)/pip install .
 else
 # 	developer installation
 	@echo "Installing $(TOOL_NAME) editable for developers..."
 #   torch is required for the evaluation (part of optional dependencies)
-	@$(VENV_DIR)/bin/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-	@$(VENV_DIR)/bin/pip install -e ".[dev,eval,visual]"
+	@$(VENV_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(VENV_EXE_DIR)/pip install -e ".[dev,eval,visual]"
 endif
 	@echo "$(TOOL_NAME) installed in $(VENV_DIR) successfully."
 
@@ -136,38 +171,45 @@ endif
 # Install the venv for xgaze
 .PHONY: install_xgaze
 install_xgaze:
+	@make create_separator
 	@echo "Installing virtual environment for third_party code 'XGaze'..."
 
 	@echo "Creating virtual environment..."
-	@python3.10 -m venv ./envs/xgaze_3cams
+	@$(PYTHON_EXE) -m venv ./envs/xgaze_3cams
 	@echo "Virtual environment created in ./envs/xgaze_3cams"
 
 	@echo "Installing requirements for 'XGaze'..."
-	@./envs/xgaze_3cams/bin/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-	@./envs/xgaze_3cams/bin/pip install -r ./submodules/ETH-XGaze/requirment.txt  # codespell:ignore requirment
-	@./envs/xgaze_3cams/bin/pip install tensorboard h5py
+	@$(XGAZE_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(XGAZE_EXE_DIR)/pip install tensorboard face_alignment==1.4.0 toml numpy==1.24.3 opencv-python pathlib
 	@echo "'XGaze' environment setup completed successfully."
 
 
 # Install the venv for pyfeat
 .PHONY: install_pyfeat
 install_pyfeat:
+	@make create_separator
 	@echo "Installing virtual environment for third_party code 'Py-Feat'..."
 
 	@echo "Creating virtual environment..."
-	@python3.10 -m venv ./envs/py_feat
+	@$(PYTHON_EXE) -m venv ./envs/py_feat
 	@echo "Virtual environment created in ./envs/py_feat"
 
 	@echo "Installing requirements for 'Py-Feat'..."
-	@./envs/py_feat/bin/pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
-	@./envs/py_feat/bin/pip install py-feat
-	@./envs/py_feat/bin/pip install -r ./nicetoolbox/detectors/method_detectors/emotion_individual/py_feat_requirements.txt
+	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(PYFEAT_EXE_DIR)/pip install py-feat
+	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/emotion_individual/py_feat_requirements.txt
 	@echo "'Py-Feat' environment setup completed successfully."
 
 
 # Install the venv for mmpose
 .PHONY: install_mmpose
 install_mmpose:
+	@make create_separator
 	@echo "Installing virtual environment for third_party code 'MMPose'..."
+ifeq ($(OS), Windows_NT)
+	@bash -c "$(MMPOSE)"
+else
 	@chmod +x $(MMPOSE) && $(MMPOSE)
+endif
 	@echo "'MMPose' environment setup completed successfully."
+
