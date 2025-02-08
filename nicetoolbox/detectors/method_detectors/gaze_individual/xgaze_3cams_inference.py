@@ -120,7 +120,22 @@ def main(config, debug=False):
                         {landmark_predictions.shape[0]} subjects instead of \
                         {len(subjects_by_cam)} in frame file {frame_file}."
                     )
-
+                    # A quick fix for saving same landmarks for both people,
+                    # When the landmark detection is missing for one people.
+                    # Now, missing landmarks are filled with np.nan.
+                    # note: might swap the people-need a better people tracking
+                    missing_rows = len(subjects_by_cam) - landmark_predictions.shape[0]
+                    extended_landmarks = np.full(
+                        (
+                            missing_rows,
+                            landmark_predictions.shape[1],
+                            landmark_predictions.shape[2],
+                        ),
+                        np.nan,
+                    )
+                    landmark_predictions = np.vstack(
+                        (landmark_predictions, extended_landmarks)
+                    )
                 landmarks_2d[frame_i, cam_i, subjects_by_cam] = landmark_predictions
 
         # OK, now let's do gaze estimation - per subject
@@ -150,17 +165,19 @@ def main(config, debug=False):
                 pred_gaze = gaze_estimator.gaze_estimation(
                     image, landmarks[sub_cam_id], cam_matrix, cam_distor
                 )
-
-                # convert the gaze direction to the world coordinate system
-                pred_gaze_world = np.dot(
-                    np.linalg.inv(cam_rotation), pred_gaze
-                ).reshape((1, 3))
-                pred_gaze_world = pred_gaze_world / np.linalg.norm(pred_gaze_world)
-                gaze_world.append(pred_gaze_world.reshape((1, 3)))
+                if pred_gaze != "":
+                    # convert the gaze direction to the world coordinate system
+                    pred_gaze_world = np.dot(
+                        np.linalg.inv(cam_rotation), pred_gaze
+                    ).reshape((1, 3))
+                    pred_gaze_world = pred_gaze_world / np.linalg.norm(pred_gaze_world)
+                    gaze_world.append(pred_gaze_world.reshape((1, 3)))
+                else:
+                    gaze_world.append(np.full((1, 3), np.nan))
 
             # get the final gaze direction by averaging them
             gaze_world = np.asarray(gaze_world).reshape((-1, 3))
-            gaze_world = np.mean(gaze_world, axis=0).reshape((-1, 3))
+            gaze_world = np.nanmean(gaze_world, axis=0).reshape((-1, 3))
             results[frame_i][sub_id] = gaze_world.flatten()
 
         if len(camera_names) == 1:
@@ -187,20 +204,18 @@ def main(config, debug=False):
             for image, landmarks, cam_name, file_path in zip(
                 images, landmarks_2d[frame_i], camera_names, frames_list[frame_i]
             ):
-                if (landmarks == landmarks).all():  # and (
-                    # len(landmarks) == len(config["cam_sees_subjects"][cam_name])):
-                    cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(
-                        config["calibration"], cam_name, image
-                    )
+                cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(
+                    config["calibration"], cam_name, image
+                )
 
-                    for sub_id in range(n_subjects):
-                        if sub_id not in config["cam_sees_subjects"][cam_name]:
-                            continue
-
+                for sub_id in range(n_subjects):
+                    if sub_id not in config["cam_sees_subjects"][cam_name]:
+                        continue
+                    if not np.isnan(landmarks[sub_id].min()):
                         # convert the gaze to current camera coordinate system
                         gaze_cam = np.dot(cam_rotation, results[frame_i][sub_id].T)
                         draw_gaze_dir = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
-                        face_center = np.mean(landmarks[sub_id], axis=0)
+                        face_center = np.nanmean(landmarks[sub_id], axis=0)
                         draw_gaze(
                             image,
                             draw_gaze_dir,
@@ -208,9 +223,9 @@ def main(config, debug=False):
                             color=(0, 0, 255),
                             position=face_center.astype(int),
                         )
-                    if debug:
-                        cv2.imshow("img_show", image)
-                        cv2.waitKey(0)
+                if debug:
+                    cv2.imshow("img_show", image)
+                    cv2.waitKey(0)
 
                 # save the image with gaze direction
                 _, file_name = os.path.split(file_path)
