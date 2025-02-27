@@ -4,7 +4,6 @@ Integration of the MMPose framework into the NICE toolbox pipeline.
 
 import logging
 import os
-import subprocess
 from abc import abstractmethod
 
 import numpy as np
@@ -12,6 +11,7 @@ import numpy as np
 from ....utils import check_and_exception as check
 from ....utils import filehandling as fh
 from ....utils import triangulation as tri
+from ....utils import video as vd
 from ... import config_handler as confh
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
@@ -136,22 +136,13 @@ class MMPose(BaseDetector):
         Generates a visualization video for each camera from the processed image frames.
 
         This method takes the processed image frames for each camera and compiles them
-        into a video file. It uses the `ffmpeg` command-line tool to create a video with
-        a specified frame rate. For each camera, it checks if the image folder is empty
-        and logs an error if so. Otherwise, it constructs the video file path and
-        executes the `ffmpeg` command to generate the video. The success of the video
-        creation is tracked, and the method logs the outcome of the visualization
-        process for each camera.
-
+        into a video file. It uses the frames_to_video() function from utils.video.py.
+        The success of the video creation is tracked, and the method logs the outcome of
+        the visualization process for each camera.
         Args:
             data (class): An instance of a class that stores all data related
                 information, including the frame rate (`fps`) for the video and the
                 starting frame number (`video_start`).
-
-        Raises:
-            FileNotFoundError: If the image folder for any camera is empty, indicating
-                that there are no processed frames to visualize, a FileNotFoundError
-                is logged as an error.
 
         Note:
             - The method assumes that the processed image frames are named in a
@@ -163,35 +154,24 @@ class MMPose(BaseDetector):
             f"and {self.algorithm}."
         )
 
-        success = True
         for camera in self.camera_names:
-            if os.listdir(self.image_folders[camera]) == []:
-                logging.error("Image folder is empty")
-
-            image_base = os.path.join(self.image_folders[camera], "%05d.png")
             output_path = os.path.join(
                 self.viz_folder, f"{self.algorithm}_{camera}.mp4"
             )
-
-            cmd = f"ffmpeg -framerate {data.fps} "
-            f"-start_number {int(self.video_start)} "
-            f"-i {image_base} -c:v libx264 -pix_fmt yuv420p -y {output_path}"
-            # Use the subprocess module to execute the command
-            cmd_result = subprocess.run(cmd, shell=True, check=False)
-            if cmd_result.returncode != 0:
-                logging.error(
-                    f"FFMPEG video creation failed. Return code {cmd_result.returncode}"
-                )
-
-            success *= 1 if os.path.isfile(output_path) else 0
-
-        if success:
-            logging.info(f"VISUALIZATION {self.components}, {self.algorithm} - SUCCESS")
-        else:
-            logging.error(
-                f"VISUALIZATION {self.components}, {self.algorithm} - "
-                "FAILURE - Video file was not created"
+            return_code = vd.frames_to_video(
+                self.image_folders[camera],
+                output_path,
+                fps=data.fps,
+                start_frame=int(self.video_start),
             )
+
+            if return_code == 0:
+                logging.info(f"VISUALIZATION, {self.algorithm}-{camera}: SUCCESS")
+            else:
+                logging.error(
+                    f"VISUALIZATION, {self.algorithm}-{camera}:"
+                    "FAILURE - Video file was not created"
+                )
 
     def post_inference(self):
         """

@@ -3,6 +3,7 @@ Helper functions for video processing, conversion, splitting, ...
 """
 
 import glob
+import logging
 import os
 import subprocess
 
@@ -347,7 +348,9 @@ def remove_last_segment_from_file(segments_list_file: str) -> None:
     segments_df.to_csv(segments_list_file)
 
 
-def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> int:
+def frames_to_video(
+    input_folder: str, out_filename: str, fps: float = 30.0, start_frame: int = 0
+) -> int:
     """
     Convert a folder of frames to a video using ffmpeg.
 
@@ -360,19 +363,22 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0) -> 
         int: Return code of the ffmpeg command.
     """
     if os.path.isdir(input_folder):
-        assert os.listdir(input_folder) != [], "Empty input folder!"
+        if os.listdir(input_folder) == []:
+            logging.error("Image folder is empty")
+            return 1
         num, file_format = os.listdir(input_folder)[0].split(".")
         input_folder = os.path.join(input_folder, f"%0{len(num)}d.{file_format}")
 
     out_format = os.path.basename(out_filename).rsplit(".")[-1]
     if out_format != "gif":
         command = (
-            f"ffmpeg -framerate {fps} -i -loglevel error {input_folder} -codec:v h264 "
+            f"ffmpeg -framerate {fps} -start_number {start_frame} "
+            f"-loglevel error -i {input_folder} -codec:v h264 "
             f"-pix_fmt yuv420p {out_filename} -y"
         )
     else:
-        command = f"ffmpeg -framerate {fps} -i -loglevel error {input_folder} \
-                   {out_filename} -y"
+        command = f"ffmpeg -framerate {fps} -start_number {start_frame} "
+        f"-loglevel error -i {input_folder} {out_filename} -y"
 
     output = subprocess.run(command, shell=True, check=False)
     return output.returncode
