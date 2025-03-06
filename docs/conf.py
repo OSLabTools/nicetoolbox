@@ -93,7 +93,7 @@ html_static_path = ["_static"]
 html_css_files = ["readthedocs-custom.css"]  # Override some CSS settings
 
 myst_enable_extensions = [
-    "attrs_block",      # Enable attribution in block quotes
-    "colon_fence",      # Enable ::: for my_st
-    "html_image",       # Enable including images via html: <img src="..."> 
+    "attrs_block",  # Enable attribution in block quotes
+    "colon_fence",  # Enable ::: for my_st
+    "html_image",  # Enable including images via html: <img src="...">
 ]
