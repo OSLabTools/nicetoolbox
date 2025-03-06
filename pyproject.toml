@@ -27,6 +27,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "codespell==2.2.4",
+    "coverage",
+    "faker",
     "myst_parser==3.0.1",
     # "mypy"  Yes/No?
     "pillow",
@@ -117,3 +119,20 @@ disable = "invalid-name"
 
 [tool.codespell]
 skip = "__pycache__,./.mypy_cache,.git,.idea,./venv,./env,./.tox"
+
+# Coverage run settings
+# coverage run -m  unittest discover
+[tool.coverage.run]
+branch = true
+source= [
+    "nicetoolbox"
+]
+
+# Coverage report settings
+# coverage report -m
+[tool.coverage.report]
+omit= [
+    "tests/*"
+]
+show_missing = true
+skip_empty = true

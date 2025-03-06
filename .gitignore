@@ -35,3 +35,6 @@ artifacts/
 nicetoolbox/**/*.mp4
 
 machine_specific_paths.toml
+
+.coverage
+TEST*.xml
