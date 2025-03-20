@@ -52,6 +52,10 @@ This is because the Nice Toolbox requires **Python version 3.10** to be set as t
 Selecting this option during installation may result in errors or conflicts, as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
 ```
 
+```{important}
+On Windows, after installing Conda, ensure that the Conda paths are added to the SYSTEM environment variables. For details see: https://saturncloud.io/blog/solving-the-conda-command-not-recognized-issue-on-windows-10/#step-2-add-conda-to-the-path
+```
+
 ### Cuda 11.8
 
 Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and [Linux Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
@@ -69,7 +73,7 @@ of the FFmpeg package and binary files.
 e.g., ffmpeg-git-essentials.7z.
 4. Extract the downloaded files and rename the extracted folder as ffmpeg.
 5. Move the folder to the root of the C drive or the folder of your choice.
-6. Add FFmpeg to `PATH` in Windows environment variables.
+6. Add FFmpeg to `PATH` in Windows SYSTEM environment variables.
 
 ### Git 
 
@@ -98,7 +102,7 @@ Nice Toolbox uses Makefiles for simple installation process. Follow these steps 
 
 **Step 3:** Copy the Files to Git Bash’s MinGW64 Folder
 - Navigate to: `C:\Program Files\Git\mingw64`
-- Copy the contents of the extracted folder into `C:\Program Files\Git\mingw64`.
+- Copy the contents of the extracted folder (copy all folders) into `C:\Program Files\Git\mingw64`. 
 - **IMPORTANT:** Do NOT overwrite or replace any existing files.
 
 **📌 Note:**  

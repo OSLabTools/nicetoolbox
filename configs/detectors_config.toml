@@ -40,7 +40,7 @@ min_detection_confidence = 0.5
 
 [algorithms.vitpose]
 framework = "mmpose"
-pose_config = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192.py"
+pose_config = "td-hm_ViTPose-large_8xb64-210e_coco-256x192"
 pose_checkpoint = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
 detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
 detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"

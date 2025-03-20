@@ -5,6 +5,7 @@ Helper functions for video processing, conversion, splitting, ...
 import glob
 import logging
 import os
+import shutil
 import subprocess
 
 import cv2
@@ -174,7 +175,7 @@ def split_into_frames(
             new_idx = sequential2frame_number(old_idx, start_frame, skip_frames)
             new_filename = os.path.join(output_base, f"{new_idx:05d}.png")
             if oslab_sys.detect_os_type() == "windows":
-                os.system(f"move {file} {new_filename}")
+                shutil.move(file, new_filename)
             else:
                 os.system(f"mv {file} {new_filename}")
             frame_indices_list.append(new_idx)

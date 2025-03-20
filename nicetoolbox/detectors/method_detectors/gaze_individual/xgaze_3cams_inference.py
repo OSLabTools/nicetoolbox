@@ -199,6 +199,12 @@ def main(config, debug=False):
             results_2d[frame_i, 0] = np.stack((dx, dy), axis=-1)
 
         if config["visualize"] and (results[frame_i] == results[frame_i]).all():
+            # create camera folders
+            for camera_name in camera_names:
+                os.makedirs(
+                    os.path.join(config["out_folder"], camera_name), exist_ok=True
+                )
+
             # visualization on each image, project the gaze back to each cam to draw
             # the gaze direction
             for image, landmarks, cam_name, file_path in zip(
@@ -229,9 +235,7 @@ def main(config, debug=False):
 
                 # save the image with gaze direction
                 _, file_name = os.path.split(file_path)
-                save_file_name = os.path.join(
-                    config["out_folder"], f"{cam_name}_{file_name}"
-                )
+                save_file_name = os.path.join(config["out_folder"], cam_name, file_name)
                 cv2.imwrite(save_file_name, image)
 
         if frame_i % config["log_frame_idx_interval"] == 0:

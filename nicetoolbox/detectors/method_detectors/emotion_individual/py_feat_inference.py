@@ -107,7 +107,7 @@ def save_frame(output, cam_name, frame_i, config):
 
         # Save the visualization
         _, file_name = os.path.split(frame_file_path[0])
-        save_file_name = os.path.join(config["out_folder"], f"{cam_name}_{file_name}")
+        save_file_name = os.path.join(config["out_folder"], cam_name, file_name)
         fig[0].savefig(save_file_name)
 
     finally:
@@ -121,6 +121,10 @@ def visualize_and_save_frames_parallel(outputs, camera_names, frame_i, config):
     """
     Parallelize saving visualized frames using ThreadPool.
     """
+    # Create camera folders
+    for camera in camera_names:
+        os.makedirs(os.path.join(config["out_folder"], camera), exist_ok=True)
+
     with ThreadPool(processes=len(camera_names)) as pool:
         pool.starmap(
             save_frame,

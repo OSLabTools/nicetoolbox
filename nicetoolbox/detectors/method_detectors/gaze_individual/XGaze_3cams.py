@@ -9,11 +9,10 @@ import glob
 import logging
 import os
 
-import cv2
 import numpy as np
 
 from ....utils import logging_utils as log_ut
-from ....utils.video import frames_to_video
+from ....utils import video as vd
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
 
@@ -59,6 +58,7 @@ class XGaze3cams(BaseDetector):
 
         config["frames_list"] = data.frames_list
         config["frame_indices_list"] = data.frame_indices_list
+        self.video_start = data.video_start
 
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
 
@@ -67,6 +67,7 @@ class XGaze3cams(BaseDetector):
             self.camera_names.remove("")
 
         self.result_folders = config["result_folders"][self.components[0]]
+        self.alg_out_folder = config["out_folder"]
         self.filtered = config["filtered"]
         if self.filtered:
             self.filter_window_length = config["window_length"]
@@ -124,7 +125,7 @@ class XGaze3cams(BaseDetector):
             number of frames per camera is not consistent.
         """
         frames_lists = [
-            sorted(glob.glob(os.path.join(self.out_folder, f"{cam}_*.png")))
+            sorted(glob.glob(os.path.join(self.alg_out_folder, cam, "*.png")))
             for cam in self.camera_names
         ]
         log_ut.assert_and_log(
@@ -138,17 +139,15 @@ class XGaze3cams(BaseDetector):
         )
 
         success = True
-        for camera_name, frames_list in zip(self.camera_names, frames_lists):
-            os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
-            for idx, file in enumerate(frames_list):
-                image = cv2.imread(file)
-                cv2.imwrite(
-                    os.path.join(self.viz_folder, camera_name, f"{idx:05d}.png"), image
-                )
-
-            out_filename = os.path.join(self.viz_folder, f"output_{camera_name}.mp4")
-            success *= frames_to_video(
-                os.path.join(self.viz_folder, camera_name), out_filename, fps=3.0
+        for camera_name in self.camera_names:
+            out_filename = os.path.join(
+                self.viz_folder, f"{self.algorithm}_{camera_name}.mp4"
+            )
+            success *= vd.frames_to_video(
+                os.path.join(self.alg_out_folder, camera_name),
+                out_filename,
+                fps=data.fps,
+                start_frame=int(self.video_start),
             )
 
         logging.info(
