@@ -6,10 +6,6 @@
 
 docs/_build/
 docs/_autosummary/
-docs/release_notes/*.pdf
-
-builds/
-output/
 artifacts/
 
 **/builds/

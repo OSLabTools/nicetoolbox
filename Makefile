@@ -33,8 +33,8 @@ OUTPUTS_DIR = ../outputs
 DATASETS_DIR = ../datasets
 ASSETS_DIR = nicetoolbox/detectors
 
-EXAMPLE_DATASET_URL = https://keeper.mpdl.mpg.de/f/b1b91c42fcf849fb90a1/?dl=1
-ASSETS_URL = https://keeper.mpdl.mpg.de/f/d11765550fc349649346/?dl=1
+EXAMPLE_DATASET_URL = https://keeper.mpdl.mpg.de/f/7374ca9fe7824293bbca/?dl=1
+ASSETS_URL = https://keeper.mpdl.mpg.de/f/8aa742a2fef5487ab939/?dl=1
 
 
 # -----------------------------------

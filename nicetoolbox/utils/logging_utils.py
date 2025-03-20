@@ -79,6 +79,53 @@ def setup_logging(log_path: str, level=logging.DEBUG) -> None:
     )
 
 
+def setup_custom_logging(log_path: str, name: str, level=logging.DEBUG) -> None:
+    """
+    Start logger.
+
+    Args:
+        log_path (str): The path to the log file.
+        level (int, optional): Determines from which level the logger will record the
+            messages.
+            For instance, when the level is set as logging.INFO, the messages with a
+            severity below INFO (i.e. DEBUG) will be ignored.
+            The possible levels are:
+                - logging.DEBUG: Detailed information, typically of interest only when
+                diagnosing problems.
+                - logging.INFO: Confirmation that things are working as expected.
+                - logging.WARNING: An indication that something unexpected happened, or
+                indicative of some problem in the near future (e.g. 'disk space low').
+                    The software is still working as expected.
+                - logging.ERROR: Due to a more serious problem, the software has not
+                been able to perform some function.
+                - logging.CRITICAL: A serious error, indicating that the program itself
+                may be unable to continue running.
+
+    Returns:
+        None
+
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s"
+    )
+
+    # create file and console handler
+    fh = logging.FileHandler(log_path)
+    sh = logging.StreamHandler(sys.stdout)
+
+    # add formatter to handlers
+    fh.setFormatter(formatter)
+    sh.setFormatter(formatter)
+
+    # add handlers to logger
+    logger.addHandler(fh)
+    logger.addHandler(sh)
+
+
 def assert_and_log(condition, message):
     """
     Asserts a condition and logs an error message if the condition is not met.
