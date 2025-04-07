@@ -63,7 +63,7 @@ input_detector_names = [["body_joints", "hrnetw48"]]
 
 # gaze_interaction
 [algorithms.gaze_distance]
-camera_names = ["3d"]
+# camera_names = ["3d"]
 input_detector_names = [["gaze_individual", "xgaze_3cams"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"
 threshold_look_at = 0.4

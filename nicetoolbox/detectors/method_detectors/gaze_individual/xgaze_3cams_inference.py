@@ -54,7 +54,7 @@ def main(config, debug=False):
     )
 
     # get valid camera_names
-    camera_names = sorted([n for n in config["camera_names"] if n != ""])
+    camera_names = [n for n in config["camera_names"] if n != ""]
     n_cams = len(camera_names)
 
     # re-organize input data
@@ -68,8 +68,8 @@ def main(config, debug=False):
     else:
         frames_list = config["frames_list"]
     n_frames = len(frames_list) // n_cams
-    frames_list = np.array(sorted(frames_list)).reshape(n_cams, n_frames).T
-    frames_list = [list(frame) for frame in frames_list]
+    frames_list = [sorted(filter(lambda x: c in x, frames_list)) for c in camera_names]
+    frames_list = [list(frame) for frame in np.array(frames_list).T]
 
     # start gaze detection
     logging.info("Load gaze estimator and start detection.")
@@ -84,7 +84,7 @@ def main(config, debug=False):
     frame_indices = []
     results = np.zeros((n_frames, n_subjects, 3))
     results_2d = np.zeros((n_frames, n_cams, n_subjects, 2))
-    landmarks_2d = np.full((n_frames, n_cams, n_subjects, 6, 2), None)
+    landmarks_2d = np.full((n_frames, n_cams, n_subjects, 6, 2), np.nan)
 
     for frame_i, frame_files in enumerate(frames_list):
         images = []
@@ -112,13 +112,15 @@ def main(config, debug=False):
             if landmark_predictions is not None:
                 if landmark_predictions.shape[0] > len(subjects_by_cam):
                     scores = score.mean(axis=1)
-                    max_value_indices = sorted(scores.argsort()[-subjects_by_cam:])
+                    max_value_indices = sorted(
+                        scores.argsort()[-len(subjects_by_cam) :]
+                    )
                     landmark_predictions = landmark_predictions[max_value_indices]
                 elif landmark_predictions.shape[0] < len(subjects_by_cam):
                     logging.error(
-                        f"Gaze landmark detection: Detected \
-                        {landmark_predictions.shape[0]} subjects instead of \
-                        {len(subjects_by_cam)} in frame file {frame_file}."
+                        f"Gaze landmark detection: Detected "
+                        f"{landmark_predictions.shape[0]} subjects instead of "
+                        f"{len(subjects_by_cam)} in frame file {frame_file}."
                     )
                     # A quick fix for saving same landmarks for both people,
                     # When the landmark detection is missing for one people.
@@ -151,7 +153,7 @@ def main(config, debug=False):
                 # is this subject visible in the camera? and were landmarks predicted?
                 subjects_by_cam = config["cam_sees_subjects"][cam_name]
                 if (
-                    (landmarks is None)
+                    (landmarks == np.nan).all()
                     or (sub_id not in subjects_by_cam)
                     or (len(landmarks) != len(subjects_by_cam))
                 ):

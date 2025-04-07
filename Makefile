@@ -172,7 +172,7 @@ endif
 .PHONY: install_xgaze
 install_xgaze:
 	@make create_separator
-	@echo "Installing virtual environment for third_party code 'XGaze'..."
+	@echo "Installing virtual environment for submodule 'XGaze'..."
 
 	@echo "Creating virtual environment..."
 	@$(PYTHON_EXE) -m venv ./envs/xgaze_3cams
@@ -188,7 +188,7 @@ install_xgaze:
 .PHONY: install_pyfeat
 install_pyfeat:
 	@make create_separator
-	@echo "Installing virtual environment for third_party code 'Py-Feat'..."
+	@echo "Installing virtual environment for algorithm 'Py-Feat'..."
 
 	@echo "Creating virtual environment..."
 	@$(PYTHON_EXE) -m venv ./envs/py_feat
@@ -205,7 +205,7 @@ install_pyfeat:
 .PHONY: install_mmpose
 install_mmpose:
 	@make create_separator
-	@echo "Installing virtual environment for third_party code 'MMPose'..."
+	@echo "Installing virtual environment for submodule 'MMPose'..."
 ifeq ($(OS), Windows_NT)
 	@bash -c "$(MMPOSE)"
 else
