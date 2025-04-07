@@ -782,6 +782,122 @@ class GazeInteractionComponent(Component):
         pass
 
 
+class EmotionIndividualComponent(Component):
+    """
+    Class for visualizing emotion individual data.
+    """
+
+    def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
+        """
+        Initialize the EmotionIndividualComponent.
+
+        Args:
+            visualizer_config (Dict): The visualizer configuration settings.
+            io: The input/output object.
+            logger (viewer.Viewer): The viewer rerun object.
+            component_name (str): The name of the component.
+        """
+        super().__init__(visualizer_config, io, logger, component_name)
+        # the camera_names and subject_names results will be read from first algorithm
+        # we are getting camera names from landmarks_2d because 3d doesn't have any
+        # camera info
+        self.camera_names = self.algorithms_results[0]["data_description"].item()[
+            "emotions"
+        ]["axis1"]  # axis1 gives camera info
+        self.subject_names = self.algorithms_results[0]["data_description"].item()[
+            "emotions"
+        ]["axis0"]  # axis0 gives subject info
+        self.algorithm_labels = self._get_algorithms_labels()
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """
+        Get the labels for the algorithms.
+
+        Returns:
+            List[List[str]]: The labels for the algorithms.
+        """
+        # axis 3 gives labels information, this might be different for each algorithm
+        algorithm_labels = []
+        for i, _alg in enumerate(self.algorithm_list):
+            algorithm_labels.append(
+                self.algorithms_results[i]["data_description"].item()["emotions"][
+                    "axis3"
+                ]
+            )
+        return algorithm_labels
+
+    def _log_data(
+        self, entity_path: str, head_bbox: np.ndarray, colors: str, labels: str
+    ) -> None:
+        """
+        Log the face bounding box and emotion.
+
+        Args:
+            entity_path (str): The entity path.
+            head_points (np.ndarray): The head points.
+            data_points (np.ndarray): The gaze points.
+            color (List[int]): The color.
+            dimension (str): The dimension.
+        """
+        rr.log(
+            entity_path,
+            rr.Boxes2D(
+                array=head_bbox,
+                array_format=rr.Box2DFormat.XYWH,
+                labels=labels,
+                colors=colors,
+            ),
+        )
+
+    def visualize(self, frame_idx: int) -> None:
+        """
+        Visualize the emotion individual component.
+
+        Combines the _log_data and _log_annotation_context method to visualize the
+        emotion individual component in camera views.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        dataname = "emotions"
+        head_bbox = "faceboxes"
+        for canvas in self.canvas_list:
+            cam_name = canvas
+            camera_index = self.camera_names.index(cam_name)
+            for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
+                alg_colors = self._parse_alg_color(alg_idx)
+                if frame_idx >= alg_data.shape[2]:  # number of frames
+                    continue
+                alg_name = self.algorithm_list[alg_idx]
+                for subject_idx, subject in enumerate(self.subject_names):
+                    if (
+                        subject_idx
+                        in self.visualizer_config["dataset_properties"][
+                            "cam_sees_subjects"
+                        ][cam_name]
+                    ):
+                        subject_head_bbox = self.algorithms_results[alg_idx][head_bbox][
+                            subject_idx, camera_index, frame_idx
+                        ]
+                        subject_emotion_probability = alg_data[
+                            subject_idx, camera_index, frame_idx
+                        ]
+                        max_probability_idx = np.argmax(subject_emotion_probability)
+                        entity_path = self.logger.generate_component_entity_path(
+                            self.component_name,
+                            is_3d=False,
+                            alg_name=alg_name,
+                            subject_name=subject,
+                            cam_name=cam_name,
+                        )
+                        self._log_data(
+                            entity_path,
+                            subject_head_bbox,
+                            labels=self.algorithm_labels[alg_idx][max_probability_idx],
+                            colors=alg_colors[max_probability_idx],
+                        )
+
+
 class ProximityComponent(Component):
     """
     Class for visualizing proximity data.

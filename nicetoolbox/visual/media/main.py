@@ -12,6 +12,7 @@ from .. import config_handler as vis_cfg
 from ..in_out import IO
 from .components import (
     BodyJointsComponent,
+    EmotionIndividualComponent,
     FaceLandmarksComponent,
     GazeIndividualComponent,
     GazeInteractionComponent,
@@ -124,6 +125,12 @@ def main(visualizer_config_file, machine_specifics_file):
         else None
     )
 
+    emotion_ind_component = (
+        EmotionIndividualComponent(visualizer_config, io, viewer, "emotion_individual")
+        if "emotion_individual" in components
+        else None
+    )
+
     proximity_component = (
         ProximityComponent(
             visualizer_config,
@@ -148,6 +155,7 @@ def main(visualizer_config_file, machine_specifics_file):
         hand_joints_component,
         face_landmarks_component,
         gaze_ind_component,
+        emotion_ind_component,
         proximity_component,
         kinematics_component,
     ]
