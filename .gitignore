@@ -7,6 +7,10 @@
 docs/_build/
 docs/_autosummary/
 artifacts/
+configs/dev/
+dev.py
+
+machine_specific_paths.toml
 
 **/builds/
 **/build/
@@ -29,8 +33,6 @@ artifacts/
 **/*.nemo
 **/*.avi
 nicetoolbox/**/*.mp4
-
-machine_specific_paths.toml
 
 .coverage
 TEST*.xml
