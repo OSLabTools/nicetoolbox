@@ -1,8 +1,5 @@
-import os
 import cv2
 import numpy as np
-import json
-import re
 import logging
 
 

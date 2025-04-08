@@ -38,3 +38,5 @@ machine_specific_paths.toml
 
 .coverage
 TEST*.xml
+
+nul

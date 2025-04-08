@@ -573,8 +573,7 @@ class Data:
                     )
 
                     if (iteration == 0) and (input_frame_idx != self.video_start):
-                        exc.error_log_and_raise(
-                            IndexError,
+                        logging.warning(
                             "Create input data from frames.",
                             f"First input frame index '{input_frame_idx}' does not "
                             f"match video start '{self.video_start}'. Dataset "

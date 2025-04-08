@@ -19,7 +19,6 @@ import numpy as np
 import rerun as rr
 
 from ...utils import filehandling as fh
-from ...utils import visual_utils as vis_ut
 
 TOP_LEVEL_DIR = Path(__file__).resolve().parents[3]
 PREDICTIONS_MAPPING_FILE = str(Path(TOP_LEVEL_DIR / "configs/predictions_mapping.toml"))
@@ -468,65 +467,20 @@ class GazeIndividualComponent(Component):
         if look_at_data_tuple:
             self.look_at_data = look_at_data_tuple[0]
             self.look_at_labels = look_at_data_tuple[1]
-        self.projected_gaze_data_algs = self._project_gaze_to_camera_views()
 
-    def _project_gaze_to_camera_views(self) -> List[Dict[str, np.ndarray]]:
-        """
-        Projects the 3D gaze data to the 2D camera views.
-
-        This method takes the 3D gaze data and projects it onto the 2D camera views for
-        each algorithm in the algorithm list. It iterates over all cameras and computes
-        the projected gaze data for each camera view. The projection is done using the
-        camera parameters such as the camera matrix, distortion coefficients, rotation
-        vectors, and extrinsic parameters. The method handles the transformation of 3D
-        points to 2D points using these camera parameters.
-
-        Returns:
-            List[Dict]: The projected gaze data for the camera views.
-        """
-        projected_data_algs = []
+        # retrieve 3d data projected to 2d camera views
+        key_2d = (
+            "2d_projected_from_3d_filtered"
+            if "3d_filtered" in self.canvas_data
+            else "2d_projected_from_3d"
+        )
+        self.projected_gaze_data_algs = []
         for alg_idx, _alg in enumerate(self.algorithm_list):
-            projected_data_camera_dict = {}
-            # Iterate over all cameras
-            cameras_list = [
-                canvas for canvas in self.canvas_list if "3d" not in canvas.lower()
-            ]
-            data = self.algorithms_results[alg_idx]["3d"]
-
-            for cam_name in cameras_list:
-                _, _, cam_rotation, _ = vis_ut.get_cam_para_studio(self.calib, cam_name)
-
-                # Check if self.calib[cam_name]['image_size'] is a list.
-                if isinstance(self.calib[cam_name]["image_size"][0], list):
-                    # If it is a list, take the first element [0].
-                    image_width = self.calib[cam_name]["image_size"][0][0]
-                else:
-                    # If it is not a list, assume it is already a single value and use
-                    # it directly.
-                    image_width = self.calib[cam_name]["image_size"][0]
-
-                projected_data_camera_dict[cam_name] = np.full(
-                    (data.shape[0], data.shape[2], 2), np.nan
-                )
-
-                for subject_idx, _subject_name in enumerate(self.subject_names):
-                    if (
-                        subject_idx
-                        in self.visualizer_config["dataset_properties"][
-                            "cam_sees_subjects"
-                        ][cam_name]
-                    ):
-                        gaze_vectors = data[
-                            subject_idx, 0, :, :
-                        ]  # Extract all frames at once
-                        dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(
-                            cam_rotation, gaze_vectors, image_width
-                        )
-                        projected_data_camera_dict[cam_name][subject_idx, :, 0] = dx
-                        projected_data_camera_dict[cam_name][subject_idx, :, 1] = dy
-            # Create a dictionary to store reprojected data for each camera
-            projected_data_algs.append(projected_data_camera_dict)
-        return projected_data_algs
+            proj = {}
+            for cam_name in [c for c in self.canvas_list if "3d" not in c.lower()]:
+                cam_idx = self.camera_names.index(cam_name)
+                proj[cam_name] = self.algorithms_results[alg_idx][key_2d][:, cam_idx]
+            self.projected_gaze_data_algs.append(proj)
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """

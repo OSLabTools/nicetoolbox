@@ -22,7 +22,7 @@ call conda install fsspec -c conda-forge -y
 call pip install mmengine
 call mim install "mmcv==2.1.0"
 call mim install "mmdet>=3.1.0"
-call mim install "mmpretrain>=1.0.0rc8" # required for Vitpose
+call mim install "mmpretrain>=1.0.0rc8" 
 echo Navigate Inside to mmpose directory
 cd ./submodules/mmpose/
 echo Installing requirements from MMPose...

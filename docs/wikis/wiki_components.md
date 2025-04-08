@@ -23,7 +23,7 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | body_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
 | hand_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
 | face_landmarks | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
-| gaze_individual | landmarks_2d, 3d, 3d_filtered |
+| gaze_individual | landmarks_2d, 3d, 3d_filtered, 2d_projected_from_3d_filtered, 2d_projected_from_3d |
 | gaze_interaction | distance_gaze_3d, gaze_look_at_3d, gaze_mutual_3d |
 | kinematics | displacement_vector_body_2d, velocity_body_2d, displacement_vector_body_3d, velocity_body_3d |
 | leaning | body_angle_2d, body_angle_3d |
@@ -40,6 +40,7 @@ The `data_description` dictionary details the entries of all numpy files within 
 | 2d, 2d_filtered, 2d_interpolated | list of all joint names | coordinate_x, coordinate_y, confidence_score |
 | 3d, displacement_vector_body_2d, displacement_vector_body_3d | list of all joint names | coordinate_x, coordinate_y, coordinate_z |
 | 3d, 3d_filtered | coordinate_x, coordinate_y, coordinate_z | --
+| 2d_projected_from_3d_filtered, 2d_projected_from_3d | coordinate_u, coordinate_v | --
 | bbox_2d | full_body | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score |
 | landmarks_2d | list of all landmarks | coordinate_u, coordinate_v |
 | distance_gaze_3d | per subject: to_face_<subject_name> | -- |
