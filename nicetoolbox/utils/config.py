@@ -6,6 +6,7 @@ import copy
 import json
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import toml
@@ -39,16 +40,17 @@ def save_config(configs: dict, config_file: str) -> None:
     Note:
         If the file type is Windows, it will convert the paths to Windows format.
     """
+    config_file = Path(config_file)
 
-    if config_file.endswith("yml") or config_file.endswith("yaml"):
+    if config_file.suffix in [".yml", ".yaml"]:
         with open(config_file, "w") as file:
             yaml.dump_all(
                 configs, file, default_flow_style=False, indent=4, sort_keys=False
             )
-    elif config_file.endswith("toml"):
+    elif config_file.suffix == ".toml":
         with open(config_file, "w") as file:
             toml.dump(configs, file, encoder=toml.TomlNumpyEncoder())
-    elif config_file.endswith("json"):
+    elif config_file.suffix == ".json":
         with open(config_file, "w") as file:
             json.dump(configs, file, default=default)
     else:

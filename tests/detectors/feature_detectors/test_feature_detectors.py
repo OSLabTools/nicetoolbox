@@ -1,4 +1,4 @@
-from ...fixtures import BaseTestCase
+from fixtures import BaseTestCase
 
 
 class TestFeatureDetectors(BaseTestCase):
