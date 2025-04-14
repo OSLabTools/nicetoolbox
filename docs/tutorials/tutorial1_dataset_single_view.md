@@ -162,12 +162,19 @@ Recalling the [example](#example) from the previous section, please find the acc
 ### Toml to npz file
 
 Next, use the calibration converter GUI to convert this calibration description into the `calibration.npz` file for the NICE Toolbox.
-On linux:
 
 ```bash
+# navigate to the NICE toolbox source code folder
 cd /path/to/nicetoolbox/
-source ./env/bin/activate
-python ./utils/calibration_gui/calibration_converter.py
+
+# LINUX: activate the environment 
+source ./envs/nicetoolbox/bin/activate
+
+# WINDOWS: activate the environment 
+envs\nicetoolbox\Scripts\activate
+
+# run the Calibration Gui
+run_calibration_gui
 ```
 The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. It outputs the calibration in two files: `calibrations.npz` which is required to run the NICE toolbox and `calibrations.toml` which displays the same calibration data in a human-readable (and changeable) file.
 
