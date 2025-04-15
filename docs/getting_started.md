@@ -81,7 +81,7 @@ cd /path/to/nicetoolbox/
 source ./envs/nicetoolbox/bin/activate
 
 # WINDOWS: activate the environment TODO: update
-env\Scripts\activate
+envs\nicetoolbox\Scripts\activate
 
 # run the toolbox
 run_detectors
@@ -116,7 +116,8 @@ Finally, from the top level of your code folder, start the visualizer by running
 
 ```bash
 # activate the python environment if not already activated
-source ./envs/nicetoolbox/bin/activate
+source ./envs/nicetoolbox/bin/activate # LINUX
+envs\nicetoolbox\Scripts\activate # WINDOWS
 
 # run the visualizer
 run_visualization

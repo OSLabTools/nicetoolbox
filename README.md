@@ -5,7 +5,7 @@
 &emsp;&emsp;&emsp;
 [Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
 [Documentation](https://nicetoolbox.readthedocs.io/en/docs/index.html) &emsp;&emsp;&emsp;
-mailto: nicetoolbox@tue.mpg.de
+mailto: <nicetoolbox@tue.mpg.de>
 
 <br>
 
@@ -22,35 +22,35 @@ pose estimation and gaze tracking for each individual, as well as movement dynam
 calculation (kinematics), gaze interaction monitoring (mutual-gaze), the measurement
 of physical body distance between dyads, and emotion detection.
 This first set of components and algorithms is going to be extended in future releases.
-For more details, please see the [components overview](docs/wikis/wiki_components) page in
-the wiki.
+For more details, please see the
+[components overview](https://nicetoolbox.readthedocs.io/en/docs/wikis/wiki_components.html)
+page in the wiki.
 
 The toolbox  also includes a visualizer module, which allows users to
 visualize and investigate the algorithm’s outputs.
 
-
-
 ## Installation & getting started
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the
-[installation instructions](docs/installation) page.
-For a quick start into the toolbox, we provide an example dataset and documentation to
-set it up on the [getting started](docs/getting_started) page.
-Further tutorials and documentation can be found on the [tutorials](docs/tutorials/index)
-and [wiki](docs/wikis/index) pages.
-
+[installation instructions](https://nicetoolbox.readthedocs.io/en/docs/installation.html)
+page. For a quick start into the toolbox, we provide an example dataset and documentation to
+set it up on the [getting started](https://nicetoolbox.readthedocs.io/en/docs/getting_started.html)
+page. Further tutorials and documentation can be found on the
+[tutorials](https://nicetoolbox.readthedocs.io/en/docs/tutorials/index.html) and
+[wiki](https://nicetoolbox.readthedocs.io/en/docs/wikis/index.html) pages. You can also
+access this [documentation](https://nicetoolbox.readthedocs.io/en/docs/index.html) offline
+by downloading it as a PDF. Just use the ReadTheDocs pop-up menu located in the bottom right
+corner of the screen.
 
 ## Code structure
 
 ![toolbox_design.png](docs/graphics/toolbox_design.png)
-
 
 ## Future releases
 
 In future releases, we plan to extend the NICE Toolbox to include detectors for facial
 expressions, head movements, eye closure, active speaking, emotional valence and arousal,
 and micro-action recognition.
-
 
 Further, we will move beyond mere visual inspection and integrate a versatile
 evaluation framework. Based on our experience in computer vision, we are aware that no
@@ -64,8 +64,7 @@ ultimately creating a practically useful toolbox for researchers analyzing human
 interaction and communication.
 
 If you are interested in collaborating with us or contributing to the project, please
-reach out to us at **nicetoolbox@tue.mpg.de**.
-
+reach out to us at **<nicetoolbox@tue.mpg.de>**.
 
 ## Acknowledgments
 
@@ -78,30 +77,25 @@ The NICE Toolbox is using the following existing tools, methods, and frameworks:
 [Py-FEAT](https://py-feat.org/pages/intro.html), and
 [rerun.io](https://rerun.io/).
 
-
 ## Authors
 
-Carolin Schmitt, 
-Gökce Ergün, 
-Timo Lübbing, 
+Carolin Schmitt,
+Gökce Ergün,
+Timo Lübbing,
+Ashutosh Jha,
 Senya Polikovsky
 
 All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
 
-
-
 ## License
 
-
-[NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2024 by Carolin Schmitt, Gökce Ergün, 
-Timo Lübbing, Senya Polikovsky is licensed under 
+[NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2025 by Carolin Schmitt, Gökce Ergün,
+Timo Lübbing, Ashutosh Jha, Senya Polikovsky is licensed under
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1), see [LICENSE.md](LICENSE).
 
-Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses 
+Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses
 listed in [LICENSES_ALGORITHMS.md](LICENSES_ALGORITHMS).
-
-
 
 ## Copyright
 
-Copyright 2024, Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems
+Copyright 2025, Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems
