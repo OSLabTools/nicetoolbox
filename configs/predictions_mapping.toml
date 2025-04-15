@@ -52,8 +52,12 @@
     ["left_shoulder", "right_shoulder"],
     ["left_hip", "right_hip"]]
 
-'hand_joints' = [[0,2],[2,5],[5,9],[9,13],[13,17],[0,17],[2,4],[5,8],[9,12],[13,16],[17,20],
-    [21,23],[23,26],[26,30],[30,34],[34,38],[21,38],[23,25],[26, 29],[30,33],[34,37],[38,41]]
+'hand_joints' = [
+    ["left_hand_0", "left_hand_2", "left_hand_5", "left_hand_9", "left_hand_13", "left_hand_17", "left_hand_0"],
+    ["left_hand_2", "left_hand_4"], ["left_hand_5", "left_hand_8"], ["left_hand_9", "left_hand_12"],["left_hand_13", "left_hand_16"], ["left_hand_17", "left_hand_20"],
+    ["right_hand_0", "right_hand_2", "right_hand_5", "right_hand_9", "right_hand_13", "right_hand_17", "right_hand_0"],
+    ["right_hand_2", "right_hand_4"], ["right_hand_5", "right_hand_8"], ["right_hand_9", "right_hand_12"],["right_hand_13", "right_hand_16"], ["right_hand_17", "right_hand_20"]]
+
 'face_landmarks' = []
 
 
