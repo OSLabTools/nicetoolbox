@@ -55,18 +55,18 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
             ax.set_xlabel("Frame Index")
             ax.set_ylabel("Mean of Movements")
             # ax.set_ylim(global_min - delta, global_max + delta)
-            ax.legend()
+            ax.legend(loc="upper left", bbox_to_anchor=(1.03, 1))
 
         camera_name = (
-            camera_names[camera_idx]
-            if camera_names is not None
-            else f"camera_{camera_idx}"
+            camera_names[camera_idx] if camera_names is not None else "camera_3d"
         )
         # Save the plot
+        plt.subplots_adjust(right=0.85)
         plt.savefig(
             os.path.join(
                 output_folder, f"mean_of_motion_by_bodypart_{camera_name}.png"
             ),
+            bbox_inches="tight",
             dpi=500,
         )
 

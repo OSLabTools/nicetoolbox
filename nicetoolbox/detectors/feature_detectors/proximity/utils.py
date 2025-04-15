@@ -30,26 +30,22 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
         None
     """
     for camera_idx in range(data.shape[1]):
+        camera_name = camera_names[camera_idx] if camera_names is not None else "3d"
+        unit = "(in pixels)" if camera_name != "3d" else "(real-world units: m/cm/mm)"
         plt.clf()
         plt.figure(figsize=(10, 5))
         # Plot the distances for the average coordinates of the selected keypoints
         # across all frames
         plt.plot(data[0, camera_idx])
         plt.xlabel("Frame Index")
-        plt.ylabel("Proximity Score")
+        plt.ylabel(f"Proximity Score {unit}")
         if len(keypoint) == 1:
-            title = f"Distance between {keypoint[0]} in PersonL and PersonR"
+            title = f"Distance between {keypoint[0]} across individuals"
         else:
-            title = f"Distance between center of selected keypoints {keypoint} in "
-            "PersonL and PersonR"
+            title = f"Distance between center of selected keypoints {keypoint}"
+            "across individuals"
         plt.title(title)
-        # plt.ylim(1.3, 1.9)
 
-        camera_name = (
-            camera_names[camera_idx]
-            if camera_names is not None
-            else f"camera_{camera_idx}"
-        )
         # Save the plot
         plt.savefig(
             os.path.join(
