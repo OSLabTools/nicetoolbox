@@ -9,7 +9,7 @@ import numpy as np
 
 from ....utils import linear_algebra as alg
 from ..base_feature import BaseFeature
-from ..kinematics import utils as kinematics_utils
+from ..gaze_interaction import utils as gaze_interaction_utils
 
 
 class GazeDistance(BaseFeature):
@@ -246,27 +246,20 @@ class GazeDistance(BaseFeature):
             mutual = np.concatenate((mutual, mutual), axis=0)
 
             # Determine global_min and global_max - define y-lims of graphs
-            global_min = min(distances[0].min(), distances[1].min())
-            global_max = max(distances[0].max(), distances[1].max())
+            # global_min = min(distances[0].min(), distances[1].min())
+            # global_max = max(distances[0].max(), distances[1].max())
 
             # scale binary data
-            look_at = look_at * (global_max - global_min) / 2
-            look_at += global_min
-            mutual = mutual * (global_max - global_min) / 2
-            mutual += global_min
+            # look_at = look_at * (global_max - global_min) / 2
+            # look_at += global_min
+            # mutual = mutual * (global_max - global_min) / 2
+            # mutual += global_min
 
             input_data = np.concatenate((distances, look_at, mutual), axis=-1)
             categories = ["distance_gaze_face", "gaze_look_at", "gaze_mutual"]
-            kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
+            gaze_interaction_utils.visualize_gaze_interaction(
                 input_data, categories, self.viz_folder, self.subjects_descr
             )
-            # kinematics_utils.create_video_evolving_linegraphs(
-            #     self.gaze_detector_file_list[0], input_data, categories, global_min,
-            #     global_max, self.viz_folder, 'distance_face_cam3', 3.0)
-            # kinematics_utils.create_video_evolving_linegraphs(
-            #     self.gaze_detector_file_list[1], input_data, categories, global_min,
-            #     global_max, self.viz_folder, 'distance_face_cam4', 3.0)
-
             logging.info(
                 f"Visualization of feature detector {self.components} completed."
             )

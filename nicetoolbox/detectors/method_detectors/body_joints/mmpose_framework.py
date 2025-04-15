@@ -6,6 +6,7 @@ import logging
 import os
 from abc import abstractmethod
 
+import cv2
 import numpy as np
 
 from ....utils import check_and_exception as check
@@ -100,6 +101,8 @@ class MMPose(BaseDetector):
         config["prediction_folders"] = self.prediction_folders
         config["image_folders"] = self.image_folders
         config["data_folder"] = self.data_folder
+        self.frames_list = data.frames_list
+        self.fps = data.fps
 
         # keypoints mapping
         keypoints_indices = fh.load_config("./configs/predictions_mapping.toml")[
@@ -107,6 +110,8 @@ class MMPose(BaseDetector):
         ][config["keypoint_mapping"]]["keypoints_index"]
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config["keypoints_indices"], config["keypoints_description"] = mapping
+        self.predictions_mapping = fh.load_config("./configs/predictions_mapping.toml")
+        self.keypoint_mapping = config["keypoint_mapping"]
 
         # then, call the base class init
         super().__init__(config, io, data)
@@ -131,6 +136,22 @@ class MMPose(BaseDetector):
         """
         pass
 
+    def _get_skeleton_connections(self, component_name) -> str:
+        """
+        Get the skeleton connections for the algorithm index from the predictions
+        mapping.
+
+        Args:
+            alg_idx (int): The index of the algorithm.
+            predictions_mapping (Dict): The predictions mapping.
+
+        Returns:
+            List[List[str]]: The skeleton connections for the algorithm index.
+        """
+        return self.predictions_mapping["human_pose"][self.keypoint_mapping][
+            "connections"
+        ][component_name]
+
     def visualization(self, data):
         """
         Generates a visualization video for each camera from the processed image frames.
@@ -154,24 +175,110 @@ class MMPose(BaseDetector):
             f"and {self.algorithm}."
         )
 
-        for camera in self.camera_names:
-            output_path = os.path.join(
-                self.viz_folder, f"{self.algorithm}_{camera}.mp4"
-            )
-            return_code = vd.frames_to_video(
-                self.image_folders[camera],
-                output_path,
-                fps=data.fps,
-                start_frame=int(self.video_start),
-            )
+        n_subj = len(self.subjects_descr)
+        for _component, result_folder in self.result_folders.items():
+            viz_dir = os.path.join(result_folder, self.algorithm, "visualization")
+            os.makedirs(viz_dir, exist_ok=True)
+            prediction_file = os.path.join(result_folder, f"{self.algorithm}.npz")
+            prediction = np.load(prediction_file, allow_pickle=True)
 
-            if return_code == 0:
-                logging.info(f"VISUALIZATION, {self.algorithm}-{camera}: SUCCESS")
+            data = prediction["2d_interpolated"]
+            algorithm_labels = prediction["data_description"].item()["2d_interpolated"][
+                "axis3"
+            ]
+
+            # visualization parameters
+            if _component == "body_joints":
+                RADIUS = 4
+                THICKNESS = 2
             else:
-                logging.error(
-                    f"VISUALIZATION, {self.algorithm}-{camera}:"
-                    "FAILURE - Video file was not created"
+                RADIUS = 1
+                THICKNESS = 1
+            JOINT_COLOR = (187, 197, 254)
+            SKELETON_COLOR = (255, 144, 30)
+
+            # per camera and frame, visualize each subject's body_joints
+            success = True
+            for camera_name in self.camera_names:
+                cam_idx = self.camera_names.index(camera_name)
+                os.makedirs(os.path.join(viz_dir, camera_name), exist_ok=True)
+
+                for frame_idx in range(data.shape[2]):
+                    # load the original input image
+                    image_file = [
+                        file
+                        for file in self.frames_list[frame_idx]
+                        if camera_name in file
+                    ][0]
+                    image = cv2.imread(image_file)
+                    for subject_idx in range(n_subj):
+                        # the predicted joints data
+                        subject_2d_points = data[subject_idx, cam_idx, frame_idx][
+                            :, :2
+                        ]  # select first 2 values, 3rd is confidence score
+                        # draw the joints onto the image
+                        for joint in subject_2d_points:
+                            if not any(np.isnan(joint)):
+                                cv2.circle(
+                                    image,
+                                    tuple(int(x) for x in joint),
+                                    radius=RADIUS,
+                                    color=JOINT_COLOR,
+                                    thickness=-1,
+                                )
+
+                        keypoints_dict = {
+                            label: i for i, label in enumerate(algorithm_labels)
+                        }
+
+                        connections = self._get_skeleton_connections(_component)
+                        start_points, end_points = [], []
+                        for connect in connections:
+                            for k in range(len(connect) - 1):
+                                if (connect[k] in keypoints_dict) & (
+                                    connect[k + 1] in keypoints_dict
+                                ):
+                                    start = keypoints_dict[connect[k]]
+                                    end = keypoints_dict[connect[k + 1]]
+                                    start_points.append([subject_2d_points[start]])
+                                    end_points.append([subject_2d_points[end]])
+
+                        start_points = np.array(start_points).reshape(-1, 2)
+                        end_points = np.array(end_points).reshape(-1, 2)
+                        for start, end in zip(start_points, end_points):
+                            if np.any(np.isnan(start)) or np.any(np.isnan(end)):
+                                continue  # Skip if start or end point has NaN
+                            pt1 = tuple(map(int, start))
+                            pt2 = tuple(map(int, end))
+                            cv2.line(
+                                image,
+                                pt1,
+                                pt2,
+                                color=SKELETON_COLOR,
+                                thickness=THICKNESS,
+                            )
+
+                    cv2.imwrite(
+                        os.path.join(
+                            viz_dir,
+                            camera_name,
+                            f"{frame_idx + int(self.video_start):05d}.png",
+                        ),
+                        image,
+                    )
+
+                # create and save video
+                success *= vd.frames_to_video(
+                    os.path.join(viz_dir, camera_name),
+                    os.path.join(viz_dir, f"{camera_name}.mp4"),
+                    int(self.fps),
+                    start_frame=int(self.video_start),
                 )
+
+        logging.info(
+            f"Detector {self.components}: visualization finished with code "
+            f"{success}."
+        )
 
     def post_inference(self):
         """
