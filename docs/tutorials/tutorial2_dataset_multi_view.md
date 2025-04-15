@@ -99,15 +99,17 @@ It can process calibration parameters from two formats:
 
 Start the calibration converter GUI from command line / terminal using
 ```bash
-# Linux
+# navigate to the NICE toolbox source code folder
 cd /path/to/nicetoolbox/
-source ./env/bin/activate
-python ./utils/calibration_gui/calibration_converter.py
 
-# Windows
-cd \path\to\nicetoolbox
-.\env\Scripts\activate
-python .\utils\calibration_gui\calibration_converter.py
+# LINUX: activate the environment 
+source ./envs/nicetoolbox/bin/activate
+
+# WINDOWS: activate the environment 
+envs\nicetoolbox\Scripts\activate
+
+# run the Calibration Gui
+run_calibration_gui
 ```
 
 The calibration converter offers multiple options to create, load, or change a calibration file for the NICE Toolbox. Here, we show how to create a new file from scratch, given the dataset's directory path.

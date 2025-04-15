@@ -137,5 +137,9 @@ def calibration_converter():
     root.mainloop()
 
 
-if __name__ == "__main__":
+def entry_point():
     calibration_converter()
+
+
+if __name__ == "__main__":
+    entry_point()
