@@ -60,8 +60,18 @@ run_visualization = "nicetoolbox.visual.media.main:entry_point"
 run_calibration_gui = "nicetoolbox.utils.calibration_gui.calibration_converter:entry_point"
 
 # Setuptools
-[tool.setuptools]
-packages = ["nicetoolbox"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "nicetoolbox*",
+]
+exclude = [
+    "tests*", # Exclude test directory
+    "docs*",  # Exclude documentation directory
+    "submodules*",  # Exclude submodules directory
+    "envs*",  # Exclude environments directory
+    "configs*",  # Exclude configs directory
+]
 
 [tool.setuptools.dynamic]
 readme = {file = "README.md"}
