@@ -56,7 +56,6 @@ visual = [
 
 [project.scripts]
 run_detectors = "nicetoolbox.detectors.main:entry_point"
-run_evaluation = "nicetoolbox.evaluation.main:entry_point"
 run_visualization = "nicetoolbox.visual.media.main:entry_point"
 run_calibration_gui = "nicetoolbox.utils.calibration_gui.calibration_converter:entry_point"
 
