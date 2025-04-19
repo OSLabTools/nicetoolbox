@@ -2,14 +2,14 @@
 # options are, e.g., all keys from your local 'machine_specific_paths.toml'
 
 # gaze_individual
-[algorithms.xgaze_3cams]
+[algorithms.multiview_eth_xgaze]
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
-env_name = "venv:xgaze_3cams"
-shape_predictor_filename = "<assets>/xgaze_3cams/shape_predictor_68_face_landmarks.dat"
-face_model_filename = "<assets>/xgaze_3cams/face_model.txt"
-pretrained_model_filename = "<assets>/xgaze_3cams/epoch_24_ckpt.pth.tar"
-face_detector_filename = "<assets>/xgaze_3cams/mmod_human_face_detector.dat"
+env_name = "venv:multiview_eth_xgaze"
+shape_predictor_filename = "<assets>/multiview_eth_xgaze/shape_predictor_68_face_landmarks.dat"
+face_model_filename = "<assets>/multiview_eth_xgaze/face_model.txt"
+pretrained_model_filename = "<assets>/multiview_eth_xgaze/epoch_24_ckpt.pth.tar"
+face_detector_filename = "<assets>/multiview_eth_xgaze/mmod_human_face_detector.dat"
 log_frame_idx_interval = 10
 filtered = true
 window_length = 11
@@ -64,7 +64,7 @@ input_detector_names = [["body_joints", "hrnetw48"]]
 # gaze_interaction
 [algorithms.gaze_distance]
 # camera_names = ["3d"]
-input_detector_names = [["gaze_individual", "xgaze_3cams"], ["face_landmarks", "hrnetw48"]]
+input_detector_names = [["gaze_individual", "multiview_eth_xgaze"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"
 threshold_look_at = 0.4
 

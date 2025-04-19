@@ -18,7 +18,7 @@ from ..base_detector import BaseDetector
 from ..filters import SGFilter
 
 
-class XGaze3cams(BaseDetector):
+class MultiviewEthXgaze(BaseDetector):
     """
     The XGaze3cams class is a method detector that computes the gaze_individual
     component.
@@ -38,7 +38,7 @@ class XGaze3cams(BaseDetector):
     """
 
     components = ["gaze_individual"]
-    algorithm = "xgaze_3cams"
+    algorithm = "multiview_eth_xgaze"
 
     def __init__(self, config, io, data) -> None:
         """

@@ -9,7 +9,7 @@ save_csv = true               # whether to save all results to csv-files
 
 # each component can be assigned to / run with multiple different algorithms
 [component_algorithm_mapping]
-gaze_individual = ['xgaze_3cams']
+gaze_individual = ['multiview_eth_xgaze']
 gaze_interaction = ['gaze_distance']
 body_joints = ['hrnetw48', 'vitpose']
 hand_joints = ['hrnetw48']

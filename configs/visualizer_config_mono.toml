@@ -34,7 +34,7 @@ visualize_interval = 1  # 1 means visualize every frame; change the parameter if
 
 # Component: gaze individual
 [media.gaze_individual]
-algorithms = ['xgaze_3cams']
+algorithms = ['multiview_eth_xgaze']
 
 [media.gaze_individual.canvas]
 3d = ["<cam_front>"]## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []

@@ -119,13 +119,13 @@ Detects the position of key landmarks to analyze facial expressions and movement
 The CSV files containing the <face_landmarks> key and the `<output_folder>/face_landmarks/<algorithm_name>.npz` file represent the results of this component. The post-processing steps and naming conventions are the same as those used for body joints.
 
 ## Gaze Individual
-Tracks the individual's gaze using the *XGaze_3cams* algorithm. The CSV files containing the <gaze_individual> key and the `<output_folder>/gaze_individual/<algorithm_name>.npz` file represent the results of this component.
+Tracks the individual's gaze using the *Multiview_eth_xgaze* algorithm. The CSV files containing the <gaze_individual> key and the `<output_folder>/gaze_individual/<algorithm_name>.npz` file represent the results of this component.
 
 The algorithm first detects the eye region and then calculates the 3D gaze direction. It is capable of tracking gaze in 3D space even with a single camera. When multiple cameras are used, the algorithm aggregates gaze detection results from each camera that captures the subject's gaze.
 
 The `…_3d.csv` file and `3d.npy` data is saved inside the `<output_folder>/gaze_individual/<algorithm_name>.npz` contains the 3D gaze direction, with the starting point derived from the position of the eye. The 2D eye region positions are stored in `…_landmarks_2d.csv` and `landmarks_2d.npy` file.
 
-Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.xgaze_3cams.filtered`, `algorithms.xgaze_3cams.window_length`, and `algorithms.xgaze_3cams.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
+Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.Multiview_eth_xgaze.filtered`, `algorithms.Multiview_eth_xgaze.window_length`, and `algorithms.Multiview_eth_xgaze.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
 
 ## Kinematics
 The *velocity-body* algorithm analyzes the movement dynamics of body joints by calculating their displacement and velocity. The CSV files containing the <kinematics> key and the `<output_folder>/kinematics/<algorithm_name>.npz` file represent the results of this component.

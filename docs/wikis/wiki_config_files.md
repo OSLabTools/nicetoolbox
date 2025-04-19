@@ -90,7 +90,7 @@ Each component can be assigned to and run with multiple different algorithms. Wh
 
 ```toml
 [component_algorithm_mapping]
-gaze_individual = ['xgaze_3cams']
+gaze_individual = ['multiview_eth_xgaze']
 gaze_interaction = ['gaze_distance']
 body_joints = ['hrnetw48', 'vitpose']
 hand_joints = ['hrnetw48']
@@ -314,7 +314,7 @@ Under 'media.component.appearance', you can configure the color and radii (the s
 ```toml
 # Component: gaze individual - An example for 3D_Canvas and Camera Canvases
 [media.gaze_individual]
-algorithms = ['xgaze_3cams']            # list of algorithms
+algorithms = ['multiview_eth_xgaze']  # list of algorithms
 [media.gaze_individual.canvas]
 3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
                                                                                       ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
