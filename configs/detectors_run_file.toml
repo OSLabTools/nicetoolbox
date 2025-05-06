@@ -22,7 +22,7 @@ emotion_individual = ['py_feat']
 # define which data to run on
 [run]
 [run.communication_multiview]
-components = ["body_joints", "gaze_individual",  "gaze_interaction", "kinematics", "proximity", "emotion_individual" ] 
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "emotion_individual"]
 videos = [
    {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]

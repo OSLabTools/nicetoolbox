@@ -51,7 +51,7 @@ class PyFeat(BaseDetector):
         # call the base class __init__
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
 
-        self.camera_names = sorted([n for n in config["camera_names"] if n != ""])
+        self.camera_names = [n for n in config["camera_names"] if n != ""]
         while "" in self.camera_names:
             self.camera_names.remove("")
         self.cam_sees_subjects = config["cam_sees_subjects"]
@@ -101,7 +101,7 @@ class PyFeat(BaseDetector):
         for camera_name in self.camera_names:
             cam_idx = self.camera_names.index(camera_name)
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
-            print(camera_name)
+
             for frame_idx in range(emotion_data.shape[2]):
                 # load the original input image
                 image_file = [
