@@ -6,8 +6,8 @@ requires = ["setuptools"]
 name = "nicetoolbox"
 description = "NICE Toolbox provides tools for exploring nonverbal human communication using computer vision."
 dynamic = ["readme"]
-requires-python = ">3.7,<3.11"
-version = "0.0.1"
+requires-python = ">3.7,<3.12"
+version = "0.0.2"
 
 dependencies = [
     "GitPython==3.1.35",
@@ -21,7 +21,7 @@ dependencies = [
     "pyyaml==6.0.1",
     "rerun-sdk==0.17.0",
     "scikit-image==0.21.0",
-    "toml==0.10.2",
+    "toml",
 ]
 
 [project.optional-dependencies]

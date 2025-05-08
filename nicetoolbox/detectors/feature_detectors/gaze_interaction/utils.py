@@ -43,6 +43,7 @@ def visualize_gaze_interaction(
         for i, (ax, dat) in enumerate(zip(axs, data)):
             # create secondary axis for boolean values
             ax2 = ax.twinx()
+            gaze_distance_max = np.nanmax(dat[camera_idx, :, 0])
             for j, category in enumerate(categories_list):
                 # first category is gaze distance and it is continuous
                 if j == 0:
@@ -51,21 +52,20 @@ def visualize_gaze_interaction(
                         label=f"{category} (left axis)",
                         color="tab:blue",
                     )
-                    gaze_distance_max = np.max(dat[camera_idx, :, j])
+
                 # other categories are boolean
-                if j == 1:
-                    ax2.plot(
-                        dat[camera_idx, :, j],
+                elif j == 1 or j == 2:
+                    x = (np.arange(dat.shape[1]),)
+                    y = (dat[camera_idx, :, j],)
+                    ax2.scatter(
+                        x,
+                        y,
                         label=f"{category} (right axis)",
-                        linestyle="--",
-                        color="tab:orange",
-                    )
-                elif j == 2:
-                    ax2.plot(
-                        dat[camera_idx, :, j],
-                        label=f"{category} (right axis)",
-                        linestyle=":",
-                        color="tab:green",
+                        marker="_" if j == 1 else ".",
+                        color="tab:orange" if j == 1 else "tab:green",
+                        alpha=0.5,
+                        zorder=2 if j == 1 else 1,
+                        s=1 if gaze_distance_max > 100 else 5,
                     )
 
             if people_names is None:
@@ -75,9 +75,16 @@ def visualize_gaze_interaction(
             ax.set_ylabel(f"Gaze Distance to the Other Person’s Face \n {unit}")
             ax2.set_ylabel("True/False (1/0)")
 
+            if gaze_distance_max < 5:
+                increment = 0.2
+            elif gaze_distance_max < 100:
+                increment = 2
+            else:
+                increment = 20
+
             # Set specific ticks for axis
-            ax.set_ylim(-0.1, gaze_distance_max + 0.2)
-            yticks = np.arange(0, gaze_distance_max + 0.2, 0.2)
+            ax.set_ylim(-0.1, gaze_distance_max + increment)
+            yticks = np.arange(0, gaze_distance_max + increment, increment)
             ax.set_yticks(yticks)
             ax2.set_yticks([0, 1])
             ax2.set_ylim(-0.1, 1.1)
