@@ -268,7 +268,7 @@ def save_frame(output: pd.DataFrame, cam_name: str, frame_i: int, config: dict) 
 
     Filters `output` for rows matching `frame_i`, calls `plot_detections()`,
     adds legends if multiple identities, rasterizes axes, and writes a PNG
-    to `out_folder/<cam_name>/<filename>.png`.
+    to `out_folder/<cam_name>/<filename>.jpg`.
 
     Args:
         output (pd.DataFrame): Detection results for one view.

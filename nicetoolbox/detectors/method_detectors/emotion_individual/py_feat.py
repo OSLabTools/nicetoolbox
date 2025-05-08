@@ -151,7 +151,7 @@ class PyFeat(BaseDetector):
                     os.path.join(
                         self.viz_folder,
                         camera_name,
-                        f"{frame_idx + int(self.video_start):05d}.png",
+                        f"{frame_idx + int(self.video_start):05d}.jpg",
                     ),
                     image,
                 )
