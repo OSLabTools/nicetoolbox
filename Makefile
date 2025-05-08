@@ -76,9 +76,24 @@ $(MACHINE_SPECIFICS):
 	@echo "# Directory for saving toolbox output as an absolute path (str)" >> $(MACHINE_SPECIFICS)
 	@echo "output_folder_path = '$(OUTPUTS_DIR)'" >> $(MACHINE_SPECIFICS)
 	@echo "" >> $(MACHINE_SPECIFICS)
+ifeq ($(OS), Windows_NT)
 	@echo "# Where to find your conda (miniconda or anaconda) installation as absolute path (str)" >> $(MACHINE_SPECIFICS)
 	@echo "conda_path = '$(CONDA_DIR)'" >> $(MACHINE_SPECIFICS)
 	@echo "Created machine specifics paths file"
+else
+	@echo "Looking for valid conda envs_dirs..."
+	@VALID_CONDA_PATH=$$(conda config --show envs_dirs | grep -v '\.conda/envs' | grep -E '/envs$$' | head -n 1 | tr -d ' -'); \
+	if [ -z "$$VALID_CONDA_PATH" ]; then \
+		echo "Error: Only **/.conda/ installation found. Nicetoolbox requires a visible conda installation (e.g., /home/<user>/miniconda)."; \
+		echo "Please reconfigure conda with:"; \
+		echo "  conda config --add envs_dirs /path/to/visible/conda/installation/"; \
+		exit 1; \
+	fi; \
+	echo "# Where to find your conda (miniconda or anaconda) installation as absolute path (str)" >> $(MACHINE_SPECIFICS); \
+	echo "conda_path = '$$(realpath $$VALID_CONDA_PATH/..)'">> $(MACHINE_SPECIFICS); \
+	echo "Using conda installation at: $$VALID_CONDA_PATH"; \
+	echo "Created machine specifics paths file"
+endif
 
 # ----------------------
 # Download keeper assets
