@@ -125,7 +125,7 @@ The algorithm first detects the eye region and then calculates the 3D gaze direc
 
 The `…_3d.csv` file and `3d.npy` data is saved inside the `<output_folder>/gaze_individual/<algorithm_name>.npz` contains the 3D gaze direction, with the starting point derived from the position of the eye. The 2D eye region positions are stored in `…_landmarks_2d.csv` and `landmarks_2d.npy` file.
 
-Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.Multiview_eth_xgaze.filtered`, `algorithms.Multiview_eth_xgaze.window_length`, and `algorithms.Multiview_eth_xgaze.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
+Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.multiview_eth_xgaze.filtered`, `algorithms.multiview_eth_xgaze.window_length`, and `algorithms.multiview_eth_xgaze.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
 
 ## Kinematics
 The *velocity-body* algorithm analyzes the movement dynamics of body joints by calculating their displacement and velocity. The CSV files containing the <kinematics> key and the `<output_folder>/kinematics/<algorithm_name>.npz` file represent the results of this component.
