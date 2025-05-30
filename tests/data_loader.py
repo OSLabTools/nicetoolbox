@@ -97,7 +97,7 @@ def generate_npz_file_names(run_config, dataset_name, outputs_folder):
 
 def create_detectors_config(detectors_config_file):
     detectors_config = toml.load(Path("configs") / "detectors_config.toml")
-    detectors_config["algorithms"]["xgaze_3cams"]["window_length"] = 5
+    detectors_config["algorithms"]["Multiview_eth_xgaze"]["window_length"] = 5
     detectors_config["frameworks"]["mmpose"]["window_length"] = 5
 
     cf.save_config(detectors_config, detectors_config_file)

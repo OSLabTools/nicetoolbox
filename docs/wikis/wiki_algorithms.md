@@ -1,7 +1,7 @@
 # Algorithms
 
 - [HrNet & VitPose](#hrnet--vitpose)
-- [XGaze_3cams](#xgaze_3cams)
+- [Multiview_eth_xgaze](#multiview_eth_xgaze)
 - [Py-FEAT] (#pyfeat)
 
 <br>
@@ -13,7 +13,7 @@ COMING SOON...
 
 
 
-## XGaze_3cams
+## Multiview_eth_xgaze
 
 COMING SOON...
 

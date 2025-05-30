@@ -13,14 +13,14 @@ ifeq ($(OS), Windows_NT)
     CONDA_DIR := $(shell conda info --base | tr '\\\\' '/')
 	MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.bat
 	VENV_EXE_DIR = $(VENV_DIR)/Scripts
-	XGAZE_EXE_DIR = ./envs/xgaze_3cams/Scripts
+	MULTIVIEW_XGAZE_EXE_DIR = ./envs/multiview_eth_xgaze/Scripts
 	PYFEAT_EXE_DIR = ./envs/py_feat/Scripts
 else
 	PYTHON_EXE = python3.10
     CONDA_DIR := $(shell conda info --base)
 	MMPOSE = ./nicetoolbox/detectors/method_detectors/body_joints/install_openmmlab_conda.sh
 	VENV_EXE_DIR = $(VENV_DIR)/bin
-	XGAZE_EXE_DIR = ./envs/xgaze_3cams/bin
+	MULTIVIEW_XGAZE_EXE_DIR = ./envs/multiview_eth_xgaze/bin
 	PYFEAT_EXE_DIR = ./envs/py_feat/bin
 endif
 
@@ -33,8 +33,8 @@ OUTPUTS_DIR = ../outputs
 DATASETS_DIR = ../datasets
 ASSETS_DIR = nicetoolbox/detectors
 
-EXAMPLE_DATASET_URL = https://keeper.mpdl.mpg.de/f/7374ca9fe7824293bbca/?dl=1
-ASSETS_URL = https://keeper.mpdl.mpg.de/f/8aa742a2fef5487ab939/?dl=1
+EXAMPLE_DATASET_URL = https://keeper.mpdl.mpg.de/f/9b2b44339a5d48a2a61f/?dl=1
+ASSETS_URL = https://keeper.mpdl.mpg.de/f/6f6d3a030e514ae4b973/?dl=1
 
 
 # -----------------------------------
@@ -138,7 +138,7 @@ install: $(VENV_EXE_DIR)/activate
 
 #	Install xgaze if not already installed
 ifeq ("$(wildcard $(XGAZE_EXE_DIR)/activate)","")
-	@make install_xgaze
+	@make install_multiview_eth_xgaze
 endif
 
 #	Install pyfeat if not already installed
@@ -183,21 +183,19 @@ endif
 	@echo "$(TOOL_NAME) installed in $(VENV_DIR) successfully."
 
 
-# Install the venv for xgaze
-.PHONY: install_xgaze
-install_xgaze:
+# Install the venv for multiview-xgaze
+.PHONY: install_multiview_eth_xgaze
+install_multiview_eth_xgaze:
 	@make create_separator
-	@echo "Installing virtual environment for submodule 'XGaze'..."
+	@echo "Creating virtual environment for submodule 'Multiview ETH-XGaze'..."
+	@$(PYTHON_EXE) -m venv ./envs/multiview_eth_xgaze
+	@echo "Virtual environment created in ./envs/multiview_eth_xgaze"
 
-	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/xgaze_3cams
-	@echo "Virtual environment created in ./envs/xgaze_3cams"
+	@echo ""Installing requirements for 'Multiview ETH-XGaze'...""
+	@$(MULTIVIEW_XGAZE_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(MULTIVIEW_XGAZE_EXE_DIR)/pip install submodules/multiview_eth_xgaze -c submodules/multiview_eth_xgaze/constraints.txt
 
-	@echo "Installing requirements for 'XGaze'..."
-	@$(XGAZE_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-	@$(XGAZE_EXE_DIR)/pip install tensorboard face_alignment==1.4.0 toml numpy==1.24.3 opencv-python pathlib
-	@echo "'XGaze' environment setup completed successfully."
-
+	@echo "Multiview ETH-XGaze' environment setup completed successfully."
 
 # Install the venv for pyfeat
 .PHONY: install_pyfeat
