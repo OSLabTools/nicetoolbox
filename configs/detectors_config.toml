@@ -78,3 +78,16 @@ log_frame_idx_interval = 10
 # [(batch_size) * (~Size of one frame (GB))] < Available vRAM (RAM) (GB)
 batch_size = 50
 max_cores = -1  # -1 will use all available cores
+
+# head_orientation
+[algorithms.spiga]
+input_data_format = "frames"
+camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
+env_name = "venv:spiga"
+log_frame_idx_interval = 10
+batch_size = 32
+# Choose the SPIGA model configuration:
+# "wflw" — Wider Facial Landmarks in-the-Wild (98 landmarks)
+# "300w" — 300-W dataset (68 landmarks)
+# "ibug" — iBUG challenging subset (68 landmarks, variation-heavy)
+model_config = "wflw"

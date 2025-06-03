@@ -12,6 +12,7 @@ kinematics = 'keys:configs/detectors_config.toml:algorithms'
 proximity = 'keys:configs/detectors_config.toml:algorithms'
 leaning = 'keys:configs/detectors_config.toml:algorithms'
 emotion_individual = 'keys:configs/detectors_config.toml:algorithms'
+head_orientation = 'keys:configs/detectors_config.toml:algorithms'
 
 [run]
 _valid_keys_ = 'keys:configs/dataset_properties.toml'
