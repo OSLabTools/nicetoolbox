@@ -15,6 +15,7 @@ ifeq ($(OS), Windows_NT)
 	VENV_EXE_DIR = $(VENV_DIR)/Scripts
 	MULTIVIEW_XGAZE_EXE_DIR = ./envs/multiview_eth_xgaze/Scripts
 	PYFEAT_EXE_DIR = ./envs/py_feat/Scripts
+	SPIGA_EXE_DIR = ./envs/spiga/Scripts
 else
 	PYTHON_EXE = python3.10
     CONDA_DIR := $(shell conda info --base)
@@ -22,6 +23,7 @@ else
 	VENV_EXE_DIR = $(VENV_DIR)/bin
 	MULTIVIEW_XGAZE_EXE_DIR = ./envs/multiview_eth_xgaze/bin
 	PYFEAT_EXE_DIR = ./envs/py_feat/bin
+	SPIGA_EXE_DIR = ./envs/spiga/bin
 endif
 
 
@@ -146,6 +148,11 @@ ifeq ("$(wildcard $(PYFEAT_EXE_DIR)/activate)","")
 	@make install_pyfeat
 endif
 
+#	Install SPIGA if not already installed
+ifeq ("$(wildcard $(SPIGA_EXE_DIR)/activate)","")
+	@make install_spiga
+endif
+
 #	check for conda installation
 ifeq ($(which conda),"")
 	@echo "No CONDA installation found. Check the documentation for instructions: https://nicetoolbox.readthedocs.io/en/docs/installation.html."
@@ -212,6 +219,20 @@ install_pyfeat:
 	@$(PYFEAT_EXE_DIR)/pip install py-feat
 	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/emotion_individual/py_feat_requirements.txt
 	@echo "'Py-Feat' environment setup completed successfully."
+
+.PHONY: install_spiga
+install_spiga:
+	@make create_separator
+	@echo "Installing virtual environment for algorithm 'SPIGA'..."
+
+	@echo "Creating virtual environment..."
+	@$(PYTHON_EXE) -m venv ./envs/spiga
+	@echo "Virtual environment created in ./envs/spiga"
+
+	@echo "Installing requirements for 'SPIGA'..."
+	@$(SPIGA_EXE_DIR)/pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
+	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/head_orientation/spiga_requirements.txt
+	@echo "'SPIGA' environment setup completed successfully."
 
 
 # Install the venv for mmpose

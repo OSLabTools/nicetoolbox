@@ -18,10 +18,15 @@ from .in_out import IO
 from .method_detectors.body_joints.mmpose_framework import HRNetw48, VitPose
 from .method_detectors.emotion_individual.py_feat import PyFeat
 from .method_detectors.gaze_individual.Multiview_Eth_XGaze import MultiviewEthXgaze
+from .method_detectors.head_orientation.spiga_detector import Spiga
 from .result_conversion import to_csv as csv
 
 all_method_detectors = dict(
-    multiview_eth_xgaze=MultiviewEthXgaze, hrnetw48=HRNetw48, vitpose=VitPose, py_feat=PyFeat
+    multiview_eth_xgaze=MultiviewEthXgaze,
+    hrnetw48=HRNetw48,
+    vitpose=VitPose,
+    py_feat=PyFeat,
+    spiga=Spiga,
 )
 
 
