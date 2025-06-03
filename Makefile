@@ -139,7 +139,7 @@ endif
 install: $(VENV_EXE_DIR)/activate
 
 #	Install xgaze if not already installed
-ifeq ("$(wildcard $(XGAZE_EXE_DIR)/activate)","")
+ifeq ("$(wildcard $(MULTIVIEW_XGAZE_EXE_DIR)/activate)","")
 	@make install_multiview_eth_xgaze
 endif
 
@@ -230,7 +230,7 @@ install_spiga:
 	@echo "Virtual environment created in ./envs/spiga"
 
 	@echo "Installing requirements for 'SPIGA'..."
-	@$(SPIGA_EXE_DIR)/pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
+	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/head_orientation/spiga_requirements.txt
 	@echo "'SPIGA' environment setup completed successfully."
 
