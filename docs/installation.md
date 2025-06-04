@@ -6,6 +6,7 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
 - [Installation](#installation)
   - [Prerequisites](#prerequisites)
     - [Python 3.10](#python-310)
+    - [Python3.10-venv](#python3.10-venv)
     - [Conda](#conda)
     - [Cuda 11.8](#cuda-118)
     - [FFmpeg](#ffmpeg)
@@ -105,7 +106,7 @@ Nice Toolbox uses Makefiles for simple installation process. Follow these steps 
 - Copy the contents of the extracted folder (copy all folders) into `C:\Program Files\Git\mingw64`. 
 - **IMPORTANT:** Do NOT overwrite or replace any existing files.
 
-**📌 Note:**  
+**Note:**  
 After copying the files, you must **restart Git Bash** for the changes to take effect.
 
 

@@ -2,7 +2,8 @@
 
 - [HrNet & VitPose](#hrnet--vitpose)
 - [Multiview_eth_xgaze](#multiview_eth_xgaze)
-- [Py-FEAT] (#pyfeat)
+- [Py-FEAT](#pyfeat)
+- [SPIGA](#spiga)
 
 <br>
 
@@ -36,6 +37,16 @@ Py-FEAT includes a variety of **pre-trained models** for **face detection, facia
 ### Identity Detection
 - **facenet**: A **face recognition model** based on **Inception-ResNet (V1)**, pretrained on **VGGFace2 and CASIA-Webface**.  
   [Schroff et al., 2015](https://arxiv.org/abs/1503.03832)
+
+## SPIGA (Shape Preserving Facial Landmarks with Graph Attention)
+
+**SPIGA** is a **state-of-the-art face alignment and head pose estimation model** that combines **CNNs and Graph Neural Networks (GNNs)** to predict stable facial landmarks under challenging conditions (e.g., occlusions, expressions, pose). In the NICE toolbox, SPIGA is used for **landmark localization** and **6DoF head pose estimation**. It operates on multi-camera image sequences and produces vectorized nose origin and orientation data for each visible subject.
+
+### Landmark Localization & Head Pose Estimation
+- **SPIGA** (**default**): A hybrid **CNN-GNN** model trained for **dense face alignment** and **pose estimation**, achieving top performance on WFLW, COFW, and 300W benchmarks.  
+  [Prados-Torreblanca et al., 2022](https://arxiv.org/abs/2210.07233)
+
+SPIGA uses **InsightFace** for face detection, then applies its GNN-powered inference module to extract facial landmarks and head orientation vectors. Outputs include annotated images (if enabled) and compressed `.npz` files containing head pose vectors for each camera-subject-frame triplet.
 
 
 

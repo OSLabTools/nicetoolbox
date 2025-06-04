@@ -53,6 +53,7 @@ The `data_description` dictionary details the entries of all numpy files within 
 | aus | list of action unit IDs | -- |
 | emotions | anger, disgust, fear, happiness, sadness, surprise, neutral | -- |
 | poses | Pitch, Roll, Yaw | -- |
+| head_orientation | start_x, start_y, end_x, end_y, confidence | -- |
 
 
 ### Python code
@@ -156,3 +157,9 @@ Results are stored in `.npz` files under `<output_folder>/emotion_individual/<al
 - **Batch Size (`batch_size`)**: Determines the number of images processed in each inference batch. A **higher value improves efficiency** but requires more RAM.  
 - **Max Cores (`max_cores`)**: Controls the number of CPU cores used for **multiprocessing** during inference. Set to **-1** to use all available cores for maximum performance.
 ---
+
+## Head Orientation
+
+The **head_orientation** component uses the SPIGA algorithm to estimate the direction in which each subject's head is pointing, as seen from different camera views. For every visible subject in each frame and view, SPIGA outputs a 2D vector representing the head pose: it begins at the estimated center of the nose and points outward in the predicted direction of the face. These vectors are computed by applying a rotation matrix (derived from the model’s estimated rotation vector) to a fixed reference vector, which is then projected onto the image plane.
+
+The output is saved as a `head_orientation` array within the `<output_folder>/head_orientation/<algorithm_name>.npz` file. This array includes the image-plane coordinates of the nose base and nose tip for each subject, camera, and frame, along with a confidence score (currently fixed at 1.0). These estimates can be used for visualizations or further analysis of directional behavior, such as identifying shifts in attention or synchrony between individuals. Each frame is processed independently, and results are aligned with the rest of the NICE Toolbox outputs, making this component easily integrable with gaze, pose, and emotion data.

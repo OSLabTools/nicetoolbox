@@ -99,6 +99,7 @@ kinematics = ['velocity_body']
 proximity = ['body_distance']
 leaning = ['body_angle']
 emotion_individual = ['py_feat']
+head_orientation = ['spiga']
 ```
 - The dictionary keys are all implemented component names (str).
 - Per component, the value (list of str) lists which algorithms should run for its prediction. Note: One algorithm may predict multiple components and multiple algorithms may be chosen per component.
@@ -114,7 +115,7 @@ Each experiment uses detectors to predict a set of diverse components.
 
 ```toml
 [run.dataset_name]
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning", "emotion_individual]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning", "emotion_individual", "head_orientation"]
 data_selections = [
     {session_ID = "", sequence_ID = "", video_start = 0, video_length = 100},
     ...
