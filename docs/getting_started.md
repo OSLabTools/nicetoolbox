@@ -60,7 +60,7 @@ To run the NICE toolbox on the dataset, we need to specify what exactly we want 
 ```toml
 [run]
 [run.communication_multiview]
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning"]
+components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "leaning", "emotion_individual", "head_orientation"]
 videos = [
    {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]
