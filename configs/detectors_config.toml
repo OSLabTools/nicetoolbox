@@ -84,7 +84,7 @@ max_cores = -1  # -1 will use all available cores
 input_data_format = "frames"
 camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
 env_name = "venv:spiga"
-log_frame_idx_interval = 10
+log_frame_idx_interval = 50
 batch_size = 32
 # Choose the SPIGA model configuration:
 # "wflw" — Wider Facial Landmarks in-the-Wild (98 landmarks)

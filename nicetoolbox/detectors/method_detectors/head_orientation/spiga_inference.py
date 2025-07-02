@@ -10,13 +10,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 import onnxruntime
+import toml
 import torch
 from insightface.app import FaceAnalysis
-
-# --- Internal project utilities ---
-top_level_dir = Path(__file__).resolve().parents[3]
-sys.path.append(str(top_level_dir))
-from utils import filehandling as fh  # noqa: E402
 
 # --- Add submodule path ---
 top_level_dir = Path(__file__).resolve().parents[4]
@@ -67,6 +63,8 @@ def main(config: dict) -> None:
     )  # [start_x, start_y, end_x, end_y, confidence]
     frame_indices = []
 
+    camera_order = []
+
     for frame_idx, frame_paths in enumerate(frames_list):
         frame_name = os.path.splitext(os.path.basename(frame_paths[0]))[0]
         frame_indices.append(frame_name)
@@ -80,6 +78,13 @@ def main(config: dict) -> None:
                 ordered_views.append(parts[idx - 1])
             else:
                 ordered_views.append(Path(path).parent.parent.name)
+
+        # Check and save camera order
+        if not camera_order:
+            camera_order = ordered_views.copy()
+        else:
+            if ordered_views != camera_order:
+                logging.error(" Camera order changed!")
 
         for cam_i, image_path in enumerate(frame_paths):
             if cam_i >= len(frame_paths):
@@ -152,7 +157,7 @@ def main(config: dict) -> None:
                 save_path = os.path.join(save_dir, f"{start_frame + frame_idx:05d}.jpg")
                 cv2.imwrite(save_path, canvas)
 
-        if frame_idx % config["log_frame_idx_interval"] == 0:
+        if (frame_idx != 0) & (frame_idx % config["log_frame_idx_interval"] == 0):
             logging.info(f"Processed frame {frame_idx} / {n_frames}")
 
     if not config.get("visualize", True):
@@ -164,7 +169,7 @@ def main(config: dict) -> None:
         "data_description": {
             "head_orientation": {
                 "axis0": subjects_descr,
-                "axis1": camera_names,
+                "axis1": camera_order,
                 "axis2": frame_indices,
                 "axis3": ["start_x", "start_y", "end_x", "end_y", "confidence"],
             }
@@ -182,7 +187,7 @@ def main(config: dict) -> None:
 if __name__ == "__main__":
     try:
         config_path = sys.argv[1]
-        config = fh.load_config(config_path)
+        config = toml.load(config_path)
         main(config)
         sys.exit(0)
     except Exception as e:
