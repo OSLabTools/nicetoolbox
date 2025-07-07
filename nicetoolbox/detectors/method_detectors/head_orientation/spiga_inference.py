@@ -26,6 +26,23 @@ from spiga.inference.framework import SPIGAFramework  # noqa: E402
 # Enable cuDNN optimization (for PyTorch CNNs)
 torch.backends.cudnn.benchmark = True
 
+##Note taken from spiga.demo.visualize.layouts.plot_headpose
+def euler_to_rotation_matrix(headpose):
+    # Change coordinates system
+    euler = np.array([-(headpose[0] - 90), -headpose[1], -(headpose[2] + 90)])
+    # Convert to radians
+    rad = euler * (np.pi / 180.0)
+    cy = np.cos(rad[0])
+    sy = np.sin(rad[0])
+    cp = np.cos(rad[1])
+    sp = np.sin(rad[1])
+    cr = np.cos(rad[2])
+    sr = np.sin(rad[2])
+    #labels in original Spiga function corrected, the rotation in y-axis whould named pitch, and z-axis yaw.
+    Ry = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]])  # pitch - y-axis
+    Rp = np.array([[cp, -sp, 0.0], [sp, cp, 0.0], [0.0, 0.0, 1.0]])  # yaw - z-axis
+    Rr = np.array([[1.0, 0.0, 0.0], [0.0, cr, -sr], [0.0, sr, cr]])  # roll -x axis
+    return np.matmul(np.matmul(Ry, Rp), Rr)
 
 def main(config: dict) -> None:
     logging.basicConfig(
@@ -112,9 +129,10 @@ def main(config: dict) -> None:
 
             for i, bbox in enumerate(bboxes):
                 x0, y0, bw, bh = bbox
-                rotation_vector = np.array(features["headpose"][i][:3])
+                euler_yzx = np.array(features["headpose"][i][:3])
                 translation_vector = np.array(features["headpose"][i][3:])
-                rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
+                # rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
+                rotation_matrix = euler_to_rotation_matrix(euler_yzx)
 
                 nose_origin = np.array([x0 + bw / 2, y0 + bh / 2], dtype=np.float32)
                 direction3D = np.array([0, 0, 100.0])
@@ -144,7 +162,7 @@ def main(config: dict) -> None:
                     canvas = plotter.hpose.draw_headpose(
                         canvas,
                         [x0, y0, x0 + bw, y0 + bh],
-                        rotation_vector,
+                        euler_yzx,
                         translation_vector,
                         euler=True,
                     )
