@@ -3,7 +3,12 @@ SPIGA method detector class.
 """
 
 import logging
+import os
 
+import cv2
+import numpy as np
+
+from ....utils import video as vd
 from ..base_detector import BaseDetector
 
 
@@ -47,16 +52,161 @@ class Spiga(BaseDetector):
         self.cam_sees_subjects = config["cam_sees_subjects"]
         self.results_folder = config["result_folders"][self.components[0]]
 
-        logging.info("SPIGA Inference Preparation complete.\n")
+        frames_list = config.get("frames_list")
+        self.camera_order = config["camera_order"]
 
     def post_inference(self):
         """
-        Optional post-processing after SPIGA inference.
+        Calculate head orientation in 2D image after SPIGA inference.
         """
-        pass
+        n_subjects = len(self.subjects_descr)
+        n_cams = len(self.camera_names)
+        n_frames = len(self.frames_list)
+        spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 5))
+
+        prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
+        prediction = np.load(prediction_file, allow_pickle=True)
+        predictions_dict = {key: prediction[key] for key in prediction.files}
+        data_description = predictions_dict["data_description"].item()
+
+        headposes = prediction["headpose"]
+        face_bboxes = prediction["face_bbox"]
+
+        # Todo: vectorize
+        for subj_idx in range(n_subjects):
+            for cam_idx in range(n_cams):
+                for frame_idx in range(
+                    len(self.frames_list)
+                ):  # list of lists - outer list gives number of frames
+                    # Extract bbox for this subject, camera, frame
+                    bbox = face_bboxes[subj_idx][cam_idx][
+                        frame_idx
+                    ]  # should be [x0, y0, bw, bh]
+                    x0, y0, bw, bh = bbox
+
+                    # Extract headpose
+                    headpose = headposes[subj_idx][cam_idx][frame_idx]  # shape (6,)
+                    euler_yzx = np.array(
+                        headpose[:3]
+                    )  # first three value is euler angles
+
+                    # Rotation matrix
+                    rotation_matrix = self._euler_to_rotation_matrix(euler_yzx)
+
+                    # 2D nose projection
+                    nose_origin = np.array([x0 + bw / 2, y0 + bh / 2], dtype=np.float32)
+                    direction3D = np.array([0, 0, 100.0])
+                    nose_direction_2D = rotation_matrix @ direction3D.reshape(3, 1)
+                    nose_direction_2D = nose_direction_2D[:2].flatten()
+                    nose_tip = nose_origin + nose_direction_2D * 0.5
+
+                    # Optional: logging or boundary checks
+                    if subj_idx >= len(self.subjects_descr):
+                        logging.warning(f"Subject index {subj_idx} out of bounds")
+                        continue
+                    spiga_vectors[subj_idx, cam_idx, frame_idx, :] = [
+                        nose_origin[0],
+                        nose_origin[1],
+                        nose_tip[0],
+                        nose_tip[1],
+                        1.0,  # dummy confidence
+                    ]
+        predictions_dict["head_orientation_2d"] = spiga_vectors
+        data_description.update(
+            {
+                "head_orientation_2d": {
+                    "axis0": self.subjects_descr,
+                    "axis1": self.camera_order,
+                    "axis2": data_description["headpose"]["axis2"],
+                    "axis3": ["start_x", "start_y", "end_x", "end_y", "confidence"],
+                }
+            }
+        )
+
+        np.savez_compressed(prediction_file, **predictions_dict)
+        logging.info("SPIGA post-processing result saved successfully.")
 
     def visualization(self, data):
-        """
-        Skip visualization for now.
-        """
-        pass
+        n_subj = len(self.subjects_descr)
+
+        prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
+        predictions = np.load(prediction_file, allow_pickle=True)
+        head_data = predictions["head_orientation_2d"]
+        data_decr_arr = predictions["data_description"]
+        camera_order = data_decr_arr.item()["head_orientation_2d"]["axis1"]
+
+        # per camera and frame, visualize each subject's gaze
+        success = True
+        for camera_name in camera_order:
+            cam_idx = camera_order.index(camera_name)
+            os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
+
+            for frame_idx in range(head_data.shape[2]):
+                # load the original input image
+                image_file = [
+                    file for file in self.frames_list[frame_idx] if camera_name in file
+                ][0]
+                image = cv2.imread(image_file)
+
+                colors = [(255, 204, 204), (204, 255, 204)]
+
+                for subject_idx in range(n_subj):
+                    if subject_idx not in self.cam_sees_subjects[camera_name]:
+                        continue
+
+                    head_orientation = head_data[subject_idx, cam_idx, frame_idx]
+                    start = (int(head_orientation[0]), int(head_orientation[1]))
+                    end = (int(head_orientation[2]), int(head_orientation[3]))
+
+                    cv2.arrowedLine(
+                        image,
+                        start,
+                        end,
+                        colors[subject_idx],
+                        thickness=3,
+                        tipLength=0.1,
+                    )
+
+                cv2.imwrite(
+                    os.path.join(
+                        self.viz_folder,
+                        camera_name,
+                        f"{frame_idx + int(self.video_start):05d}.jpg",
+                    ),
+                    image,
+                )
+
+            # create and save video
+            success *= vd.frames_to_video(
+                os.path.join(self.viz_folder, camera_name),
+                os.path.join(self.viz_folder, f"{camera_name}.mp4"),
+                fps=data.fps,
+                start_frame=int(self.video_start),
+            )
+
+        logging.info(
+            f"Detector {self.components}: visualization finished with code "
+            f"{success}."
+        )
+
+        # Note taken from spiga.demo.visualize.layouts.plot_headpose
+
+    def _euler_to_rotation_matrix(self, headpose):
+        # Change coordinates system
+        euler = np.array([-(headpose[0] - 90), -headpose[1], -(headpose[2] + 90)])
+        # Convert to radians
+        rad = euler * (np.pi / 180.0)
+        cy = np.cos(rad[0])
+        sy = np.sin(rad[0])
+        cp = np.cos(rad[1])
+        sp = np.sin(rad[1])
+        cr = np.cos(rad[2])
+        sr = np.sin(rad[2])
+        # labels in original Spiga function corrected,
+        # the rotation in y-axis would named pitch, and z-axis yaw.
+        Ry = np.array(
+            [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]]
+        )  # pitch - y-axis
+        Rp = np.array([[cp, -sp, 0.0], [sp, cp, 0.0], [0.0, 0.0, 1.0]])  # yaw - z-axis
+        Rr = np.array([[1.0, 0.0, 0.0], [0.0, cr, -sr], [0.0, sr, cr]])  # roll -x axis
+        return np.matmul(np.matmul(Ry, Rp), Rr)

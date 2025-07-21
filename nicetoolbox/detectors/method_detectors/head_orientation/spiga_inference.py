@@ -10,13 +10,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 import onnxruntime
+import toml
 import torch
 from insightface.app import FaceAnalysis
-
-# --- Internal project utilities ---
-top_level_dir = Path(__file__).resolve().parents[3]
-sys.path.append(str(top_level_dir))
-from utils import filehandling as fh  # noqa: E402
 
 # --- Add submodule path ---
 top_level_dir = Path(__file__).resolve().parents[4]
@@ -43,6 +39,7 @@ def main(config: dict) -> None:
     camera_names = config["camera_names"]
     subjects_descr = config["subjects_descr"]
     cam_sees_subjects = config["cam_sees_subjects"]
+    camera_order = config["camera_order"]
     n_frames = len(frames_list)
     n_cams = len(camera_names)
 
@@ -62,30 +59,23 @@ def main(config: dict) -> None:
     spiga_model = SPIGAFramework(ModelConfig(config.get("model_config", "wflw")))
     plotter = Plotter()
 
-    spiga_vectors = np.zeros(
-        (n_frames, n_cams, len(subjects_descr), 5)
+    headpose_vectors = np.zeros(
+        (len(subjects_descr), n_cams, n_frames, 6)
     )  # [start_x, start_y, end_x, end_y, confidence]
+    bbox_vectors = np.zeros(
+        (len(subjects_descr), n_cams, n_frames, 4)
+    )  # [x0, y0, bw, bh]
     frame_indices = []
 
     for frame_idx, frame_paths in enumerate(frames_list):
         frame_name = os.path.splitext(os.path.basename(frame_paths[0]))[0]
         frame_indices.append(frame_name)
 
-        # Recompute camera order from actual paths for current frame
-        ordered_views = []
-        for path in frame_paths:
-            parts = path.split(os.sep)
-            if "frames" in parts:
-                idx = parts.index("frames")
-                ordered_views.append(parts[idx - 1])
-            else:
-                ordered_views.append(Path(path).parent.parent.name)
-
         for cam_i, image_path in enumerate(frame_paths):
             if cam_i >= len(frame_paths):
                 continue
 
-            cam_name = ordered_views[cam_i]
+            cam_name = camera_order[cam_i]
             image_bgr = cv2.imread(image_path)
             if image_bgr is None:
                 logging.warning(f"Could not read image at {image_path}")
@@ -95,9 +85,9 @@ def main(config: dict) -> None:
             if not faces:
                 logging.info(f"No faces found in frame {frame_idx}, camera {cam_name}")
                 continue
-
+            faces_sorted = sorted(faces, key=lambda face: face.bbox[0])
             bboxes = []
-            for face in faces:
+            for face in faces_sorted:
                 x1, y1, x2, y2 = face.bbox
                 bboxes.append([float(x1), float(y1), float(x2 - x1), float(y2 - y1)])
 
@@ -107,15 +97,8 @@ def main(config: dict) -> None:
 
             for i, bbox in enumerate(bboxes):
                 x0, y0, bw, bh = bbox
-                rotation_vector = np.array(features["headpose"][i][:3])
+                euler_yzx = np.array(features["headpose"][i][:3])
                 translation_vector = np.array(features["headpose"][i][3:])
-                rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
-
-                nose_origin = np.array([x0 + bw / 2, y0 + bh / 2], dtype=np.float32)
-                direction3D = np.array([0, 0, 100.0])
-                nose_direction_2D = rotation_matrix @ direction3D.reshape(3, 1)
-                nose_direction_2D = nose_direction_2D[:2].flatten()
-                nose_tip = nose_origin + nose_direction_2D * 0.5
 
                 subj_map = cam_sees_subjects.get(cam_name, [])
                 subj_idx = subj_map[i] if i < len(subj_map) else i
@@ -124,13 +107,10 @@ def main(config: dict) -> None:
                     logging.warning(f"Subject index {subj_idx} out of bounds")
                     continue
 
-                spiga_vectors[frame_idx, cam_i, subj_idx, :] = [
-                    nose_origin[0],
-                    nose_origin[1],
-                    nose_tip[0],
-                    nose_tip[1],
-                    1.0,  # dummy confidence
+                headpose_vectors[subj_idx, cam_i, frame_idx, :] = features["headpose"][
+                    i
                 ]
+                bbox_vectors[subj_idx, cam_i, frame_idx, :] = bbox
 
                 # Draw overlay
                 if config.get("visualize", True):
@@ -139,7 +119,7 @@ def main(config: dict) -> None:
                     canvas = plotter.hpose.draw_headpose(
                         canvas,
                         [x0, y0, x0 + bw, y0 + bh],
-                        rotation_vector,
+                        euler_yzx,
                         translation_vector,
                         euler=True,
                     )
@@ -152,7 +132,7 @@ def main(config: dict) -> None:
                 save_path = os.path.join(save_dir, f"{start_frame + frame_idx:05d}.jpg")
                 cv2.imwrite(save_path, canvas)
 
-        if frame_idx % config["log_frame_idx_interval"] == 0:
+        if (frame_idx != 0) & (frame_idx % config["log_frame_idx_interval"] == 0):
             logging.info(f"Processed frame {frame_idx} / {n_frames}")
 
     if not config.get("visualize", True):
@@ -160,17 +140,30 @@ def main(config: dict) -> None:
 
     # Save .npz
     out = {
-        "head_orientation": spiga_vectors.transpose(2, 1, 0, 3),
+        "headpose": headpose_vectors,
+        "face_bbox": bbox_vectors,
         "data_description": {
-            "head_orientation": {
+            "headpose": {
                 "axis0": subjects_descr,
-                "axis1": camera_names,
+                "axis1": camera_order,
                 "axis2": frame_indices,
-                "axis3": ["start_x", "start_y", "end_x", "end_y", "confidence"],
-            }
+                "axis3": [
+                    "euler_angle_1",
+                    "euler_angle_2",
+                    "euler_angle_3",
+                    "translation_1",
+                    "translation_2",
+                    "translation_3",
+                ],
+            },
+            "face_bbox": {
+                "axis0": subjects_descr,
+                "axis1": camera_order,
+                "axis2": frame_indices,
+                "axis3": ["x0", "y0", "width", "height"],
+            },
         },
     }
-
     result_path = os.path.join(
         config["result_folders"]["head_orientation"], f"{config['algorithm']}.npz"
     )
@@ -182,7 +175,7 @@ def main(config: dict) -> None:
 if __name__ == "__main__":
     try:
         config_path = sys.argv[1]
-        config = fh.load_config(config_path)
+        config = toml.load(config_path)
         main(config)
         sys.exit(0)
     except Exception as e:
