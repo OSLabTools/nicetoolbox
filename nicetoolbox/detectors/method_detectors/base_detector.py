@@ -5,6 +5,7 @@ A template class for Detectors.
 import logging
 import os
 import subprocess
+from pathlib import Path
 from abc import ABC, abstractmethod
 
 from ...utils import system
@@ -74,15 +75,16 @@ class BaseDetector(ABC):
 
         # Todo SPIGA post-inference and inference depends on this order - rewrite it better
         ordered_views = []
-        for path in config.get("frames_list")[0]:  # getting order from the first frame
-            parts = path.split(os.sep)
-            if "frames" in parts:
-                idx = parts.index("frames")
-                ordered_views.append(parts[idx - 1])
-            else:
-                ordered_views.append(Path(path).parent.parent.name)
-        self.camera_order = ordered_views.copy()
-        config["camera_order"] = self.camera_order
+        if config.get("frames_list"):
+            for path in config.get("frames_list")[0]:  # getting order from the first frame
+                parts = path.split(os.sep)
+                if "frames" in parts:
+                    idx = parts.index("frames")
+                    ordered_views.append(parts[idx - 1])
+                else:
+                    ordered_views.append(Path(path).parent.parent.name)
+            self.camera_order = ordered_views.copy()
+            config["camera_order"] = self.camera_order
 
         # save this method config that will be given to the third party detector
         self.config_path = os.path.join(
