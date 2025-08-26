@@ -45,6 +45,21 @@ def extract_key_per_value(input_dict):
     return return_keys
 
 
+def return_direction_vector(rotation_matrix, axis):
+    arr = np.array([100.0, 0, 0])
+    if axis == "x":
+        arr = np.array([100.0, 0, 0])
+    elif axis == "y":
+        arr = np.array([0, -50, 0])
+    elif axis == "z":
+        arr = np.array([0, 0, -50.0])
+    direction_3D = arr
+
+    direction_2D = rotation_matrix @ direction_3D.reshape(3, 1)
+
+    return direction_2D[:2].flatten()
+
+
 class Spiga(BaseDetector):
     """
     SPIGA is a method detector that computes the head_orientation component.
@@ -99,7 +114,7 @@ class Spiga(BaseDetector):
         n_subjects = len(self.subjects_descr)
         n_cams = len(self.camera_names)
         n_frames = len(self.frames_list)
-        spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 4))
+        spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 8))
 
         prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
         prediction = np.load(prediction_file, allow_pickle=True)
@@ -134,12 +149,13 @@ class Spiga(BaseDetector):
                         ],
                         dtype=np.float32,
                     )
-                    direction3D = np.array(
-                        [100.0, 0, 0]
-                    )  # Rotation order Y-Z-X, body’s forward axis is +X.
-                    nose_direction_2D = rotation_matrix @ direction3D.reshape(3, 1)
-                    nose_direction_2D = nose_direction_2D[:2].flatten()
-                    nose_tip = nose_org + nose_direction_2D
+
+                    # Rotation order Y-Z-X, body’s forward axis is +X
+                    forward_tip = nose_org + return_direction_vector(
+                        rotation_matrix, "x"
+                    )
+                    axisy_tip = nose_org + return_direction_vector(rotation_matrix, "y")
+                    axisz_tip = nose_org + return_direction_vector(rotation_matrix, "z")
 
                     # Optional: logging or boundary checks
                     if subj_idx >= len(self.subjects_descr):
@@ -148,8 +164,12 @@ class Spiga(BaseDetector):
                     spiga_vectors[subj_idx, cam_idx, frame_idx, :] = [
                         nose_org[0],
                         nose_org[1],
-                        nose_tip[0],
-                        nose_tip[1],
+                        forward_tip[0],
+                        forward_tip[1],
+                        axisy_tip[0],
+                        axisy_tip[1],
+                        axisz_tip[0],
+                        axisz_tip[1],
                     ]
         predictions_dict["head_orientation_2d"] = spiga_vectors
         data_description.update(
@@ -158,7 +178,16 @@ class Spiga(BaseDetector):
                     "axis0": self.subjects_descr,
                     "axis1": self.camera_order,
                     "axis2": data_description["headpose"]["axis2"],
-                    "axis3": ["start_x", "start_y", "end_x", "end_y"],
+                    "axis3": [
+                        "start_x",
+                        "start_y",
+                        "end_forward_x",
+                        "end_forward_y",
+                        "end_yaxis_x",
+                        "end_yaxis_y",
+                        "end_zaxis_x",
+                        "end_zaxis_y",
+                    ],
                 }
             }
         )
@@ -188,7 +217,8 @@ class Spiga(BaseDetector):
                 ][0]
                 image = cv2.imread(image_file)
 
-                colors = [(300, 30, 60), (0, 128, 0)]
+                colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+                # colors = [(300, 30, 60), (0, 128, 0)]
 
                 for subject_idx in range(n_subj):
                     if subject_idx not in self.cam_sees_subjects[camera_name]:
@@ -196,16 +226,19 @@ class Spiga(BaseDetector):
 
                     head_orientation = head_data[subject_idx, cam_idx, frame_idx]
                     start = (int(head_orientation[0]), int(head_orientation[1]))
-                    end = (int(head_orientation[2]), int(head_orientation[3]))
+                    forward_tip = (int(head_orientation[2]), int(head_orientation[3]))
+                    axisy_tip = (int(head_orientation[4]), int(head_orientation[5]))
+                    axisz_tip = (int(head_orientation[6]), int(head_orientation[7]))
 
-                    cv2.arrowedLine(
-                        image,
-                        start,
-                        end,
-                        colors[subject_idx],
-                        thickness=3,
-                        tipLength=0.1,
-                    )
+                    for i, tip in enumerate([axisz_tip, axisy_tip, forward_tip]):
+                        if tip == forward_tip:
+                            cv2.arrowedLine(
+                                image, start, tip, colors[i], thickness=3, tipLength=0.1
+                            )
+                        else:
+                            cv2.line(
+                                image, start, tip, colors[i], thickness=3
+                            )
 
                 cv2.imwrite(
                     os.path.join(
