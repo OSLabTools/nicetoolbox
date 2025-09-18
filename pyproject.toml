@@ -19,7 +19,7 @@ dependencies = [
     "plotly",
     "pympi-ling==1.70.2",
     "pyyaml==6.0.1",
-    "rerun-sdk==0.17.0",
+    "rerun-sdk==0.23.0",
     "scikit-image==0.21.0",
     "toml",
 ]

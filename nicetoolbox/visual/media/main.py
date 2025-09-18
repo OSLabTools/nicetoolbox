@@ -17,6 +17,7 @@ from .components import (
     GazeIndividualComponent,
     GazeInteractionComponent,
     HandJointsComponent,
+    HeadOrientationComponent,
     KinematicsComponent,
     ProximityComponent,
 )
@@ -131,6 +132,12 @@ def main(visualizer_config_file, machine_specifics_file):
         else None
     )
 
+    head_orientation_component = (
+        HeadOrientationComponent(visualizer_config, io, viewer, "head_orientation")
+        if "head_orientation" in components
+        else None
+    )
+
     proximity_component = (
         ProximityComponent(
             visualizer_config,
@@ -158,6 +165,7 @@ def main(visualizer_config_file, machine_specifics_file):
         emotion_ind_component,
         proximity_component,
         kinematics_component,
+        head_orientation_component,
     ]
 
     # VISUALIZATION

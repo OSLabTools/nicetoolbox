@@ -198,6 +198,7 @@ class Viewer:
             | (component == "face_landmarks")
             | (component == "gaze_individual")
             | (component == "emotion_individual")
+            | (component == "head_orientation")
         ):
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"

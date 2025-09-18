@@ -36,7 +36,7 @@ def extract_key_per_value(input_dict):
     return_keys = []
     for key, value in input_dict.items():
         if isinstance(value, int):
-            return_keys.append(value)
+            return_keys.append(key)
         elif isinstance(value, list):
             for idx, _ in enumerate(value):
                 return_keys.append(f"{key}_{idx}")
@@ -236,9 +236,7 @@ class Spiga(BaseDetector):
                                 image, start, tip, colors[i], thickness=3, tipLength=0.1
                             )
                         else:
-                            cv2.line(
-                                image, start, tip, colors[i], thickness=3
-                            )
+                            cv2.line(image, start, tip, colors[i], thickness=3)
 
                 cv2.imwrite(
                     os.path.join(
