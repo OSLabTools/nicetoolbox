@@ -12,10 +12,10 @@ def main(config):
     """
     Run multiview-eth-xgaze gaze detection on the provided data.
 
-    The function uses the 'multiview-eth-xgaze gaze' library to estimate gaze vectors for each
-    camera. The estimated gaze vectors are then converted to pitch and yaw angles
-    using a simple linear transformation. The resulting angles are saved in a .npz
-    file with the following structure:
+    The function uses the 'multiview-eth-xgaze gaze' library
+    to estimate gaze vectors for each camera. The estimated gaze vectors are
+    then converted to pitch and yaw angles using a simple linear transformation.
+    The resulting angles are saved in a .npz file with the following structure:
         - 3d: Numpy array of shape (n_frames, n_subjects, 3)
         - data_description: A dictionary containing the description of the data.
 

@@ -550,6 +550,8 @@ class GazeIndividualComponent(Component):
                     radii=radii,
                 ),
             )
+            rr.components.DrawOrder(1)
+
         elif dimension == "3d":
             radii = self._parse_radii("3d")
             rr.log(
@@ -849,6 +851,124 @@ class EmotionIndividualComponent(Component):
                             subject_head_bbox,
                             labels=self.algorithm_labels[alg_idx][max_probability_idx],
                             colors=alg_colors[max_probability_idx],
+                        )
+
+
+class HeadOrientationComponent(Component):
+    """
+    Class for visualizing head orientation data.
+    """
+
+    def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
+        """
+        Initialize the HeadOrientationComponent.
+
+        Args:
+            visualizer_config (Dict): The visualizer configuration settings.
+            io: The input/output object.
+            logger (viewer.Viewer): The viewer rerun object.
+            component_name (str): The name of the component.
+        """
+        super().__init__(visualizer_config, io, logger, component_name)
+        # the camera_names and subject_names results will be read from first algorithm
+        # we are getting camera names from landmarks_2d because 3d doesn't have any
+        # camera info
+        self.camera_names = self.algorithms_results[0]["data_description"].item()[
+            "headpose"
+        ]["axis1"]  # axis1 gives camera info
+        self.subject_names = self.algorithms_results[0]["data_description"].item()[
+            "headpose"
+        ]["axis0"]  # axis0 gives subject info
+        self.algorithm_labels = self._get_algorithms_labels()
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """
+        Get the labels for the algorithms.
+
+        Returns:
+            List[List[str]]: The labels for the algorithms.
+        """
+        # axis 3 gives labels information, this might be different for each algorithm
+        algorithm_labels = []
+        for i, _alg in enumerate(self.algorithm_list):
+            algorithm_labels.append(
+                self.algorithms_results[i]["data_description"].item()[
+                    "head_orientation_2d"
+                ]["axis3"]
+            )
+        return algorithm_labels
+
+    def _log_data(
+        self,
+        entity_path: str,
+        head_points: np.ndarray,
+        data_points: np.ndarray,
+        color: List[int],
+        dimension: str,
+    ) -> None:
+        """
+        Log the head orientation points into.
+
+        Args:
+            entity_path (str): The entity path.
+            head_points (np.ndarray): The head points.
+            data_points (np.ndarray): The gaze points.
+            color (List[int]): The color.
+            dimension (str): The dimension.
+        """
+        vectors_forward = data_points[0:2] - head_points
+        if dimension == "2d":
+            radii = self._parse_radii("camera_view")
+            rr.log(
+                entity_path,
+                rr.Arrows2D(
+                    origins=np.array(head_points).reshape(-1, 2),
+                    vectors=np.array(vectors_forward).reshape(-1, 2),
+                    colors=np.array(color),
+                    radii=radii,
+                ),
+            )
+            rr.components.DrawOrder(1)
+
+    def visualize(self, frame_idx: int) -> None:
+        """
+        Visualize the head orientation component.
+
+        Combines the _log_data method to visualize the head orientation component in
+        either 2D.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        for canvas in self.canvas_list:
+            cam_name = canvas
+            camera_index = self.camera_names.index(cam_name)
+            for alg_idx, alg_data in enumerate(self.canvas_data["head_orientation_2d"]):
+                num_frames = alg_data.shape[2]
+                if frame_idx >= num_frames:  # number of frames
+                    continue
+                alg_name = self.algorithm_list[alg_idx]
+                for subject_idx, subject in enumerate(self.subject_names):
+                    if (
+                        subject_idx
+                        in self.visualizer_config["dataset_properties"][
+                            "cam_sees_subjects"
+                        ][cam_name]
+                    ):
+                        frame_data = alg_data[subject_idx, camera_index, frame_idx]
+                        entity_path = self.logger.generate_component_entity_path(
+                            self.component_name,
+                            is_3d=False,
+                            alg_name=alg_name,
+                            subject_name=subject,
+                            cam_name=cam_name,
+                        )
+
+                        color = self.visualizer_config["media"][self.component_name][
+                            "appearance"
+                        ]["colors"][alg_idx]
+                        self._log_data(
+                            entity_path, frame_data[:2], frame_data[2:], color, "2d"
                         )
 
 

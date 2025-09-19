@@ -26,6 +26,9 @@ from spiga.inference.framework import SPIGAFramework  # noqa: E402
 # Enable cuDNN optimization (for PyTorch CNNs)
 torch.backends.cudnn.benchmark = True
 
+# Constants
+NUM_FACIAL_LANDMARKS = 98
+
 
 def main(config: dict) -> None:
     logging.basicConfig(
@@ -59,12 +62,19 @@ def main(config: dict) -> None:
     spiga_model = SPIGAFramework(ModelConfig(config.get("model_config", "wflw")))
     plotter = Plotter()
 
-    headpose_vectors = np.zeros(
-        (len(subjects_descr), n_cams, n_frames, 6)
-    )  # [start_x, start_y, end_x, end_y, confidence]
+    headpose_vectors = np.zeros((len(subjects_descr), n_cams, n_frames, 6))
     bbox_vectors = np.zeros(
         (len(subjects_descr), n_cams, n_frames, 4)
     )  # [x0, y0, bw, bh]
+    landmarks_vectors = np.zeros(
+        (
+            len(subjects_descr),
+            n_cams,
+            n_frames,
+            NUM_FACIAL_LANDMARKS,
+            2,
+        )  # coordinate_x & y
+    )
     frame_indices = []
 
     for frame_idx, frame_paths in enumerate(frames_list):
@@ -110,6 +120,10 @@ def main(config: dict) -> None:
                 headpose_vectors[subj_idx, cam_i, frame_idx, :] = features["headpose"][
                     i
                 ]
+
+                landmarks_vectors[subj_idx, cam_i, frame_idx, :, :] = np.array(
+                    features["landmarks"][i]
+                )
                 bbox_vectors[subj_idx, cam_i, frame_idx, :] = bbox
 
                 # Draw overlay
@@ -142,6 +156,7 @@ def main(config: dict) -> None:
     out = {
         "headpose": headpose_vectors,
         "face_bbox": bbox_vectors,
+        "face_landmark_2d": landmarks_vectors,
         "data_description": {
             "headpose": {
                 "axis0": subjects_descr,
@@ -161,6 +176,13 @@ def main(config: dict) -> None:
                 "axis1": camera_order,
                 "axis2": frame_indices,
                 "axis3": ["x0", "y0", "width", "height"],
+            },
+            "face_landmark_2d": {
+                "axis0": subjects_descr,
+                "axis1": camera_order,
+                "axis2": frame_indices,
+                "axis3": config["face_landmarks_description"],
+                "axis4": ["coordinate_x", "coordinate_y"],
             },
         },
     }

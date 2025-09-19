@@ -5,8 +5,8 @@ A template class for Detectors.
 import logging
 import os
 import subprocess
-from pathlib import Path
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from ...utils import system
 from ...utils.config import save_config
@@ -73,10 +73,12 @@ class BaseDetector(ABC):
         self.subjects_descr = data.subjects_descr
         config["cam_sees_subjects"] = data.camera_mapping["cam_sees_subjects"]
 
-        # Todo SPIGA post-inference and inference depends on this order - rewrite it better
+        # Todo SPIGA post-inference and inference depends on this order
         ordered_views = []
         if config.get("frames_list"):
-            for path in config.get("frames_list")[0]:  # getting order from the first frame
+            for path in config.get("frames_list")[
+                0
+            ]:  # getting order from the first frame
                 parts = path.split(os.sep)
                 if "frames" in parts:
                     idx = parts.index("frames")

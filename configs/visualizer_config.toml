@@ -11,7 +11,7 @@ dataset_name = 'communication_multiview'                   # dataset of the vide
 video_name = 'communication_multiview_session_xyz_s0_l99'  # name of video result folder
 multi_view = true                                          # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                                          # specify what will be visualized
-components = ["body_joints", "hand_joints", "face_landmarks", "gaze_individual", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
+components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_individual", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
 camera_position = true                                     # true if you want to visuailize camera position -- requires extrinsic information of the camera
 start_frame = 0                                            # starting frame for the visualization
 end_frame = -1                                             # end frame for the visualization, -1 means process until the end of the video
@@ -108,6 +108,17 @@ emotions = ["<cam_top>", "<cam_front>", "<cam_face1>", "<cam_face2>"]  ##value o
 
 [media.emotion_individual.appearance]
 colors =  [[[255,0,0], [85,170,47], [72,61,139], [255,215,0], [70,130,180], [255,140,0], [128, 128, 128]]] #red, dark olive green, dark stale blue, gold, steel blue, dark orange, gray  
+radii = {'3d'= 0.01, 'camera_view'= 4}
+
+# Component: head orientation
+[media.head_orientation]
+algorithms = ['spiga']
+
+[media.head_orientation.canvas]
+head_orientation_2d = ["<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>"]  ##value options: [camera names]
+
+[media.head_orientation.appearance]
+colors =  [[[255,92,0], [85,170,47]]] #neon orange, dark olive green
 radii = {'3d'= 0.01, 'camera_view'= 4}
 
 # Component: kinematics

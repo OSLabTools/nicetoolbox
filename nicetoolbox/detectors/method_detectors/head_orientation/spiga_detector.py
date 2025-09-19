@@ -8,8 +8,56 @@ import os
 import cv2
 import numpy as np
 
+from ....utils import filehandling as fh
 from ....utils import video as vd
+from ... import config_handler as confh
 from ..base_detector import BaseDetector
+
+
+def extract_key_per_value(input_dict):
+    """
+    Extracts keys from a dictionary based on the type of their values.
+
+    If all values in the dictionary are integers, it returns a list of keys.
+    If any value is a list, it appends an index to the key to create a unique key.
+
+    Args:
+        input_dict (dict): The input dictionary to extract keys from.
+
+    Returns:
+        return_keys (list): A list of keys extracted from the input dictionary.
+
+    Raises:
+        NotImplementedError: If a value in the dictionary is neither an integer nor a
+        list.
+    """
+    if all(isinstance(val, int) for val in list(input_dict.values())):
+        return list(input_dict.keys())
+    return_keys = []
+    for key, value in input_dict.items():
+        if isinstance(value, int):
+            return_keys.append(key)
+        elif isinstance(value, list):
+            for idx, _ in enumerate(value):
+                return_keys.append(f"{key}_{idx}")
+        else:
+            raise NotImplementedError
+    return return_keys
+
+
+def return_direction_vector(rotation_matrix, axis):
+    arr = np.array([100.0, 0, 0])
+    if axis == "x":
+        arr = np.array([100.0, 0, 0])
+    elif axis == "y":
+        arr = np.array([0, -50, 0])
+    elif axis == "z":
+        arr = np.array([0, 0, -50.0])
+    direction_3D = arr
+
+    direction_2D = rotation_matrix @ direction_3D.reshape(3, 1)
+
+    return direction_2D[:2].flatten()
 
 
 class Spiga(BaseDetector):
@@ -44,6 +92,12 @@ class Spiga(BaseDetector):
         config["frames_list"] = self.frames_list
         config["frame_indices_list"] = data.frame_indices_list
         self.video_start = data.video_start
+        self.keypoints_indices = fh.load_config("./configs/predictions_mapping.toml")[
+            self.components[0]
+        ][self.algorithm]["keypoints_index"]
+        config["face_landmarks_description"] = confh.flatten_list(
+            extract_key_per_value(self.keypoints_indices["face"])
+        )
 
         # Call the base class constructor
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
@@ -51,8 +105,6 @@ class Spiga(BaseDetector):
         self.camera_names = [n for n in config["camera_names"] if n]
         self.cam_sees_subjects = config["cam_sees_subjects"]
         self.results_folder = config["result_folders"][self.components[0]]
-
-        frames_list = config.get("frames_list")
         self.camera_order = config["camera_order"]
 
     def post_inference(self):
@@ -62,7 +114,7 @@ class Spiga(BaseDetector):
         n_subjects = len(self.subjects_descr)
         n_cams = len(self.camera_names)
         n_frames = len(self.frames_list)
-        spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 5))
+        spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 8))
 
         prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
         prediction = np.load(prediction_file, allow_pickle=True)
@@ -70,22 +122,15 @@ class Spiga(BaseDetector):
         data_description = predictions_dict["data_description"].item()
 
         headposes = prediction["headpose"]
-        face_bboxes = prediction["face_bbox"]
+        face_landmarks = prediction["face_landmark_2d"]
 
         # Todo: vectorize
         for subj_idx in range(n_subjects):
             for cam_idx in range(n_cams):
-                for frame_idx in range(
-                    len(self.frames_list)
-                ):  # list of lists - outer list gives number of frames
-                    # Extract bbox for this subject, camera, frame
-                    bbox = face_bboxes[subj_idx][cam_idx][
-                        frame_idx
-                    ]  # should be [x0, y0, bw, bh]
-                    x0, y0, bw, bh = bbox
-
+                for frame_idx in range(len(self.frames_list)):
                     # Extract headpose
                     headpose = headposes[subj_idx][cam_idx][frame_idx]  # shape (6,)
+                    landmarks = face_landmarks[subj_idx][cam_idx][frame_idx]
                     euler_yzx = np.array(
                         headpose[:3]
                     )  # first three value is euler angles
@@ -94,22 +139,37 @@ class Spiga(BaseDetector):
                     rotation_matrix = self._euler_to_rotation_matrix(euler_yzx)
 
                     # 2D nose projection
-                    nose_origin = np.array([x0 + bw / 2, y0 + bh / 2], dtype=np.float32)
-                    direction3D = np.array([0, 0, 100.0])
-                    nose_direction_2D = rotation_matrix @ direction3D.reshape(3, 1)
-                    nose_direction_2D = nose_direction_2D[:2].flatten()
-                    nose_tip = nose_origin + nose_direction_2D * 0.5
+                    nose_down = self.keypoints_indices["face"]["nose_down"]
+                    # select middle point of nose_down landmarks
+                    nose_down_index = nose_down[int(len(nose_down) / 2)]
+                    nose_org = np.array(
+                        [
+                            (landmarks[nose_down_index][0]),
+                            (landmarks[nose_down_index][1]),
+                        ],
+                        dtype=np.float32,
+                    )
+
+                    # Rotation order Y-Z-X, body’s forward axis is +X
+                    forward_tip = nose_org + return_direction_vector(
+                        rotation_matrix, "x"
+                    )
+                    axisy_tip = nose_org + return_direction_vector(rotation_matrix, "y")
+                    axisz_tip = nose_org + return_direction_vector(rotation_matrix, "z")
 
                     # Optional: logging or boundary checks
                     if subj_idx >= len(self.subjects_descr):
                         logging.warning(f"Subject index {subj_idx} out of bounds")
                         continue
                     spiga_vectors[subj_idx, cam_idx, frame_idx, :] = [
-                        nose_origin[0],
-                        nose_origin[1],
-                        nose_tip[0],
-                        nose_tip[1],
-                        1.0,  # dummy confidence
+                        nose_org[0],
+                        nose_org[1],
+                        forward_tip[0],
+                        forward_tip[1],
+                        axisy_tip[0],
+                        axisy_tip[1],
+                        axisz_tip[0],
+                        axisz_tip[1],
                     ]
         predictions_dict["head_orientation_2d"] = spiga_vectors
         data_description.update(
@@ -118,7 +178,16 @@ class Spiga(BaseDetector):
                     "axis0": self.subjects_descr,
                     "axis1": self.camera_order,
                     "axis2": data_description["headpose"]["axis2"],
-                    "axis3": ["start_x", "start_y", "end_x", "end_y", "confidence"],
+                    "axis3": [
+                        "start_x",
+                        "start_y",
+                        "end_forward_x",
+                        "end_forward_y",
+                        "end_yaxis_x",
+                        "end_yaxis_y",
+                        "end_zaxis_x",
+                        "end_zaxis_y",
+                    ],
                 }
             }
         )
@@ -148,7 +217,8 @@ class Spiga(BaseDetector):
                 ][0]
                 image = cv2.imread(image_file)
 
-                colors = [(255, 204, 204), (204, 255, 204)]
+                colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+                # colors = [(300, 30, 60), (0, 128, 0)]
 
                 for subject_idx in range(n_subj):
                     if subject_idx not in self.cam_sees_subjects[camera_name]:
@@ -156,16 +226,17 @@ class Spiga(BaseDetector):
 
                     head_orientation = head_data[subject_idx, cam_idx, frame_idx]
                     start = (int(head_orientation[0]), int(head_orientation[1]))
-                    end = (int(head_orientation[2]), int(head_orientation[3]))
+                    forward_tip = (int(head_orientation[2]), int(head_orientation[3]))
+                    axisy_tip = (int(head_orientation[4]), int(head_orientation[5]))
+                    axisz_tip = (int(head_orientation[6]), int(head_orientation[7]))
 
-                    cv2.arrowedLine(
-                        image,
-                        start,
-                        end,
-                        colors[subject_idx],
-                        thickness=3,
-                        tipLength=0.1,
-                    )
+                    for i, tip in enumerate([axisz_tip, axisy_tip, forward_tip]):
+                        if tip == forward_tip:
+                            cv2.arrowedLine(
+                                image, start, tip, colors[i], thickness=3, tipLength=0.1
+                            )
+                        else:
+                            cv2.line(image, start, tip, colors[i], thickness=3)
 
                 cv2.imwrite(
                     os.path.join(
@@ -204,9 +275,7 @@ class Spiga(BaseDetector):
         sr = np.sin(rad[2])
         # labels in original Spiga function corrected,
         # the rotation in y-axis would named pitch, and z-axis yaw.
-        Ry = np.array(
-            [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]]
-        )  # pitch - y-axis
-        Rp = np.array([[cp, -sp, 0.0], [sp, cp, 0.0], [0.0, 0.0, 1.0]])  # yaw - z-axis
-        Rr = np.array([[1.0, 0.0, 0.0], [0.0, cr, -sr], [0.0, sr, cr]])  # roll -x axis
+        Ry = np.array([[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]])  # yaw
+        Rp = np.array([[cp, -sp, 0.0], [sp, cp, 0.0], [0.0, 0.0, 1.0]])  # pitch
+        Rr = np.array([[1.0, 0.0, 0.0], [0.0, cr, -sr], [0.0, sr, cr]])  # roll
         return np.matmul(np.matmul(Ry, Rp), Rr)
