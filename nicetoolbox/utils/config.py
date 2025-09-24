@@ -6,6 +6,7 @@ import copy
 import json
 import os
 import time
+import getpass
 from pathlib import Path
 
 import numpy as np
@@ -135,7 +136,7 @@ def config_fill_auto(config, working_directory=None):
     placeholder_dict = dict(
         git_hash=git_hash[:7],
         commit_message=commit_message,
-        me=os.getlogin(),
+        me=getpass.getuser(),
         yyyymmdd=time.strftime("%Y%m%d", time.localtime()),
         today=time.strftime("%Y%m%d", time.localtime()),
         time=time.strftime("%H_%M", time.localtime()),
