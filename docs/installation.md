@@ -6,15 +6,15 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
 - [Installation](#installation)
   - [Prerequisites](#prerequisites)
     - [Python 3.10](#python-310)
-    - [Python3.10-venv](#python3.10-venv)
     - [Conda](#conda)
     - [Cuda 11.8](#cuda-118)
     - [FFmpeg](#ffmpeg)
+    - [Git](#git)
+    - [On Windows: Microsoft Visual C++](#on-windows-microsoft-visual-c)
     - [On Windows: Turn developer mode on](#on-windows-turn-developer-mode-on)
+    - [On Windows: make](#on-windows-make)
   - [Clone the repository](#clone-the-repository)
   - [Makefile installation](#makefile-installation)
-    - [On Linux](#on-linux)
-    - [On Windows](#on-windows)
   - [Additional notes](#additional-notes)
 <!-- TOC -->
 
@@ -80,6 +80,9 @@ e.g., ffmpeg-git-essentials.7z.
 
 Ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
+### On Windows: Microsoft Visual C++
+
+Microsoft Visual C++ 14.0 or greater is required for compiling some of the dependencies. Get it with [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
 
 ### On Windows: Turn developer mode on
 
@@ -142,6 +145,8 @@ Conda is required for installing the OpenMMLab environment (human pose estimatio
 If you need to use different versions of Python or CUDA, you can adjust the relevant lines in the `Makefile` accordingly.
 ```
 
+In case of errors during installation, you can run `make clean_all` to remove all virtual environments. After that, you can restart the installation.
+
 ### On Linux
 
 Open a **terminal** (on Linux) or **Git Bash** (on Windows) and navigate to the directory of the repository, then run the command `make`:
@@ -161,5 +166,3 @@ rerun analytics config   ##to see current configuration
 rerun analytics disable
 rerun analytics config   ## to check if the change is applied
 ```
-
-More information can be found [here](https://github.com/rerun-io/rerun/blob/main/crates/re_analytics/README.md).
