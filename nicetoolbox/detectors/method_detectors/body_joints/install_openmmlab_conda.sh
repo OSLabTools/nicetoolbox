@@ -3,6 +3,11 @@
 # Stop on error
 set -e
 
+# Initializing conda enviorment
+# It should be done at least once after conda installation
+echo "Initializing conda..."
+conda init
+
 ###OPENMMLAB INSTALLATION###
 # Create a conda environment
 echo "Creating conda environment..."

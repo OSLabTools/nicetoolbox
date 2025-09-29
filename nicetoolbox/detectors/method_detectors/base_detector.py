@@ -130,6 +130,7 @@ class BaseDetector(ABC):
             # create terminal command
             if os_type == "windows":
                 command = (
+                    f'deactivate && '
                     f'cmd "/c conda activate {self.env_name} && '
                     f'python {self.script_path} {self.config_path}"'
                 )

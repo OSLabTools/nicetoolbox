@@ -3,6 +3,11 @@
 :: Stop on error
 setlocal enableextensions enabledelayedexpansion
 
+:: Initializing conda enviorment
+:: It should be done at least once after conda installation
+echo Initializing conda...
+call conda init
+
 :: OPENMMLAB INSTALLATION 
 :: Create a conda environment
 echo Creating conda environment...

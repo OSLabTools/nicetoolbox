@@ -3,7 +3,8 @@
 # Define variables
 TOOL_NAME = nicetoolbox
 VENV = nicetoolbox
-VENV_DIR = ./envs/$(VENV)
+VENV_ROOT_DIR = ./envs
+VENV_DIR = $(VENV_ROOT_DIR)/$(VENV)
 DEV = false
 MACHINE_SPECIFICS = machine_specific_paths.toml
 
@@ -54,6 +55,14 @@ clean:
 #	@rm -rf __pycache__
 	@echo "Deleting virtual environment $(VENV_DIR)."
 	@rm -rf $(VENV_DIR)
+
+# ------------------------
+# Clean all virtual enviorments
+# ------------------------
+.PHONY: clean_all
+clean_all:
+	@echo "Deleting all virtual environments from $(VENV_ROOT_DIR)."
+	@rm -rf $(VENV_ROOT_DIR)
 
 # ------------------------
 # Create a separator
