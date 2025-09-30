@@ -3,6 +3,7 @@ Helper functions for video processing, conversion, splitting, ...
 """
 
 import glob
+import json
 import logging
 import os
 import shutil
@@ -48,7 +49,34 @@ def get_fps(video_file) -> int:
     Returns:
         int: The frame rate of the video file.
     """
-    return int(cv2.VideoCapture(video_file).get(cv2.CAP_PROP_FPS))
+    fps = int(cv2.VideoCapture(video_file).get(cv2.CAP_PROP_FPS))
+    if (fps == 0) or (fps is None):
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=avg_frame_rate",
+            "-of",
+            "json",
+            video_file,
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            info = json.loads(result.stdout)
+
+            if "streams" in info and info["streams"]:
+                rate = info["streams"][0]["avg_frame_rate"]  # e.g. "30/1"
+                num, den = map(int, rate.split("/"))
+                fps = int(num / den)
+                return fps
+        except Exception as e:
+            logging.error(f"Error in get_fps for {video_file}: {e}")
+            return -1
+    else:
+        return fps
 
 
 def get_ffmpeg_input_string(

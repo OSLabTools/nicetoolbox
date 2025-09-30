@@ -93,7 +93,9 @@ def main(config: dict) -> None:
 
             faces = face_detector.get(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
             if not faces:
-                logging.info(f"No faces found in frame {frame_idx}, camera {cam_name}")
+                logging.warning(
+                    f"No faces found in frame {frame_idx}, camera {cam_name}"
+                )
                 continue
             faces_sorted = sorted(faces, key=lambda face: face.bbox[0])
             bboxes = []

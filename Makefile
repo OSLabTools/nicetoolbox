@@ -57,7 +57,7 @@ clean:
 	@rm -rf $(VENV_DIR)
 
 # ------------------------
-# Clean all virtual enviorments
+# Clean all virtual environments
 # ------------------------
 .PHONY: clean_all
 clean_all:

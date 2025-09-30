@@ -3,10 +3,10 @@ Functions for handling configuration files.
 """
 
 import copy
+import getpass
 import json
 import os
 import time
-import getpass
 from pathlib import Path
 
 import numpy as np

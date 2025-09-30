@@ -267,10 +267,7 @@ def check_user_input_config(config, check, config_name, var=None):
                 check_user_input_config({tkey: tval}, {tkey: values}, config_name, var)
 
             elif cval.startswith("tbd"):
-                logging.warning(
-                    f"{config_name}: For key '{tkey}', no check argument is "
-                    "given. Skipping."
-                )
+                continue
 
             else:
                 error_log_and_raise(
