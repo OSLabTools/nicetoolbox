@@ -281,7 +281,7 @@ def save_frame(output: pd.DataFrame, cam_name: str, frame_i: int, config: dict) 
     try:
         frame_data = output[output["frame"] == frame_i]
         if frame_data.empty:
-            logging.debug(
+            logging.warning(
                 f"[{cam_name}] no detections for frame {frame_i}, skipping save."
             )
             return
@@ -293,10 +293,6 @@ def save_frame(output: pd.DataFrame, cam_name: str, frame_i: int, config: dict) 
         os.makedirs(save_dir, exist_ok=True)
         save_path = os.path.join(save_dir, filename)
 
-        logging.info(
-            f"[{cam_name}] saving visualization for frame {frame_i} -> {save_path}"
-        )
-
         fig_list = frame_data.plot_detections()
         if frame_data["Identity"].nunique() > 1:
             legend_cfg = {"loc": "upper right", "fontsize": 8}
@@ -307,7 +303,6 @@ def save_frame(output: pd.DataFrame, cam_name: str, frame_i: int, config: dict) 
             ax.set_rasterized(True)
 
         fig_list[0].savefig(save_path, dpi=80)
-        logging.info(f"[{cam_name}] successfully saved viz for frame {frame_i}")
     except Exception as e:
         logging.warning(
             f"[{cam_name}] Error saving frame {frame_i} -> {e}", exc_info=True
@@ -344,8 +339,6 @@ def visualize_and_save_frames_parallel(
     pending = [(out, cam, frame_i, config) for out, cam in zip(outputs, camera_names)]
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         list(executor.map(lambda args: save_frame(*args), pending))
-
-    logging.info(f"Finished scheduling saves for frame {frame_i}")
 
 
 def main(config: dict) -> None:

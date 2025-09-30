@@ -3,7 +3,7 @@
 # Stop on error
 set -e
 
-# Initializing conda enviorment
+# Initializing conda environment
 # It should be done at least once after conda installation
 echo "Initializing conda..."
 conda init
