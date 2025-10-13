@@ -9,6 +9,8 @@ mailto: <nicetoolbox@tue.mpg.de>
 
 <br>
 
+> 🎉 We are releasing version 0.2.0, which includes code refactoring, easier installation, and new detectors for emotion individuals and head orientation.
+
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
 and behaviors of the individual. Additionally, these visual nonverbal cues reveal the
@@ -74,6 +76,7 @@ The NICE Toolbox is using the following existing tools, methods, and frameworks:
 [ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main),
 [DarkPose](https://github.com/ilovepose/DarkPose/tree/master),
 [ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze),
+[SPIGA](https://github.com/andresprados/SPIGA),
 [Py-FEAT](https://py-feat.org/pages/intro.html), and
 [rerun.io](https://rerun.io/).
 
@@ -83,18 +86,19 @@ Carolin Schmitt,
 Gökce Ergün,
 Timo Lübbing,
 Ashutosh Jha,
-Senya Polikovsky
+Senya Polikovsky,
+Aleksandr Evgrashin
 
 All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
 
 ## License
 
 [NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2025 by Carolin Schmitt, Gökce Ergün,
-Timo Lübbing, Ashutosh Jha, Senya Polikovsky is licensed under
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1), see [LICENSE.md](LICENSE).
+Timo Lübbing, Ashutosh Jha, Senya Polikovsky, Aleksandr Evgrashin is licensed under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1), see [LICENSE.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md).
 
 Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses
-listed in [LICENSES_ALGORITHMS.md](LICENSES_ALGORITHMS).
+listed in [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
 
 ## Copyright
 
