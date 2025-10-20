@@ -1,0 +1,97 @@
+"""
+Main script to run the NICE Toolbox evaluation.
+"""
+
+import argparse
+import cProfile
+import logging
+from pathlib import Path
+
+from ..utils import to_csv
+from .config_handler import ConfigHandler
+from .engine import EvaluationEngine
+from .in_out import IO
+
+
+# @profile
+def main_evaluation_run(eval_config: str, machine_specifics: str) -> None:
+    """Main function to set up and run the evaluation."""
+    # Configure root logger and a common formatter
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    # Initialize Configuration
+    try:
+        config_handler = ConfigHandler(eval_config, machine_specifics)
+    except FileNotFoundError as e:
+        logging.error(f"Configuration file not found: {e}. Exiting.")
+        raise
+    except Exception as e:
+        logging.error(f"Error loading configuration: {e}. Exiting.")
+        raise
+
+    # Initialize IO manager
+    io_manager = IO(config_handler.get_combined_experiment_io_config())
+
+    # Write log file to the output folder
+    log_file_path: Path = io_manager.output_folder / "nice_evaluation.log"
+    file_handler = logging.FileHandler(log_file_path)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+
+    logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX EVALUATION STARTED\n\n{'#' * 80}\n\n")
+    logging.info(f"Using evaluation config: {eval_config}")
+    logging.info(f"Using machine specifics: {machine_specifics}")
+    logging.info(f"Output will be saved to base folder: {io_manager.output_folder}")
+    logging.info(f"Running on device: {config_handler.global_settings.device}")
+
+    # Save the effective configuration for the overall experiment run
+    config_handler.save_experiment_config(io_manager.output_folder)
+
+    # Instantiate and run the EvaluationEngine
+    engine = EvaluationEngine(config_handler, io_manager)
+    engine.run()
+
+    if config_handler.global_settings.verbose:
+        logging.info("Converting results to CSV format.")
+        to_csv.results_to_csv(io_manager.get_out_folder(), io_manager.get_csv_folder())
+        logging.info("CSV conversion completed.")
+
+    logging.info("All evaluations have been successfully completed.")
+
+
+def entry_point():
+    """Entry point for the NICE Toolbox evaluation script."""
+    parser = argparse.ArgumentParser(description="Run NICE Toolbox Evaluation")
+    parser.add_argument(
+        "--eval_config",
+        default="configs/evaluation_config.toml",
+        help="Path to evaluation config",
+    )
+    parser.add_argument(
+        "--machine_specifics",
+        default="machine_specific_paths.toml",
+        help="Path to machine specifics config",
+    )
+    parser.add_argument(
+        "--profile", action="store_true", help="Enable memory profiling"
+    )
+    args = parser.parse_args()
+
+    if args.profile:
+        profiler = cProfile.Profile()
+        profiler.enable()
+        main_evaluation_run(args.eval_config, args.machine_specifics)
+        profiler.disable()
+        profiler.dump_stats("evaluation.prof")
+    else:
+        main_evaluation_run(args.eval_config, args.machine_specifics)
+
+
+if __name__ == "__main__":
+    entry_point()

@@ -1,0 +1,38 @@
+# This config supports using placeholders.
+# options are <git_hash> <commit_message> <me> <today> <yyyymmdd> <time> <pwd>
+# and all keys from your local 'machine_specific_paths.toml':
+# <datasets_folder_path> and <output_folder_path>
+
+# === (1) Global Settings ===
+
+git_hash = "<git_hash>"     # Latest git commit for current pipeline run
+device = 'cuda:0'           # One of ("cpu", "cuda:0")
+batchsize = 1000            # Batchsize for data loader 
+verbose = true              # Verbose outputs (incl. csv files)
+
+# === (2) Evaluation IO ===
+
+[io]
+# Evaluation input folders (NICE toolbox detector output folders)
+experiment_name = "<yyyymmdd>"
+experiment_folder = "<output_folder_path>/experiments/<experiment_name>"
+# Evaluation output folders
+output_folder = "<experiment_folder>_eval"
+eval_visualization_folder = "<output_folder>/visualization"
+
+
+# === (3) Metric selection and configuration ===
+
+[metrics.point_cloud_metrics]
+metric_names = ["jpe"]
+gt_required = true
+
+[metrics.keypoint_metrics]
+metric_names = ["jump_detection", "bone_length"]
+gt_required = false
+gt_components = ['body_joints', 'hand_joints', 'face_landmarks']
+keypoint_mapping_file = "configs/predictions_mapping.toml" # TODO: place somewhere else
+
+[metrics.categorical_metrics]
+metric_names = ["accuracy", "precision", "recall", "f1_score"]  # "mse"
+gt_required = true

@@ -6,8 +6,14 @@ cam_top = 'view_top'                               # camera name of a frontal vi
 cam_face1 = 'view_left'                            # camera name of a view of one subject's face (str, optional)
 cam_face2 = 'view_right'                           # caemra name of a view of a second subject's face (str, optional)
 subjects_descr = ["person_left", "person_right"]   # define an identifier for the subjects in each video or frame (list of str)
-cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]}             # define which camera view records which subject (dict: (cam_name, list of int))
+cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]}  # define which camera view records which subject (dict: (cam_name, list of int))
 path_to_calibrations = "<datasets_folder_path>/communication_multiview/calibrations.npz"  # file path with placeholders for the calibration files (str, optional)
 data_input_folder = "<datasets_folder_path>/communication_multiview/<session_ID>"         # folder path with placeholders to the video or image files (str)
 start_frame_index = 0                              # how does the dataset index its data? usually, starting with 0 or 1 (int)
 fps = 30                                           # frame-rate of video data (int)
+# Below: Optional for evaluation 
+# (This dataset does not have annotations -> ground truth less metrics only)
+path_to_annotations = ""                           # file path with placeholders to the annotation files (str, optional)
+evaluation = [                                     # list of dicts defining which annotation components and metric types to use for evaluation (list of dict, optional)
+    {annotation_components = ["none"], metric_types = ["keypoint_metrics"]}  # use "none" if no annotation components are available
+]

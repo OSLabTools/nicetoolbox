@@ -194,7 +194,7 @@ else
 	@echo "Installing $(TOOL_NAME) editable for developers..."
 #   torch is required for the evaluation (part of optional dependencies)
 	@$(VENV_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-	@$(VENV_EXE_DIR)/pip install -e ".[dev,eval,visual]"
+	@$(VENV_EXE_DIR)/pip install -e ".[dev,visual]"
 endif
 	@echo "$(TOOL_NAME) installed in $(VENV_DIR) successfully."
 
