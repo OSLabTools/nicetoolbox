@@ -22,7 +22,8 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
 
 ### Python 3.10
 
-Please find the download links under the [official python](https://www.python.org/downloads/) pages.
+Please find the download links under the [official python](https://www.python.org/downloads/) pages. The latest installer of a stable release of Python 3.10.10 can be downloaded [from here](https://www.python.org/downloads/release/python-31011/).
+
 If you are a Windows user, please add python to your `PATH` variable as explained on [educative.io](https://www.educative.io/answers/how-to-add-python-to-path-variable-in-windows).
 
 ### Conda
