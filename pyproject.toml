@@ -22,6 +22,7 @@ dependencies = [
     "rerun-sdk==0.23.0",
     "scikit-image==0.21.0",
     "toml",
+    "pydantic"
 ]
 
 [project.optional-dependencies]
@@ -40,24 +41,21 @@ dev = [
     "sphinxcontrib-video==0.3.1",
     "tox",
 ]
-eval = [
-    "icecream",
-    "scikit-learn==1.0.2",
-    "scipy==1.11.2",
-    "torchmetrics",
-]
 visual = [
     "matplotlib",
     "plotly",
     "seaborn",
     "streamlit",
     "tueplots",
+    "kaleido"
 ]
 
 [project.scripts]
 run_detectors = "nicetoolbox.detectors.main:entry_point"
 run_visualization = "nicetoolbox.visual.media.main:entry_point"
 run_calibration_gui = "nicetoolbox.utils.calibration_gui.calibration_converter:entry_point"
+run_evaluation = "nicetoolbox.evaluation.main:entry_point"
+run_statistics = "nicetoolbox.visual.statistics.main:entry_point"
 
 # Setuptools
 [tool.setuptools.packages.find]
@@ -146,3 +144,11 @@ omit= [
 ]
 show_missing = true
 skip_empty = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests/unit", "tests/integration", "tests/functional"
+]
+pythonpath = "."

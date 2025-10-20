@@ -2,10 +2,10 @@ import os
 
 import pandas as pd
 
-from ...utils import filehandling as fh
+from . import filehandling as fh
 
 
-def convert_npz_to_csv_files(npz_path, output_folder):
+def convert_npz_to_csv_files(npz_path, output_folder) -> None:
     """
     Converts an NPZ file to multiple CSV files.
 
@@ -95,7 +95,15 @@ def convert_npz_to_csv_files(npz_path, output_folder):
             df.to_csv(os.path.join(output_folder, output_filename), index=False)
 
 
-def results_to_csv(results_folder, csv_output_folder):
+def results_to_csv(results_folder, csv_output_folder) -> None:
+    """
+    Converts all NPZ files in the results folder to CSV files and saves them in the
+    specified output folder.
+
+    Args:
+        results_folder (str): The path to the folder containing NPZ result files.
+        csv_output_folder (str): The path to the folder where CSV files will be saved.
+    """
     npz_files_list = fh.find_npz_files(results_folder)
     for file in npz_files_list:
         convert_npz_to_csv_files(file, csv_output_folder)

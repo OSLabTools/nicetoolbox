@@ -8,6 +8,7 @@ import logging
 import time
 
 from ..utils import logging_utils as log_ut
+from ..utils import to_csv as csv
 from . import config_handler as confh
 from .data import Data
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
@@ -19,7 +20,6 @@ from .method_detectors.body_joints.mmpose_framework import HRNetw48, VitPose
 from .method_detectors.emotion_individual.py_feat import PyFeat
 from .method_detectors.gaze_individual.Multiview_Eth_XGaze import MultiviewEthXgaze
 from .method_detectors.head_orientation.spiga_detector import Spiga
-from .result_conversion import to_csv as csv
 
 all_method_detectors = dict(
     multiview_eth_xgaze=MultiviewEthXgaze,
