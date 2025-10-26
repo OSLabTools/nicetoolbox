@@ -414,6 +414,10 @@ class MMPose(BaseDetector):
                     xy_points_cam1 = person_cam1[:, :, :2].reshape(-1, 1, 2)
                     xy_points_cam2 = person_cam2[:, :, :2].reshape(-1, 1, 2)
 
+                    # Extract confidence scores
+                    conf_cam1 = person_cam1[:, :, 2].reshape(-1, 1, 1)
+                    conf_cam2 = person_cam2[:, :, 2].reshape(-1, 1, 1)
+
                     # Since it is using interpolated data there might be some missing
                     # values.
                     # Create a combined mask for NaN values in either camera's data
@@ -424,6 +428,9 @@ class MMPose(BaseDetector):
                     # Filter out rows with NaNs for processing
                     filtered_xy_points_cam1 = xy_points_cam1[~combined_nan_mask]
                     filtered_xy_points_cam2 = xy_points_cam2[~combined_nan_mask]
+
+                    filtered_confidence_cam1 = conf_cam1[~combined_nan_mask]
+                    filtered_confidence_cam2 = conf_cam2[~combined_nan_mask]
 
                     # undistort data
                     cam1_undistorted = np.squeeze(
@@ -463,16 +470,23 @@ class MMPose(BaseDetector):
                         cam1_undistorted.T,
                         cam2_undistorted.T,
                     )
+                    # add confidence score, first combine cam1 & cam2,
+                    # will keep the minimum confidence value
+                    confidence_combined = np.minimum(
+                        filtered_confidence_cam1, filtered_confidence_cam2
+                    )
+                    person_data_3d_with_conf = np.concatenate(
+                        [person_data_3d.T, confidence_combined], axis=1
+                    )
 
                     # reshape 3d array
                     # Create output arrays filled with NaNs
-                    output_shape = (xy_points_cam1.shape[0], 3)
+                    output_shape = (xy_points_cam1.shape[0], 4)
                     output_data_3d = np.full(output_shape, np.nan)
                     # Insert the processed data back into the correct positions
-                    output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d.T
-
+                    output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d_with_conf
                     reshaped_3D_points = output_data_3d.reshape(
-                        person_cam1.shape[0], person_cam1.shape[1], 3
+                        person_cam1.shape[0], person_cam1.shape[1], 4
                     )
                     person_data_list.append(reshaped_3D_points)
 
@@ -489,7 +503,12 @@ class MMPose(BaseDetector):
                             axis1=["3d"],
                             axis2=descr_2d["axis2"],
                             axis3=descr_2d["axis3"],
-                            axis4=["coordinate_x", "coordinate_y", "coordinate_z"],
+                            axis4=[
+                                "coordinate_x",
+                                "coordinate_y",
+                                "coordinate_z",
+                                "confidence_score",
+                            ],
                         )
                     }
                 )

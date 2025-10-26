@@ -135,21 +135,34 @@ class VelocityBody(BaseFeature):
 
             # data.shape = (#persons, #cameras, #frames, #joints/keypoints, 3)
             if dim == "2d":  # check if it is got from single camera)
-                data = data[..., :2]  # if data is 2d get only 2 values from last cell
+                # if data is 2d get only 2 values from last cell
+                keypoints = data[..., :2]
+                conf_score = data[..., 2, np.newaxis]
+
+            elif dim == "3d":
+                keypoints = data[..., :3]
+                conf_score = data[..., 3, np.newaxis]
 
             # Compute the differences for each keypoint between adjacent frames
-            differences = (
-                data[:, :, 1:] - data[:, :, :-1]
-            )  # differences[t] gives the diff btw [t] and [t-1]  # first frame is
-            # empty - will create num_of_frames-1
+            # We first allocate tensor with difference for each frame
+            differences = np.full_like(keypoints, np.nan)
 
-            # Add a zero-filled frame at the beginning
-            zero_frame = np.zeros_like(differences).mean(axis=2, keepdims=True)
-            differences = np.concatenate((zero_frame, differences), axis=2)
+            # differences[t] gives the diff btw [t] and [t-1]
+            # first frame keeps nan (can't calculate velocity if no frame existed before)
+            differences[:, :, 1:] = keypoints[:, :, 1:] - keypoints[:, :, :-1]
+            
+            # calculate confidence score, saves the minimum confidence between consecutive frames
+            # again, first frame keeps nan
+            min_confidence = np.full_like(conf_score, np.nan)
+            min_confidence[:, :, 1:] = np.minimum(conf_score[:, :, 1:], conf_score[:, :, :-1])
 
             # Compute the Euclidean distance for each keypoint between adjacent frames
             motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)
             motion_velocity = motion_magnitude * self.fps
+
+            # Add confidence score to results
+            differences = np.concatenate([differences, min_confidence], axis=-1)
+            motion_velocity = np.concatenate([motion_velocity, min_confidence], axis=-1)
 
             # Standardized
             # motion_magnitude_mean = np.nanmean(motion_magnitude, axis=0)
@@ -169,9 +182,18 @@ class VelocityBody(BaseFeature):
                 {
                     f"displacement_vector_body_{dim}": dict(
                         **data_description,
-                        axis4=["coordinate_x", "coordinate_y", "coordinate_z"],
+                        axis4=[
+                            "coordinate_x",
+                            "coordinate_y",
+                            "coordinate_z",
+                            "confidence_score",
+                        ]
+                        if dim == "3d"
+                        else ["coordinate_x", "coordinate_y", "confidence_score"],
                     ),
-                    f"velocity_body_{dim}": dict(**data_description, axis4="velocity"),
+                    f"velocity_body_{dim}": dict(
+                        **data_description, axis4=["velocity", "confidence_score"]
+                    ),
                 }
             )
 
