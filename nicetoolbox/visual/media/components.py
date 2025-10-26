@@ -169,7 +169,7 @@ class BodyJointsComponent(Component):
             assert "supported dimensions are: 2 or 3"
         dim = f"{dimension}d"
         data = self.algorithms_results[0][dim]
-        mean_value = np.mean(data[:, :, :, [right_eye_idx, left_eye_idx], :], axis=3)
+        mean_value = np.mean(data[:, :, :, [right_eye_idx, left_eye_idx], :dimension], axis=3)
         return (mean_value, self.camera_names)
 
     def _get_algorithms_labels(self) -> List[List[str]]:
@@ -317,7 +317,7 @@ class BodyJointsComponent(Component):
                         continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
-                        subject_3d_points = alg_data[subject_idx, 0, frame_idx]
+                        subject_3d_points = alg_data[subject_idx, 0, frame_idx][:, :3]  # select first 3 values, 4rd is confidence score
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,
                             is_3d=True,
@@ -1197,7 +1197,7 @@ class KinematicsComponent(Component):
             )
         return algorithm_labels
 
-    def _get_joints_movement_by_bodypart(self, alg_idx: int) -> np.ndarray:
+    def _get_joints_movement_by_bodypart(self, alg_idx: int, data_name: str) -> np.ndarray:
         """
         Get the joints movement by body part for the algorithm index.
 
@@ -1213,7 +1213,7 @@ class KinematicsComponent(Component):
             joint_indices = [labels.index(joint) for joint in joints]
             # THRESHOLD = 0.3
             # data[..., :, 0][data[..., : , 0]< THRESHOLD] = 0
-            selected_data = data[:, :, :, joint_indices, :]
+            selected_data = data[:, :, :, joint_indices, 0:1] # if use only 0, instead of 0:1, last dimension drops
             bodypart_motion.append(np.nanmean(selected_data, axis=-2))
         bodypart_motion = np.concatenate(bodypart_motion, axis=-1)
         return bodypart_motion
@@ -1242,7 +1242,7 @@ class KinematicsComponent(Component):
                 alg_name = self.algorithm_list[alg_idx]
                 for subject_idx, subject in enumerate(self.subject_names):
                     joints_bodypart_motion = self._get_joints_movement_by_bodypart(
-                        alg_idx
+                        alg_idx, data_name
                     )
                     for idx, bodypart in enumerate(
                         self.visualizer_config["media"][self.component_name][

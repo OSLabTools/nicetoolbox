@@ -3,6 +3,7 @@ Keypoint metrics for evaluating 3D joints data. Includes bone length calculation
 and jump detection metrics. No ground truth required.
 """
 
+import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
@@ -71,8 +72,14 @@ class BoneLength(Metric):
         _gts = gts  # This metric does not use ground truth data.
         if meta_chunk.pred_data_key != "3d":  # Only apply to 3D keypoints
             return
-        if preds.shape[-1] != 3:
-            raise ValueError("Predictions must have 3 coordinates for 3D keypoints.")
+        
+        if preds.shape[-1] != 4:
+            raise ValueError(
+                f"Predictions must have 4 coordinates for 3D keypoints + confidence score. "
+                f"Current shape is {preds.shape}"
+            )
+
+        preds = preds[:, :, :3]
 
         keypoint_names = meta_chunk.pred_data_description_axis3
         if not keypoint_names:
@@ -186,6 +193,14 @@ class JumpDetection(Metric):
         _gts = gts  # This metric does not use ground truth data.
         if "3d" not in meta_chunk.pred_data_key:  # Only apply to 3D keypoints
             return
+        
+        if preds.shape[-1] != 4:
+            raise ValueError(
+                f"Predictions must have 4 coordinates for 3D keypoints + confidence score. "
+                f"Current shape is {preds.shape}"
+            )
+        
+        preds = preds[:, :, :3]
 
         keypoint_names = meta_chunk.pred_data_description_axis3
         # Create a threshold tensor based on the order of keypoints in the input

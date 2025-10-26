@@ -147,7 +147,8 @@ class GazeDistance(BaseFeature):
             indices = [
                 "face_landmarks" in key for key in keypoints_description["axis3"]
             ]
-            head = keypoints[:, :, :, indices].mean(axis=-2)
+            keypoint_values = keypoints[:, :, :, indices]
+            head = keypoint_values[..., :3].mean(axis=-2)
         else:
             head = gaze_data["landmarks_2d"].mean(axis=-2)
             keypoints_description = gaze_data["data_description"].item()["landmarks_2d"]
