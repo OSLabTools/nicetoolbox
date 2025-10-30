@@ -164,7 +164,7 @@ endif
 
 #	check for conda installation
 ifeq ($(which conda),"")
-	@echo "No CONDA installation found. Check the documentation for instructions: https://nicetoolbox.readthedocs.io/en/docs/installation.html."
+	@echo "No CONDA installation found. Check the documentation for instructions: https://nicetoolbox.readthedocs.io/en/stable/installation.html."
 else
 	@$(eval CONDA_DIR=$(CONDA_DIR))
 

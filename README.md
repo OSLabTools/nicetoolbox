@@ -4,7 +4,7 @@
 
 &emsp;&emsp;&emsp;
 [Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
-[Documentation](https://nicetoolbox.readthedocs.io/en/docs/index.html) &emsp;&emsp;&emsp;
+[Documentation](https://nicetoolbox.readthedocs.io/en/stable/index.html) &emsp;&emsp;&emsp;
 mailto: <nicetoolbox@tue.mpg.de>
 
 <br>
@@ -25,7 +25,7 @@ calculation (kinematics), gaze interaction monitoring (mutual-gaze), the measure
 of physical body distance between dyads, and emotion detection.
 This first set of components and algorithms is going to be extended in future releases.
 For more details, please see the
-[components overview](https://nicetoolbox.readthedocs.io/en/docs/wikis/wiki_components.html)
+[components overview](https://nicetoolbox.readthedocs.io/en/stable/wikis/wiki_components.html)
 page in the wiki.
 
 The toolbox  also includes a visualizer module, which allows users to
@@ -34,13 +34,13 @@ visualize and investigate the algorithm’s outputs.
 ## Installation & getting started
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the
-[installation instructions](https://nicetoolbox.readthedocs.io/en/docs/installation.html)
+[installation instructions](https://nicetoolbox.readthedocs.io/en/stable/installation.html)
 page. For a quick start into the toolbox, we provide an example dataset and documentation to
-set it up on the [getting started](https://nicetoolbox.readthedocs.io/en/docs/getting_started.html)
+set it up on the [getting started](https://nicetoolbox.readthedocs.io/en/stable/getting_started.html)
 page. Further tutorials and documentation can be found on the
-[tutorials](https://nicetoolbox.readthedocs.io/en/docs/tutorials/index.html) and
-[wiki](https://nicetoolbox.readthedocs.io/en/docs/wikis/index.html) pages. You can also
-access this [documentation](https://nicetoolbox.readthedocs.io/en/docs/index.html) offline
+[tutorials](https://nicetoolbox.readthedocs.io/en/stable/tutorials/index.html) and
+[wiki](https://nicetoolbox.readthedocs.io/en/stable/wikis/index.html) pages. You can also
+access this [documentation](https://nicetoolbox.readthedocs.io/en/stable/index.html) offline
 by downloading it as a PDF. Just use the ReadTheDocs pop-up menu located in the bottom right
 corner of the screen.
 
