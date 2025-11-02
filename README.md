@@ -1,4 +1,4 @@
-![](docs/graphics/nicetoolbox_480p.mp4)
+![](docs/graphics/nicetoolbox_visual.png)
 
 # Non-Verbal Interpersonal Communication Exploration Toolbox
 
@@ -90,6 +90,8 @@ Senya Polikovsky,
 Aleksandr Evgrashin
 
 All authors are with the Optics and Sensing Laboratory at Max-Planck Insitute for Intelligent Systems.
+
+We thank the [MPI-IS Software Workshop](https://is.mpg.de/en/software-workshop) for their thoughtful feedback and support during the project refactoring. 
 
 ## License
 
