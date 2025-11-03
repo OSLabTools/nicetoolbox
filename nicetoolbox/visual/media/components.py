@@ -61,7 +61,13 @@ class Component(ABC):
         self.algorithms_results = []
         for alg in self.algorithm_list:
             alg_path = io.get_algorithm_result(self.component_prediction_folder, alg)
-            self.algorithms_results.append(np.load(alg_path, allow_pickle=True))
+            try:
+                self.algorithms_results.append(np.load(alg_path, allow_pickle=True))
+            except FileNotFoundError:
+                print(f"ERROR: {alg}.npz file is not found in {self.component_name} folder."
+                      f"It will not be visualized\n  "
+                      f"Remove {alg} or {self.component_name} in the visualizer_config.toml file")
+                raise
 
         # create canvas data dictionary - key is data name, and value is algorithms data
         # (lists of algorithms results)
@@ -71,9 +77,10 @@ class Component(ABC):
         ].items():
             if canvas != []:
                 self.algorithms_data = []
-                for i, _alg in enumerate(self.algorithm_list):
-                    self.algorithms_data.append(self.algorithms_results[i][data_name])
-                self.canvas_data[data_name] = self.algorithms_data
+                if self.algorithms_results:
+                    for i, _alg in enumerate(self.algorithm_list):
+                        self.algorithms_data.append(self.algorithms_results[i][data_name])
+                    self.canvas_data[data_name] = self.algorithms_data
 
     def _parse_alg_color(self, alg_idx: int) -> List[int]:
         """
@@ -165,9 +172,16 @@ class BodyJointsComponent(Component):
         labels = self._get_algorithms_labels()[0]
         right_eye_idx = labels.index("right_eye")
         left_eye_idx = labels.index("left_eye")
+        dim = f"{dimension}d"
         if (dimension < 2) | (dimension > 3):
             assert "supported dimensions are: 2 or 3"
-        dim = f"{dimension}d"
+        elif dimension == 3:
+            if dim not in self.canvas_data.keys():
+                print(
+                    f"{dim} results could not found in selected canvas data.\n"
+                    f"If you don't have 3d results, set multi-view false in visualizer_config.toml.\n"
+                    f"If you have 3d results, add '3D_Canvas' into body_joint.canvas in visualizer_config.toml")
+                return (None, None)
         data = self.algorithms_results[0][dim]
         mean_value = np.mean(data[:, :, :, [right_eye_idx, left_eye_idx], :dimension], axis=3)
         return (mean_value, self.camera_names)

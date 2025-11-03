@@ -2,6 +2,7 @@
 Run gaze detection on the provided data.
 """
 
+import logging
 import sys
 
 import toml
@@ -23,7 +24,15 @@ def main(config):
         config (dict): The configuration dictionary containing parameters for gaze
             detection.
     """
+    if "calibration" not in config.keys():
+        logging.error(
+            "ERROR: Calibration file is not valid.\n"
+            "Multiview ETH Xgaze algorithm cannot be run without "
+            "a calibration file (see docs/wikis/wiki_calibration.md)."
+        )
+        return 2
     inference.main(config)
+    return 0
 
 
 if __name__ == "__main__":

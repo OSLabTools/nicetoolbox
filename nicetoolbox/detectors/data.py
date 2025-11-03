@@ -87,14 +87,20 @@ class Data:
         self.frames_list = None
         self.frame_indices_list = None
         self.snippets_list = None
+        self.calibration = None
 
         # DATA INITIALIZATION
         self.data_initialization()
 
         # LOAD CALIBRATION
-        self.calibration = self.load_calibration(
-            io.get_calibration_file(), config["dataset_name"], all_dataset_names
-        )
+        calib_file_path = io.get_calibration_file()
+        if calib_file_path:
+            logging.info("Loading calibration...")
+            self.calibration = self.load_calibration(
+                calib_file_path, config["dataset_name"], all_dataset_names
+            )
+        else:
+            logging.warning("Calibration.npz is not provided, skipping calibration.")
         self.fps = self.get_fps(config["fps"])
 
         logging.info("Data loading and processing finished.\n\n")
@@ -211,19 +217,30 @@ class Data:
                 f"not implemented."
             )
             raise NotImplementedError from None
-
         calib_details = "__".join(
             [word for word in [self.session_ID, self.sequence_ID] if word]
         )
-        loaded_calib = np.load(calibration_file, allow_pickle=True)[
-            calib_details
-        ].item()
-
-        calib = dict(
-            (key, value)
-            for key, value in loaded_calib.items()
-            if key in self.all_camera_names
-        )
+        try:
+            loaded_calib = np.load(calibration_file, allow_pickle=True)[
+                calib_details
+            ].item()
+        except KeyError:
+            logging.exception(
+                f"KeyError: missing key {calibration_file} "
+                f" for those sessions/sequences'{calib_details}"
+            )
+            raise
+        try:
+            calib = dict(
+                (key, value)
+                for key, value in loaded_calib.items()
+                if key in self.all_camera_names
+            )
+        except Exception as e:
+            logging.exception(
+                f"An error occurred while creating calibration dictionary: {e}"
+            )
+            raise
 
         return calib
 

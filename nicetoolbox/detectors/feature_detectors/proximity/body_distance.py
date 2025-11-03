@@ -105,7 +105,6 @@ class BodyDistance(BaseFeature):
             self.predictions_mapping["keypoints_index"]["body"][keypoint]
             for keypoint in self.used_keypoints
         ]
-
         logging.info(f"Feature detector for component {self.components} initialized.")
 
     def compute(self):
@@ -130,11 +129,13 @@ class BodyDistance(BaseFeature):
         if not self.valid_run:
             return None
 
-        dimensions = ["2d"] if len(self.camera_names) < 2 else ["2d", "3d"]
+        joint_data = np.load(self.input_files[0], allow_pickle=True)
+        dimensions = ["2d"]
+        if "3d" in joint_data['data_description'].item().keys():
+            dimensions.append("3d")
 
         out_dict = {"data_description": {}}
         for dim in dimensions:
-            joint_data = np.load(self.input_files[0], allow_pickle=True)
             dim_data = "2d_filtered" if dim == "2d" else dim
             data = joint_data[dim_data]
             data_description = joint_data["data_description"].item()[dim]
