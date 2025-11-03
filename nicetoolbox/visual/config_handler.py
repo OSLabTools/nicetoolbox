@@ -156,10 +156,11 @@ class Configuration:
                     "parameter to false or provide extrinsics parameters of the camera"
                 )
 
-    def check_config(self):
+    def check_config(self, calibration_file):
         self._check_start_stop_frames()
         self._check_component_name()
         self._check_algorithms()
+        self._check_camera_position(calibration_file)
 
     def _check_start_stop_frames(self):
         video_length = self.visualizer_config["video"]["video_length"]
@@ -217,6 +218,25 @@ class Configuration:
                         f"Delete or correct {alg} from Visualizer_config[media."
                         f"{component} algorithms"
                     )
+    def _check_camera_position(self, calibration_file) -> None:
+        """
+        Checks the consistency of the camera position in the visualizer config.
+
+        Raises:
+            ValueError: If the camera position parameter is set to True but calibration
+            parameters were not provided.
+        """
+        if (self.visualizer_config["media"]["visualize"][
+            "camera_position"]) and (
+                not calibration_file
+        ):
+            raise ValueError(
+                "ERROR: No valid calibration file is found. Visualization of camera "
+                "position requires calibration data. Set camera_position to False "
+                "in visualizer_config.toml\n"
+            )
+        else:
+            return 0
 
     # Extract lists from config, check, and update if necessary
     def check_and_update_canvas(self):

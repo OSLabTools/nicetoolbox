@@ -75,7 +75,6 @@ class MultiviewEthXgaze(BaseDetector):
         if self.filtered:
             self.filter_window_length = config["window_length"]
             self.filter_polyorder = config["polyorder"]
-
         self.calibration = config["calibration"]
         logging.info("Inference Preparation completed.\n")
 
@@ -86,12 +85,19 @@ class MultiviewEthXgaze(BaseDetector):
         This method is called after the inference step and is used for any
         post-processing tasks that need to be performed.
         """
-        # Filter the 3d results for less flickering estimates
-        if self.filtered:
-            prediction_file = os.path.join(self.result_folders, f"{self.algorithm}.npz")
+        prediction_file = os.path.join(self.result_folders, f"{self.algorithm}.npz")
+        try:
             prediction = np.load(prediction_file, allow_pickle=True)
             predictions_dict = {key: prediction[key] for key in prediction.files}
             data_description = predictions_dict["data_description"].item()
+        except FileNotFoundError:
+            logging.error(
+                "Prediction file is not found, skipping the visualization of output"
+            )
+            return 2
+
+        # Filter the 3d results for less flickering estimates
+        if self.filtered:
             # Apply filter
             logging.info("APPLYING filtering to Gaze Individual data...")
             results_3d_filtered = prediction["3d"].copy()[:, :, :, None]
@@ -130,6 +136,7 @@ class MultiviewEthXgaze(BaseDetector):
         )
 
         np.savez_compressed(prediction_file, **predictions_dict)
+        return 0
 
     def _project_gaze_to_camera_views(self, data) -> List[Dict[str, np.ndarray]]:
         """
@@ -188,7 +195,12 @@ class MultiviewEthXgaze(BaseDetector):
         n_subj = len(self.subjects_descr)
 
         prediction_file = os.path.join(self.result_folders, f"{self.algorithm}.npz")
-        predictions = np.load(prediction_file, allow_pickle=True)
+        try:
+            predictions = np.load(prediction_file, allow_pickle=True)
+        except FileNotFoundError:
+            logging.error("Prediction file is not found, skipping the visualization.")
+            success = False
+            return success
 
         gaze_data = (
             predictions["2d_projected_from_3d_filtered"]
@@ -259,3 +271,4 @@ class MultiviewEthXgaze(BaseDetector):
             f"Detector {self.components}: visualization finished with code "
             f"{success}."
         )
+        return success

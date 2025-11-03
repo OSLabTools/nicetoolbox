@@ -331,7 +331,7 @@ class MMPose(BaseDetector):
 
             # Apply filter
             if self.filtered:
-                logging.info("APPLYING filtering to 3d data...")
+                logging.info("APPLYING filtering to 2d data...")
                 results_2d_filtered = results_2d.copy()
                 filter = SGFilter(self.filter_window_length, self.filter_polyorder)
                 results_2d_filtered = filter.apply(results_2d_filtered)
@@ -354,7 +354,15 @@ class MMPose(BaseDetector):
             )
 
             data_description["2d_interpolated"] = data_description["2d"]
-            if len(self.camera_names) < 2:
+            can_estimate_3d = len(self.camera_names) >= 2
+            if can_estimate_3d and not self.calibration:
+                logging.warning(
+                        "WARNING - Calibration file is not valid. "
+                        "Therefore, cannot compute 3d positions of the joints."
+                        "Please see docs/wikis/wiki_calibration.md"
+                )
+                can_estimate_3d = False
+            if not can_estimate_3d:
                 if self.filtered:
                     data_description["2d_filtered"] = data_description["2d"]
                     # save results

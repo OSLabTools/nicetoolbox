@@ -46,26 +46,38 @@ def main(visualizer_config_file, machine_specifics_file):
 
     # load calibration for the video
     calibration_file = io.get_calibration_file(visualizer_config["video"])
-    calib = vis_utils.load_calibration(
-        calibration_file,
-        visualizer_config["video"],
-        camera_names=config_handler.get_camera_names(),
-    )
+    calib = None
+    if calibration_file:
+        calib = vis_utils.load_calibration(
+            calibration_file,
+            visualizer_config["video"],
+            camera_names=config_handler.get_camera_names(),
+        )
+    if not calib:
+        print("WARNING: User did not provide a valid calibration file. "
+              "Visualization of camera positions, 3d pose estimation, and gaze results "
+              "requires calibration data.")
+        if visualizer_config["media"]["multi_view"]:
+            raise ValueError(
+                "ERROR: Calibration file was not provided. Cannot visualize the multi-view "
+                "Set it False in visualizer_config \n "
+            )
 
     # INITIALIZE VIEWER
     viewer = Viewer(visualizer_config)
 
     # CHECK CONFIGURATION
-    all_cameras = list(calib.keys())
-    config_handler.check_config()
+    all_cameras = config_handler.get_camera_names()
+    config_handler.check_config(calibration_file)
     for cam in all_cameras:
         config_handler.check_calibration(calib, cam)
     viewer.check_multiview()
     visualizer_config = config_handler.check_and_update_canvas()
 
     # LOAD COMPONENTS DATA
-    components = visualizer_config["media"]["visualize"]["components"]
-    for component in components:
+    components_list = visualizer_config["media"]["visualize"]["components"]
+    components = []
+    for component in components_list:
         if component not in os.listdir(io.get_experiment_video_folder()):
             print(
                 f"WARNING: {component} Component is not found in video output. "
@@ -73,7 +85,8 @@ def main(visualizer_config_file, machine_specifics_file):
                 f"removing '{component}' from the components list in the "
                 "visualizer_config.toml file"
             )
-            components.remove(component)  # noqa: B909
+            continue
+        components.append(component)
 
     if "body_joints" in components:
         body_joints_component = BodyJointsComponent(
