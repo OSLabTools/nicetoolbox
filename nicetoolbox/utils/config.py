@@ -13,7 +13,7 @@ import numpy as np
 import toml
 import yaml
 
-from .git_utils import CustomRepo
+from .git_utils import try_get_toolbox_git_metadata
 
 
 def default(obj):
@@ -130,11 +130,16 @@ def config_fill_auto(config, working_directory=None):
     """
     if working_directory is None:
         working_directory = os.getcwd()
-    repo = CustomRepo(working_directory)
-    git_hash, commit_message = repo.get_git_hash()
+        
+    git_metadata = try_get_toolbox_git_metadata(working_directory)
+    if git_metadata is not None:
+        git_hash, commit_message = git_metadata
+        git_hash = git_hash[:7]
+    else:
+        git_hash, commit_message = "unknown", "unknown"
 
     placeholder_dict = dict(
-        git_hash=git_hash[:7],
+        git_hash=git_hash,
         commit_message=commit_message,
         me=getpass.getuser(),
         yyyymmdd=time.strftime("%Y%m%d", time.localtime()),
