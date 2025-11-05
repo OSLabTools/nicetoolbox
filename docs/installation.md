@@ -4,6 +4,7 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
 
 <!-- TOC -->
 - [Installation](#installation)
+  - [Docker](#docker)
   - [Prerequisites](#prerequisites)
     - [Python 3.10](#python-310)
     - [Conda](#conda)
@@ -17,6 +18,19 @@ We conducted tests of the installation on Windows 11 and Ubuntu versions 20 and 
   - [Makefile installation](#makefile-installation)
   - [Additional notes](#additional-notes)
 <!-- TOC -->
+
+## Docker 
+
+You can install NICE Toolbox using Docker. With Docker, you won't need to install dependencies manually as they are prepackaged into the Docker image.
+
+To download and run the latest NICE Toolbox Docker image:
+
+```shell
+docker pull mpioslab/nicetoolbox
+docker run --rm --gpus all -it mpioslab/nicetoolbox
+```
+
+It should start an interactive bash session inside a Docker container.  Follow [getting started](https://nicetoolbox.readthedocs.io/en/stable/getting_started.html) to enable a virtual environment and run detectors.
 
 ## Prerequisites
 
