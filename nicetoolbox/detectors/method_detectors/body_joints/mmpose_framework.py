@@ -329,9 +329,11 @@ class MMPose(BaseDetector):
             results_2d = prediction["2d"]
             results_2d_bbox = prediction["bbox_2d"]
 
+            iou_array = pose_utils.create_iou_all_pairs(results_2d_bbox)
+
             # Apply filter
             if self.filtered:
-                logging.info("APPLYING filtering to 2d data...")
+                logging.info("APPLYING filtering to 3d data...")
                 results_2d_filtered = results_2d.copy()
                 filter = SGFilter(self.filter_window_length, self.filter_polyorder)
                 results_2d_filtered = filter.apply(results_2d_filtered)
@@ -354,6 +356,16 @@ class MMPose(BaseDetector):
             )
 
             data_description["2d_interpolated"] = data_description["2d"]
+            data_description.update(
+                {
+                    "bbox_overlap": dict(
+                        axis0=data_description["2d"]["axis0"],
+                        axis1=data_description["2d"]["axis1"],
+                        axis2=data_description["2d"]["axis2"],
+                        axis3=[f"with_{subj}" for subj in self.subjects_descr]
+                    )
+                }
+            )
             can_estimate_3d = len(self.camera_names) >= 2
             if can_estimate_3d and not self.calibration:
                 logging.warning(
@@ -371,6 +383,7 @@ class MMPose(BaseDetector):
                         "2d_filtered": results_2d_filtered,
                         "2d_interpolated": results_2d_interpolated,
                         "bbox_2d": results_2d_bbox,
+                        "bbox_overlap": iou_array,
                         "data_description": data_description,
                     }
                     np.savez_compressed(prediction_file, **results_dict)
@@ -381,6 +394,7 @@ class MMPose(BaseDetector):
                         "2d": results_2d,
                         "2d_interpolated": results_2d_interpolated,
                         "bbox_2d": results_2d_bbox,
+                        "bbox_overlap": iou_array,
                         "data_description": data_description,
                     }
                     np.savez_compressed(prediction_file, **results_dict)
@@ -527,6 +541,7 @@ class MMPose(BaseDetector):
                         "2d_filtered": results_2d_filtered,
                         "2d_interpolated": results_2d_interpolated,
                         "bbox_2d": results_2d_bbox,
+                        "bbox_overlap": iou_array,
                         "3d": np.stack(person_data_list)[:, None],
                         "data_description": data_description,
                     }
@@ -536,6 +551,7 @@ class MMPose(BaseDetector):
                         "2d": results_2d,
                         "2d_interpolated": results_2d_interpolated,
                         "bbox_2d": results_2d_bbox,
+                        "bbox_overlap": iou_array,
                         "3d": np.stack(person_data_list)[:, None],
                         "data_description": data_description,
                     }

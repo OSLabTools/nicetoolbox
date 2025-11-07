@@ -94,7 +94,7 @@ def filter_overlapping_bboxes(bboxes, confidence_scores, overlapping_threshold):
 
 
 def check_correct_and_sort_person_detections(
-    data, num_subjects, bbox_conf_threshold=0.7, bbox_overlapping_threshold=0.8
+    data, num_subjects, bbox_conf_threshold=0.7, bbox_overlapping_threshold=0.9
 ):
     """
     Check the person detections, correct and sort them from Left to Right (based on
