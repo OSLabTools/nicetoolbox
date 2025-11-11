@@ -158,6 +158,7 @@ class EvaluationDataset(IterableDataset):
             compound_key = (
                 chunk.metric_type,
                 pred.shape,
+                chunk.session,
                 chunk.component,
                 chunk.algorithm,
                 chunk.pred_data_key,

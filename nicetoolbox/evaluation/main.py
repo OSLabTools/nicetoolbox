@@ -7,13 +7,14 @@ import cProfile
 import logging
 from pathlib import Path
 
-from ..utils import to_csv
+from ..evaluation.auto_summaries import create_auto_summaries
+from ..evaluation.results_wrapper.core import EvaluationResults
+from ..utils.to_csv import results_to_csv
 from .config_handler import ConfigHandler
 from .engine import EvaluationEngine
 from .in_out import IO
 
 
-# @profile
 def main_evaluation_run(eval_config: str, machine_specifics: str) -> None:
     """Main function to set up and run the evaluation."""
     # Configure root logger and a common formatter
@@ -44,25 +45,41 @@ def main_evaluation_run(eval_config: str, machine_specifics: str) -> None:
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
 
-    logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX EVALUATION STARTED\n\n{'#' * 80}\n\n")
-    logging.info(f"Using evaluation config: {eval_config}")
-    logging.info(f"Using machine specifics: {machine_specifics}")
-    logging.info(f"Output will be saved to base folder: {io_manager.output_folder}")
-    logging.info(f"Running on device: {config_handler.global_settings.device}")
+    if not config_handler.global_settings.skip_evaluation:
+        logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX EVALUATION\n\n{'#' * 80}\n\n")
+        logging.info(f"Using evaluation config: {eval_config}")
+        logging.info(f"Using machine specifics: {machine_specifics}")
+        logging.info(f"Output will be saved to base folder: {io_manager.output_folder}")
+        logging.info(f"Running on device: {config_handler.global_settings.device}")
 
-    # Save the effective configuration for the overall experiment run
-    config_handler.save_experiment_config(io_manager.output_folder)
+        # Save the effective configuration for the overall experiment run
+        config_handler.save_experiment_config(io_manager.output_folder)
 
-    # Instantiate and run the EvaluationEngine
-    engine = EvaluationEngine(config_handler, io_manager)
-    engine.run()
+        # Instantiate and run the EvaluationEngine
+        engine = EvaluationEngine(config_handler, io_manager)
+        engine.run()
 
+        logging.info("All evaluations have been successfully completed.")
+
+        # Evaluation already done. Postprocessing: CSV export
+        if config_handler.global_settings.verbose:
+            logging.info("Converting results to CSV format.")
+            results_to_csv(io_manager.get_out_folder(), io_manager.get_csv_folder())
+            logging.info("CSV conversion completed.")
+
+    # Evaluation already done. Postprocessing: Automatic summary creation
     if config_handler.global_settings.verbose:
-        logging.info("Converting results to CSV format.")
-        to_csv.results_to_csv(io_manager.get_out_folder(), io_manager.get_csv_folder())
-        logging.info("CSV conversion completed.")
-
-    logging.info("All evaluations have been successfully completed.")
+        logging.info("Loading evaluation results for automatic summary reports.")
+        try:
+            results: EvaluationResults = EvaluationResults(
+                root=io_manager.get_out_folder()
+            )
+            create_auto_summaries(io_manager, results, config_handler.summaries_configs)
+            logging.info("Automatic summaries created and exported.")
+        except Exception as err:
+            logging.error(
+                f"Automatic summary creation failed with error: {err}", exc_info=True
+            )
 
 
 def entry_point():

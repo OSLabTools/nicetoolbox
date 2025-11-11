@@ -6,7 +6,7 @@ Validated with Pydantics BaseModel.
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # -----------------------------------------------------
@@ -31,9 +31,30 @@ class GlobalEvalConfig(BaseModel):  # Top-level keys in evaluation_config.toml
     device: str = "cuda:0"
     batchsize: int = 50
     verbose: bool = True
+    skip_evaluation: bool = False
 
     # List of metric type configs
     metric_types: Dict[str, MetricTypeConfig] = Field(default_factory=dict)
+
+
+class AggregationConfig(BaseModel):
+    summary_name: str
+    metric_names: List[str]
+    aggr_functions: List[str]
+    filter: Dict[str, str | List[str]] = Field(default_factory=dict)
+    aggregate_dims: List[str] = Field(default_factory=list)
+
+    @field_validator("aggregate_dims", mode="before")
+    def _validate_aggregate_dims(cls, values: List[str]) -> List[str]:
+        """Validate that aggregate_dims values are a subset of allowed values."""
+        allowed = {"sequence", "person", "camera", "label", "frame"}
+        invalid = set(values) - allowed
+        if invalid:
+            raise ValueError(
+                f"Invalid aggregate_dims entries: {sorted(invalid)}. "
+                f"Allowed values are {sorted(allowed)}."
+            )
+        return values
 
 
 # --------------------------------------------------------
