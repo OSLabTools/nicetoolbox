@@ -8,7 +8,8 @@
 git_hash = "<git_hash>"     # Latest git commit for current pipeline run
 device = 'cuda:0'           # One of ("cpu", "cuda:0")
 batchsize = 1000            # Batchsize for data loader 
-verbose = true              # Verbose outputs (incl. csv files)
+verbose = true              # Verbose outputs (incl. csv files and automatic summaries)
+skip_evaluation = false     # Skips main eval loop -> only summary generation on existing results
 
 # === (2) Evaluation IO ===
 
@@ -20,7 +21,6 @@ experiment_folder = "<output_folder_path>/experiments/<experiment_name>"
 output_folder = "<experiment_folder>_eval"
 eval_visualization_folder = "<output_folder>/visualization"
 
-
 # === (3) Metric selection and configuration ===
 
 [metrics.point_cloud_metrics]
@@ -31,8 +31,49 @@ gt_required = true
 metric_names = ["jump_detection", "bone_length"]
 gt_required = false
 gt_components = ['body_joints', 'hand_joints', 'face_landmarks']
-keypoint_mapping_file = "configs/predictions_mapping.toml" # TODO: place somewhere else
+keypoint_mapping_file = "configs/predictions_mapping.toml"
 
 [metrics.categorical_metrics]
 metric_names = ["accuracy", "precision", "recall", "f1_score"]  # "mse"
 gt_required = true
+
+# === (4) Metric aggregation summaries ===
+
+# Here you can define multiple summaries with different aggregation settings
+# that are automatically computed after evaluation when `verbose` is set to true. 
+
+[summaries.bone_length_report]                              # Name of the summary                                          
+metric_names = ["bone_length"]                              # List of metric names to include in the summary
+aggr_functions = ["mean", "std", "min", "max"]              # List of aggregation functions to apply
+filter = {dataset = "communication_multiview"}              # Filters to apply before aggregation
+aggregate_dims = ["sequence", "person", "camera", "frame"]  # Dimensions to aggregate over
+
+[summaries.bone_length_report_detailed] # bone length statistics for each bone 
+metric_names = ["bone_length"]
+aggr_functions = ["mean", "std", "min", "max"]
+filter = {dataset = "communication_multiview"}
+aggregate_dims = ["frame"]
+
+[summaries.bone_length_legs_report] # bone length statistics for leg bones only grouped by participants
+metric_names = ["bone_length"]
+aggr_functions = ["mean", "std", "min", "max"]
+filter = {dataset = "communication_multiview", label=["left_upper_leg", "left_lower_leg", "right_upper_leg", "right_lower_leg"]}
+aggregate_dims = [ "camera", "frame"]
+
+[summaries.jump_detection_report] # percentage of detected jumps by group (compares e.g. different algorithms)
+metric_names = ["jump_detection"]
+aggr_functions = ["mean"]
+filter = {dataset = "communication_multiview"}
+aggregate_dims = ["sequence", "person", "camera", "frame", "label"]
+
+[summaries.full_body_jump_detection_report] # percentage of detected jumps over all keypoints
+metric_names = ["jump_detection"]
+aggr_functions = ["mean"]
+filter = {dataset = "communication_multiview"}
+aggregate_dims = ["sequence", "person", "camera", "frame"]
+
+[summaries.body_joints_jump_detection_report] # percentage of detected jumps per keypoint
+metric_names = ["jump_detection"]
+aggr_functions = ["mean"]
+filter = {dataset = "communication_multiview", component="body_joints"}
+aggregate_dims = ["sequence", "person", "camera", "frame"]

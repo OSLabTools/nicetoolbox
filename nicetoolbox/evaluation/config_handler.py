@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from ..utils import config as cfg
 from ..utils.logging_utils import log_configs
 from .config_schema import (
+    AggregationConfig,
     DatasetProperties,
     DatasetPropertiesEvaluation,
     EvaluationConfig,
@@ -44,10 +45,12 @@ class ConfigHandler:
             **self.raw_evaluation_config,
             **self.raw_machine_specifics,
         }
-
         self.io_config: IOConfig = self._parse_io_config()
         self.metric_type_configs: Dict[str, MetricTypeConfig] = (
             self._parse_metric_type_configs()
+        )
+        self.summaries_configs: Dict[str, AggregationConfig] = (
+            self._parse_summaries_config()
         )
         self.global_settings: GlobalEvalConfig = self._parse_global_settings()
 
@@ -108,6 +111,22 @@ class ConfigHandler:
         c3 = cfg.config_fill_placeholders(c2, c2)
         return cfg.config_fill_placeholders(c3, c3)
 
+    def _parse_global_settings(self) -> GlobalEvalConfig:
+        """
+        Parse the global evaluation settings from the merged configuration.
+
+        Returns:
+            GlobalEvalConfig: The parsed global evaluation settings dataclass.
+        """
+        # Extract global settings using the dataclass for validation/defaults
+        try:
+            return GlobalEvalConfig(
+                **self.merged_config, metric_types=self.metric_type_configs
+            )
+        except ValidationError as e:
+            logging.error(f"Error parsing GlobalEvalConfig: {e}")
+            raise
+
     def _parse_io_config(self) -> IOConfig:
         """
         Parse the IO configuration from the merged configuration.
@@ -143,21 +162,25 @@ class ConfigHandler:
                 logging.error(f"Error parsing MetricTypeConfig for {metric_type}: {e}")
         return metric_types
 
-    def _parse_global_settings(self) -> GlobalEvalConfig:
+    def _parse_summaries_config(self) -> Dict[str, AggregationConfig]:
         """
-        Parse the global evaluation settings from the merged configuration.
+        Parse the summaries configuration from the merged configuration.
 
         Returns:
-            GlobalEvalConfig: The parsed global evaluation settings dataclass.
+            Dict[str, AggregationConfig]: A dictionary mapping summary names to
+                their aggregation configurations.
         """
-        # Extract global settings using the dataclass for validation/defaults
-        try:
-            return GlobalEvalConfig(
-                **self.merged_config, metric_types=self.metric_type_configs
-            )
-        except ValidationError as e:
-            logging.error(f"Error parsing GlobalEvalConfig: {e}")
-            raise
+        summaries = dict()
+        summaries_config_raw = self.merged_config.get("summaries", {})
+        for summary_name, summary_config in summaries_config_raw.items():
+            summary_config.update({"summary_name": summary_name})
+            try:
+                summaries[summary_name] = AggregationConfig.model_validate(
+                    summary_config
+                )
+            except ValidationError as e:
+                logging.error(f"Error parsing AggregationConfig of {summary_name}: {e}")
+        return summaries
 
     def _load_latest_experiment_config(self) -> dict:
         """
