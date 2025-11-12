@@ -2,7 +2,9 @@
 Pose estimation utilities. # TODO: Move to a more appropriate location?
 """
 
+import logging
 import numpy as np
+import pandas as pd
 import scipy.interpolate as interp
 
 
@@ -93,3 +95,77 @@ def interpolate_data(data, is_3d=True, max_empty=10):  # TODO make max_empty 1/3
                                     )
 
     return data
+
+def create_iou_all_pairs(data):
+    """
+    Compute the intersection over union (IoU) of subject bounding boxes across frames and cameras.
+
+    Args:
+    data (np.ndarray): Bounding box array with shape
+    (#Subject, #Camera, #Frame, 'full_body', BBox), where each BBox
+            is represented as [x1, y1, x2, y2, conf].
+
+    Returns:
+    iou_array (np.ndarray) :  float32
+        IoU laid out as (subject, camera, frame, with_subject).
+
+    """
+
+    if data.shape[-1] != 5:
+        logging.error("Last dim must contain bbox values [x1,y1,x2,y2] and confidence score.")
+        raise ValueError
+
+    # boxes: (S, C, F, 1, 4) with coords (x1, y1, x2, y2) in the last dim, 4th dimension is "full_body" label
+    boxes = data[..., 0, :4].astype(np.float32)
+    S, C, F, _ = boxes.shape
+    x1_raw, y1_raw, x2_raw, y2_raw = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]
+    x1 = np.minimum(x1_raw, x2_raw)
+    x2 = np.maximum(x1_raw, x2_raw)
+    y1 = np.minimum(y1_raw, y2_raw)
+    y2 = np.maximum(y1_raw, y2_raw)
+
+    w = x2 - x1
+    h = y2 - y1
+    invalid_mask = (w <= 0) | (h <= 0)
+    if np.any(invalid_mask):
+        num_invalid = np.sum(invalid_mask)
+        logging.error(f"Found {num_invalid} boxes with non-positive area."
+                      f"The area will be saved as zero for that cases")
+    # Areas (safe)
+    w = np.maximum(0.0, w)
+    h = np.maximum(0.0, h)
+    # Area per subject/camera/frame
+    area = w*h  # (S,C,F)
+
+    # Pairwise intersections across subjects -> (S,S,C,F)
+    # This creates an intersection coordinates matrix for all subjects pairs
+    # For two speakers:
+    #    |    S1              S2
+    # ================================
+    # S1 |    S1          max(S1, S2)
+    # S2 | max(S2, S1)        S2
+    #
+    # If we interested in intersection bbox of S1 and S2 speaker
+    # It will be (inter_x1, inter_y1) (inter_x2, inter_y2)
+    inter_x1 = np.maximum(x1[:, None, :, :], x1[None, :, :, :])
+    inter_y1 = np.maximum(y1[:, None, :, :], y1[None, :, :, :])
+    inter_x2 = np.minimum(x2[:, None, :, :], x2[None, :, :, :])
+    inter_y2 = np.minimum(y2[:, None, :, :], y2[None, :, :, :])
+
+    # Calculate width, height and area of intersection bbox
+    # If there is no intersection, difference would be negative
+    # We clamp it to 0, to mark no intersection
+    inter_w = np.maximum(0.0, inter_x2 - inter_x1)
+    inter_h = np.maximum(0.0, inter_y2 - inter_y1)
+    inter = inter_w * inter_h  # (S,S,C,F)
+
+    # We sum pairwise original areas and remove intersections areas from them
+    # This result pairwise union areas matrix (S,S,C,F)
+    union = area[:, None, :, :] + area[None, :, :, :] - inter
+    with np.errstate(divide='ignore', invalid='ignore'):
+        iou_sscf = inter / union
+
+    # Reorder to array: (S, C, F, S)
+    iou_scfs = np.transpose(iou_sscf, (0, 2, 3, 1)).astype(np.float32)
+
+    return iou_scfs
