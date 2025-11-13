@@ -9,7 +9,7 @@ mailto: <nicetoolbox@tue.mpg.de>
 
 <br>
 
-> 🎉 We are releasing version 0.2.0, which includes code refactoring, easier installation, and new detectors for emotion individuals and head orientation.
+> 🎉 We are releasing version 0.2.1, which includes an evaluation module, Docker support, additional detector output, and many other improvements.
 
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
