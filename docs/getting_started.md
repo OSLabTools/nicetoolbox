@@ -9,6 +9,7 @@
   - [4. Add an experiment to run](#4-add-an-experiment-to-run)
   - [5. Run the NICE Toolbox](#5-run-the-nice-toolbox)
   - [6. Visualize the results](#6-visualize-the-results)
+  - [7. Run the NICE Toolbox Evaluation](#7-run-the-nice-toolbox-evaluation)
 
 <br>
 
@@ -125,3 +126,27 @@ run_visualization
 
 It will open a window which looks similar to this:
 ![Visualization example in Rerun](../docs/graphics/rerun_example.png)
+
+## 7. Run the NICE Toolbox Evaluation
+
+While doing research, you often would like to check the quality and consistency of NICE Toolbox output. We can run an evaluation pipeline to generate additional metrics reports for your data (with and without ground truth annotations). The results can be used to tune specific detector parameters, relevant for your domain.
+
+To run the evaluation of the NICE Toolbox on the example dataset, open a terminal and execute:
+
+```bash
+# navigate to the NICE toolbox source code folder
+cd /path/to/nicetoolbox/
+
+# Activate the environment with LINUX: 
+source ./envs/nicetoolbox/bin/ac
+
+# Activate the environment with WINDOWS:
+envs\nicetoolbox\Scripts\activate
+
+# run the evaluation
+run_evaluation
+```
+
+The outputs will be saved to the folder defined in `./configs/evaluation_config.toml` under `io.output_folder` (with filled-in placeholders). To monitor the experiment, check the log file at `/path/to/output_folder/evaluation.log`.
+
+Please refer to the tutorial on [NICE Toolbox Evaluation](tutorials/tutorial5_evaluation.md) for more details about metric selection and summary generation. Under the wiki pages there is an [overview](wikis/wiki_evaluation_metrics.md) of the available metrics to select from. For more data driven analysis based on raw metric results, please check out our [evaluation results wrapper](tutorials/tutorial6_results_wrapper.md) for easy querying, aggregation or export and Pandas Dataframe. 
