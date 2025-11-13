@@ -11,3 +11,4 @@ The wiki provides detailed information about certain parts of the NICE Tolbox.
    wiki_calibration
    wiki_components
    wiki_algorithms
+   wiki_evaluation_metrics
