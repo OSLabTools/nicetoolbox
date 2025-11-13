@@ -3,7 +3,6 @@ Keypoint metrics for evaluating 3D joints data. Includes bone length calculation
 and jump detection metrics. No ground truth required.
 """
 
-import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
@@ -72,18 +71,27 @@ class BoneLength(Metric):
         _gts = gts  # This metric does not use ground truth data.
         if meta_chunk.pred_data_key != "3d":  # Only apply to 3D keypoints
             return
-        
+
         if preds.shape[-1] != 4:
             raise ValueError(
-                f"Predictions must have 4 coordinates for 3D keypoints + confidence score. "
-                f"Current shape is {preds.shape}"
+                f"Predictions must have 4 coordinates for 3D keypoints + "
+                f"confidence score. Current shape is {preds.shape}"
             )
-
-        preds = preds[:, :, :3]
 
         keypoint_names = meta_chunk.pred_data_description_axis3
         if not keypoint_names:
-            raise ValueError("No keypoints found in reconciliation map.")
+            raise ValueError("Bone length: No keypoints found in reconciliation map.")
+
+        # Determine if any bone has both endpoints present in the reconciled keypoints
+        keypoint_set = set(keypoint_names)
+        has_valid_bone = any(
+            kp1 in keypoint_set and kp2 in keypoint_set
+            for kp1, kp2 in self.bone_dict.values()
+        )
+        if not has_valid_bone:
+            return
+
+        preds = preds[:, :, :3]
 
         comp, algo = meta_chunk.component, meta_chunk.algorithm
         num_frames = preds.shape[0]
@@ -193,13 +201,13 @@ class JumpDetection(Metric):
         _gts = gts  # This metric does not use ground truth data.
         if "3d" not in meta_chunk.pred_data_key:  # Only apply to 3D keypoints
             return
-        
+
         if preds.shape[-1] != 4:
             raise ValueError(
-                f"Predictions must have 4 coordinates for 3D keypoints + confidence score. "
-                f"Current shape is {preds.shape}"
+                f"Predictions must have 4 coordinates for 3D keypoints + "
+                f"confidence score. Current shape is {preds.shape}"
             )
-        
+
         preds = preds[:, :, :3]
 
         keypoint_names = meta_chunk.pred_data_description_axis3
