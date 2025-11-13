@@ -29,10 +29,7 @@ dependencies = [
 dev = [
     "codespell==2.2.4",
     "coverage",
-    "faker",
     "myst_parser==3.0.1",
-    # "mypy"  Yes/No?
-    "pillow",
     "pytest==7.4.1",
     "pre-commit==4.0.1",
     "ruff==0.8.0",
