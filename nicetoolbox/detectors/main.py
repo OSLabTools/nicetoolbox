@@ -155,3 +155,7 @@ def entry_point():
     args = parser.parse_args()
 
     main(args.run_config, args.machine_specifics)
+
+
+if __name__ == "__main__":
+    entry_point()
