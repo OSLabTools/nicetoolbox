@@ -4,13 +4,22 @@ Velocity Body feature detector class for kinematics of the body.
 
 import logging
 import os
+from typing import List
 
 import numpy as np
+from pydantic import BaseModel
 
+from ....configs.config_handler import load_config, load_validated_config_raw
+from ....configs.schemas.detectors_config import detector_config
+from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import check_and_exception as check
-from ....utils import filehandling as fh
 from ..base_feature import BaseFeature
 from . import utils as kinematics_utils
+
+
+@detector_config("velocity_body")
+class VelocityConfig(BaseModel):
+    input_detector_names: List[List[str]]
 
 
 class VelocityBody(BaseFeature):
@@ -75,12 +84,13 @@ class VelocityBody(BaseFeature):
         pose_config_folder = io.get_detector_output_folder(
             joints_component, joints_algorithm, "run_config"
         )
-        pose_config = fh.load_config(
-            os.path.join(pose_config_folder, "run_config.toml")
+        pose_config = load_config(os.path.join(pose_config_folder, "run_config.toml"))
+        predictions_mapping_config = load_validated_config_raw(
+            "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.predictions_mapping = fh.load_config("./configs/predictions_mapping.toml")[
-            "human_pose"
-        ][pose_config["keypoint_mapping"]]
+        self.predictions_mapping = predictions_mapping_config["human_pose"][
+            pose_config["keypoint_mapping"]
+        ]
 
         self.camera_names = pose_config["camera_names"]
         self.bodyparts_list = list(self.predictions_mapping["bodypart_index"].keys())
@@ -126,7 +136,7 @@ class VelocityBody(BaseFeature):
         """
         joint_data = np.load(self.input_files[0], allow_pickle=True)
         dimensions = ["2d"]
-        if "3d" in joint_data['data_description'].item().keys():
+        if "3d" in joint_data["data_description"].item().keys():
             dimensions.append("3d")
 
         out_dict = {"data_description": {}}
@@ -152,11 +162,13 @@ class VelocityBody(BaseFeature):
             # differences[t] gives the diff btw [t] and [t-1]
             # first frame keeps nan (can't calculate velocity if no frame existed before)
             differences[:, :, 1:] = keypoints[:, :, 1:] - keypoints[:, :, :-1]
-            
+
             # calculate confidence score, saves the minimum confidence between consecutive frames
             # again, first frame keeps nan
             min_confidence = np.full_like(conf_score, np.nan)
-            min_confidence[:, :, 1:] = np.minimum(conf_score[:, :, 1:], conf_score[:, :, :-1])
+            min_confidence[:, :, 1:] = np.minimum(
+                conf_score[:, :, 1:], conf_score[:, :, :-1]
+            )
 
             # Compute the Euclidean distance for each keypoint between adjacent frames
             motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)

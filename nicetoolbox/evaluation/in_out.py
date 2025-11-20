@@ -10,7 +10,8 @@ from typing import Any, Dict
 import numpy as np
 import pandas as pd
 
-from .config_schema import DatasetProperties, IOConfig
+from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.evaluation_config import EvaluationIO
 
 
 class IO:
@@ -18,7 +19,7 @@ class IO:
     Manages folder structure and reading/writing NPZ results.
     """
 
-    def __init__(self, io_config: IOConfig):
+    def __init__(self, io_config: EvaluationIO):
         """
         Initialize the IO manager with the provided IO configuration.
 
@@ -27,7 +28,7 @@ class IO:
                 experiment, output, and evaluation visualization folders.
         """
         self.io_config = io_config
-        self.experiment_io = io_config.experiment_io
+        self.experiment_io = io_config._experiment_io
 
         self.output_folder = io_config.output_folder
         self.eval_visualization_folder = io_config.eval_visualization_folder
@@ -36,11 +37,11 @@ class IO:
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
         self.experiment_folder = io_config.experiment_folder
-        self.experiment_folder_placeholders = io_config.experiment_io[
+        self.experiment_folder_placeholders = io_config._experiment_io[
             "detector_final_result_folder"
         ]
 
-    def init_dataset(self, dataset_properties: DatasetProperties):
+    def init_dataset(self, dataset_properties: DatasetConfig):
         """
         Dataset-specific IO initialization inside the main dataset loop.
 
@@ -48,7 +49,7 @@ class IO:
             dataset_properties (DatasetProperties): Properties for the specific dataset.
         """
         # Experiment details:
-        self.dataset_name = dataset_properties.dataset_name
+        self.dataset_name = dataset_properties._dataset_name
         self.experiment_results_folder = self.experiment_folder_placeholders.replace(
             "<dataset_name>", self.dataset_name
         )

@@ -74,8 +74,7 @@ def main(run_config_file, machine_specifics_file):
         f"'{io.out_folder}'.\n\n{'#' * 80}\n\n"
     )
 
-    # check and save experiment configs
-    config_handler.checker()
+    # save experiment configs
     config_handler.save_experiment_config(io.get_config_file())
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

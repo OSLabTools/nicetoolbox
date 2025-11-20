@@ -10,18 +10,21 @@ from typing import Dict, Iterator, List, Optional, Tuple
 import toml
 from pydantic import ValidationError
 
+from ..configs.schemas.dataset_properties import (
+    DatasetConfig,
+    DatasetConfigEvaluation,
+    DatasetProperties,
+)
+from ..configs.schemas.detectors_run_file import DetectorsRunConfig, DetectorsRunFile
+from ..configs.schemas.evaluation_config import (
+    AggregationConfig,
+    EvaluationConfig,
+    EvaluationIO,
+    EvaluationMetricType,
+)
 from ..utils import config as cfg
 from ..utils.logging_utils import log_configs
-from .config_schema import (
-    AggregationConfig,
-    DatasetProperties,
-    DatasetPropertiesEvaluation,
-    EvaluationConfig,
-    GlobalEvalConfig,
-    IOConfig,
-    MetricTypeConfig,
-    RunConfig,
-)
+from .config_schema import FinalEvaluationConfig
 
 
 class ConfigHandler:
@@ -45,14 +48,15 @@ class ConfigHandler:
             **self.raw_evaluation_config,
             **self.raw_machine_specifics,
         }
-        self.io_config: IOConfig = self._parse_io_config()
-        self.metric_type_configs: Dict[str, MetricTypeConfig] = (
-            self._parse_metric_type_configs()
+
+        self.io_config: EvaluationIO = self._parse_io_config()
+        self.global_settings: EvaluationConfig = self._parse_global_settings()
+        self.metric_type_configs: Dict[str, EvaluationMetricType] = (
+            self.global_settings.metrics
         )
         self.summaries_configs: Dict[str, AggregationConfig] = (
-            self._parse_summaries_config()
+            self.global_settings.summaries
         )
-        self.global_settings: GlobalEvalConfig = self._parse_global_settings()
 
         # --- (3) Parse detector experiment run config ---
         # Load the latest run configuration from the experiment folder
@@ -63,8 +67,8 @@ class ConfigHandler:
         self.component_algorithm_mapping = self._parse_component_algorithm_mapping()
 
         # Parsed from experiment run config_raw
-        self.all_run_configs: Dict[str, RunConfig] = self._parse_run_configs()
-        self.all_dataset_properties: Dict[str, DatasetProperties] = (
+        self.all_run_configs: Dict[str, DetectorsRunConfig] = self._parse_run_configs()
+        self.all_dataset_properties: DatasetProperties = (
             self._parse_dataset_properties()
         )
 
@@ -111,23 +115,7 @@ class ConfigHandler:
         c3 = cfg.config_fill_placeholders(c2, c2)
         return cfg.config_fill_placeholders(c3, c3)
 
-    def _parse_global_settings(self) -> GlobalEvalConfig:
-        """
-        Parse the global evaluation settings from the merged configuration.
-
-        Returns:
-            GlobalEvalConfig: The parsed global evaluation settings dataclass.
-        """
-        # Extract global settings using the dataclass for validation/defaults
-        try:
-            return GlobalEvalConfig(
-                **self.merged_config, metric_types=self.metric_type_configs
-            )
-        except ValidationError as e:
-            logging.error(f"Error parsing GlobalEvalConfig: {e}")
-            raise
-
-    def _parse_io_config(self) -> IOConfig:
+    def _parse_io_config(self) -> EvaluationIO:
         """
         Parse the IO configuration from the merged configuration.
 
@@ -137,12 +125,12 @@ class ConfigHandler:
         raw_io_cfg = self.merged_config.get("io", {})
         localized_io_cfg = self._localize(raw_io_cfg, fill_io=False)
         try:
-            return IOConfig.model_validate(localized_io_cfg)
+            return EvaluationIO.model_validate(localized_io_cfg)
         except ValidationError as e:
             logging.error(f"Error parsing IOConfig: {e}", exc_info=True)
             raise
 
-    def _parse_metric_type_configs(self) -> Dict[str, MetricTypeConfig]:
+    def _parse_metric_type_configs(self) -> Dict[str, EvaluationMetricType]:
         """
         Parse the metric type configurations from the merged configuration.
 
@@ -155,32 +143,26 @@ class ConfigHandler:
         for metric_type, metric_type_config in metric_type_configs_raw.items():
             metric_type_config.update({"metric_type": metric_type})
             try:
-                metric_types[metric_type] = MetricTypeConfig.model_validate(
+                metric_types[metric_type] = EvaluationMetricType.model_validate(
                     metric_type_config
                 )
             except ValidationError as e:
                 logging.error(f"Error parsing MetricTypeConfig for {metric_type}: {e}")
         return metric_types
 
-    def _parse_summaries_config(self) -> Dict[str, AggregationConfig]:
+    def _parse_global_settings(self) -> EvaluationConfig:
         """
-        Parse the summaries configuration from the merged configuration.
+        Parse the global evaluation settings from the merged configuration.
 
         Returns:
-            Dict[str, AggregationConfig]: A dictionary mapping summary names to
-                their aggregation configurations.
+            GlobalEvalConfig: The parsed global evaluation settings dataclass.
         """
-        summaries = dict()
-        summaries_config_raw = self.merged_config.get("summaries", {})
-        for summary_name, summary_config in summaries_config_raw.items():
-            summary_config.update({"summary_name": summary_name})
-            try:
-                summaries[summary_name] = AggregationConfig.model_validate(
-                    summary_config
-                )
-            except ValidationError as e:
-                logging.error(f"Error parsing AggregationConfig of {summary_name}: {e}")
-        return summaries
+        # Extract global settings using the dataclass for validation/defaults
+        try:
+            return EvaluationConfig(**self.merged_config)
+        except ValidationError as e:
+            logging.error(f"Error parsing GlobalEvalConfig: {e}")
+            raise
 
     def _load_latest_experiment_config(self) -> dict:
         """
@@ -228,7 +210,7 @@ class ConfigHandler:
             "component_algorithm_mapping", {}
         )
 
-    def _parse_run_configs(self) -> Dict[str, RunConfig]:
+    def _parse_run_configs(self) -> Dict[str, DetectorsRunConfig]:
         """
         Parse the run configurations from the experiment run config.
 
@@ -236,50 +218,31 @@ class ConfigHandler:
             Dict[str, RunConfig]: A dictionary mapping dataset names to their
                 run configurations (Which components/videos have been processed).
         """
-        run_configs = dict()
-        run_config_raw = self.experiment_run_config_raw.get("run_config", {}).get(
-            "run", {}
-        )
-        for dataset_name, dataset_run_config in run_config_raw.items():
-            try:
-                run_configs[dataset_name] = RunConfig(
-                    dataset_name=dataset_name, **dataset_run_config
-                )
-            except ValidationError as e:
-                logging.error(f"Error parsing run configurations: {e}")
-                raise e
-        return run_configs
+        run_config_raw = self.experiment_run_config_raw["run_config"]
+        run_config = DetectorsRunFile(**run_config_raw)
+        return run_config.run
 
-    def _parse_dataset_properties(self) -> Dict[str, DatasetProperties]:
+    def _parse_dataset_properties(self) -> DatasetProperties:
         """
         Parse the dataset properties from the experiment run config.
 
         Returns:
-            Dict[str, DatasetProperties]: A dictionary mapping dataset names to their
+            DatasetProperties: A dictionary-like mapping dataset names to their
                 properties.
         """
-        all_properties: Dict[str, DatasetProperties] = dict()
-        all_dataset_properties_raw = self.experiment_run_config_raw.get(
+        dataset_properties_raw = self.experiment_run_config_raw.get(
             "dataset_config", {}
         )
-        for name, props_dict_raw in all_dataset_properties_raw.items():
-            try:
-                # Base for localization:
-                reference = {**self.merged_config, **props_dict_raw}
-                props_localized = self._localize(props_dict_raw, fill_data=reference)
-                # Create the DatasetProperties dataclass
-                props_localized["dataset_name"] = name
-                all_properties[name] = DatasetProperties.model_validate(props_localized)
-            except ValidationError as e:
-                logging.error(
-                    f"Error parsing DatasetProperties for {name}: {e}."
-                    " Skipping this dataset. This might be due to the"
-                    " config saved inside the experiment folder."
-                )
-                continue
+        for name, props_dict_raw in dataset_properties_raw.items():
+            # Base for localization:
+            reference = {**self.merged_config, **props_dict_raw}
+            props_localized = self._localize(props_dict_raw, fill_data=reference)
+            dataset_properties_raw[name] = props_localized  # TODO: refactor this
+
+        all_properties = DatasetProperties.model_validate(dataset_properties_raw)
         return all_properties
 
-    def get_combined_experiment_io_config(self) -> IOConfig:
+    def get_combined_experiment_io_config(self) -> EvaluationIO:
         """
         Get the IO configuration, optionally including experiment-specific IO.
 
@@ -290,8 +253,10 @@ class ConfigHandler:
         experiment_io = self._localize(
             self.experiment_run_config_raw["run_config"]["io"]
         )
-        combined_io_config.update({"experiment_io": experiment_io})
-        return IOConfig.model_validate(combined_io_config)
+
+        config = EvaluationIO.model_validate(combined_io_config)
+        config._experiment_io = experiment_io
+        return config
 
     def save_experiment_config(self, output_folder: Path) -> None:
         """
@@ -343,12 +308,12 @@ class ConfigHandler:
                 continue
 
             # (1) Dataset properties and run config per dataset
-            dataset_properties: DatasetProperties = self.all_dataset_properties[
+            dataset_properties: DatasetConfig = self.all_dataset_properties[
                 dataset_name
             ]
 
             # (2) Build evaluation configs based on dataset properties
-            evaluation_entries: List[DatasetPropertiesEvaluation] = (
+            evaluation_entries: List[DatasetConfigEvaluation] = (
                 dataset_properties.evaluation
             )
 
@@ -383,7 +348,7 @@ class ConfigHandler:
                         annotation_components[metric_type] = ["none"]
 
             # (4) Finalize evaluation config
-            evaluation_config = EvaluationConfig(
+            evaluation_config = FinalEvaluationConfig(
                 device=self.global_settings.device,
                 verbose=self.global_settings.verbose,
                 batchsize=self.global_settings.batchsize,

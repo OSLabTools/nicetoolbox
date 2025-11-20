@@ -6,7 +6,7 @@ configurations from the evaluation config.
 import logging
 from typing import Dict
 
-from .config_schema import AggregationConfig
+from ..configs.schemas.evaluation_config import AggregationConfig
 from .in_out import IO
 from .results_wrapper.core import EvaluationResults
 from .results_wrapper.initialize import INDEX_LEVELS

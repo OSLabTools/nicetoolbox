@@ -5,18 +5,50 @@ Integration of the MMPose framework into the NICE toolbox pipeline.
 import logging
 import os
 from abc import abstractmethod
+from typing import List
 
 import cv2
 import numpy as np
+from pydantic import BaseModel, Field
 
+from ....configs.config_handler import load_validated_config_raw
+from ....configs.schemas.detectors_config import detector_config, framework_config
+from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import check_and_exception as check
-from ....utils import filehandling as fh
 from ....utils import triangulation as tri
 from ....utils import video as vd
 from ... import config_handler as confh
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
 from . import pose_utils
+
+
+@framework_config("mmpose")
+class FrameworksMMPoseConfig(BaseModel):
+    input_data_format: str
+    camera_names: List[str]
+    env_name: str
+    multi_person: bool
+    save_images: bool
+    resolution: List[int]
+    device: str
+    filtered: bool
+    window_length: int
+    polyorder: int
+    # python identifier cannot start with a number
+    results_3d: bool = Field(alias="3d_results")
+
+
+@detector_config("hrnetw48")
+@detector_config("vitpose")
+class MMPoseAlgorithmConfig(FrameworksMMPoseConfig):
+    framework: str
+    pose_config: str
+    pose_checkpoint: str
+    detection_config: str
+    detection_checkpoint: str
+    keypoint_mapping: str
+    min_detection_confidence: float
 
 
 class MMPose(BaseDetector):
@@ -104,13 +136,16 @@ class MMPose(BaseDetector):
         self.frames_list = data.frames_list
         self.fps = data.fps
 
-        # keypoints mapping
-        keypoints_indices = fh.load_config("./configs/predictions_mapping.toml")[
+        # keypoints mapping'
+        self.predictions_mapping = load_validated_config_raw(
+            "./configs/predictions_mapping.toml", PredictionsMappingConfig
+        )
+        keypoints_indices = self.predictions_mapping[
             "human_pose"
         ][config["keypoint_mapping"]]["keypoints_index"]
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config["keypoints_indices"], config["keypoints_description"] = mapping
-        self.predictions_mapping = fh.load_config("./configs/predictions_mapping.toml")
+
         self.keypoint_mapping = config["keypoint_mapping"]
 
         # then, call the base class init

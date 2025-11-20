@@ -9,34 +9,6 @@ import numpy as np
 import toml
 
 
-def load_config(config_file: str) -> dict:
-    """
-    Load a configuration file in YAML or TOML format.
-
-    Args:
-        config_file (str): The path to the configuration file.
-
-    Returns:
-        dict: The configuration data loaded from the file.
-
-    Raises:
-        NotImplementedError: If the file type is not supported.
-
-    Note:
-        If the operating system is Windows, the paths in the configuration data will
-        be converted to Windows format.
-    """
-
-    if config_file.endswith("toml"):
-        config = toml.load(config_file)
-    else:
-        raise NotImplementedError(
-            f"config_file type {config_file} is not supported currently. "
-            f"Implemented are yaml/yml and toml."
-        )
-    return config
-
-
 def read_npz_file(filepath):
     """
     Reads and returns the data from an NPZ file.

@@ -4,12 +4,25 @@ Py-feat method detector class.
 
 import logging
 import os
+from typing import List
 
 import cv2
 import numpy as np
+from pydantic import BaseModel
 
+from ....configs.schemas.detectors_config import detector_config
 from ....utils import video as vd
 from ..base_detector import BaseDetector
+
+
+@detector_config("py_feat")
+class PyFeatConfig(BaseModel):
+    input_data_format: str
+    camera_names: List[str]
+    env_name: str
+    log_frame_idx_interval: int
+    batch_size: int
+    max_cores: int
 
 
 class PyFeat(BaseDetector):

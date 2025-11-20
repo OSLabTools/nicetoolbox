@@ -4,11 +4,15 @@ SPIGA method detector class.
 
 import logging
 import os
+from typing import List
 
 import cv2
 import numpy as np
+from pydantic import BaseModel, Field
 
-from ....utils import filehandling as fh
+from ....configs.config_handler import load_validated_config_raw
+from ....configs.schemas.detectors_config import detector_config
+from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import video as vd
 from ... import config_handler as confh
 from ..base_detector import BaseDetector
@@ -60,6 +64,16 @@ def return_direction_vector(rotation_matrix, axis):
     return direction_2D[:2].flatten()
 
 
+@detector_config("spiga")
+class SpigaConfig(BaseModel):
+    input_data_format: str
+    camera_names: List[str]
+    env_name: str
+    log_frame_idx_interval: int
+    batch_size: int
+    model_configuration: str = Field(alias="model_config")
+
+
 class Spiga(BaseDetector):
     """
     SPIGA is a method detector that computes the head_orientation component.
@@ -92,7 +106,10 @@ class Spiga(BaseDetector):
         config["frames_list"] = self.frames_list
         config["frame_indices_list"] = data.frame_indices_list
         self.video_start = data.video_start
-        self.keypoints_indices = fh.load_config("./configs/predictions_mapping.toml")[
+        predictions_mapping = load_validated_config_raw(
+            "./configs/predictions_mapping.toml", PredictionsMappingConfig
+        )
+        self.keypoints_indices = predictions_mapping[
             self.components[0]
         ][self.algorithm]["keypoints_index"]
         config["face_landmarks_description"] = confh.flatten_list(
