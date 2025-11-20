@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 import toml
 import torch
 
-from ..config_schema import MetricTypeConfig
+from ...configs.schemas.evaluation_config import EvaluationMetricType
 from ..data.discovery import ChunkWorkItem, FrameInfo
 from .base_metric import Metric, MetricHandler
 from .results_schema import AggregatedResult, BatchResult, MetricReturnType
@@ -20,7 +20,7 @@ class KeypointMetric(MetricHandler):
     Handler for all keypoint metrics.
     """
 
-    def __init__(self, cfg: MetricTypeConfig, device: str):
+    def __init__(self, cfg: EvaluationMetricType, device: str):
         self.keypoints_mapping = toml.load(cfg.keypoint_mapping_file)
         super().__init__(cfg, device)
 

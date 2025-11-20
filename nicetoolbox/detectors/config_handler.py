@@ -4,9 +4,12 @@ import copy
 import logging
 import os
 
-from ..utils import check_and_exception as exc
+from ..configs.config_handler import load_validated_config_raw
+from ..configs.schemas.dataset_properties import DatasetProperties
+from ..configs.schemas.detectors_config import DetectorsConfig
+from ..configs.schemas.detectors_run_file import DetectorsRunFile
+from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..utils import config as cfg
-from ..utils import filehandling as fh
 from ..utils.logging_utils import log_configs
 
 
@@ -40,16 +43,19 @@ def add_to_filename(filename, addition):
 class Configuration:
     def __init__(self, run_config_file, machine_specifics_file):
         # load experiment config dicts - these might contain placeholders
-        self.run_config = fh.load_config(run_config_file)
-        self.run_config_check_file = add_to_filename(run_config_file, "_check")
-        self.machine_specific_config = fh.load_config(machine_specifics_file)
+        self.run_config = load_validated_config_raw(run_config_file, DetectorsRunFile)
+        self.machine_specific_config = load_validated_config_raw(
+            machine_specifics_file, MachineSpecificConfig
+        )
         self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
         # detector_config
         detector_config_file = self.localize(self.run_config, False)["io"][
             "detectors_config"
         ]
-        self.detector_config = fh.load_config(detector_config_file)
+        self.detector_config = load_validated_config_raw(
+            detector_config_file, DetectorsConfig
+        )
         for detector_name, detector_dict in self.detector_config["algorithms"].items():
             if "framework" in detector_dict:
                 framework = self.detector_config["frameworks"][
@@ -60,7 +66,9 @@ class Configuration:
         dataset_config_file = self.localize(self.run_config, False)["io"][
             "dataset_properties"
         ]
-        self.dataset_config = fh.load_config(dataset_config_file)
+        self.dataset_config = load_validated_config_raw(
+            dataset_config_file, DatasetProperties
+        )
         self.current_data_config = None
 
     def localize(self, config, fill_io=True, fill_data=False):
@@ -172,13 +180,3 @@ class Configuration:
 
     def save_csv(self):
         return self.run_config["save_csv"]
-
-    def checker(self):
-        # check USER INPUT
-        logging.info("Start USER INPUT CHECK.")
-        run_config_check = fh.load_config(self.run_config_check_file)
-        localized_run_config = self.localize(self.run_config)
-        exc.check_user_input_config(
-            localized_run_config, run_config_check, "run_config"
-        )
-        logging.info("User input check finished successfully.\n\n\n")

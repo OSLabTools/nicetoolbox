@@ -9,6 +9,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import toml
 import cv2
 import matplotlib
 import numpy as np
@@ -19,7 +20,6 @@ from feat import Detector
 # ensure project root on PYTHONPATH
 top_level_dir = Path(__file__).resolve().parents[3]
 sys.path.append(str(top_level_dir))
-from utils import filehandling as fh  # noqa: E402
 from utils import system as oslab_sys  # noqa: E402
 
 matplotlib.use("Agg")
@@ -518,7 +518,7 @@ def main(config: dict) -> None:
 if __name__ == "__main__":
     try:
         config_path = sys.argv[1]
-        config = fh.load_config(config_path)
+        config = toml.load(config_path)
         main(config)
     except Exception as e:
         logging.critical(f"Script crashed -> {e}", exc_info=True)

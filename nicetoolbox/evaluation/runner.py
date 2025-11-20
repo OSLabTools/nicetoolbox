@@ -7,7 +7,9 @@ from typing import List
 
 from torch.utils.data import DataLoader
 
-from .config_schema import DatasetProperties, EvaluationConfig, RunConfig
+from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.detectors_run_file import DetectorsRunConfig
+from .config_schema import FinalEvaluationConfig
 from .data.dataset import EvaluationDataset
 from .data.discovery import ChunkWorkItem, DiscoveryEngine
 from .data.loaders import AnnotationLoader, PredictionLoader
@@ -23,9 +25,9 @@ class DatasetRunner:
     def __init__(
         self,
         io_manager: IO,
-        run_config: RunConfig,
-        dataset_properties: DatasetProperties,
-        evaluation_config: EvaluationConfig,
+        run_config: DetectorsRunConfig,
+        dataset_properties: DatasetConfig,
+        evaluation_config: FinalEvaluationConfig,
     ) -> None:
         """Initialize the DatasetRunner.
 
@@ -39,7 +41,7 @@ class DatasetRunner:
         self.run_config = run_config
         self.dataset_properties = dataset_properties
         self.evaluation_config = evaluation_config
-        self.dataset_name = self.dataset_properties.dataset_name
+        self.dataset_name = self.dataset_properties._dataset_name
 
     def run(self) -> None:
         """

@@ -1,8 +1,10 @@
 import glob
 import os
 
+from ..configs.config_handler import load_config, load_validated_config_raw
+from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
+from ..configs.schemas.visualizer_config import VisualizerConfig
 from ..utils import config as confh
-from ..utils import filehandling as fh
 from ..utils import visual_utils as vis_ut
 
 
@@ -18,8 +20,12 @@ class Configuration:
             machine_specifics_file=machine_specifics_file,
         )
         # load experiment config dicts - these can contain placeholders
-        self.visualizer_config = fh.load_config(visualizer_config_file)
-        self.machine_specific_config = fh.load_config(machine_specifics_file)
+        self.visualizer_config = load_validated_config_raw(
+            visualizer_config_file, VisualizerConfig
+        )
+        self.machine_specific_config = load_validated_config_raw(
+            machine_specifics_file, MachineSpecificConfig
+        )
         if stats_only:
             self._initialize_statistics()
         else:
@@ -54,7 +60,8 @@ class Configuration:
             )
             raise
 
-        loaded_experiment_config = fh.load_config(experiment_config_file)
+        # TODO: define custom schema for merged configs?
+        loaded_experiment_config = load_config(experiment_config_file)
         self.experiment_run_config = loaded_experiment_config["run_config"]
         self.experiment_detector_config = loaded_experiment_config["detector_config"]
         self.dataset_properties = loaded_experiment_config["dataset_config"]

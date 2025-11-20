@@ -9,12 +9,10 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..config_schema import (
-    DatasetProperties,
-    EvaluationConfig,
-    MetricTypeConfig,
-    RunConfig,
-)
+from ...configs.schemas.dataset_properties import DatasetConfig
+from ...configs.schemas.detectors_run_file import DetectorsRunConfig
+from ...configs.schemas.evaluation_config import EvaluationMetricType
+from ..config_schema import FinalEvaluationConfig
 from ..in_out import IO
 
 VALID_NPZ_PRED_KEYS = dict(
@@ -80,14 +78,14 @@ class DiscoveryEngine:
     def __init__(
         self,
         io_manager: IO,
-        run_config: RunConfig,
-        dataset_properties: DatasetProperties,
-        evaluation_config: EvaluationConfig,
+        run_config: DetectorsRunConfig,
+        dataset_properties: DatasetConfig,
+        evaluation_config: FinalEvaluationConfig,
     ):
         self.io: IO = io_manager
-        self.run_config: RunConfig = run_config
-        self.dataset_props: DatasetProperties = dataset_properties
-        self.eval_config: EvaluationConfig = evaluation_config
+        self.run_config: DetectorsRunConfig = run_config
+        self.dataset_props: DatasetConfig = dataset_properties
+        self.eval_config: FinalEvaluationConfig = evaluation_config
 
         self.gt_needed = any(
             cfg.gt_required for cfg in self.eval_config.metric_types.values()
@@ -146,7 +144,7 @@ class DiscoveryEngine:
         """
         all_chunk_items: List[ChunkWorkItem] = []
         logging.info(
-            f"Starting discovery for dataset '{self.run_config.dataset_name}'..."
+            f"Starting discovery for dataset '{self.run_config._dataset_name}'..."
         )
         for video_config in self.run_config.videos:
             session, sequence = video_config.session_ID, video_config.sequence_ID
@@ -154,7 +152,7 @@ class DiscoveryEngine:
             end_frame = video_config.video_start + video_config.video_length
 
             for mt, components in self.eval_config.prediction_components.items():
-                metric_cfg: MetricTypeConfig = self.eval_config.metric_types[mt]
+                metric_cfg: EvaluationMetricType = self.eval_config.metric_types[mt]
 
                 for component in components:
                     for algorithm in self.eval_config.component_algorithm_mapping[
@@ -195,7 +193,7 @@ class DiscoveryEngine:
         self,
         pred_descriptions: dict,
         pred_path: Path,
-        metric_cfg: MetricTypeConfig,
+        metric_cfg: EvaluationMetricType,
         start_frame: int,
         end_frame: int,
         session: str,
@@ -297,7 +295,7 @@ class DiscoveryEngine:
 
             created_chunks.append(
                 ChunkWorkItem(
-                    dataset_name=self.run_config.dataset_name,
+                    dataset_name=self.run_config._dataset_name,
                     session=session,
                     sequence=sequence,
                     component=component,

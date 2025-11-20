@@ -4,8 +4,10 @@ Evaluation engine to manage the evaluation process across multiple datasets.
 
 import logging
 
+from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.detectors_run_file import DetectorsRunConfig
 from .config_handler import ConfigHandler
-from .config_schema import DatasetProperties, EvaluationConfig, RunConfig
+from .config_schema import FinalEvaluationConfig
 from .in_out import IO
 from .runner import DatasetRunner
 
@@ -33,11 +35,11 @@ class EvaluationEngine:
             dataset_properties_instance,
             evaluation_config_instance,
         ) in self.config_handler.get_evaluation_and_dataset_configs():
-            run_config: RunConfig = run_config_instance
-            dataset_properties: DatasetProperties = dataset_properties_instance
-            evaluation_config: EvaluationConfig = evaluation_config_instance
+            run_config: DetectorsRunConfig = run_config_instance
+            dataset_properties: DatasetConfig = dataset_properties_instance
+            evaluation_config: FinalEvaluationConfig = evaluation_config_instance
 
-            dataset_name = dataset_properties.dataset_name
+            dataset_name = dataset_properties._dataset_name
             logging.info(
                 f"\n\n{'-' * 80}\n"
                 f"Processing dataset: {dataset_name.upper()}"

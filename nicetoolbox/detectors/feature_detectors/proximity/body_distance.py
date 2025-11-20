@@ -4,12 +4,22 @@ Body Distance feature detector class for the proximity component.
 
 import logging
 import os
+from typing import List
 
 import numpy as np
+from pydantic import BaseModel
 
-from ....utils import filehandling as fh
+from ....configs.config_handler import load_config, load_validated_config_raw
+from ....configs.schemas.detectors_config import detector_config
+from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ..base_feature import BaseFeature
 from . import utils as pro_utils
+
+
+@detector_config("body_distance")
+class BodyDistanceConfig(BaseModel):
+    input_detector_names: List[List[str]]
+    used_keypoints: List[str]
 
 
 class BodyDistance(BaseFeature):
@@ -79,12 +89,13 @@ class BodyDistance(BaseFeature):
         pose_config_folder = io.get_detector_output_folder(
             joints_component, joints_algorithm, "run_config"
         )
-        pose_config = fh.load_config(
-            os.path.join(pose_config_folder, "run_config.toml")
+        pose_config = load_config(os.path.join(pose_config_folder, "run_config.toml"))
+        predictions_mapping_config = load_validated_config_raw(
+            "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.predictions_mapping = fh.load_config("./configs/predictions_mapping.toml")[
-            "human_pose"
-        ][pose_config["keypoint_mapping"]]
+        self.predictions_mapping = predictions_mapping_config["human_pose"][
+            pose_config["keypoint_mapping"]
+        ]
         self.camera_names = pose_config["camera_names"]
 
         # # will be used during visualizations
@@ -131,7 +142,7 @@ class BodyDistance(BaseFeature):
 
         joint_data = np.load(self.input_files[0], allow_pickle=True)
         dimensions = ["2d"]
-        if "3d" in joint_data['data_description'].item().keys():
+        if "3d" in joint_data["data_description"].item().keys():
             dimensions.append("3d")
 
         out_dict = {"data_description": {}}

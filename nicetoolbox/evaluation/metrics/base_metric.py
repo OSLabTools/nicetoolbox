@@ -10,7 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
-from ..config_schema import EvaluationConfig, MetricTypeConfig
+from ...configs.schemas.evaluation_config import EvaluationMetricType
+from ..config_schema import FinalEvaluationConfig
 from ..data.discovery import ChunkWorkItem, FrameInfo
 from .results_schema import MetricReturnType
 
@@ -58,7 +59,7 @@ class MetricHandler(ABC):
     A handler creates and manages one or more base Metric instances.
     """
 
-    def __init__(self, cfg: MetricTypeConfig, device: str):
+    def __init__(self, cfg: EvaluationMetricType, device: str):
         """
         Initialize the metric handler with its config and device, creating its metrics.
 
@@ -128,7 +129,7 @@ class MetricFactory:
     """Static class that instantiates metric handlers based on the evaluation config."""
 
     @staticmethod
-    def create_all(ev_cfg: EvaluationConfig, device: str) -> List[MetricHandler]:
+    def create_all(ev_cfg: FinalEvaluationConfig, device: str) -> List[MetricHandler]:
         """
         Create all metric handlers based on the evaluation configuration.
 
