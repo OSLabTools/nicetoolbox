@@ -11,28 +11,11 @@ from typing import Dict, List
 
 import cv2
 import numpy as np
-from pydantic import BaseModel
 
-from ....configs.schemas.detectors_config import detector_config
 from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
-
-
-@detector_config("multiview_eth_xgaze")
-class MultiViewETHXGazeConfig(BaseModel):
-    input_data_format: str
-    camera_names: List[str]
-    env_name: str
-    shape_predictor_filename: str
-    face_model_filename: str
-    pretrained_model_filename: str
-    face_detector_filename: str
-    log_frame_idx_interval: int
-    filtered: bool
-    window_length: int
-    polyorder: int
 
 
 class MultiviewEthXgaze(BaseDetector):

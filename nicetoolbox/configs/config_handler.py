@@ -56,7 +56,7 @@ def load_config(config_file: str) -> dict:
     return config
 
 
-ModelT = TypeVar("SchemaT", bound=BaseModel)
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 def load_validated_config(config_filepath: str, schema: Type[ModelT]) -> ModelT:
@@ -66,7 +66,7 @@ def load_validated_config(config_filepath: str, schema: Type[ModelT]) -> ModelT:
 
     Args:
         config_filepath (str): Path to the config file.
-        schema (Type[SchemaT]): Pydantic model class used to validate.
+        schema (Type[ModelT]): Pydantic model class used to validate.
 
     Returns:
         T: An instance of schema populated from the file.
@@ -93,7 +93,7 @@ def load_validated_config_raw(config_filepath: str, schema: Type[ModelT]) -> dic
 
     Args:
         config_filepath (str): Path to the config file.
-        schema (Type[SchemaT]): Pydantic model class used to validate.
+        schema (Type[ModelT]): Pydantic model class used to validate.
 
     Returns:
         dict: Raw config dictionary.

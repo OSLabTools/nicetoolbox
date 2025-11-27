@@ -4,22 +4,14 @@ Velocity Body feature detector class for kinematics of the body.
 
 import logging
 import os
-from typing import List
 
 import numpy as np
-from pydantic import BaseModel
 
 from ....configs.config_handler import load_config, load_validated_config_raw
-from ....configs.schemas.detectors_config import detector_config
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import check_and_exception as check
 from ..base_feature import BaseFeature
 from . import utils as kinematics_utils
-
-
-@detector_config("velocity_body")
-class VelocityConfig(BaseModel):
-    input_detector_names: List[List[str]]
 
 
 class VelocityBody(BaseFeature):

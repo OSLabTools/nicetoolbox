@@ -10,6 +10,7 @@ from typing import Dict, Iterator, List, Optional, Tuple
 import toml
 from pydantic import ValidationError
 
+from ..configs.config_handler import load_validated_config_raw
 from ..configs.schemas.dataset_properties import (
     DatasetConfig,
     DatasetConfigEvaluation,
@@ -22,6 +23,7 @@ from ..configs.schemas.evaluation_config import (
     EvaluationIO,
     EvaluationMetricType,
 )
+from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..utils import config as cfg
 from ..utils.logging_utils import log_configs
 from .config_schema import FinalEvaluationConfig
@@ -193,7 +195,9 @@ class ConfigHandler:
             logging.info(
                 f"Loading latest experiment run configuration from: {latest_cfg_path}"
             )
-            return toml.load(latest_cfg_path)
+            return load_validated_config_raw(
+                str(latest_cfg_path), DetectorsExperimentConfig
+            )
 
         except Exception as e:
             logging.error(f"Error loading latest experiment config: {e}")

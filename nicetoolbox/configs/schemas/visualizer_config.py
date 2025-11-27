@@ -1,31 +1,10 @@
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, List
+from typing import List
 
 from pydantic import BaseModel, NonNegativeInt, model_validator
 
-from ..models.models_registry import ModelsRegistry
-
-
-class AppearanceConfig(BaseModel):
-    """
-    Appearance settings for visualizer components.
-    Stores colors and other visual attributes.
-    """
-
-    colors: List[Any]  # TODO: inconsistent dimensions
-    radii: dict[str, Any]
-
-
-class VisualizerComponentConfig(BaseModel):
-    """
-    Default configuration for individual visualizer components.
-    Defines algorithms, detector data and appearance.
-    """
-
-    algorithms: List[str]
-    canvas: dict[str, List[str]]
-    appearance: AppearanceConfig
+from .visualizer_comp_configs import COMP_REGISTRY
 
 
 class MediaVisualizeConfig(BaseModel):
@@ -39,11 +18,6 @@ class MediaVisualizeConfig(BaseModel):
     start_frame: NonNegativeInt
     end_frame: int  # -1 means until the end
     visualize_interval: NonNegativeInt
-
-
-# registry for visualizer components
-_COMP_REGISTRY = ModelsRegistry(VisualizerComponentConfig)
-visualizer_comp_config = _COMP_REGISTRY.register
 
 
 class MediaConfig(BaseModel):
@@ -75,7 +49,7 @@ class MediaConfig(BaseModel):
         known = set(MediaConfig.__annotations__) - {"components"}
         comps = {k: v for k, v in values.items() if k not in known}
         # parse them and store into input dict
-        values["components"] = _COMP_REGISTRY.parse_dict(comps)
+        values["components"] = COMP_REGISTRY.parse_dict(comps)
         # remove original component entries from input dict
         for k in comps:
             del values[k]
