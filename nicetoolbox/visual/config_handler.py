@@ -1,7 +1,8 @@
 import glob
 import os
 
-from ..configs.config_handler import load_config, load_validated_config_raw
+from ..configs.config_handler import load_validated_config_raw
+from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
 from ..utils import config as confh
@@ -60,8 +61,9 @@ class Configuration:
             )
             raise
 
-        # TODO: define custom schema for merged configs?
-        loaded_experiment_config = load_config(experiment_config_file)
+        loaded_experiment_config = load_validated_config_raw(
+            experiment_config_file, DetectorsExperimentConfig
+        )
         self.experiment_run_config = loaded_experiment_config["run_config"]
         self.experiment_detector_config = loaded_experiment_config["detector_config"]
         self.dataset_properties = loaded_experiment_config["dataset_config"]
@@ -225,6 +227,7 @@ class Configuration:
                         f"Delete or correct {alg} from Visualizer_config[media."
                         f"{component} algorithms"
                     )
+
     def _check_camera_position(self, calibration_file) -> None:
         """
         Checks the consistency of the camera position in the visualizer config.
@@ -233,17 +236,15 @@ class Configuration:
             ValueError: If the camera position parameter is set to True but calibration
             parameters were not provided.
         """
-        if (self.visualizer_config["media"]["visualize"][
-            "camera_position"]) and (
-                not calibration_file
+        if (self.visualizer_config["media"]["visualize"]["camera_position"]) and (
+            not calibration_file
         ):
             raise ValueError(
                 "ERROR: No valid calibration file is found. Visualization of camera "
                 "position requires calibration data. Set camera_position to False "
                 "in visualizer_config.toml\n"
             )
-        else:
-            return 0
+        return 0
 
     # Extract lists from config, check, and update if necessary
     def check_and_update_canvas(self):

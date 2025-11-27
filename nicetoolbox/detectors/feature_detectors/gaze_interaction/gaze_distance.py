@@ -4,22 +4,12 @@ GazeDistance feature detector class for 2 person gaze interaction components.
 
 import logging
 import os
-from typing import List
 
 import numpy as np
-from pydantic import BaseModel
 
-from ....configs.schemas.detectors_config import detector_config
 from ....utils import linear_algebra as alg
 from ..base_feature import BaseFeature
 from ..gaze_interaction import utils as gaze_interaction_utils
-
-
-@detector_config("gaze_distance")
-class GazeDistanceConfig(BaseModel):
-    input_detector_names: List[List[str]]
-    keypoint_mapping: str
-    threshold_look_at: float
 
 
 class GazeDistance(BaseFeature):

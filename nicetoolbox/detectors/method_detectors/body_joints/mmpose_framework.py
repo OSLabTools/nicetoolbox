@@ -5,14 +5,11 @@ Integration of the MMPose framework into the NICE toolbox pipeline.
 import logging
 import os
 from abc import abstractmethod
-from typing import List
 
 import cv2
 import numpy as np
-from pydantic import BaseModel, Field
 
 from ....configs.config_handler import load_validated_config_raw
-from ....configs.schemas.detectors_config import detector_config, framework_config
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import check_and_exception as check
 from ....utils import triangulation as tri
@@ -21,34 +18,6 @@ from ... import config_handler as confh
 from ..base_detector import BaseDetector
 from ..filters import SGFilter
 from . import pose_utils
-
-
-@framework_config("mmpose")
-class FrameworksMMPoseConfig(BaseModel):
-    input_data_format: str
-    camera_names: List[str]
-    env_name: str
-    multi_person: bool
-    save_images: bool
-    resolution: List[int]
-    device: str
-    filtered: bool
-    window_length: int
-    polyorder: int
-    # python identifier cannot start with a number
-    results_3d: bool = Field(alias="3d_results")
-
-
-@detector_config("hrnetw48")
-@detector_config("vitpose")
-class MMPoseAlgorithmConfig(FrameworksMMPoseConfig):
-    framework: str
-    pose_config: str
-    pose_checkpoint: str
-    detection_config: str
-    detection_checkpoint: str
-    keypoint_mapping: str
-    min_detection_confidence: float
 
 
 class MMPose(BaseDetector):

@@ -4,14 +4,11 @@ SPIGA method detector class.
 
 import logging
 import os
-from typing import List
 
 import cv2
 import numpy as np
-from pydantic import BaseModel, Field
 
 from ....configs.config_handler import load_validated_config_raw
-from ....configs.schemas.detectors_config import detector_config
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import video as vd
 from ... import config_handler as confh
@@ -62,16 +59,6 @@ def return_direction_vector(rotation_matrix, axis):
     direction_2D = rotation_matrix @ direction_3D.reshape(3, 1)
 
     return direction_2D[:2].flatten()
-
-
-@detector_config("spiga")
-class SpigaConfig(BaseModel):
-    input_data_format: str
-    camera_names: List[str]
-    env_name: str
-    log_frame_idx_interval: int
-    batch_size: int
-    model_configuration: str = Field(alias="model_config")
 
 
 class Spiga(BaseDetector):

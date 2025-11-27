@@ -1,7 +1,17 @@
+from enum import Enum
 from pathlib import Path
 from typing import List
 
 from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr
+
+
+# Enum of python logging levels
+class LoggingLevelEnum(str, Enum):
+    CRITICAL = "CRITICAL"
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    INFO = "INFO"
+    DEBUG = "DEBUG"
 
 
 class DetectorsRunIO(BaseModel):
@@ -28,6 +38,8 @@ class DetectorsRunIO(BaseModel):
     csv_out_folder: Path
     code_folder: Path
     conda_path: Path
+
+    log_level: LoggingLevelEnum
 
 
 class RunConfigVideo(BaseModel):

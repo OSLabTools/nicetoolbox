@@ -19,7 +19,6 @@ import rerun as rr
 
 from ...configs.config_handler import load_validated_config_raw
 from ...configs.schemas.predictions_mapping import PredictionsMappingConfig
-from ...configs.schemas.visualizer_config import BaseModel, visualizer_comp_config
 
 PREDICTIONS_MAPPING_FILE = "configs/predictions_mapping.toml"
 PREDICTIONS_MAPPING = load_validated_config_raw(
@@ -1173,13 +1172,6 @@ class ProximityComponent(Component):
                     self._log_data(
                         entity_path, frame_proximity, alg_idx, mid_point, "2d"
                     )
-
-
-@visualizer_comp_config("kinematics")
-class KinematicsConfig(BaseModel):
-    algorithms: List[str]
-    canvas: dict[str, List[str]]
-    joints: Dict[str, List[str]]
 
 
 class KinematicsComponent(Component):

@@ -1,8 +1,6 @@
 """ """
 
 import copy
-import logging
-import os
 
 from ..configs.config_handler import load_validated_config_raw
 from ..configs.schemas.dataset_properties import DatasetProperties
@@ -47,7 +45,6 @@ class Configuration:
         self.machine_specific_config = load_validated_config_raw(
             machine_specifics_file, MachineSpecificConfig
         )
-        self.machine_specific_config.update(dict(pwd=os.getcwd()))
 
         # detector_config
         detector_config_file = self.localize(self.run_config, False)["io"][
@@ -83,7 +80,6 @@ class Configuration:
         return config
 
     def get_io_config(self):
-        self.run_config["io"]["log_level"] = logging.INFO
         return self.localize(self.run_config["io"], fill_io=False)
 
     def get_dataset_configs(self):

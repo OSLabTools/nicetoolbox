@@ -48,3 +48,5 @@ detector_final_result_folder = "<out_sub_folder>/<component_name>"
 csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"
+
+log_level = "INFO" # Can be "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"

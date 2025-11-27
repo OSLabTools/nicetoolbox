@@ -2,13 +2,7 @@ from copy import deepcopy
 
 from pydantic import BaseModel, model_validator
 
-from ..models.models_registry import ModelsRegistry
-
-# registries for detectors and frameworks
-_DETECTORS_REGISTRY = ModelsRegistry()
-_FRAMEWORKS_REGISTRY = ModelsRegistry()
-detector_config = _DETECTORS_REGISTRY.register
-framework_config = _FRAMEWORKS_REGISTRY.register
+from .detectors_algos_configs import DETECTORS_REGISTRY, FRAMEWORKS_REGISTRY
 
 
 # Top-level config in detectors_config.toml
@@ -39,12 +33,12 @@ class DetectorsConfig(BaseModel):
         values = deepcopy(values)
         # first we parse frameworks
         frms = values.get("frameworks", {})
-        values["frameworks"] = _FRAMEWORKS_REGISTRY.parse_dict(frms)
+        values["frameworks"] = FRAMEWORKS_REGISTRY.parse_dict(frms)
         # next we "patch" algorithms with framework information
         # we need to this now because algorithms may inherit from frameworks
         algos = values.get("algorithms", {})
         cls.__resolve_frameworks_inheritance(frms, algos)
         # now we parse algorithms
-        values["algorithms"] = _DETECTORS_REGISTRY.parse_dict(algos)
+        values["algorithms"] = DETECTORS_REGISTRY.parse_dict(algos)
 
         return values

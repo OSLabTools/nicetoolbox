@@ -130,7 +130,7 @@ def config_fill_auto(config, working_directory=None):
     """
     if working_directory is None:
         working_directory = os.getcwd()
-        
+
     git_metadata = try_get_toolbox_git_metadata(working_directory)
     if git_metadata is not None:
         git_hash, commit_message = git_metadata
@@ -145,6 +145,7 @@ def config_fill_auto(config, working_directory=None):
         yyyymmdd=time.strftime("%Y%m%d", time.localtime()),
         today=time.strftime("%Y%m%d", time.localtime()),
         time=time.strftime("%H_%M", time.localtime()),
+        pwd=os.getcwd(),
     )
 
     return config_fill_placeholders(config, placeholder_dict)

@@ -35,6 +35,7 @@ def log_configs(configs: dict, out_folder: str, file_name: str = "log_config") -
         commit_message="<commit_message>",
         date="<today>",
         time="<time>",
+        pwd="<pwd>",
     )
     # fill placeholders
     code_config = config_fill_auto(code_config)

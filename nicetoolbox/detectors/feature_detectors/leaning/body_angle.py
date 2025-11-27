@@ -4,22 +4,13 @@ Body Angle feature detector class for the leaning component.
 
 import logging
 import os
-from typing import List
 
 import numpy as np
-from pydantic import BaseModel
 
 from ....configs.config_handler import load_config, load_validated_config_raw
-from ....configs.schemas.detectors_config import detector_config
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ..base_feature import BaseFeature
 from . import utils as lean_utils
-
-
-@detector_config("body_angle")
-class BodyAngleConfig(BaseModel):
-    input_detector_names: List[List[str]]
-    used_keypoints: List[List[str]]
 
 
 class BodyAngle(BaseFeature):
