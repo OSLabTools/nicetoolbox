@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 import torch
 
-from nicetoolbox.evaluation.config_schema import MetricTypeConfig
+from nicetoolbox.configs.schemas.evaluation_config import EvaluationMetricType
 from nicetoolbox.evaluation.data.discovery import ChunkWorkItem, FrameInfo
 from nicetoolbox.evaluation.metrics.point_cloud import Jpe, PointCloudMetric
 from nicetoolbox.evaluation.metrics.results_schema import BatchResult
@@ -49,7 +49,7 @@ def test_point_cloud_handler_creates_jpe_metric_if_configured():
     Then:  It should create an instance of the Jpe class.
     """
     # Arrange
-    mock_config = create_autospec(MetricTypeConfig, instance=True)
+    mock_config = create_autospec(EvaluationMetricType, instance=True)
     mock_config.metric_names = ["jpe"]
 
     # Act
@@ -68,7 +68,7 @@ def test_point_cloud_handler_ignores_unknown_metrics():
     Then:  It should not create any metric instances.
     """
     # Arrange
-    mock_config = create_autospec(MetricTypeConfig, instance=True)
+    mock_config = create_autospec(EvaluationMetricType, instance=True)
     mock_config.metric_names = ["some_unknown_metric"]
 
     # Act

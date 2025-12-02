@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nicetoolbox.evaluation.config_schema import RunConfigVideo
+from nicetoolbox.configs.schemas.detectors_run_file import RunConfigVideo
 from nicetoolbox.evaluation.data.discovery import ChunkWorkItem, DiscoveryEngine
 
 # --- Tests for _parse_gt_key (Pure Function) ---

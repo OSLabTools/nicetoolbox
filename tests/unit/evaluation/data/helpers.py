@@ -5,13 +5,13 @@ This file contains helper classes to build mock data for testing the data pipeli
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from nicetoolbox.evaluation.config_schema import (
-    DatasetProperties,
-    EvaluationConfig,
-    MetricTypeConfig,
-    RunConfig,
+from nicetoolbox.configs.schemas.dataset_properties import DatasetConfig
+from nicetoolbox.configs.schemas.detectors_run_file import (
+    DetectorsRunConfig,
     RunConfigVideo,
 )
+from nicetoolbox.configs.schemas.evaluation_config import EvaluationMetricType
+from nicetoolbox.evaluation.config_schema import FinalEvaluationConfig
 
 
 class DiscoveryMockDataBuilder:
@@ -20,9 +20,10 @@ class DiscoveryMockDataBuilder:
     def __init__(self, dataset_name="mock_dataset"):
         self.dataset_name = dataset_name
 
-    def build_run_config(self, overrides: Optional[Dict[str, Any]] = None) -> RunConfig:
+    def build_run_config(
+        self, overrides: Optional[Dict[str, Any]] = None
+    ) -> DetectorsRunConfig:
         data = {
-            "dataset_name": self.dataset_name,
             "components": ["body_joints"],
             "videos": [
                 RunConfigVideo(
@@ -32,13 +33,14 @@ class DiscoveryMockDataBuilder:
         }
         if overrides:
             data.update(overrides)
-        return RunConfig(**data)
+        config = DetectorsRunConfig(**data)
+        config._dataset_name = self.dataset_name
+        return config
 
-    def build_dataset_properties(
+    def build_dataset_config(
         self, overrides: Optional[Dict[str, Any]] = None
-    ) -> DatasetProperties:
+    ) -> DatasetConfig:
         data = {
-            "dataset_name": self.dataset_name,
             "path_to_annotations": Path(f"/{self.dataset_name}/annotations.npz"),
             "session_IDs": ["S1"],
             "sequence_IDs": ["Seq1"],
@@ -56,26 +58,36 @@ class DiscoveryMockDataBuilder:
         }
         if overrides:
             data.update(overrides)
-        return DatasetProperties.model_validate(data)
+        config = DatasetConfig.model_validate(data)
+        config._dataset_name = self.dataset_name
+        return config
 
     def build_evaluation_config(
         self, overrides: Optional[Dict[str, Any]] = None
-    ) -> EvaluationConfig:
+    ) -> FinalEvaluationConfig:
         data = {
+            "git_hash": "ffffffff",
+            "skip_evaluation": True,
             "device": "cpu",
             "verbose": False,
             "batchsize": 50,
             "prediction_components": {"point_cloud_metrics": ["body_joints"]},
             "annotation_components": {},
             "metric_types": {
-                "point_cloud_metrics": MetricTypeConfig(
+                "point_cloud_metrics": EvaluationMetricType(
                     metric_type="point_cloud_metrics",
                     metric_names=["jpe"],
                     gt_required=True,
                 )
             },
+            "io": {
+                "experiment_name": "<yyyymmdd>",
+                "experiment_folder": "<output_folder_path>/experiments",
+                "output_folder": "<experiment_folder>_eval",
+                "eval_visualization_folder": "<output_folder>/visualization",
+            },
             "component_algorithm_mapping": {"body_joints": ["vitpose"]},
         }
         if overrides:
             data.update(overrides)
-        return EvaluationConfig(**data)
+        return FinalEvaluationConfig(**data)

@@ -24,5 +24,5 @@ class FinalEvaluationConfig(BaseModel):
     prediction_components: Dict[str, List[str]]
     annotation_components: Dict[str, List[str]]
 
-    metric_types: Dict[str, EvaluationMetricType]
+    metric_types: Dict[str, EvaluationMetricType] = Field(default_factory=dict)
     component_algorithm_mapping: Dict[str, List[str]] = Field(default_factory=dict)
