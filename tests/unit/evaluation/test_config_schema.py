@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from nicetoolbox.evaluation.config_schema import IOConfig
+from nicetoolbox.configs.schemas.evaluation_config import EvaluationIO
 
 
 def test_io_config_validates_with_correct_data():
@@ -13,15 +13,16 @@ def test_io_config_validates_with_correct_data():
     Then:  No exception is raised, and the attributes are set correctly.
     """
     data = {
+        "experiment_name": "some_experiment",
         "experiment_folder": "/path/to/exp",
         "output_folder": "/path/to/out",
         "eval_visualization_folder": "/path/to/viz",
     }
-    config = IOConfig.model_validate(data)
+    config = EvaluationIO.model_validate(data)
 
     assert config.experiment_folder == Path("/path/to/exp")
     assert isinstance(config.output_folder, Path)
-    assert config.experiment_io == {}  # Check that default factory worked
+    assert config._experiment_io == {}  # Check that default factory worked
 
 
 def test_io_config_fails_if_required_field_is_missing():
@@ -37,4 +38,4 @@ def test_io_config_fails_if_required_field_is_missing():
     # 'with pytest.raises(...)' is the standard way to assert that an
     # exception is expected. The test will fail if no exception is raised.
     with pytest.raises(ValidationError):
-        IOConfig.model_validate(data)
+        EvaluationIO.model_validate(data)

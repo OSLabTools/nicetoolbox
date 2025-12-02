@@ -3,7 +3,7 @@ from unittest.mock import create_autospec, patch
 import pytest
 import torch
 
-from nicetoolbox.evaluation.config_schema import MetricTypeConfig
+from nicetoolbox.configs.schemas.evaluation_config import EvaluationMetricType
 from nicetoolbox.evaluation.data.discovery import ChunkWorkItem, FrameInfo
 from nicetoolbox.evaluation.metrics.keypoint import (
     BoneLength,
@@ -61,7 +61,7 @@ def test_keypoint_handler_creates_metrics(patched_toml_load, mock_keypoints_mapp
     Then:  It should create instances of the correct metric classes.
     """
     # Arrange
-    mock_config = create_autospec(MetricTypeConfig, instance=True)
+    mock_config = create_autospec(EvaluationMetricType, instance=True)
     mock_config.metric_names = ["bone_length", "jump_detection"]
     mock_config.keypoint_mapping_file = "fake/path.toml"
     # This is the mocked return value when toml.load is called

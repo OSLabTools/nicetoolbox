@@ -36,7 +36,7 @@ def discovery_engine_factory(mocker):  # mocker is a fixture from pytest-mock pl
         # 1. Use the builder to create default or overridden configs
         builder = DiscoveryMockDataBuilder()
         run_config = builder.build_run_config(run_config_overrides)
-        dataset_props = builder.build_dataset_properties(dataset_props_overrides)
+        dataset_props = builder.build_dataset_config(dataset_props_overrides)
         eval_config = builder.build_evaluation_config(eval_config_overrides)
 
         # 2. Mock the external dependencies (IO and np.load)
