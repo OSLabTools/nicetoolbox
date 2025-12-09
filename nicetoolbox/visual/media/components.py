@@ -598,9 +598,7 @@ class GazeIndividualComponent(Component):
                         continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
-                        subject_gaze_individual = alg_data[subject_idx, 0, frame_idx]
-                        # subject_filtered_gaze_data = ut.apply_savgol_filter(
-                        #   subject_gaze_individual)
+                        subject_gaze_individual = -alg_data[subject_idx, 0, frame_idx]
                         subject_eyes_middle_3d_data = self.eyes_middle_3d_data[
                             subject_idx, 0, frame_idx
                         ]
@@ -648,7 +646,7 @@ class GazeIndividualComponent(Component):
                             camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
                             if frame_idx >= camera_data.shape[1]:  # number of frames
                                 continue
-                            frame_data = camera_data[subject_idx, frame_idx]
+                            frame_data = -camera_data[subject_idx, frame_idx]
                             subject_eyes_mid = (
                                 self.camera_view_subjects_middle_point_dict[canvas][
                                     subject_idx
