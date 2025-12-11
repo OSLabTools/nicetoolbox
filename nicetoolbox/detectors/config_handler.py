@@ -1,13 +1,18 @@
 """ """
 
 import copy
+from typing import Generator, Tuple
 
-from ..configs.config_handler import load_validated_config_raw
+from ..configs.config_loader import ConfigLoader
 from ..configs.schemas.dataset_properties import DatasetProperties
 from ..configs.schemas.detectors_config import DetectorsConfig
 from ..configs.schemas.detectors_run_file import DetectorsRunFile
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
-from ..utils import config as cfg
+from ..configs.utils import (
+    default_auto_placeholders,
+    default_runtime_placeholders,
+    model_to_dict,
+)
 from ..utils.logging_utils import log_configs
 
 
@@ -39,64 +44,102 @@ def add_to_filename(filename, addition):
 
 
 class Configuration:
+    cfg_loader: ConfigLoader
+    auto_placeholders: dict[str, str]
+    runtime_placeholders: set[str]
+
+    machine_specific_config: dict
+    run_config: dict
+    detector_config: dict
+    dataset_config: dict
+    current_data_config: dict
+
     def __init__(self, run_config_file, machine_specifics_file):
-        # load experiment config dicts - these might contain placeholders
-        self.run_config = load_validated_config_raw(run_config_file, DetectorsRunFile)
-        self.machine_specific_config = load_validated_config_raw(
+        # init config loader
+        self.auto_placeholders = default_auto_placeholders()
+        self.runtime_placeholders = default_runtime_placeholders()
+        self.cfg_loader = ConfigLoader(
+            self.auto_placeholders, self.runtime_placeholders
+        )
+        # machine specific
+        machine_specific_config = self.cfg_loader.load_config(
             machine_specifics_file, MachineSpecificConfig
         )
-
-        # detector_config
-        detector_config_file = self.localize(self.run_config, False)["io"][
-            "detectors_config"
-        ]
-        self.detector_config = load_validated_config_raw(
+        self.cfg_loader.extend_global_ctx(machine_specific_config)
+        # run file
+        run_config = self.cfg_loader.load_config(run_config_file, DetectorsRunFile)
+        self.cfg_loader.extend_global_ctx(run_config.io)
+        # detectors config
+        # TODO: Need to convert path to string. To be unified.
+        detector_config_file = str(run_config.io.detectors_config)
+        detector_config = self.cfg_loader.load_config(
             detector_config_file, DetectorsConfig
         )
-        for detector_name, detector_dict in self.detector_config["algorithms"].items():
-            if "framework" in detector_dict:
-                framework = self.detector_config["frameworks"][
-                    detector_dict["framework"]
-                ]
-                self.detector_config["algorithms"][detector_name].update(framework)
-
-        dataset_config_file = self.localize(self.run_config, False)["io"][
-            "dataset_properties"
-        ]
-        self.dataset_config = load_validated_config_raw(
+        # dataset config
+        dataset_config_file = str(run_config.io.dataset_properties)
+        dataset_config = self.cfg_loader.load_config(
             dataset_config_file, DatasetProperties
         )
+
+        # TODO: rest of the codebase except the configs as dict
+        # so we convert them from models to configs
+        # will be refactored soon
+        self.machine_specific_config = model_to_dict(machine_specific_config)
+        self.run_config = model_to_dict(run_config)
+        self.detector_config = model_to_dict(detector_config)
+        self.dataset_config = model_to_dict(dataset_config)
+
         self.current_data_config = None
 
-    def localize(self, config, fill_io=True, fill_data=False):
-        # fill placeholders
-        config = cfg.config_fill_auto(config)
-        config = cfg.config_fill_placeholders(config, self.machine_specific_config)
-        if fill_io:
-            config = cfg.config_fill_placeholders(config, self.get_io_config())
-        if fill_data:
-            config = cfg.config_fill_placeholders(config, self.current_data_config)
-        config = cfg.config_fill_placeholders(config, config)
-        return config
-
     def get_io_config(self):
-        return self.localize(self.run_config["io"], fill_io=False)
+        return self.run_config["io"]
 
-    def get_dataset_configs(self):
+    def get_video_and_comps_configs(self) -> Generator[Tuple[dict, dict], None, None]:
+        """
+        Iterates over all datasets, videos and return combined view of the video
+        and components that need to be run on this video.
+        """
         for dataset_name, dataset_dict in self.run_config["run"].items():
-            if not isinstance(dataset_dict, dict):
-                continue
-
+            # get all components specific for this dataset
+            # we resolve actual components name with respect of the mapping
             component_dict = dict(
                 (comp, self.run_config["component_algorithm_mapping"][comp])
                 for comp in dataset_dict["components"]
             )
+            cur_dataset_config = self.dataset_config[dataset_name]
 
-            for video_config in dataset_dict["videos"]:
-                video_config.update(dataset_name=dataset_name)
-                video_config.update(self.dataset_config[dataset_name])
-                video_config.update(self.get_io_config())
-                self.current_data_config = self.localize(video_config)
+            # next we iterate over each video marked for run
+            for video in dataset_dict["videos"]:
+                # TODO: we need to refactor setting it here and retrieving in another
+                # function. This add a lot of confusion.
+                self.runtime_ctx = {
+                    "dataset_name": dataset_name,
+                    "session_ID": video["session_ID"],
+                    "sequence_ID": video["sequence_ID"],
+                    "video_start": video["video_start"],
+                    "video_length": video["video_length"],
+                    "cam_face1": cur_dataset_config["cam_face1"],
+                    "cam_face2": cur_dataset_config["cam_face2"],
+                    "cam_top": cur_dataset_config["cam_top"],
+                    "cam_front": cur_dataset_config["cam_front"],
+                }
+                # TODO: this is just horific flat config combined from random parts
+                # it contains runtime fields in the root which breaks fields collision
+                # of main config loader. I currently resolve it as is, but this need to
+                # be properly refactored into data structure
+                video_config = {
+                    **self.runtime_ctx,
+                    **cur_dataset_config,
+                    **self.run_config["io"],
+                    **self.machine_specific_config,
+                }
+                # by this point, everything should be resolved, except algo and comp
+                # they will be resolved latter in main detectors loop
+                runtime_placeholders = {"algorithm_name", "component_name"}
+                loader = ConfigLoader(self.auto_placeholders, runtime_placeholders)
+                video_config_res = loader.resolve(video_config)
+
+                self.current_data_config = video_config_res
                 yield self.current_data_config, component_dict
 
     def get_method_configs(self, method_names):
@@ -113,7 +156,9 @@ class Configuration:
                     ]
                 )
 
-            localized_config = self.localize(method_config, fill_data=True)
+            localized_config = self.cfg_loader.resolve(
+                method_config, runtime_ctx=self.runtime_ctx
+            )
             localized_config["camera_names"] = [
                 cam for cam in localized_config["camera_names"] if cam != ""
             ]
@@ -132,7 +177,7 @@ class Configuration:
         # save all experiment configurations
         log_configs(
             dict(
-                run_config=cfg.config_fill_auto(self.run_config),
+                run_config=self.run_config,
                 dataset_config=self.dataset_config,
                 detector_config=self.detector_config,
                 machine_specific_config=self.machine_specific_config,
@@ -151,8 +196,11 @@ class Configuration:
         return list(set(flatten_list(algorithms + feature_methods)))
 
     def get_all_camera_names(self, algorithm_names):
+        # TODO: mark that it requires get_video_and_comps_configs first
         all_camera_names = set()
-        detector_config = self.localize(self.detector_config, fill_data=True)
+        detector_config = self.cfg_loader.resolve(
+            self.detector_config, runtime_ctx=self.runtime_ctx
+        )
         for detector in algorithm_names:
             if "camera_names" in detector_config["algorithms"][detector]:
                 all_camera_names.update(

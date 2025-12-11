@@ -79,21 +79,21 @@ def main(run_config_file, machine_specifics_file):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # RUNNING
-    for dataset_config, component_dict in config_handler.get_dataset_configs():
+    for video_config, component_dict in config_handler.get_video_and_comps_configs():
         logging.info(
-            f"\n{'=' * 80}\nRUNNING dataset {dataset_config['dataset_name']} and "
-            f"{dataset_config['session_ID']}.\n{'=' * 80}\n\n"
+            f"\n{'=' * 80}\nRUNNING dataset {video_config['dataset_name']} and "
+            f"{video_config['session_ID']}.\n{'=' * 80}\n\n"
         )
         algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
         method_names = [alg for alg in algorithm_names if alg in all_method_detectors]
         feature_names = [alg for alg in algorithm_names if alg in all_feature_detectors]
 
         # IO
-        io.initialization(dataset_config, config_handler.get_all_detector_names())
+        io.initialization(video_config, config_handler.get_all_detector_names())
 
         # DATA preparation
         data = Data(
-            dataset_config,
+            video_config,
             io,
             config_handler.get_all_input_data_formats(algorithm_names),
             config_handler.get_all_camera_names(algorithm_names),
