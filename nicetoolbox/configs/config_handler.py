@@ -1,7 +1,7 @@
 # very barebone config handling
 from pathlib import Path
 from pprint import pformat
-from typing import Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 import pydantic
 import toml
@@ -14,8 +14,10 @@ class ConfigValidationError(Exception):
     Provides better formatting for Pydantic validation errors.
     """
 
-    def __init__(self, error: pydantic.ValidationError, filepath: Path):
-        message = f"Config validation error in {filepath.name}\n"
+    def __init__(
+        self, error: pydantic.ValidationError, filepath: Optional[Path] = None
+    ):
+        message = f"Config validation error in {filepath.name}\n" if filepath else ""
         for err in error.errors():
             message += "=" * 40 + "\n"
             error_path = ".".join(str(loc) for loc in err["loc"])

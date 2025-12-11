@@ -3,7 +3,6 @@
 # and all keys from your local 'machine_specific_paths.toml' as well as 'io'
 # and top layer dictionary entries
 
-git_hash = "<git_hash>"
 visualize = true              # whether to save image/video visualizations of detectors
 save_csv = true               # whether to save all results to csv-files
 
@@ -47,6 +46,5 @@ detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
 detector_final_result_folder = "<out_sub_folder>/<component_name>"
 csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
-conda_path = "<conda_path>"
 
 log_level = "INFO" # Can be "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"

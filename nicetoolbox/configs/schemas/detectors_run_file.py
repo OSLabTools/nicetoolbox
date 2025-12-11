@@ -37,7 +37,6 @@ class DetectorsRunIO(BaseModel):
     detector_final_result_folder: Path
     csv_out_folder: Path
     code_folder: Path
-    conda_path: Path
 
     log_level: LoggingLevelEnum
 
@@ -73,7 +72,6 @@ class DetectorsRunFile(BaseModel):
     Contains settings for datasets processing, components and I/O paths.
     """
 
-    git_hash: str
     visualize: bool
     save_csv: bool
 
