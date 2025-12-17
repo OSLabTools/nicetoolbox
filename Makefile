@@ -185,6 +185,10 @@ $(VENV_EXE_DIR)/activate: pyproject.toml
 	@echo "Creating virtual environment in $(VENV_DIR)..."
 	@$(PYTHON_EXE) -m venv $(VENV_DIR)
 
+#   install nicetoolbox-core
+	@echo "Installing nicetoolbox-core dependencies..."
+	@$(VENV_EXE_DIR)/pip install -e ./nicetoolbox_core
+
 #	installing torch with cuda support
 	@$(VENV_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 
@@ -211,6 +215,7 @@ install_multiview_eth_xgaze:
 	@echo ""Installing requirements for 'Multiview ETH-XGaze'...""
 	@$(MULTIVIEW_XGAZE_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 	@$(MULTIVIEW_XGAZE_EXE_DIR)/pip install submodules/multiview_eth_xgaze -c submodules/multiview_eth_xgaze/constraints.txt
+	@$(MULTIVIEW_XGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
 
 	@echo "Multiview ETH-XGaze' environment setup completed successfully."
 
@@ -228,6 +233,7 @@ install_pyfeat:
 	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
 	@$(PYFEAT_EXE_DIR)/pip install py-feat
 	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/emotion_individual/py_feat_requirements.txt
+	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'Py-Feat' environment setup completed successfully."
 
 .PHONY: install_spiga
@@ -242,6 +248,7 @@ install_spiga:
 	@echo "Installing requirements for 'SPIGA'..."
 	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/head_orientation/spiga_requirements.txt
+	@$(SPIGA_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'SPIGA' environment setup completed successfully."
 
 

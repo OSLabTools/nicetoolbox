@@ -99,6 +99,7 @@ def main(run_config_file, machine_specifics_file):
             config_handler.get_all_camera_names(algorithm_names),
             config_handler.get_all_dataset_names(),
         )
+        recipe = data.get_input_recipe()
 
         # RUN method detectors
         for method_config, method_name in config_handler.get_method_configs(
@@ -106,6 +107,7 @@ def main(run_config_file, machine_specifics_file):
         ):
             start_time = time.time()
             logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
+            method_config.update(recipe)
             detector = all_method_detectors[method_name](method_config, io, data)
             detector.run_inference()
             if method_config["visualize"]:

@@ -9,6 +9,8 @@ from abc import abstractmethod
 import cv2
 import numpy as np
 
+from nicetoolbox_core.dataloader import ImagePathsByCameraLoader
+
 from ....configs.config_handler import load_validated_config_raw
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import check_and_exception as check
@@ -86,12 +88,6 @@ class MMPose(BaseDetector):
             self.filter_window_length = config["window_length"]
             self.filter_polyorder = config["polyorder"]
 
-        # input
-        self.data_folder = io.get_data_folder()
-        config["input_data_folder"] = data.create_symlink_input_folder(
-            config["input_data_format"], config["camera_names"]
-        )
-
         # output
         main_component = self.components[0]
         self.out_folder = io.get_detector_output_folder(
@@ -101,17 +97,15 @@ class MMPose(BaseDetector):
         self.image_folders = self.get_image_folders(make_dirs=config["visualize"])
         config["prediction_folders"] = self.prediction_folders
         config["image_folders"] = self.image_folders
-        config["data_folder"] = self.data_folder
-        self.frames_list = data.frames_list
         self.fps = data.fps
 
         # keypoints mapping'
         self.predictions_mapping = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        keypoints_indices = self.predictions_mapping[
-            "human_pose"
-        ][config["keypoint_mapping"]]["keypoints_index"]
+        keypoints_indices = self.predictions_mapping["human_pose"][
+            config["keypoint_mapping"]
+        ]["keypoints_index"]
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config["keypoints_indices"], config["keypoints_description"] = mapping
 
@@ -179,6 +173,11 @@ class MMPose(BaseDetector):
             f"and {self.algorithm}."
         )
 
+        # Create input data loader from nicetoolbox-core shared code
+        dataloader = ImagePathsByCameraLoader(
+            config=self.config, expected_cameras=self.camera_names
+        )
+
         n_subj = len(self.subjects_descr)
         for _component, result_folder in self.result_folders.items():
             viz_dir = os.path.join(result_folder, self.algorithm, "visualization")
@@ -203,17 +202,11 @@ class MMPose(BaseDetector):
 
             # per camera and frame, visualize each subject's body_joints
             success = True
-            for camera_name in self.camera_names:
+            for camera_name, frames_list in dataloader:
                 cam_idx = self.camera_names.index(camera_name)
                 os.makedirs(os.path.join(viz_dir, camera_name), exist_ok=True)
 
-                for frame_idx in range(data.shape[2]):
-                    # load the original input image
-                    image_file = [
-                        file
-                        for file in self.frames_list[frame_idx]
-                        if camera_name in file
-                    ][0]
+                for frame_idx, image_file in enumerate(frames_list):
                     image = cv2.imread(image_file)
                     for subject_idx in range(n_subj):
                         # the predicted joints data
@@ -366,16 +359,16 @@ class MMPose(BaseDetector):
                         axis0=data_description["2d"]["axis0"],
                         axis1=data_description["2d"]["axis1"],
                         axis2=data_description["2d"]["axis2"],
-                        axis3=[f"with_{subj}" for subj in self.subjects_descr]
+                        axis3=[f"with_{subj}" for subj in self.subjects_descr],
                     )
                 }
             )
             can_estimate_3d = len(self.camera_names) >= 2
             if can_estimate_3d and not self.calibration:
                 logging.warning(
-                        "WARNING - Calibration file is not valid. "
-                        "Therefore, cannot compute 3d positions of the joints."
-                        "Please see docs/wikis/wiki_calibration.md"
+                    "WARNING - Calibration file is not valid. "
+                    "Therefore, cannot compute 3d positions of the joints."
+                    "Please see docs/wikis/wiki_calibration.md"
                 )
                 can_estimate_3d = False
             if not can_estimate_3d:
@@ -510,7 +503,9 @@ class MMPose(BaseDetector):
                     output_shape = (xy_points_cam1.shape[0], 4)
                     output_data_3d = np.full(output_shape, np.nan)
                     # Insert the processed data back into the correct positions
-                    output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d_with_conf
+                    output_data_3d[~combined_nan_mask.reshape(-1)] = (
+                        person_data_3d_with_conf
+                    )
                     reshaped_3D_points = output_data_3d.reshape(
                         person_cam1.shape[0], person_cam1.shape[1], 4
                     )

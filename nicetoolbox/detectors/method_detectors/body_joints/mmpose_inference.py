@@ -10,6 +10,8 @@ import numpy as np
 import toml
 from mmpose.apis import MMPoseInferencer
 
+from nicetoolbox_core.dataloader import ImagePathsByCameraLoader
+
 
 def calculate_iou(box1, box2):
     """
@@ -304,7 +306,15 @@ def main(config):
     )
     logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
 
-    # create inferencer object
+    logging.info("Creating input data loader...")
+    logging.info(f'Using cameras: {config["camera_names"]}')
+    # Create input data loader from nicetoolbox-core shared code
+    dataloader = ImagePathsByCameraLoader(
+        config=config, expected_cameras=config["camera_names"]
+    )
+    logging.info(f"Data loader created with cams: {dataloader.cameras}")
+
+    # Create inferencer object from MMPose API
     inferencer = MMPoseInferencer(
         pose2d=config["pose_config"],
         pose2d_weights=config["pose_checkpoint"],
@@ -314,52 +324,42 @@ def main(config):
         device=config["device"],
     )
 
+    # Prepare to collect outputs
     camera_keypoints_output = []
     camera_bbox_output = []
-    frame_indices = None
-    data_desc = None
-    for camera_name in config["camera_names"]:
+
+    # Inference per camera
+    for camera_name, image_paths in dataloader:
         logging.info(f"Camera - {camera_name}")
-        camera_folder = os.path.join(config["input_data_folder"], camera_name)
 
-        if not os.path.exists(camera_folder):
-            logging.error(f"Data folder for camera: {camera_name} could not find")
-
-        result_generator = None
         if config["visualize"]:
             result_generator = inferencer(
-                camera_folder,
+                image_paths,
                 pred_out_dir=config["prediction_folders"][camera_name],
                 show=False,
                 vis_out_dir=config["image_folders"][camera_name],
             )
-
         else:
             result_generator = inferencer(
-                camera_folder,
+                image_paths,
                 pred_out_dir=config["prediction_folders"][camera_name],
                 show=False,
             )
+
         results = [r for r in result_generator]
-        num_subjects = len(config["subjects_descr"])
 
         # convert results to numpy array
+        num_subjects = len(config["subjects_descr"])
         keypoints_array, bbox_array, estimations_data_descr = convert_output_to_numpy(
             results, num_subjects
         )
-
         camera_keypoints_output.append(keypoints_array)
         camera_bbox_output.append(bbox_array)
 
-        # get frame indices
-        frame_inds = sorted(
-            os.listdir(os.path.join(config["input_data_folder"], camera_name))
-        )
-        frame_inds = [s.strip(".png").strip(".jpg").strip(".jpeg") for s in frame_inds]
-        if frame_indices is not None:
-            assert frame_indices == frame_inds
-        else:
-            frame_indices = frame_inds
+    # infer frame indices from dataloader (for current npz saving)
+    # TODO: Keep axis2 frame strings in data description or just tuple or range?
+    start_frame, end_frame = dataloader.get_frames_range()
+    frame_indices = [f"{idx:09d}" for idx in range(start_frame, end_frame)]
 
     #  save as npz files
     for component, result_folder in config["result_folders"].items():

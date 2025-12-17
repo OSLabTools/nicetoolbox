@@ -208,7 +208,7 @@ class Configuration:
                 )
         if "" in all_camera_names:
             all_camera_names.remove("")
-        return all_camera_names
+        return list(all_camera_names)
 
     def get_all_input_data_formats(self, algorithm_names):
         data_formats = set()
@@ -217,7 +217,7 @@ class Configuration:
                 data_formats.add(
                     self.detector_config["algorithms"][detector]["input_data_format"]
                 )
-        return data_formats
+        return list(data_formats)
 
     def get_all_dataset_names(self):
         return list(self.dataset_config.keys())

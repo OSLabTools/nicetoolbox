@@ -149,11 +149,9 @@ assets = "<code_folder>/nicetoolbox/detectors/assets"
 
 process_data_to = "data_folder"
 data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
-tmp_folder = "<output_folder_path>/experiments/tmp"
 detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
 detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
 detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
-detector_tmp_folder = "<tmp_folder>/<component_name>/<algorithm_name>"
 detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
 detector_final_result_folder = "<out_sub_folder>/<component_name>"
 csv_out_folder = "<out_folder>/csv_files"
@@ -167,8 +165,7 @@ conda_path = "<conda_path>"
 - `assets` stores the folder path of additional assets, like model checkpoints and weights (str). See [download assets](../installation.md#2-download-assets) in the installation instructions.
 - `process_data_to` currently only supports the option "data_folder" (str), defined in the next line.
 - `data_folder` is the path to the directory in which pre-processed input data gets stored during run time (str). As different algorithms require different file formats and folder structures as input, the NICE Toolbox prepares the given data accordingly. This pre-processed data is stored/cashed for faster run times when repeating runs over the same data.
-- `tmp_folder` currently not yet supported (str).
-- `detector_out_folder`, `detector_visualization_folder`, `detector_additional_output_folder`, `detector_tmp_folder`, `detector_run_config_path`, and `detector_final_result_folder` define where each detector stores (possible) intermediate outputs (str). Depending on the components and algorithms run per detector and the [visualization settings](#general-properties), different intermediate outputs are produced. The final results of all components and algorithms per detector are saved under `detector_final_result_folder`.
+- `detector_out_folder`, `detector_visualization_folder`, `detector_additional_output_folder`, `detector_run_config_path`, and `detector_final_result_folder` define where each detector stores (possible) intermediate outputs (str). Depending on the components and algorithms run per detector and the [visualization settings](#general-properties), different intermediate outputs are produced. The final results of all components and algorithms per detector are saved under `detector_final_result_folder`.
 - `code_folder` names the machine's folder path to the nicetoolbox repo (str), by default, it is filled automatically.
 - `conda_path` names the folder path to the machine's conda installation (str), by default, it is filled automatically.
 
