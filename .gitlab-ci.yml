@@ -1,0 +1,84 @@
+# runs only on main and merge requests
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+stages:
+  - check
+  - test
+  - publish
+
+pre-commit-checks:
+  stage: check
+  tags:
+    - docker
+  image: python:3.10
+  script:
+    - pip install pre-commit
+    - pre-commit run --all-files
+  allow_failure: true
+
+test-job:
+  stage: test
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive # repo and submodules
+  tags:
+    - shell
+  script:
+    - bash scripts/build_docker.sh cicd true # build docker in dev mode
+    - docker run mpioslab/nicetoolbox:cicd bash -c
+      "source ./envs/nicetoolbox/bin/activate && pytest -v"
+
+publish-to-github:
+  stage: publish
+  when: manual
+  tags:
+    - docker
+  image: 
+    name: alpine/git
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0  # Fetch full history
+    GITHUB_URL: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/nicetoolbox.git
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - TAGS=$(git tag --points-at HEAD) 
+    - TAG_COUNT=$(echo "$TAGS" | wc -l)
+    - | # check that we have exactly one tag for this release
+      if [ -z "$TAGS" ] || [ "$TAG_COUNT" -ne 1 ]; then
+        echo "Error: Expected exactly 1 tag, found $TAGS"
+        exit 1
+      fi
+    - git checkout main  # we start with HEAD, so first checkout branch
+    - git remote add github $GITHUB_URL
+    - git push github main
+    - git push github $TAGS --force  # force push tags relevant to this commit
+
+publish-to-dockerhub:
+  stage: publish
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  variables:
+    GIT_STRATEGY: clone # make sure to clone it again, if tags were updated
+    GIT_SUBMODULE_STRATEGY: recursive # clone repo and submodules
+  tags:
+    - shell
+  script:
+    - TAGS=$(git tag --points-at HEAD) 
+    - TAG_COUNT=$(echo "$TAGS" | wc -l)
+    - | # check that we have exactly one tag for this release
+      if [ -z "$TAGS" ] || [ "$TAG_COUNT" -ne 1 ]; then
+        echo "Error: Expected exactly 1 tag, found $TAGS"
+        exit 1
+      fi
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+    - bash scripts/build_docker.sh latest false # build docker without dev deps
+    - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:latest
+    - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:$TAGS
+    - docker image push mpioslab/${DOCKERHUB_REPO}:latest
+    - docker image push mpioslab/${DOCKERHUB_REPO}:$TAGS
+  after_script:
+    - docker logout # we always try to logout, even if job failed
