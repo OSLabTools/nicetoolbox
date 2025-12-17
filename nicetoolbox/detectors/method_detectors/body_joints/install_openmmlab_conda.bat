@@ -9,16 +9,24 @@ echo Initializing conda...
 call conda init
 
 :: OPENMMLAB INSTALLATION 
+
 :: Create a conda environment
 echo Creating conda environment...
 call conda create --name openmmlab python=3.8 -y
+
 :: Activate conda environment
 echo Activating conda environment...
 call conda activate openmmlab
+
 :: Install PyTorch with CUDA
-echo Installing PyTorch and dependencies...
 :: note conda installation did not work after conda-forge channel setup
+echo Installing PyTorch and dependencies...
 call pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+
+:: Install nicetoolbox-core
+:: note: this script is called from the Makefile in the root directory
+echo Installing nicetoolbox-core dependencies...
+call pip install -e ./nicetoolbox_core
 
 :: Install MMPose and its dependencies
 echo Installing MMPose and dependencies...
@@ -34,11 +42,17 @@ echo Installing requirements from MMPose...
 call pip install -r requirements.txt
 call pip install -e .
 
+:: Install additional dependencies required for nicetoolbox inference scripts
 echo Installing additional dependencies...
 call conda install -c conda-forge pyparsing -y
 call conda install -c conda-forge six -y
 call conda install -c conda-forge toml -y
+
+:: TODO: Is this still a thing?
+:: needed on Caro's machine: downgrade protobuf
 call pip install protobuf==3.20.3
+
+:: Finalize
 call conda deactivate
 echo OPENMMLab Environment setup completed successfully.
 endlocal

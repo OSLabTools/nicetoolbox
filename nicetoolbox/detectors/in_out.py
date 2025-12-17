@@ -21,7 +21,6 @@ class IO:
         out_folder (str): The path to the output folder.
         log_level (str): The log level.
         out_sub_folder (str): The path to the output sub-folder.
-        tmp_folder (str): The path to the temporary folder.
         data_folder (str): The path to the data folder.
         data_input_folder (str): The path to the input data folder.
         calibration_file (str): The path to the calibration file.
@@ -32,7 +31,6 @@ class IO:
             folder.
         detector_additional_output_folder (str): The path to the detector additional
             output folder.
-        detector_tmp_folder (str): The path to the detector temporary folder.
         detector_run_config_path (str): The path to the detector run configuration file.
         detector_final_result_folder (str): The path to the detector final result
             folder.
@@ -99,10 +97,7 @@ class IO:
         """
 
         self.out_sub_folder = config["out_sub_folder"]
-        self.tmp_folder = config["tmp_folder"]
-        if config["process_data_to"] == "tmp_folder":
-            self.data_folder = self.tmp_folder
-        elif config["process_data_to"] == "data_folder":
+        if config["process_data_to"] == "data_folder":
             self.data_folder = config["data_folder"]
         self.create_folders()
 
@@ -121,7 +116,6 @@ class IO:
         self.detector_additional_output_folder = config[
             "detector_additional_output_folder"
         ]
-        self.detector_tmp_folder = config["detector_tmp_folder"]
         self.detector_run_config_path = config["detector_run_config_path"]
         self.detector_final_result_folder = config["detector_final_result_folder"]
 
@@ -175,8 +169,6 @@ class IO:
         Raises:
             NotImplementedError: If the token is not 'tmp', 'output', 'main', or 'csv'.
         """
-        if token == "tmp":
-            return self.tmp_folder
         if token == "output":
             return self.out_sub_folder
         if token == "main":
@@ -217,8 +209,6 @@ class IO:
             folder_name = copy.deepcopy(self.detector_visualization_folder)
         elif token == "additional":
             folder_name = copy.deepcopy(self.detector_additional_output_folder)
-        elif token == "tmp":
-            folder_name = copy.deepcopy(self.detector_tmp_folder)
         elif token == "result":
             folder_name = copy.deepcopy(self.detector_final_result_folder)
         elif token == "run_config":
@@ -269,21 +259,17 @@ class IO:
 
         Raises:
             TypeError: If the 'process_data_to' value is not a string.
-            ValueError: If the 'process_data_to' value is not 'tmp_folder' or
-                'data_folder'.
+            ValueError: If the 'process_data_to' value is not 'data_folder'.
             ValueError: If any of the detector input folders are invalid.
             OSError: If any of the detector input folders are not accessible.
 
         """
         # check the config['process_data_to'] input
         try:
-            exc.check_options(
-                config["process_data_to"], str, ["tmp_folder", "data_folder"]
-            )
+            exc.check_options(config["process_data_to"], str, ["data_folder"])
         except (TypeError, ValueError):
             logging.exception(
-                "Unsupported 'process_data_to' in io. "
-                "Valid options are 'tmp_folder' and 'data_folder'."
+                "Unsupported 'process_data_to' in io. " "Valid options: 'data_folder'."
             )
             raise
 
@@ -320,4 +306,3 @@ class IO:
             "<component_name>",
             "detector_final_result_folder",
         )
-        check_base_folder(config["detector_tmp_folder"], "tmp", "detector_tmp_folder")

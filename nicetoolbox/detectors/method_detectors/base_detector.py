@@ -94,6 +94,7 @@ class BaseDetector(ABC):
             "run_config.toml",
         )
         save_config(config, self.config_path)
+        self.config = config
 
         self.conda_path = io.get_conda_path()
         self.framework = (

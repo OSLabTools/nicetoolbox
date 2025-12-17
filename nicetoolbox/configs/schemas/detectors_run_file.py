@@ -28,11 +28,9 @@ class DetectorsRunIO(BaseModel):
 
     process_data_to: Path
     data_folder: Path
-    tmp_folder: Path
     detector_out_folder: Path
     detector_visualization_folder: Path
     detector_additional_output_folder: Path
-    detector_tmp_folder: Path
     detector_run_config_path: Path
     detector_final_result_folder: Path
     csv_out_folder: Path

@@ -197,7 +197,7 @@ def main(visualizer_config_file, machine_specifics_file):
             + frame_idx
             + config_handler.get_dataset_starting_index()
         )
-        image_name = f"{frame_no:05}.png"
+        image_name = f"{frame_no:09}.png"
         for camera in all_cameras:
             # log camera into 3d canvas
             image_path = os.path.join(

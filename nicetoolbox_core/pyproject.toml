@@ -1,0 +1,20 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
+[project]
+name = "nicetoolbox-core"
+description = "Core protocols and utilities for NICE Toolbox detectors."
+version = "0.1.0"
+requires-python = ">3.7,<3.13"
+
+# STRICTLY MINIMAL DEPENDENCIES
+# No torch, no opencv, no heavy libs.
+dependencies = [
+    "pydantic>=2.0.0",
+    "toml",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nicetoolbox_core*"]

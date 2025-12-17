@@ -145,7 +145,7 @@ def main(config: dict) -> None:
                 save_dir = os.path.join(config["out_folder"], cam_name)
                 os.makedirs(save_dir, exist_ok=True)
                 start_frame = int(config.get("video_start", 0))
-                save_path = os.path.join(save_dir, f"{start_frame + frame_idx:05d}.jpg")
+                save_path = os.path.join(save_dir, f"{start_frame + frame_idx:09d}.jpg")
                 cv2.imwrite(save_path, canvas)
 
         if (frame_idx != 0) & (frame_idx % config["log_frame_idx_interval"] == 0):

@@ -16,16 +16,6 @@ import pandas as pd
 from . import system as oslab_sys
 
 
-def run_command_line(string) -> None:
-    """
-    Run a command line string.
-
-    Args:
-        string (str): The command line string to be executed
-    """
-    os.system(string)
-
-
 def get_number_of_frames(video_file: str) -> int:
     """
     Get the number of frames in a video file.
@@ -79,47 +69,20 @@ def get_fps(video_file) -> int:
         return fps
 
 
-def get_ffmpeg_input_string(
-    video_file: str,
-    number_of_frames: int = None,
-    start_frame: int = None,
-    skip_frames: bool = None,
-) -> str:
+def get_ffmpeg_input_string(video_file: str) -> str:
     """
     Constructs the input string for running ffmpeg in the command line.
 
     Args:
         video_file (str): The path to the video file.
-        number_of_frames (int, optional): The number of frames to process.
-            Defaults to None.
-        start_frame (int, optional): The starting frame position. Defaults to None.
-        skip_frames (int, optional): The number of frames to skip. Defaults to None.
 
     Returns:
         str: The constructed ffmpeg input string.
     """
-
-    fps = get_fps(video_file)
-    # start to construct the string to run ffmpeg in command line
-    string = "ffmpeg "
-
-    if start_frame is not None:
-        start_position = start_frame / fps
-        string += f"-ss {start_position}s "
-
-    if number_of_frames is not None:
-        time_duration = number_of_frames / fps
-        string += f"-t {time_duration}s "
-
-    string += f"-i {video_file} "
-
-    if skip_frames is not None:
-        string += f"-r {skip_frames} "
-
-    return string + "-loglevel error "
+    return f"ffmpeg -i {video_file} -loglevel error "
 
 
-def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> int:
+def sequential2frame_number(number: int, start_frame: int) -> int:
     """
     Converts a sequential number to a frame number based on the given start frame
     and skip frames.
@@ -127,43 +90,27 @@ def sequential2frame_number(number: int, start_frame: int, skip_frames: int) -> 
     Args:
         number (int): The sequential number.
         start_frame (int): The starting frame number.
-        skip_frames (int): The number of frames to skip between each sequential number.
 
     Returns:
         int: The corresponding frame number.
 
     """
-    if skip_frames is None:
-        return start_frame + (number - 1)
-    return start_frame + (number - 1) * skip_frames
+    return start_frame + (number - 1)
 
 
 def split_into_frames(
-    video_file: str,
-    output_base: str,
-    start_frame: int = None,
-    number_of_frames: int = None,
-    skip_frames: int = None,
-    keep_indices: bool = True,
+    video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True
 ) -> tuple:
     """
-    Split a video into individual frames.
+    Split a video into individual frames using ffmpeg.
 
     Args:
         video_file (str): Path to the input video file.
         output_base (str): Base directory where the frames will be saved.
         start_frame (int, optional): The starting frame index.
-            Defaults to None.
-        number_of_frames (int, optional): The number of frames to extract.
-            Defaults to None.
-        skip_frames (int, optional): The number of frames to skip between each
-            extracted frame. Defaults to None.
+            Defaults to 0.
         keep_indices (bool, optional): Whether to keep the original frame indices
             or convert them to sequential numbers. Defaults to True.
-
-    Returns:
-        Tuple[List[str], List[int]]: A tuple containing two lists - the list of
-            extracted frame filenames and the list of corresponding frame indices.
 
     Raises:
         AssertionError: If splitting the video into frames fails.
@@ -176,36 +123,34 @@ def split_into_frames(
         The `skip_frames` option is not properly working yet. Its output is not fully
             understood yet.
     """
-    if skip_frames is not None:
-        print(
-            "WARNING! skip_frames option is not properly working yet!"
-            " - As its output is not fully understood yet."
-        )
-
-    string = get_ffmpeg_input_string(
-        video_file, number_of_frames, start_frame, skip_frames
-    )
-
-    # construct the string to run ffmpeg in command line
-    string += os.path.join(output_base, "%05d_tmp.png")
+    string = get_ffmpeg_input_string(video_file)
+    string += os.path.join(output_base, "%09d_tmp.png")
 
     # split the video
-    run_command_line(string)
+    os.system(string)
 
     frames_list_tmp = glob.glob(os.path.join(output_base, "*_tmp.png"))
-    assert frames_list_tmp != [], "Splitting input video into frames failed!"
+    n_frames_extracted = len(frames_list_tmp)
+    n_frames_expected = get_number_of_frames(video_file)
+    if n_frames_expected != n_frames_extracted:
+        logging.warning(
+            f"Expected {n_frames_expected} frames, but extracted "
+            f"{n_frames_extracted} frames from {video_file}."
+        )
+        raise AssertionError("Splitting video into frames failed. See log for details.")
 
     # convert continuous file numbers to actual frame indices
-    frames_list, frame_indices_list = [], []
+    frames_list, frame_indices_list = [], []  # BACKWARD COMPATIBILITY
     for file in sorted(frames_list_tmp):
-        old_idx = int(os.path.basename(file)[:5])
+        old_idx = int(os.path.basename(file)[:9])
         if keep_indices:
-            new_idx = sequential2frame_number(old_idx, start_frame, skip_frames)
-            new_filename = os.path.join(output_base, f"{new_idx:05d}.png")
+            new_idx = sequential2frame_number(old_idx, start_frame)
+            new_filename = os.path.join(output_base, f"{new_idx:09d}.png")
             if oslab_sys.detect_os_type() == "windows":
                 shutil.move(file, new_filename)
             else:
                 os.system(f"mv {file} {new_filename}")
+            # Below: BACKWARD COMPATIBILITY
             frame_indices_list.append(new_idx)
             frames_list.append(new_filename)
         else:
@@ -281,7 +226,7 @@ def equal_splits_by_frames(
     )
 
     # split the video
-    run_command_line(string)
+    os.system(string)
 
     # remove the very last segment if it is shorter than the others
     if not keep_last_split and total_frames % frames_per_split != 0:
@@ -332,7 +277,7 @@ def cut_length(
     string += f"{output_base}.{format} -y"
 
     # split the video
-    run_command_line(string)
+    os.system(string)
 
     return f"{output_base}.{format}"
 
