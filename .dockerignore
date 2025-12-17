@@ -8,6 +8,7 @@
 .codeclimate.yml
 .travis.yml
 .taskcluster.yml
+.gitlab-ci.yml
 
 # Docker
 docker-compose.yml

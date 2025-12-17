@@ -19,10 +19,11 @@ COPY . /nicetoolbox
 WORKDIR /nicetoolbox
 
 # do all toolbox installation steps
+ARG NICETOOLBOX_DEV
 RUN make create_machine_specifics && \
     make download_assets && \
     make download_dataset && \
-    make install
+    make install DEV=${NICETOOLBOX_DEV}
 
 # for version tracking we need to get git repository metadata 
 ARG NICETOOLBOX_GIT_HASH
