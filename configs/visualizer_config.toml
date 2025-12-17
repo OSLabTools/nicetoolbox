@@ -2,7 +2,7 @@
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
 nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
 nice_tool_output_folder = "<output_folder_path>/experiments"              # NICE Toolbox experiment output
-experiment_folder = "<output_folder_path>/experiments/DATE"               # select single NICE Toolbox experiment output folder
+experiment_folder = "<output_folder_path>/experiments/<yyyymmdd>"         # select single NICE Toolbox experiment output folder
 experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video
 experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
 
