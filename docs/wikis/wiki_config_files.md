@@ -32,14 +32,14 @@ Placeholders can be put into strings and are filled automatically during run-tim
 Placeholders are indicated by enclosing characters `<` and `>` and may take the following values:
 1. All keys in `./machine_specific_paths.toml`,
 2. All keys from `io` as defined in `./configs/detectors_run_file.toml`,
-3. The keys `<dataset_name>`, `<component_name>`, `<algorithm_name>`, `<session_ID>`, `<sequence_ID>`, `<camera_name>`, `<video_start>`, and `<video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./configs/detectors_run_file.toml`,
+3. The keys `<cur_dataset_name>`, `<cur_component_name>`, `<cur_algorithm_name>`, `<cur_session_ID>`, `<cur_sequence_ID>`, `<camera_name>`, `<cur_video_start>`, and `<cur_video_length>` that define the current experiment run are filled during program execution based on the specifications in the run file `./configs/detectors_run_file.toml`,
 4. The options `<git_hash>`, `<me>`, `<today>`, `<yyyymmdd>`, `<time>`, and `<pwd>`.
 
 
 Some examples:
 
 - The default output folder path defined in the [run file's io](#defining-input-and-output-files) is `"<output_folder_path>/experiments/<experiment_name>"`. During run time, the placeholder `<output_folder_path>` is filled from the [machine specifics](#machine-specifics) dictionary and the `<experiment_name>` is replaced by the value defined in the same dictionary as the output folder path, the [run file's io](#defining-input-and-output-files).
-- A typical example value for the data_input_folder in a [dataset's properties](#dataset-properties) is `"<datasets_folder_path>/test_dataset/<session_ID>/<camera_name>"`. The `<datasets_folder_path>` is filled from the [machine specifics](#machine-specifics) dictionary and both `<session_ID>` and `<camera_name>` are filled during run time individually for each experiment, as defined in the run file's [experiment selection](#defining-the-experiments).
+- A typical example value for the data_input_folder in a [dataset's properties](#dataset-properties) is `"<datasets_folder_path>/test_dataset/<cur_session_ID>/<camera_name>"`. The `<datasets_folder_path>` is filled from the [machine specifics](#machine-specifics) dictionary and both `<cur_session_ID>` and `<camera_name>` are filled during run time individually for each experiment, as defined in the run file's [experiment selection](#defining-the-experiments).
 
 
 
@@ -75,11 +75,9 @@ The run file `./configs/detectors_run_file.toml` defines the experiments to run.
 Properties that apply to all experiments.
 
 ```toml
-git_hash = "<git_hash>"
 visualize = true
 save_csv = true
 ```
-- `git_hash` is the identifier/hash of the current git commit (str), it is filled automatically by default.
 - `visualize` enables saving of intermediate results per detector (bool). Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
 - `save_csv` enables saving all results to 2d tables in csv-files (bool).
 
@@ -142,18 +140,18 @@ The last part of the run file specifies where inputs can be found and any output
 [io]
 experiment_name = "<yyyymmdd>"
 out_folder = "<output_folder_path>/experiments/<experiment_name>"
-out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
+out_sub_folder = "<out_folder>/<cur_dataset_name>_<cur_session_ID>_s<cur_video_start>_l<cur_video_length>"
 dataset_properties = "configs/dataset_properties.toml"
 detectors_config = "configs/detectors_config.toml"
 assets = "<code_folder>/nicetoolbox/detectors/assets"
 
 process_data_to = "data_folder"
-data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
-detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
-detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
-detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
-detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
-detector_final_result_folder = "<out_sub_folder>/<component_name>"
+data_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>"
+detector_out_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/detector_output"
+detector_visualization_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/visualization"
+detector_additional_output_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/additional_output"
+detector_run_config_path = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>"
+detector_final_result_folder = "<out_sub_folder>/<cur_component_name>"
 csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 conda_path = "<conda_path>"
@@ -205,7 +203,7 @@ fps = 30
 - `subjects_descr` lists identifiers for the subjects in each video or frame, ordered from left to right (list of str). The number of identifiers must match the number of people visible in the videos/frames.
 - `cam_sees_subjects` defines which camera view records which subject (dict: (cam_name, list of int)). It is a dictionary with the camera_names from above as keys. For each camera, the value describes the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0.
 - `path_to_calibrations` defines the path to the calibration files (str, optional). It likely contains the placeholder `<datasets_folder_path>`.
-- `data_input_folder` defines the path to the video or image files of the dataset (str). It likely contains placeholders such as `<datasets_folder_path>`, `<session_ID>`, and `<sequence_ID>`.
+- `data_input_folder` defines the path to the video or image files of the dataset (str). It likely contains placeholders such as `<datasets_folder_path>`, `<cur_session_ID>`, and `<cur_sequence_ID>`.
 - `start_frame_index` details how the dataset indexes its data (int). Typically, frame indices start with 0 or 1.
 - `fps` is the frame rate of the video data (int).
 
@@ -233,7 +231,7 @@ camera_names = [""]
 env_name = "env_type:env_id"
 ```
 - `input_data_format` describes which input type the algorithm expects (str). The currently supported option is "frames".
-- `camera_names` lists the camera views (as placeholders) of which the algorithm takes input data (list of str). Current options are "<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>".
+- `camera_names` lists the camera views (as placeholders) of which the algorithm takes input data (list of str). Current options are "<cur_cam_front>", "<cur_cam_top>", "<cur_cam_face1>", "<cur_cam_face2>".
 - `env_name` defines the python or conda environment for running the algorithm (str). Options are "venv:env_id" for a python environment and "conda:env_id" for a conda environment, in both cases "env_id" is to replaced by the environment's name.
 
 
@@ -275,14 +273,14 @@ Visualizer Config consists of three main part io, media, and component specifica
 ```toml
 [io]
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
+dataset_name = 'communication_multiview'                                  # dataset of the video
+video_name = 'communication_multiview_session_xyz_s0_l99'                 # name of video result folder
+nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>" # raw_processed input data
 experiment_folder = "<output_folder_path>/experiments/20240906_mm"        # NICE Toolbox experiment output
 experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video.
-experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
+experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # NICE Toolbox output folder for the specific component
 
 [media]                                # each Media session shows one video results.
-dataset_name = 'mpi_inf_3dhp'          # dataset of the video
-video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
 multi_view = true                      # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                      # specify what will be visualized
 components = [..]                     # list of components
@@ -314,7 +312,7 @@ Under 'media.component.appearance', you can configure the color and radii (the s
 [media.gaze_individual]
 algorithms = ['multiview_eth_xgaze']  # list of algorithms
 [media.gaze_individual.canvas]
-3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+3d_filtered = ["3D_Canvas", "<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
                                                                                       ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 [media.gaze_individual.appearance]
 colors = [[0,150, 90]]                  # define the color of individual gaze

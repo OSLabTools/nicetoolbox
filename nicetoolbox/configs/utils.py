@@ -3,6 +3,7 @@
 import getpass
 import os
 import time
+from pathlib import Path
 from typing import TypeVar
 
 import pydantic
@@ -46,6 +47,21 @@ def merge_dicts(a: dict, b: dict) -> dict:
     return {**a, **b}
 
 
+def get_latest_expirement_config_path(exp_folder: Path) -> Path:
+    # check if folder exist
+    if not exp_folder.is_dir():
+        raise FileNotFoundError(
+            f"Experiment folder does not exist or is not a directory: {exp_folder}"
+        )
+    # check if it's not empty
+    config_files = sorted(list(exp_folder.glob("config_*.toml")))
+    if not config_files:
+        raise RuntimeError(
+            f"No 'config_*.toml' files found in experiment folder: {exp_folder}"
+        )
+    return config_files[-1]
+
+
 def default_auto_placeholders(working_directory=None):
     if working_directory is None:
         working_directory = os.getcwd()
@@ -72,15 +88,15 @@ def default_auto_placeholders(working_directory=None):
 
 def default_runtime_placeholders():
     return {
-        "video_length",
-        "video_start",
-        "sequence_ID",
-        "dataset_name",
-        "session_ID",
-        "cam_face1",
-        "cam_face2",
-        "cam_top",
-        "cam_front",
-        "algorithm_name",
-        "component_name",
+        "cur_video_length",
+        "cur_video_start",
+        "cur_sequence_ID",
+        "cur_dataset_name",
+        "cur_session_ID",
+        "cur_cam_face1",
+        "cur_cam_face2",
+        "cur_cam_top",
+        "cur_cam_front",
+        "cur_algorithm_name",
+        "cur_component_name",
     }

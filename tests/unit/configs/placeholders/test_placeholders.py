@@ -135,10 +135,9 @@ def test_resolve_placeholders_unreachable():
 
 def test_resolve_placeholders_nonstring_values():
     """Test full resolution with non-string placeholder values in structures."""
-    # Critical test case: non-string value in dict referenced by nested dict
-    # This is the case from the user: video_start=2, a={b="<video_start>"}
-    result = resolve_placeholders({"video_start": 2, "a": {"b": "<video_start>"}}, {})
-    assert result == {"video_start": 2, "a": {"b": "2"}}
+    # Non-string value in dict referenced by nested dict
+    result = resolve_placeholders({"outer": 2, "a": {"b": "<outer>"}}, {})
+    assert result == {"outer": 2, "a": {"b": "2"}}
 
     # Dict with non-string placeholders
     result = resolve_placeholders(

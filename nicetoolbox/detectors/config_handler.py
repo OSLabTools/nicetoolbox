@@ -110,36 +110,36 @@ class Configuration:
 
             # next we iterate over each video marked for run
             for video in dataset_dict["videos"]:
-                # TODO: we need to refactor setting it here and retrieving in another
-                # function. This add a lot of confusion.
+                # TODO: we need to refactor setting runtime ctx in this iterator
+                # and referencing it in another functions. They should probably resolved
+                # in one place
                 self.runtime_ctx = {
-                    "dataset_name": dataset_name,
-                    "session_ID": video["session_ID"],
-                    "sequence_ID": video["sequence_ID"],
-                    "video_start": video["video_start"],
-                    "video_length": video["video_length"],
-                    "cam_face1": cur_dataset_config["cam_face1"],
-                    "cam_face2": cur_dataset_config["cam_face2"],
-                    "cam_top": cur_dataset_config["cam_top"],
-                    "cam_front": cur_dataset_config["cam_front"],
+                    "cur_dataset_name": dataset_name,
+                    "cur_session_ID": video["session_ID"],
+                    "cur_sequence_ID": video["sequence_ID"],
+                    "cur_video_start": video["video_start"],
+                    "cur_video_length": video["video_length"],
+                    "cur_cam_face1": cur_dataset_config["cam_face1"],
+                    "cur_cam_face2": cur_dataset_config["cam_face2"],
+                    "cur_cam_top": cur_dataset_config["cam_top"],
+                    "cur_cam_front": cur_dataset_config["cam_front"],
                 }
                 # TODO: this is just horific flat config combined from random parts
-                # it contains runtime fields in the root which breaks fields collision
-                # of main config loader. I currently resolve it as is, but this need to
-                # be properly refactored into data structure
+                # I currently resolve it as is, but this need to be properly refactored
+                # into nested data structure (i.e. pydantic class)
                 video_config = {
-                    **self.runtime_ctx,
+                    "dataset_name": dataset_name,
+                    **video,
                     **cur_dataset_config,
                     **self.run_config["io"],
                     **self.machine_specific_config,
                 }
-                # by this point, everything should be resolved, except algo and comp
+                # now we resolve almost all placeholders except algo and comp
                 # they will be resolved latter in main detectors loop
-                runtime_placeholders = {"algorithm_name", "component_name"}
-                loader = ConfigLoader(self.auto_placeholders, runtime_placeholders)
-                video_config_res = loader.resolve(video_config)
-
-                self.current_data_config = video_config_res
+                # global context is already dumped in this structure (so we ignore it)
+                self.current_data_config = self.cfg_loader.resolve(
+                    video_config, self.runtime_ctx, ignore_auto_and_global=True
+                )
                 yield self.current_data_config, component_dict
 
     def get_method_configs(self, method_names):
@@ -156,9 +156,7 @@ class Configuration:
                     ]
                 )
 
-            localized_config = self.cfg_loader.resolve(
-                method_config, runtime_ctx=self.runtime_ctx
-            )
+            localized_config = self.cfg_loader.resolve(method_config, self.runtime_ctx)
             localized_config["camera_names"] = [
                 cam for cam in localized_config["camera_names"] if cam != ""
             ]
@@ -199,7 +197,7 @@ class Configuration:
         # TODO: mark that it requires get_video_and_comps_configs first
         all_camera_names = set()
         detector_config = self.cfg_loader.resolve(
-            self.detector_config, runtime_ctx=self.runtime_ctx
+            self.detector_config, self.runtime_ctx
         )
         for detector in algorithm_names:
             if "camera_names" in detector_config["algorithms"][detector]:

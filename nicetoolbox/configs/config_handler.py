@@ -61,33 +61,6 @@ def load_config(config_file: str) -> dict:
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
-def load_validated_config(config_filepath: str, schema: Type[ModelT]) -> ModelT:
-    """
-    Load a configuration file, validate it using a Pydantic model
-    and return as the model instance.
-
-    Args:
-        config_filepath (str): Path to the config file.
-        schema (Type[ModelT]): Pydantic model class used to validate.
-
-    Returns:
-        T: An instance of schema populated from the file.
-
-    Raises:
-        IOError: When an array with no valid (existing)
-        FileNotFoundError: If the file does not exist.
-        NotImplementedError: If the file type is not supported.
-        TomlDecodeError: Error while decoding toml
-        ConfigValidationError: If validation fails.
-    """
-    config_raw = load_config(config_filepath)
-    try:
-        config = schema.model_validate(config_raw, extra="forbid")
-    except pydantic.ValidationError as e:
-        raise ConfigValidationError(e, Path(config_filepath)) from None
-    return config
-
-
 def load_validated_config_raw(config_filepath: str, schema: Type[ModelT]) -> dict:
     """
     Load a configuration file, validate it using a Pydantic model

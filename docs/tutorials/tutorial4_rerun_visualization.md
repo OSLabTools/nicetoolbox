@@ -37,14 +37,14 @@ The visualizer config `./configs/visualizer_config.toml` consists of three main 
 ```toml
 [io]
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
-nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
+dataset_name = 'mpi_inf_3dhp'                            # dataset of the video
+video_name = 'mpi_inf_3dhp_S1_s20_l20'                   # name of video result folder
+nice_tool_input_folder = "<output_folder_path>/raw_processed/isa_tool_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>" # raw_processed input data
 experiment_folder = "<output_folder_path>/experiments/20240906_mm"        # NICE Toolbox experiment output
 experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video.
-experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
+experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # NICE Toolbox output folder for the specific component
 
 [media]                                # each Media session shows one video results.
-dataset_name = 'mpi_inf_3dhp'          # dataset of the video
-video_name = 'mpi_inf_3dhp_S1_s20_l20' # name of video result folder
 multi_view = true                      # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                      # specify what will be visualized
 components = [..]                     # list of components
@@ -89,7 +89,7 @@ Under 'media.component.appearance', you can configure the color and radii (the s
 [media.gaze_individual]
 algorithms = ['multiview_eth_xgaze']            # list of algorithms
 [media.gaze_individual.canvas]
-3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+3d_filtered = ["3D_Canvas", "<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
                                                                                       ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 [media.gaze_individual.appearance]
 colors = [[0,150, 90]]                  # define the color of individual gaze

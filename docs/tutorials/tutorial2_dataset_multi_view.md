@@ -77,7 +77,7 @@ cam_face2 = 'view_alice'                                   # a camera seeing Ali
 subjects_descr = ["Bob", "Alice"]                          # Alice and Bob are visible in the scene
 cam_sees_subjects = {view_front=[0, 1], view_bob=[0], view_alice=[1]}            # one camera sees both people, the others only one each
 path_to_calibrations = "<datasets_folder_path>/test_mv_dataset/calibration.npz"  # file path of the calibration file
-data_input_folder = "<datasets_folder_path>/test_mv_dataset/<session_ID>"        # file path of the video files
+data_input_folder = "<datasets_folder_path>/test_mv_dataset/<cur_session_ID>"        # file path of the video files
 start_frame_index = 0                                      # given video files, enter the default 0
 fps = 25                                                   # all cameras capture 25 frames per second
 ```

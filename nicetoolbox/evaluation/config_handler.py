@@ -5,18 +5,15 @@ Provides loop over evaluation tasks.
 
 import logging
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Iterator, List, Tuple
 
-import toml
-from pydantic import ValidationError
-
-from ..configs.config_handler import load_validated_config_raw
+from ..configs.config_loader import ConfigLoader
 from ..configs.schemas.dataset_properties import (
     DatasetConfig,
     DatasetConfigEvaluation,
     DatasetProperties,
 )
-from ..configs.schemas.detectors_run_file import DetectorsRunConfig, DetectorsRunFile
+from ..configs.schemas.detectors_run_file import DetectorsRunConfig, DetectorsRunIO
 from ..configs.schemas.evaluation_config import (
     AggregationConfig,
     EvaluationConfig,
@@ -24,12 +21,34 @@ from ..configs.schemas.evaluation_config import (
     EvaluationMetricType,
 )
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
-from ..utils import config as cfg
+from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
+from ..configs.utils import (
+    default_auto_placeholders,
+    default_runtime_placeholders,
+    get_latest_expirement_config_path,
+    model_to_dict,
+)
 from ..utils.logging_utils import log_configs
 from .config_schema import FinalEvaluationConfig
 
 
 class ConfigHandler:
+    cfg_loader: ConfigLoader
+    auto_placeholders: dict[str, str]
+    runtime_placeholders: set[str]
+
+    machine_specific_config: MachineSpecificConfig
+    global_settings: EvaluationConfig
+    io_config: EvaluationIO
+    metric_type_configs: dict[str, EvaluationMetricType]
+    summaries_configs: dict[str, AggregationConfig]
+
+    experiment_config: DetectorsExperimentConfig
+    experiment_io: DetectorsRunIO
+    component_algorithm_mapping: dict[str, list[str]]
+    all_run_configs: dict[str, DetectorsRunConfig]
+    all_dataset_properties: DatasetProperties
+
     def __init__(self, eval_config_file: str, machine_specifics_file: str) -> None:
         """
         Handles loading and parsing of configuration files for evaluation.
@@ -38,229 +57,46 @@ class ConfigHandler:
             eval_config_file (str): Path to the evaluation configuration TOML file.
             machine_specifics_file (str): Path to the machine-specifics TOML file.
         """
-        # ---- (1) Load raw TOML files ----
-        eval_config_path = Path(eval_config_file)
-        machine_specifics_path = Path(machine_specifics_file)
-
-        self.raw_evaluation_config = toml.load(eval_config_path)
-        self.raw_machine_specifics = toml.load(machine_specifics_path)
-
-        # ---- (2) Parse evaluation_config.toml related configs/dataclasses ----
-        self.merged_config = {
-            **self.raw_evaluation_config,
-            **self.raw_machine_specifics,
-        }
-
-        self.io_config: EvaluationIO = self._parse_io_config()
-        self.global_settings: EvaluationConfig = self._parse_global_settings()
-        self.metric_type_configs: Dict[str, EvaluationMetricType] = (
-            self.global_settings.metrics
+        # Init config loader
+        self.auto_placeholders = default_auto_placeholders()
+        self.runtime_placeholders = default_runtime_placeholders()
+        self.cfg_loader = ConfigLoader(
+            self.auto_placeholders, self.runtime_placeholders
         )
-        self.summaries_configs: Dict[str, AggregationConfig] = (
-            self.global_settings.summaries
+        # Machine specific
+        self.machine_specific_config = self.cfg_loader.load_config(
+            machine_specifics_file, MachineSpecificConfig
         )
+        self.cfg_loader.extend_global_ctx(self.machine_specific_config)
 
-        # --- (3) Parse detector experiment run config ---
+        # Evaluation config
+        self.global_settings = self.cfg_loader.load_config(
+            eval_config_file, EvaluationConfig
+        )
+        # Shortcuts for evaluation config fields
+        self.io_config = self.global_settings.io
+        self.metric_type_configs = self.global_settings.metrics
+        self.summaries_configs = self.global_settings.summaries
+
         # Load the latest run configuration from the experiment folder
         # It contains the run_config and dataset_properties
-        self.experiment_run_config_raw = self._load_latest_experiment_config()
-
-        # self.detector_config = self._parse_detector_config()
-        self.component_algorithm_mapping = self._parse_component_algorithm_mapping()
-
-        # Parsed from experiment run config_raw
-        self.all_run_configs: Dict[str, DetectorsRunConfig] = self._parse_run_configs()
-        self.all_dataset_properties: DatasetProperties = (
-            self._parse_dataset_properties()
+        experiment_folder = self.io_config.experiment_folder
+        experiment_cfg_path = get_latest_expirement_config_path(experiment_folder)
+        logging.info(
+            f"Loading latest experiment run configuration from: {experiment_cfg_path}"
+        )
+        self.experiment_config = self.cfg_loader.load_config(
+            str(experiment_cfg_path),
+            DetectorsExperimentConfig,
+            ignore_auto_and_global=True,
         )
 
-    def _localize(
-        self, config: Dict, fill_io: bool = True, fill_data: Optional[Dict] = None
-    ) -> Dict:
-        """
-        Localize placeholders in the given config dictionary.
-        The localization is done in multiple passes to ensure all placeholders are
-        resolved correctly.
-
-        Args:
-            config (Dict): The configuration dictionary to localize.
-            fill_io (bool): Whether to fill IO-related placeholders.
-            fill_data (Optional[Dict]): Additional reference/baseline data for
-                placeholder replacement.
-
-        Returns:
-            Dict: The localized configuration dictionary.
-        """
-        # 1) auto placeholders: git_hash, today, etc. (uses cfg.config_fill_auto)
-        c1 = cfg.config_fill_auto(config)
-
-        # 2) machine placeholders
-        c2 = cfg.config_fill_placeholders(c1, self.raw_machine_specifics)
-
-        # 3) IO placeholders (conditionally)
-        if fill_io and self.io_config is not None:
-            io_dict = {
-                k: str(v) if isinstance(v, Path) else v
-                for k, v in self.io_config.__dict__.items()
-            }
-            c2 = cfg.config_fill_placeholders(c2, io_dict)
-
-        # 4) Additional placeholders (e.g., merged_config, experiment_run_config_raw)
-        if fill_data is not None:
-            # Ensure fill_data values are strings if they are Path objects
-            safe_fill_data = {
-                k: str(v) if isinstance(v, Path) else v for k, v in fill_data.items()
-            }
-            c2 = cfg.config_fill_placeholders(c2, safe_fill_data)
-
-        # 5) recursive fill (self-referential within the config being processed)
-        c3 = cfg.config_fill_placeholders(c2, c2)
-        return cfg.config_fill_placeholders(c3, c3)
-
-    def _parse_io_config(self) -> EvaluationIO:
-        """
-        Parse the IO configuration from the merged configuration.
-
-        Returns:
-            IOConfig: The parsed IO configuration dataclass.
-        """
-        raw_io_cfg = self.merged_config.get("io", {})
-        localized_io_cfg = self._localize(raw_io_cfg, fill_io=False)
-        try:
-            return EvaluationIO.model_validate(localized_io_cfg)
-        except ValidationError as e:
-            logging.error(f"Error parsing IOConfig: {e}", exc_info=True)
-            raise
-
-    def _parse_metric_type_configs(self) -> Dict[str, EvaluationMetricType]:
-        """
-        Parse the metric type configurations from the merged configuration.
-
-        Returns:
-            Dict[str, MetricTypeConfig]: A dictionary mapping metric type names to
-                their configurations.
-        """
-        metric_types = dict()
-        metric_type_configs_raw = self.merged_config.get("metrics", {})
-        for metric_type, metric_type_config in metric_type_configs_raw.items():
-            metric_type_config.update({"metric_type": metric_type})
-            try:
-                metric_types[metric_type] = EvaluationMetricType.model_validate(
-                    metric_type_config
-                )
-            except ValidationError as e:
-                logging.error(f"Error parsing MetricTypeConfig for {metric_type}: {e}")
-        return metric_types
-
-    def _parse_global_settings(self) -> EvaluationConfig:
-        """
-        Parse the global evaluation settings from the merged configuration.
-
-        Returns:
-            GlobalEvalConfig: The parsed global evaluation settings dataclass.
-        """
-        # Extract global settings using the dataclass for validation/defaults
-        try:
-            return EvaluationConfig(**self.merged_config)
-        except ValidationError as e:
-            logging.error(f"Error parsing GlobalEvalConfig: {e}")
-            raise
-
-    def _load_latest_experiment_config(self) -> dict:
-        """
-        Load the latest experiment run configuration from the detector
-        experiment folder.
-
-        Returns:
-            dict: The loaded experiment run configuration.
-        """
-        exp_folder = self.io_config.experiment_folder
-
-        if not exp_folder.is_dir():
-            logging.error(
-                f"Experiment folder does not exist or is not a directory: {exp_folder}"
-            )
-            # Fallback or specific error handling might be needed if this is critical
-            raise FileNotFoundError(f"Experiment folder not found: {exp_folder}")
-
-        try:
-            config_files = sorted(list(exp_folder.glob("config_*.toml")))
-            if not config_files:
-                logging.error(
-                    f"No 'config_*.toml' files found in experiment folder: {exp_folder}"
-                )
-                raise RuntimeError(f"No 'config_*.toml' files found in {exp_folder}")
-
-            latest_cfg_path = config_files[-1]
-            logging.info(
-                f"Loading latest experiment run configuration from: {latest_cfg_path}"
-            )
-            return load_validated_config_raw(
-                str(latest_cfg_path), DetectorsExperimentConfig
-            )
-
-        except Exception as e:
-            logging.error(f"Error loading latest experiment config: {e}")
-            raise RuntimeError(f"Failed to load experiment config: {e}") from e
-
-    def _parse_component_algorithm_mapping(self) -> Dict[str, str]:
-        """
-        Parse the component to algorithm mapping from the experiment run config.
-
-        Returns:
-            Dict[str, str]: A dictionary mapping component names to algorithm names.
-        """
-        return self.experiment_run_config_raw.get("run_config", {}).get(
-            "component_algorithm_mapping", {}
-        )
-
-    def _parse_run_configs(self) -> Dict[str, DetectorsRunConfig]:
-        """
-        Parse the run configurations from the experiment run config.
-
-        Returns:
-            Dict[str, RunConfig]: A dictionary mapping dataset names to their
-                run configurations (Which components/videos have been processed).
-        """
-        run_config_raw = self.experiment_run_config_raw["run_config"]
-        run_config = DetectorsRunFile(**run_config_raw)
-        return run_config.run
-
-    def _parse_dataset_properties(self) -> DatasetProperties:
-        """
-        Parse the dataset properties from the experiment run config.
-
-        Returns:
-            DatasetProperties: A dictionary-like mapping dataset names to their
-                properties.
-        """
-        dataset_properties_raw = self.experiment_run_config_raw.get(
-            "dataset_config", {}
-        )
-        for name, props_dict_raw in dataset_properties_raw.items():
-            # Base for localization:
-            reference = {**self.merged_config, **props_dict_raw}
-            props_localized = self._localize(props_dict_raw, fill_data=reference)
-            dataset_properties_raw[name] = props_localized  # TODO: refactor this
-
-        all_properties = DatasetProperties.model_validate(dataset_properties_raw)
-        return all_properties
-
-    def get_combined_experiment_io_config(self) -> EvaluationIO:
-        """
-        Get the IO configuration, optionally including experiment-specific IO.
-
-        Returns:
-            IOConfig: The combined IO configuration dataclass.
-        """
-        combined_io_config = self.io_config.model_dump()
-        experiment_io = self._localize(
-            self.experiment_run_config_raw["run_config"]["io"]
-        )
-
-        config = EvaluationIO.model_validate(combined_io_config)
-        config._experiment_io = experiment_io
-        return config
+        # Shortucts for experiment config
+        run_config = self.experiment_config.run_config
+        self.experiment_io = run_config.io
+        self.component_algorithm_mapping = run_config.component_algorithm_mapping
+        self.all_run_configs = run_config.run
+        self.all_dataset_properties = self.experiment_config.dataset_config
 
     def save_experiment_config(self, output_folder: Path) -> None:
         """
@@ -273,18 +109,18 @@ class ConfigHandler:
         """
         log_configs(
             dict(
-                machine_specific_config=self.raw_machine_specifics,
-                io_config=self.get_combined_experiment_io_config().model_dump(),
-                global_eval_config=self.global_settings.model_dump(),
+                machine_specific_config=model_to_dict(self.machine_specific_config),
+                io_config=model_to_dict(self.io_config),
+                global_eval_config=model_to_dict(self.global_settings),
                 run_configs={
-                    name: config.model_dump()
+                    name: model_to_dict(config)
                     for name, config in self.all_run_configs.items()
                 },
                 dataset_properties={
-                    name: props.model_dump()
+                    name: model_to_dict(props)
                     for name, props in self.all_dataset_properties.items()
                 },
-                component_algorithm_mapping=self._parse_component_algorithm_mapping(),
+                component_algorithm_mapping=self.component_algorithm_mapping,
             ),
             str(output_folder),
             file_name="config_<time>",

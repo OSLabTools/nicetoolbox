@@ -92,7 +92,7 @@ A few details:
 - `cam_top`, `cam_face1`, and `cam_face2` are only used for multi-view datasets. These can be left as an empty string.
 - `subjects_descr` The length of this list reflects the number of people visible in the data. For each person visible, add an identifier.
 - `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0. See the example below.
-- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be the strings `<session_ID>`, `<sequence_ID>`, or `<datasets_folder_path>`.
+- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be the strings `<cur_session_ID>`, `<cur_sequence_ID>`, or `<datasets_folder_path>`.
 
 A comprehensive and detailed description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](../wikis/wiki_config_files.md#dataset-properties).
 
@@ -134,7 +134,7 @@ cam_face2 = ''
 subjects_descr = ["personL", "personR"]                    # there are 2 people visible in the video
 cam_sees_subjects = {view_1 = [0, 1]}                      # one camera ("view_1") and the order of the subjects named in 'subjects_descr'
 path_to_calibrations = "<datasets_folder_path>/test_dataset/calibration.npz"           # where to find the calibration file (reflects the folder structure above)
-data_input_folder = "<datasets_folder_path>/test_dataset/<session_ID>/<sequence_ID>/"  # where to find the video/frames data (reflects the folder structure above)
+data_input_folder = "<datasets_folder_path>/test_dataset/<cur_session_ID>/<cur_sequence_ID>/"  # where to find the video/frames data (reflects the folder structure above)
 start_frame_index = 0                                      # the dataset provides frames that are indexed starting from 0
 fps = 30                                                   # the camera captures at a framerate of 30 frames per second
 ```
@@ -148,7 +148,7 @@ The NICE Toolbox expects a `calibration.npz` file containing the calibration det
 
 Create a `single_view_calibration.toml` file that contains the following dictionary for each of your session_IDs and sequence_IDs:
 ```toml
-[<session_ID>__<sequence_ID>.<camera_name>]   # enter your session_ID, sequence_ID, and camera_name
+[<cur_session_ID>__<cur_sequence_ID>.<camera_name>]   # enter your session_ID, sequence_ID, and camera_name
 camera_name = "<camera_name>"                 # enter the camera_name
 image_size = [ <width>, <height> ]            # provide the image resolution (width and height) in pixels
 mtx = [ [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0] ]

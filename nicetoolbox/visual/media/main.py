@@ -41,7 +41,7 @@ def main(visualizer_config_file, machine_specifics_file):
     # IO
     io = IO(visualizer_config)
     nice_tool_input_folder = io.get_component_nice_tool_input_folder(
-        visualizer_config["video"], visualizer_config["media"]["dataset_name"]
+        visualizer_config["video"], visualizer_config["io"]["dataset_name"]
     )
 
     # load calibration for the video
@@ -54,12 +54,14 @@ def main(visualizer_config_file, machine_specifics_file):
             camera_names=config_handler.get_camera_names(),
         )
     if not calib:
-        print("WARNING: User did not provide a valid calibration file. "
-              "Visualization of camera positions, 3d pose estimation, and gaze results "
-              "requires calibration data.")
+        print(
+            "WARNING: User did not provide a valid calibration file. "
+            "Visualization of camera positions, 3d pose estimation, and gaze results "
+            "requires calibration data."
+        )
         if visualizer_config["media"]["multi_view"]:
             raise ValueError(
-                "ERROR: Calibration file was not provided. Cannot visualize the multi-view "
+                "ERROR: Calibration file was not provided. Cannot visualize multi-view "
                 "Set it False in visualizer_config \n "
             )
 
@@ -72,7 +74,6 @@ def main(visualizer_config_file, machine_specifics_file):
     for cam in all_cameras:
         config_handler.check_calibration(calib, cam)
     viewer.check_multiview()
-    visualizer_config = config_handler.check_and_update_canvas()
 
     # LOAD COMPONENTS DATA
     components_list = visualizer_config["media"]["visualize"]["components"]

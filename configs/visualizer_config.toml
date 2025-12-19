@@ -1,14 +1,14 @@
 [io]
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
-nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>" # raw_processed input data
+dataset_name = 'communication_multiview'                                  # dataset of the video
+video_name = 'communication_multiview_session_xyz_s0_l99'                 # name of video result folder
+nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>" # raw_processed input data
 nice_tool_output_folder = "<output_folder_path>/experiments"              # NICE Toolbox experiment output
 experiment_folder = "<output_folder_path>/experiments/<yyyymmdd>"         # select single NICE Toolbox experiment output folder
 experiment_video_folder = "<experiment_folder>/<video_name>"              # NICE Toolbox output folder for the specific video
-experiment_video_component = "<experiment_video_folder>/<component_name>" # NICE Toolbox output folder for the specific component
+experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # NICE Toolbox output folder for the specific component
 
 [media]                                                    # each Media session shows one video results.
-dataset_name = 'communication_multiview'                   # dataset of the video
-video_name = 'communication_multiview_session_xyz_s0_l99'  # name of video result folder
 multi_view = true                                          # true if you have multiple cameras, otherwise set it to false
 [media.visualize]                                          # specify what will be visualized
 components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_individual", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
@@ -40,7 +40,7 @@ visualize_interval = 1                                     # 1 means visualize e
 algorithms = ['multiview_eth_xgaze']            # list of algorithms
 
 [media.gaze_individual.canvas]
-3d_filtered = ["3D_Canvas", "<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+3d_filtered = ["3D_Canvas", "<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
 ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 
 [media.gaze_individual.appearance]
@@ -52,8 +52,8 @@ radii = {'3d'= 0.01, 'camera_view'= 4}  # define the size of gaze arrow in 3D_Ca
 algorithms = ['gaze_distance']
 
 [media.gaze_interaction.canvas]
-gaze_look_at_3d = ["3D_Canvas", "<cam_face1>", "<cam_face2>"] ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
-#gaze_look_at_2d = ["<cam_front>"]                            ## use data key gaze_look_at_2d if you don't have a multi-view setup.
+gaze_look_at_3d = ["3D_Canvas", "<cur_cam_face1>", "<cur_cam_face2>"] ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+#gaze_look_at_2d = ["<cur_cam_front>"]                            ## use data key gaze_look_at_2d if you don't have a multi-view setup.
 
 [media.gaze_interaction.appearance]
 colors = [[[0,221, 22], [247, 13, 26]]] # first one is bright green and used when the person is
@@ -67,7 +67,7 @@ algorithms = ['vitpose', 'hrnetw48']
 
 [media.body_joints.canvas]
 3d = ["3D_Canvas"] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
-2d_interpolated = ["<cam_top>", "<cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
+2d_interpolated = ["<cur_cam_top>", "<cur_cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
 
 [media.body_joints.appearance]
 colors = [[0, 191, 255], [200, 200, 200]]
@@ -79,7 +79,7 @@ algorithms = ['hrnetw48']
 
 [media.hand_joints.canvas]
 3d = ["3D_Canvas"] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
-2d_interpolated = ["<cam_top>", "<cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
+2d_interpolated = ["<cur_cam_top>", "<cur_cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
 
 [media.hand_joints.appearance]
 colors = [[255, 69, 0]]  # orange #alternative 255, 165, 0
@@ -92,7 +92,7 @@ algorithms = ['hrnetw48']
 
 [media.face_landmarks.canvas]
 3d = ["3D_Canvas"] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
-2d_interpolated = ["<cam_top>", "<cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
+2d_interpolated = ["<cur_cam_top>", "<cur_cam_front>"]  ##key options: 2d, 2d_interpolated, 2d_filtered ##value options: [camera names]
 
 [media.face_landmarks.appearance]
 colors =  [[170,171,69]] #[255,255,4] yellow =- green j. [77, 188, 139]
@@ -104,7 +104,7 @@ radii = {'3d'= 0.01, 'camera_view'= 4}
 algorithms = ['py_feat']
 
 [media.emotion_individual.canvas]
-emotions = ["<cam_top>", "<cam_front>", "<cam_face1>", "<cam_face2>"]  ##value options: [camera names]
+emotions = ["<cur_cam_top>", "<cur_cam_front>", "<cur_cam_face1>", "<cur_cam_face2>"]  ##value options: [camera names]
 
 [media.emotion_individual.appearance]
 colors =  [[[255,0,0], [85,170,47], [72,61,139], [255,215,0], [70,130,180], [255,140,0], [128, 128, 128]]] #red, dark olive green, dark stale blue, gold, steel blue, dark orange, gray  
@@ -115,7 +115,7 @@ radii = {'3d'= 0.01, 'camera_view'= 4}
 algorithms = ['spiga']
 
 [media.head_orientation.canvas]
-head_orientation_2d = ["<cam_front>", "<cam_top>", "<cam_face1>", "<cam_face2>"]  ##value options: [camera names]
+head_orientation_2d = ["<cur_cam_front>", "<cur_cam_top>", "<cur_cam_face1>", "<cur_cam_face2>"]  ##value options: [camera names]
 
 [media.head_orientation.appearance]
 colors =  [[[255,92,0], [85,170,47]]] #neon orange, dark olive green
@@ -141,7 +141,7 @@ algorithms = ['body_distance']
 
 [media.proximity.canvas]
 body_distance_3d = [] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
-body_distance_2d = ["<cam_top>", "<cam_front>"] ## value options: [camera nanes]
+body_distance_2d = ["<cur_cam_top>", "<cur_cam_front>"] ## value options: [camera nanes]
 
 [media.proximity.appearance]
 colors = [[153,50,204]]
