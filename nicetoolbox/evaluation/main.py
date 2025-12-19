@@ -37,7 +37,11 @@ def main_evaluation_run(eval_config: str, machine_specifics: str) -> None:
         raise
 
     # Initialize IO manager
-    io_manager = IO(config_handler.get_combined_experiment_io_config())
+    io_manager = IO(
+        config_handler.io_config,
+        config_handler.experiment_io,
+        config_handler.cfg_loader,
+    )
 
     # Write log file to the output folder
     log_file_path: Path = io_manager.output_folder / "nice_evaluation.log"

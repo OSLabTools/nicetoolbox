@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
@@ -13,9 +13,6 @@ class EvaluationIO(BaseModel):
     experiment_folder: Path
     output_folder: Path
     eval_visualization_folder: Path
-
-    # Runtime fields
-    _experiment_io: dict[str, Any] = PrivateAttr(default_factory=dict)
 
 
 class EvaluationMetricType(BaseModel):
@@ -64,7 +61,6 @@ class EvaluationConfig(BaseModel):
     Contains I/O paths and metric type definitions.
     """
 
-    git_hash: str
     device: str
     batchsize: int
     verbose: bool

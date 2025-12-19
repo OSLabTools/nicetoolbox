@@ -220,8 +220,8 @@ class IO:
                 f"'additional', 'tmp', 'result'."
             )
 
-        folder_name = folder_name.replace("<component_name>", component).replace(
-            "<algorithm_name>", algorithm
+        folder_name = folder_name.replace("<cur_component_name>", component).replace(
+            "<cur_algorithm_name>", algorithm
         )
         os.makedirs(folder_name, exist_ok=True)
         return folder_name
@@ -289,20 +289,20 @@ class IO:
                 raise
 
         check_base_folder(
-            config["detector_out_folder"], "<component_name>", "detector_out_folder"
+            config["detector_out_folder"], "<cur_component_name>", "detector_out_folder"
         )
         check_base_folder(
             config["detector_visualization_folder"],
-            "<component_name>",
+            "<cur_component_name>",
             "detector_visualization_folder",
         )
         check_base_folder(
             config["detector_additional_output_folder"],
-            "<component_name>",
+            "<cur_component_name>",
             "detector_additional_output_folder",
         )
         check_base_folder(
             config["detector_final_result_folder"],
-            "<component_name>",
+            "<cur_component_name>",
             "detector_final_result_folder",
         )

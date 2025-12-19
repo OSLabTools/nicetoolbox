@@ -5,7 +5,6 @@
 
 # === (1) Global Settings ===
 
-git_hash = "<git_hash>"     # Latest git commit for current pipeline run
 device = 'cuda:0'           # One of ("cpu", "cuda:0")
 batchsize = 1000            # Batchsize for data loader 
 verbose = true              # Verbose outputs (incl. csv files and automatic summaries)

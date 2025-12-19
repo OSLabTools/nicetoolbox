@@ -51,7 +51,7 @@ def test_load_detectors_config():
 
     # simullate runtime resolution
     for session_ID in ["sesion_1", "sesion_2"]:
-        ctx = {"session_ID": session_ID}
-        res_dataset = cfg_loader.resolve(dataset, runtime_ctx=ctx)
+        ctx = {"cur_session_ID": session_ID}
+        res_dataset = cfg_loader.resolve(dataset, ctx)
         example_field = res_dataset["communication_multiview"].data_input_folder
         assert session_ID in str(example_field)

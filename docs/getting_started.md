@@ -47,7 +47,7 @@ cam_face2 = 'view_right'
 subjects_descr = ["person_left", "person_right"]
 cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]}
 path_to_calibrations = "<datasets_folder_path>/communication_multiview/calibrations.npz"
-data_input_folder = "<datasets_folder_path>/communication_multiview/<session_ID>/"
+data_input_folder = "<datasets_folder_path>/communication_multiview/<cur_session_ID>/"
 start_frame_index = 0
 fps = 30
 ```
@@ -95,20 +95,17 @@ To monitor the experiment, check the log file at `/path/to/<out_folder>/nicetool
 
 There are multiple options to visualize the results of NICE toolbox.
 For an interactive experience, we recommend using our `visual` code, which runs `rerun`.
-To do so, open `./configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `media.dataset_name`, and `media.video_name`.
+To do so, open `./configs/visualizer_config.toml` and update the entries `io.experiment_folder`, `io.dataset_name`, and `io.video_name`.
 
 ```toml
 [io]
-dataset_folder = "<datasets_folder_path>"
-nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
+dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
+dataset_name = 'communication_multiview'                                  # dataset of the video
+video_name = 'communication_multiview_session_xyz_s0_l99'                 # name of video result folder
+nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>"
 experiment_folder = "<output_folder_path>/experiments/..."                 # NICE Toolbox experiment output folder
 experiment_video_folder = "<experiment_folder>/<video_name>"
 experiment_video_component = "<experiment_video_folder>/<component_name>"
-
-[media]
-dataset_name = 'mpi_inf_3dhp'                                              # name of the video's dataset
-video_name = 'mpi_inf_3dhp_S1_s20_l20'                                     # name of video result folder
-multi_view = true
 ```
 
 A detailed description of visualizer configuration can be found in the wiki page on config files under [visualizer config](wikis/wiki_config_files.md#visualizer-config).

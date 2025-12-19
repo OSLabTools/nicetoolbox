@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, NonNegativeInt, model_validator
+from pydantic import BaseModel, NonNegativeInt, model_serializer, model_validator
 
 from .visualizer_comp_configs import COMP_REGISTRY
 
@@ -27,8 +27,6 @@ class MediaConfig(BaseModel):
     Contains a collection of visualizer component configurations.
     """
 
-    dataset_name: str
-    video_name: str
     multi_view: bool
     visualize: MediaVisualizeConfig
 
@@ -55,6 +53,18 @@ class MediaConfig(BaseModel):
             del values[k]
         return values
 
+    # now we do the opposite
+    @model_serializer(mode="wrap")
+    def serialize_components(self, serializer):
+        # get the default serialized data
+        data = serializer(self)
+        # extract components dict
+        components = data.pop("components", {})
+        # promote each component to top-level
+        for comp_name, comp_config in components.items():
+            data[comp_name] = comp_config
+        return data
+
 
 class VisualizerIO(BaseModel):
     """
@@ -63,6 +73,8 @@ class VisualizerIO(BaseModel):
     """
 
     dataset_folder: Path
+    dataset_name: str
+    video_name: str
     nice_tool_input_folder: Path
     nice_tool_output_folder: Path
     experiment_folder: Path

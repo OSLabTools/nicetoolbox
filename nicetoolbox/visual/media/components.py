@@ -46,7 +46,7 @@ class Component(ABC):
         self.component_name = component_name
         self.logger = logger
         self.component_prediction_folder = io.get_component_results_folder(
-            visualizer_config["media"]["video_name"], component_name=component_name
+            visualizer_config["io"]["video_name"], component_name=component_name
         )
         self.algorithm_list = self.visualizer_config["media"][self.component_name][
             "algorithms"

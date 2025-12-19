@@ -4,7 +4,7 @@
 # gaze_individual
 [algorithms.multiview_eth_xgaze]
 input_data_format = "frames"
-camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
+camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
 env_name = "venv:multiview_eth_xgaze"
 shape_predictor_filename = "<assets>/multiview_eth_xgaze/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<assets>/multiview_eth_xgaze/face_model.txt"
@@ -18,7 +18,7 @@ polyorder = 2
 # body_joints, hand_joints, face_landmarks
 [frameworks.mmpose]
 input_data_format = "frames"
-camera_names = ["<cam_top>", "<cam_front>"]
+camera_names = ["<cur_cam_top>", "<cur_cam_front>"]
 env_name = "conda:openmmlab"
 multi_person = true
 save_images = true
@@ -71,7 +71,7 @@ threshold_look_at = 0.4
 # emotion_individual
 [algorithms.py_feat]
 input_data_format = "frames"
-camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
+camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
 env_name = "venv:py_feat"
 log_frame_idx_interval = 200
 # For batch_size, ensure:
@@ -82,7 +82,7 @@ max_cores = -1  # -1 will use all available cores
 # head_orientation
 [algorithms.spiga]
 input_data_format = "frames"
-camera_names = ["<cam_face1>", "<cam_face2>", "<cam_top>", "<cam_front>"]
+camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
 env_name = "venv:spiga"
 log_frame_idx_interval = 200
 batch_size = 32

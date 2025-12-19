@@ -22,7 +22,6 @@ def test_io_config_validates_with_correct_data():
 
     assert config.experiment_folder == Path("/path/to/exp")
     assert isinstance(config.output_folder, Path)
-    assert config._experiment_io == {}  # Check that default factory worked
 
 
 def test_io_config_fails_if_required_field_is_missing():

@@ -31,7 +31,7 @@ class ConfigLoader:
         self.global_placeholders = {}
 
     def load_config(
-        self, path: str, schema: type[ModelT], ignore_global=False
+        self, path: str, schema: type[ModelT], ignore_auto_and_global=False
     ) -> ModelT:
         """
         Loads a TOML configuration file, resolves all placeholders using available
@@ -41,9 +41,9 @@ class ConfigLoader:
         Args:
             path (str): Path to the configuration file.
             schema (type[ModelT]): Pydantic model class to validate the configuration.
-            ignore_global (bool, optional): If True, excludes global_placeholders
-                from resolution context. Used for self-contained configs like experiment
-                that bundle their own dependencies. Defaults to False.
+            ignore_auto_and_global (bool, optional): If True, excludes global and auto
+                placeholders from resolution context. Used for self-contained configs
+                like experiment that bundle their own dependencies. Defaults to False.
 
         Returns:
             ModelT: Validated Pydantic model instance populated with resolved
@@ -61,36 +61,7 @@ class ConfigLoader:
                 schema validation).
         """
         cfg_raw = load_config(path)
-        return self.load_config_dict(cfg_raw, schema, ignore_global)
-
-    def load_config_dict(
-        self, cfg_dict: dict, schema: type[ModelT], ignore_global=False
-    ) -> ModelT:
-        """
-        Takes input dictionary config, resolves all placeholders using available
-        contexts (auto, global and runtime) and validates the result against a Pydantic
-        schema. The configuration is returned as a validated Pydantic model instance.
-
-        Args:
-            cfg_dict (dict): Config dict (usually already parsed from .toml)
-            schema (type[ModelT]): Pydantic model class to validate the configuration.
-            ignore_global (bool, optional): If True, excludes global_placeholders
-                from resolution context. Used for self-contained configs like experiment
-                that bundle their own dependencies. Defaults to False.
-
-        Returns:
-            ModelT: Validated Pydantic model instance populated with resolved
-                config data.
-
-        Raises:
-            ValueError: If placeholders cannot be resolved due to missing
-                values, circular dependencies, or exceed max iterations.
-            KeyError: If there's a collision between placeholder contexts
-                or between local config fields and placeholder names.
-            ConfigValidationError: If the resolved configuration fails
-                schema validation).
-        """
-        cfg_raw_resolved = self.resolve(cfg_dict, ignore_global)
+        cfg_raw_resolved = self.resolve(cfg_raw, None, ignore_auto_and_global)
         cfg = dict_to_model(cfg_raw_resolved, schema)
         return cfg
 
@@ -116,8 +87,8 @@ class ConfigLoader:
     def resolve(
         self,
         config: Any,
-        ignore_global: bool = False,
         runtime_ctx: Optional[dict[str, PLACEHOLDERS_TYPE]] = None,
+        ignore_auto_and_global: bool = False,
     ) -> Any:
         r"""
         Recursively processes the configuration to replace all placeholder
@@ -127,12 +98,12 @@ class ConfigLoader:
         Args:
             config: Configuration data to resolve. Can be dict, list,
                 Pydantic model, string or any nested combination.
-            ignore_global (bool, optional): If True, excludes
-                global_placeholders from the resolution context. Used for
-                self-contained configs.
             runtime_ctx (Optional[dict[str, PLACEHOLDERS_TYPE]], optional): Additional
                 placeholders to provide at runtime (e.g., current video name,
                 session ID, active detector).
+            ignore_auto_and_global (bool, optional): If True, excludes global and auto
+                placeholders from resolution context. Used for self-contained configs
+                like experiment that bundle their own dependencies. Defaults to False.
 
         Returns:
             Copy of config with all resolvable placeholders replaced.
@@ -146,10 +117,10 @@ class ConfigLoader:
                 placeholder names.
         """
         # prepare external context (auto, global and runtime)
-        ctx = dict(self.auto_placeholders)
+        ctx = {}
         unreachable = self.runtime_placeholders
-        if not ignore_global:
-            ctx = merge_dicts(ctx, self.global_placeholders)
+        if not ignore_auto_and_global:
+            ctx = merge_dicts(self.auto_placeholders, self.global_placeholders)
         if runtime_ctx:
             ctx = merge_dicts(ctx, runtime_ctx)
             # if provided some runtime ctx - it should be reachable now

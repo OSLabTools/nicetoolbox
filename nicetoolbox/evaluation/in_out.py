@@ -2,7 +2,6 @@
 Input and Output management for the evaluation module.
 """
 
-import copy
 import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -10,7 +9,9 @@ from typing import Any, Dict
 import numpy as np
 import pandas as pd
 
+from ..configs.config_loader import ConfigLoader
 from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.detectors_run_file import DetectorsRunIO
 from ..configs.schemas.evaluation_config import EvaluationIO
 
 
@@ -19,7 +20,25 @@ class IO:
     Manages folder structure and reading/writing NPZ results.
     """
 
-    def __init__(self, io_config: EvaluationIO):
+    # initially available
+    _cfg_loader: ConfigLoader
+    output_folder: Path
+    eval_visualization_folder: Path
+    experiment_folder: Path
+    _experiment_folder_placeholders: Path
+
+    # when dataset set
+    dataset_name: str
+    experiment_results_folder: str
+    path_to_annotations: Path
+    path_to_calibrations: Path
+
+    def __init__(
+        self,
+        io_config: EvaluationIO,
+        experiment_io: DetectorsRunIO,
+        cfg_loader: ConfigLoader,
+    ):
         """
         Initialize the IO manager with the provided IO configuration.
 
@@ -27,8 +46,7 @@ class IO:
             io_config (IOConfig): Configuration object containing paths for
                 experiment, output, and evaluation visualization folders.
         """
-        self.io_config = io_config
-        self.experiment_io = io_config._experiment_io
+        self._cfg_loader = cfg_loader
 
         self.output_folder = io_config.output_folder
         self.eval_visualization_folder = io_config.eval_visualization_folder
@@ -37,10 +55,12 @@ class IO:
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
         self.experiment_folder = io_config.experiment_folder
-        self.experiment_folder_placeholders = io_config._experiment_io[
-            "detector_final_result_folder"
-        ]
+        self._experiment_folder_placeholders = (
+            experiment_io.detector_final_result_folder
+        )  # noqa: E501
 
+    # TODO: IO mutates itself, when we call init_dataset
+    # it should be immutable and only return mutated data
     def init_dataset(self, dataset_properties: DatasetConfig):
         """
         Dataset-specific IO initialization inside the main dataset loop.
@@ -48,12 +68,7 @@ class IO:
         Args:
             dataset_properties (DatasetProperties): Properties for the specific dataset.
         """
-        # Experiment details:
         self.dataset_name = dataset_properties._dataset_name
-        self.experiment_results_folder = self.experiment_folder_placeholders.replace(
-            "<dataset_name>", self.dataset_name
-        )
-        # Dataset Properties
         self.path_to_annotations = dataset_properties.path_to_annotations
         self.path_to_calibrations = dataset_properties.path_to_calibrations
 
@@ -69,18 +84,20 @@ class IO:
         Returns:
             Path: The path to the detector results file.
         """
-        folder_path = copy.deepcopy(self.experiment_results_folder)
-        folder_path = folder_path.replace("<component_name>", component)
-        folder_path = folder_path.replace("<algorithm_name>", algorithm)
-        folder_path = folder_path.replace("<session_ID>", video_config.session_ID)
-        folder_path = folder_path.replace("<sequence_ID>", video_config.sequence_ID)
-        folder_path = folder_path.replace(
-            "<video_start>", str(video_config.video_start)
+        # resolve folder path in case there are placeholders
+        runtime_ctx = {
+            "cur_dataset_name": self.dataset_name,
+            "cur_component_name": component,
+            "cur_algorithm_name": algorithm,
+            "cur_session_ID": video_config.session_ID,
+            "cur_sequence_ID": video_config.sequence_ID,
+            "cur_video_start": video_config.video_start,
+            "cur_video_length": video_config.video_length,
+        }
+        resolved_folder_path = self._cfg_loader.resolve(
+            str(self._experiment_folder_placeholders), runtime_ctx
         )
-        folder_path = folder_path.replace(
-            "<video_length>", str(video_config.video_length)
-        )
-        return Path(folder_path) / f"{algorithm}.npz"
+        return Path(resolved_folder_path) / f"{algorithm}.npz"
 
     def get_out_folder(self, selection="", component=""):
         """

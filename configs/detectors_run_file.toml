@@ -30,18 +30,19 @@ videos = [
 [io]
 experiment_name = "<yyyymmdd>"                                     # define the name of the experiment (str), default: date as "<yyyymmdd>"
 out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
-out_sub_folder = "<out_folder>/<dataset_name>_<session_ID>_s<video_start>_l<video_length>"
+out_sub_folder_name = "<cur_dataset_name>_<cur_session_ID>_s<cur_video_start>_l<cur_video_length>"
+out_sub_folder = "<out_folder>/<out_sub_folder_name>"
 dataset_properties = "configs/dataset_properties.toml"
 detectors_config = "configs/detectors_config.toml"
 assets = "<code_folder>/nicetoolbox/detectors/assets"
 
 process_data_to = "data_folder"
-data_folder = "<output_folder_path>/nicetoolbox_input/<dataset_name>_<session_ID>_<sequence_ID>"
-detector_out_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/detector_output"
-detector_visualization_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/visualization"
-detector_additional_output_folder = "<out_sub_folder>/<component_name>/<algorithm_name>/additional_output"
-detector_run_config_path = "<out_sub_folder>/<component_name>/<algorithm_name>"
-detector_final_result_folder = "<out_sub_folder>/<component_name>"
+data_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>"
+detector_out_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/detector_output"
+detector_visualization_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/visualization"
+detector_additional_output_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/additional_output"
+detector_run_config_path = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>"
+detector_final_result_folder = "<out_sub_folder>/<cur_component_name>"
 csv_out_folder = "<out_folder>/csv_files"
 code_folder = "<pwd>"
 

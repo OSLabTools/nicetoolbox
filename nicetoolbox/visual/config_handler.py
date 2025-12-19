@@ -1,39 +1,59 @@
 import glob
 import os
 
-from ..configs.config_handler import load_validated_config_raw
+from ..configs.config_loader import ConfigLoader
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
-from ..utils import config as confh
+from ..configs.utils import (
+    default_auto_placeholders,
+    default_runtime_placeholders,
+    model_to_dict,
+)
 from ..utils import visual_utils as vis_ut
 
 
 class Configuration:
+    cfg_loader: ConfigLoader
+    auto_placeholders: dict[str, str]
+    runtime_placeholders: set[str]
+
     def __init__(
         self,
         visualizer_config_file: str,
         machine_specifics_file: str,
         stats_only: bool = False,
     ):
-        self.config_files = dict(
-            visualizer_config_file=visualizer_config_file,
-            machine_specifics_file=machine_specifics_file,
+        # init config loader
+        self.auto_placeholders = default_auto_placeholders()
+        self.runtime_placeholders = default_runtime_placeholders()
+        self.cfg_loader = ConfigLoader(
+            self.auto_placeholders, self.runtime_placeholders
         )
-        # load experiment config dicts - these can contain placeholders
-        self.visualizer_config = load_validated_config_raw(
-            visualizer_config_file, VisualizerConfig
-        )
-        self.machine_specific_config = load_validated_config_raw(
+        # machine specific
+        machine_specific_config = self.cfg_loader.load_config(
             machine_specifics_file, MachineSpecificConfig
         )
+        self.cfg_loader.extend_global_ctx(machine_specific_config)
+        # visualizer config
+        visualizer_config = self.cfg_loader.load_config(
+            visualizer_config_file, VisualizerConfig
+        )
+        self.cfg_loader.extend_global_ctx(visualizer_config.io)
+
+        # TODO: rest of the codebase except the configs as dict
+        # so we convert them from models to configs
+        # will be refactored soon
+        self.machine_specific_config = model_to_dict(machine_specific_config)
+        self.visualizer_config = model_to_dict(visualizer_config)
+
         if stats_only:
             self._initialize_statistics()
         else:
             self._initialize_media()
 
     def _initialize_statistics(self) -> None:
-        self.nice_tool_out_folder = self._localize(self.visualizer_config)["io"][
+        self.nice_tool_out_folder = self.visualizer_config["io"][
             "nice_tool_output_folder"
         ]
 
@@ -43,9 +63,7 @@ class Configuration:
             experiment_config_file = sorted(
                 glob.glob(
                     os.path.join(
-                        self._localize(self.visualizer_config)["io"][
-                            "experiment_folder"
-                        ],
+                        self.visualizer_config["io"]["experiment_folder"],
                         "config_*.toml",
                     )
                 )
@@ -57,19 +75,28 @@ class Configuration:
             # ! an error
             print(
                 "\nCould not find the latest experiment config file in "
-                f"{self._localize(self.visualizer_config)['io']['experiment_folder']}\n\n"
+                f"{self.visualizer_config['io']['experiment_folder']}\n\n"
             )
             raise
 
-        loaded_experiment_config = load_validated_config_raw(
-            experiment_config_file, DetectorsExperimentConfig
+        # load detectors expirement config
+        # it should be already fully resolved except runtime placeholders
+        # so we ignore global context and auto
+        loaded_experiment_config = self.cfg_loader.load_config(
+            experiment_config_file,
+            DetectorsExperimentConfig,
+            ignore_auto_and_global=True,
         )
+        # TODO: rest of the codebase except the configs as dict
+        # so we convert them from models to configs
+        loaded_experiment_config = model_to_dict(loaded_experiment_config)
+
         self.experiment_run_config = loaded_experiment_config["run_config"]
         self.experiment_detector_config = loaded_experiment_config["detector_config"]
         self.dataset_properties = loaded_experiment_config["dataset_config"]
 
         # get experiment properties
-        self.dataset_name = self.visualizer_config["media"]["dataset_name"]
+        self.dataset_name = self.visualizer_config["io"]["dataset_name"]
 
         # update visualizer config - which will be given to components
         self.visualizer_config["video"] = self.experiment_run_config["run"][
@@ -97,37 +124,24 @@ class Configuration:
             if alg in algorithms_list
         }
 
-    def _localize(self, config, fill_io=True, fill_data=False, dataset_name=None):
-        # fill placeholders
-        config = confh.config_fill_auto(config)
-        config = confh.config_fill_placeholders(config, self.machine_specific_config)
-        if fill_io:
-            config = confh.config_fill_placeholders(config, self._get_io_config())
-        if fill_data:
-            config = confh.config_fill_placeholders(
-                config, self.dataset_properties[dataset_name]
-            )
-        config = confh.config_fill_placeholders(config, config)
-        return config
-
     def _get_io_config(self, add_exp=False):
-        io_config = self._localize(self.visualizer_config["io"], fill_io=False)
-        if add_exp:
-            # add to the return config the NICE Toolbox experiment io
-            io_config.update(
-                experiment_io=self._localize(
-                    self._localize(self.experiment_run_config["io"])
-                )
-            )
+        io_config = self.visualizer_config["io"]
+        if add_exp:  # add to the return config the NICE Toolbox experiment io
+            io_config["experiment_io"] = self.experiment_run_config["io"]
         return io_config
 
     def get_updated_visualizer_config(self):
-        return self._localize(
-            self.visualizer_config,
-            fill_io=False,
-            fill_data=True,
-            dataset_name=self.dataset_name,
+        cur_dataset_config = self.dataset_properties[self.dataset_name]
+        runtime_ctx = {
+            "cur_cam_face1": cur_dataset_config["cam_face1"],
+            "cur_cam_face2": cur_dataset_config["cam_face2"],
+            "cur_cam_top": cur_dataset_config["cam_top"],
+            "cur_cam_front": cur_dataset_config["cam_front"],
+        }
+        updated_visualizer_config = self.cfg_loader.resolve(
+            self.visualizer_config, runtime_ctx, ignore_auto_and_global=True
         )
+        return updated_visualizer_config
 
     def get_isa_tool_out_folder(self):
         return self.nice_tool_out_folder
@@ -245,34 +259,3 @@ class Configuration:
                 "in visualizer_config.toml\n"
             )
         return 0
-
-    # Extract lists from config, check, and update if necessary
-    def check_and_update_canvas(self):
-        """
-        Checks if the canvas list under a given section and key matches a condition,
-        and updates the list if not.
-        """
-        for component in self.visualizer_config["media"]["visualize"]["components"]:
-            for key, values in self.visualizer_config["media"][component][
-                "canvas"
-            ].items():
-                removed_values = []
-                for value in values:
-                    if "cam" in value and (
-                        value.strip("<>") not in self._get_camera_placeholders()
-                    ):
-                        removed_values.append(value)
-                if removed_values:
-                    print(
-                        f"WARNING: {removed_values} camera placeholders are not used in"
-                        f" your dataset properties.They will not be visualized. \n To "
-                        f"avoid this warning, consider removing '{removed_values}' "
-                        f"from the ['media'][{component}]['canvas'] list "
-                        f"in the visualizer_config.toml file"
-                    )
-                    updated_list = [v for v in values if v not in removed_values]
-                    self.visualizer_config["media"][component]["canvas"][key] = (
-                        updated_list
-                    )
-
-        return self.get_updated_visualizer_config()
