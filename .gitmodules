@@ -1,9 +1,9 @@
 [submodule "submodules/mmpose"]
 	path = submodules/mmpose
-	url = https://github.com/open-mmlab/mmpose
+	url = https://github.com/OSLabTools/mmpose
 [submodule "submodules/multiview_eth_xgaze"]
 	path = submodules/multiview_eth_xgaze
 	url = https://github.com/OSLabTools/multiview_ETH_XGaze
 [submodule "submodules/SPIGA"]
 	path = submodules/SPIGA
-	url = https://github.com/andresprados/SPIGA.git
+	url = https://github.com/OSLabTools/SPIGA
