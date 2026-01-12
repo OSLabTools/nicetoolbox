@@ -14,6 +14,8 @@ import toml
 import torch
 from insightface.app import FaceAnalysis
 
+from nicetoolbox_core.dataloader import ImagePathsByFrameIndexLoader
+
 # --- Add submodule path ---
 top_level_dir = Path(__file__).resolve().parents[4]
 sys.path.append(str(top_level_dir) + "/submodules/SPIGA")
@@ -38,15 +40,20 @@ def main(config: dict) -> None:
     )
     logging.info("Running SPIGA head orientation detection!")
 
-    frames_list = config.get("frames_list")
+    # (1) Access config parameters
+
     camera_names = config["camera_names"]
     subjects_descr = config["subjects_descr"]
     cam_sees_subjects = config["cam_sees_subjects"]
-    camera_order = config["camera_order"]
-    n_frames = len(frames_list)
+
+    # (2) Prepare data loader
+    dataloader = ImagePathsByFrameIndexLoader(
+        config=config, expected_cameras=camera_names
+    )
+    n_frames = len(dataloader)
     n_cams = len(camera_names)
 
-    # Detect if GPU is available for ONNXRuntime
+    # (3) Detect if GPU is available for ONNXRuntime
     available_providers = onnxruntime.get_available_providers()
     if "CUDAExecutionProvider" in available_providers:
         providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
@@ -55,13 +62,14 @@ def main(config: dict) -> None:
         providers = ["CPUExecutionProvider"]
         logging.info("Using CPU for InsightFace.")
 
-    # Initialize face detector and SPIGA model
+    # (4) Initialize face detector and SPIGA model
     face_detector = FaceAnalysis(name="buffalo_l", providers=providers)
     face_detector.prepare(ctx_id=0)
 
     spiga_model = SPIGAFramework(ModelConfig(config.get("model_config", "wflw")))
     plotter = Plotter()
 
+    # (5) Prepare results storage
     headpose_vectors = np.zeros((len(subjects_descr), n_cams, n_frames, 6))
     bbox_vectors = np.zeros(
         (len(subjects_descr), n_cams, n_frames, 4)
@@ -75,35 +83,37 @@ def main(config: dict) -> None:
             2,
         )  # coordinate_x & y
     )
+
+    # (6) Inference loop
     frame_indices = []
+    for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(dataloader):
+        frame_indices.append(f"{real_frame_idx:09d}")
 
-    for frame_idx, frame_paths in enumerate(frames_list):
-        frame_name = os.path.splitext(os.path.basename(frame_paths[0]))[0]
-        frame_indices.append(frame_name)
+        for camera_name, image_path in frame_paths_per_camera.items():
+            cam_i = camera_names.index(camera_name)
 
-        for cam_i, image_path in enumerate(frame_paths):
-            if cam_i >= len(frame_paths):
-                continue
-
-            cam_name = camera_order[cam_i]
+            # (A) Load images per camera
             image_bgr = cv2.imread(image_path)
             if image_bgr is None:
                 logging.warning(f"Could not read image at {image_path}")
                 continue
 
+            # (B) Detect faces with InsightFace
             faces = face_detector.get(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
             if not faces:
                 logging.warning(
-                    f"No faces found in frame {frame_idx}, camera {cam_name}"
+                    f"No faces found in frame {real_frame_idx}, camera {camera_name}"
                 )
                 continue
+
+            # (C) Sort faces by x-coordinate to maintain consistent ordering (TODO!)
             faces_sorted = sorted(faces, key=lambda face: face.bbox[0])
             bboxes = []
             for face in faces_sorted:
                 x1, y1, x2, y2 = face.bbox
                 bboxes.append([float(x1), float(y1), float(x2 - x1), float(y2 - y1)])
 
-            # Run SPIGA on the image and bboxes
+            # (D) Run SPIGA given the image and detected bboxes
             features = spiga_model.inference(image_bgr, bboxes)
             canvas = image_bgr.copy()
 
@@ -112,7 +122,7 @@ def main(config: dict) -> None:
                 euler_yzx = np.array(features["headpose"][i][:3])
                 translation_vector = np.array(features["headpose"][i][3:])
 
-                subj_map = cam_sees_subjects.get(cam_name, [])
+                subj_map = cam_sees_subjects.get(camera_name, [])
                 subj_idx = subj_map[i] if i < len(subj_map) else i
 
                 if subj_idx >= len(subjects_descr):
@@ -142,7 +152,7 @@ def main(config: dict) -> None:
 
             # Save annotated frame
             if config.get("visualize", True):
-                save_dir = os.path.join(config["out_folder"], cam_name)
+                save_dir = os.path.join(config["out_folder"], camera_name)
                 os.makedirs(save_dir, exist_ok=True)
                 start_frame = int(config.get("video_start", 0))
                 save_path = os.path.join(save_dir, f"{start_frame + frame_idx:09d}.jpg")
@@ -162,7 +172,7 @@ def main(config: dict) -> None:
         "data_description": {
             "headpose": {
                 "axis0": subjects_descr,
-                "axis1": camera_order,
+                "axis1": camera_names,
                 "axis2": frame_indices,
                 "axis3": [
                     "euler_angle_1",
@@ -175,13 +185,13 @@ def main(config: dict) -> None:
             },
             "face_bbox": {
                 "axis0": subjects_descr,
-                "axis1": camera_order,
+                "axis1": camera_names,
                 "axis2": frame_indices,
                 "axis3": ["x0", "y0", "width", "height"],
             },
             "face_landmark_2d": {
                 "axis0": subjects_descr,
-                "axis1": camera_order,
+                "axis1": camera_names,
                 "axis2": frame_indices,
                 "axis3": config["face_landmarks_description"],
                 "axis4": ["coordinate_x", "coordinate_y"],

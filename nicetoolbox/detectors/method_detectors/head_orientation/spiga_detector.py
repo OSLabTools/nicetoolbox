@@ -8,6 +8,8 @@ import os
 import cv2
 import numpy as np
 
+from nicetoolbox_core.dataloader import ImagePathsByFrameIndexLoader
+
 from ....configs.config_handler import load_validated_config_raw
 from ....configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ....utils import video as vd
@@ -89,27 +91,33 @@ class Spiga(BaseDetector):
             f"Prepare Inference for '{self.algorithm}' and component {self.components}."
         )
 
-        self.frames_list = data.frames_list
-        config["frames_list"] = self.frames_list
-        config["frame_indices_list"] = data.frame_indices_list
-        self.video_start = data.video_start
+        # (1) Get keypoint indices and add to config
         predictions_mapping = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.keypoints_indices = predictions_mapping[
-            self.components[0]
-        ][self.algorithm]["keypoints_index"]
+        self.keypoints_indices = predictions_mapping[self.components[0]][
+            self.algorithm
+        ]["keypoints_index"]
         config["face_landmarks_description"] = confh.flatten_list(
             extract_key_per_value(self.keypoints_indices["face"])
         )
 
-        # Call the base class constructor
+        # (2) Call the base class constructor (with updated config including keypoints)
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
 
-        self.camera_names = [n for n in config["camera_names"] if n]
+        # (3) Specific data config initializations
+        self.video_start = data.video_start
+
+        self.camera_names = config["camera_names"]
         self.cam_sees_subjects = config["cam_sees_subjects"]
         self.results_folder = config["result_folders"][self.components[0]]
-        self.camera_order = config["camera_order"]
+
+        # (4) Initialise data loader
+        self.dataloader = ImagePathsByFrameIndexLoader(
+            config=config, expected_cameras=self.camera_names
+        )
+
+        logging.info("Inference Preparation completed.\n")
 
     def post_inference(self):
         """
@@ -117,7 +125,7 @@ class Spiga(BaseDetector):
         """
         n_subjects = len(self.subjects_descr)
         n_cams = len(self.camera_names)
-        n_frames = len(self.frames_list)
+        n_frames = len(self.dataloader)
         spiga_vectors = np.zeros((n_subjects, n_cams, n_frames, 8))
 
         prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
@@ -131,7 +139,7 @@ class Spiga(BaseDetector):
         # Todo: vectorize
         for subj_idx in range(n_subjects):
             for cam_idx in range(n_cams):
-                for frame_idx in range(len(self.frames_list)):
+                for frame_idx in range(n_frames):
                     # Extract headpose
                     headpose = headposes[subj_idx][cam_idx][frame_idx]  # shape (6,)
                     landmarks = face_landmarks[subj_idx][cam_idx][frame_idx]
@@ -180,7 +188,7 @@ class Spiga(BaseDetector):
             {
                 "head_orientation_2d": {
                     "axis0": self.subjects_descr,
-                    "axis1": self.camera_order,
+                    "axis1": self.camera_names,
                     "axis2": data_description["headpose"]["axis2"],
                     "axis3": [
                         "start_x",
@@ -205,20 +213,16 @@ class Spiga(BaseDetector):
         prediction_file = os.path.join(self.results_folder, f"{self.algorithm}.npz")
         predictions = np.load(prediction_file, allow_pickle=True)
         head_data = predictions["head_orientation_2d"]
-        data_decr_arr = predictions["data_description"]
-        camera_order = data_decr_arr.item()["head_orientation_2d"]["axis1"]
 
         # per camera and frame, visualize each subject's gaze
         success = True
-        for camera_name in camera_order:
-            cam_idx = camera_order.index(camera_name)
+        for cam_idx, camera_name in enumerate(self.camera_names):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
-            for frame_idx in range(head_data.shape[2]):
-                # load the original input image
-                image_file = [
-                    file for file in self.frames_list[frame_idx] if camera_name in file
-                ][0]
+            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(
+                self.dataloader
+            ):
+                image_file = frame_paths_per_camera[camera_name]
                 image = cv2.imread(image_file)
 
                 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
@@ -244,9 +248,7 @@ class Spiga(BaseDetector):
 
                 cv2.imwrite(
                     os.path.join(
-                        self.viz_folder,
-                        camera_name,
-                        f"{frame_idx + int(self.video_start):05d}.jpg",
+                        self.viz_folder, camera_name, f"{(real_frame_idx):09d}.jpg"
                     ),
                     image,
                 )
