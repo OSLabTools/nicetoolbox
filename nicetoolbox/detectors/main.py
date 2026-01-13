@@ -11,6 +11,7 @@ from ..utils import logging_utils as log_ut
 from ..utils import to_csv as csv
 from . import config_handler as confh
 from .data import Data
+from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
 from .feature_detectors.kinematics.velocity_body import VelocityBody
 from .feature_detectors.leaning.body_angle import BodyAngle
@@ -35,6 +36,7 @@ all_feature_detectors = dict(
     body_distance=BodyDistance,
     gaze_distance=GazeDistance,
     body_angle=BodyAngle,
+    gaze_fusion=GazeFusion,
 )
 
 

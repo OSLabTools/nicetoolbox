@@ -646,7 +646,7 @@ class GazeIndividualComponent(Component):
                             camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
                             if frame_idx >= camera_data.shape[1]:  # number of frames
                                 continue
-                            frame_data = -camera_data[subject_idx, frame_idx]
+                            frame_data = camera_data[subject_idx, frame_idx]
                             subject_eyes_mid = (
                                 self.camera_view_subjects_middle_point_dict[canvas][
                                     subject_idx

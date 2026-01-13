@@ -9,6 +9,7 @@ save_csv = true               # whether to save all results to csv-files
 # each component can be assigned to / run with multiple different algorithms
 [component_algorithm_mapping]
 gaze_individual = ['multiview_eth_xgaze']
+gaze_multiview = ['gaze_fusion']
 gaze_interaction = ['gaze_distance']
 body_joints = ['hrnetw48', 'vitpose']
 hand_joints = ['hrnetw48']
@@ -22,7 +23,7 @@ head_orientation = ['spiga']
 # define which data to run on
 [run]
 [run.communication_multiview]
-components = ["body_joints", "gaze_individual", "gaze_interaction", "kinematics", "proximity", "emotion_individual", "head_orientation"]
+components = ["body_joints", "gaze_individual", "gaze_multiview", "gaze_interaction", "kinematics", "proximity", "emotion_individual", "head_orientation"]
 videos = [
    {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
 ]

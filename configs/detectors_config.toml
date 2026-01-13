@@ -10,7 +10,7 @@ shape_predictor_filename = "<assets>/multiview_eth_xgaze/shape_predictor_68_face
 face_model_filename = "<assets>/multiview_eth_xgaze/face_model.txt"
 pretrained_model_filename = "<assets>/multiview_eth_xgaze/epoch_24_ckpt.pth.tar"
 face_detector_filename = "<assets>/multiview_eth_xgaze/mmod_human_face_detector.dat"
-log_frame_idx_interval = 10
+log_frame_idx_interval = 200
 filtered = true
 window_length = 11
 polyorder = 2
@@ -67,6 +67,15 @@ input_detector_names = [["body_joints", "hrnetw48"]]
 input_detector_names = [["gaze_individual", "multiview_eth_xgaze"], ["face_landmarks", "hrnetw48"]]
 keypoint_mapping = "coco_wholebody"
 threshold_look_at = 0.4
+
+[algorithms.gaze_fusion]
+input_detector_names = [["gaze_individual", "multiview_eth_xgaze"]]
+fusion_method = "weighted_average"  # options: "average", "weighted_average"
+filtered = true
+window_length = 11
+polyorder = 2
+ensemble_enabled = true
+# ensemble_weights = [0.5, 0.5]  # TODO should we add this?
 
 # emotion_individual
 [algorithms.py_feat]

@@ -23,7 +23,8 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | body_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
 | hand_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
 | face_landmarks | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
-| gaze_individual | landmarks_2d, 3d, 3d_filtered, 2d_projected_from_3d_filtered, 2d_projected_from_3d |
+| gaze_individual | landmarks_2d, 3d |
+| gaze_multiview | gaze_2d, gaze_2d_filtered, gaze_fused, gaze_fused_filtered |
 | gaze_interaction | distance_gaze_3d, gaze_look_at_3d, gaze_mutual_3d |
 | kinematics | displacement_vector_body_2d, velocity_body_2d, displacement_vector_body_3d, velocity_body_3d |
 | leaning | body_angle_2d, body_angle_3d |
@@ -39,8 +40,8 @@ The `data_description` dictionary details the entries of all numpy files within 
 | - | - | - |
 | 2d, 2d_filtered, 2d_interpolated | list of all joint names | coordinate_x, coordinate_y, confidence_score |
 | 3d, displacement_vector_body_2d, displacement_vector_body_3d | list of all joint names | coordinate_x, coordinate_y, coordinate_z |
-| 3d, 3d_filtered | coordinate_x, coordinate_y, coordinate_z | --
-| 2d_projected_from_3d_filtered, 2d_projected_from_3d | coordinate_u, coordinate_v | --
+| 3d, gaze_fused, gaze_fused_filtered | coordinate_x, coordinate_y, coordinate_z | --
+| gaze_2d, gaze_2d_filtered | coordinate_u, coordinate_v | --
 | bbox_2d | full_body | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score |
 | landmarks_2d | list of all landmarks | coordinate_u, coordinate_v |
 | distance_gaze_3d | per subject: to_face_<subject_name> | -- |
@@ -128,12 +129,17 @@ The `…_3d.csv` file and `3d.npy` data is saved inside the `<output_folder>/gaz
 
 Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.multiview_eth_xgaze.filtered`, `algorithms.multiview_eth_xgaze.window_length`, and `algorithms.multiview_eth_xgaze.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
 
-## Kinematics
-The *velocity-body* algorithm analyzes the movement dynamics of body joints by calculating their displacement and velocity. The CSV files containing the <kinematics> key and the `<output_folder>/kinematics/<algorithm_name>.npz` file represent the results of this component.
+Note: Gaze individual component is currently doing fusion for the ETH-XGaze model for back compatibility reasons. We recommend using the Gaze Multiview component, which provides improved fusion methods and additional functionalities. 
 
-The displacement vectors for each body joint, calculated per camera view, are stored in the `…_displacement_vector_body_2d.csv` and `displacement_vector_body_2d.npy` data is saved inside the `<output_folder>/kinematics/<algorithm_name>.npz`. The velocity values, also computed per camera view, are stored in the `…_velocity_body_2d.csv` and `velocity_body_2d.npy` file.
+## Gaze Multiview
+Combines gaze data from multiple camera views to enhance the accuracy of gaze tracking. The CSV files containing the <gaze_multiview> key and the `<output_folder>/gaze_multiv
+iew/<algorithm_name>.npz` file represent the results of this component.
 
-When using calibrated stereo cameras, the algorithm computes 3D movement dynamics as well (see `…_displacement_vector_body_3d.csv`/`displacement_vector_body_3d.npy` and `…_velocity_body_3d.csv`/`velocity_body_3d.npy`).
+You can choose between two different fusion mechanisms: Inside the detectors configuration file (`./configs/detectors_config.toml`), set the `algorithms.gaze_fusion.method` parameter to either *average* or *weighted_average*.
+
+The *gaze-fusion* algorithm integrates 3D gaze estimations from different camera views to produce a more accurate 3D gaze direction. The fused 3D gaze data is stored in the `…_gaze_fused.csv` and `gaze_fused.npy` file. Additionally, the fused gaze results are smoothed during post-processing using Savitzky-Golay filter (see `…_gaze_fused_filtered.csv` or `gaze_fused_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.gaze_fusion.filtered`, `algorithms.gaze_fusion.window_length`, and `algorithms.gaze_fusion.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
+
+For visualization or further analysis, the algorithm also projects the fused 3D gaze direction back into each camera view, resulting in 2D gaze coordinates per camera (see `…_gaze_2d.csv` and `gaze_2d.npy` file). These 2D projections are also smoothed during post-processing (see `…_gaze_2d_filtered.csv` or `gaze_2d_filtered.npy` file).
 
 ## Gaze Interaction
 Monitors the gaze interaction between dyads (mutual-gaze) to provide more insights into the communication dynamics. The CSV files containing the <gaze_interaction> key and the `<output_folder>/gaze_interaction/<algorithm_name>.npz` file represent the results of this component.
@@ -141,6 +147,13 @@ Monitors the gaze interaction between dyads (mutual-gaze) to provide more insigh
 The *gaze-distance* algorithm measures the Euclidean distance between an individual’s gaze vector and the position of another person’s face (results are stored in `…_distance_gaze_3d.csv` and `distance_gaze_3d.npy` data is saved inside the `<output_folder>/gaze_interaction/<algorithm_name>.npz`). 
 
 If the measured distance is below a predefined threshold, the algorithm labels the gaze as directed at the other person’s face (see `…_look_at_3d.csv` or `look_at_3d.npy` file). Additionally, the algorithm detects 'mutual gaze' when both individuals are simultaneously looking at each other's face (see `…_gaze_mutual_3d.csv` or `gaze_mutual_3d.npy` file).
+
+## Kinematics
+The *velocity-body* algorithm analyzes the movement dynamics of body joints by calculating their displacement and velocity. The CSV files containing the <kinematics> key and the `<output_folder>/kinematics/<algorithm_name>.npz` file represent the results of this component.
+
+The displacement vectors for each body joint, calculated per camera view, are stored in the `…_displacement_vector_body_2d.csv` and `displacement_vector_body_2d.npy` data is saved inside the `<output_folder>/kinematics/<algorithm_name>.npz`. The velocity values, also computed per camera view, are stored in the `…_velocity_body_2d.csv` and `velocity_body_2d.npy` file.
+
+When using calibrated stereo cameras, the algorithm computes 3D movement dynamics as well (see `…_displacement_vector_body_3d.csv`/`displacement_vector_body_3d.npy` and `…_velocity_body_3d.csv`/`velocity_body_3d.npy`).
 
 ## Proximity
 The *body-distance* algorithm measures the physical proximity between dyads by calculating between user-defined joint/s. 
