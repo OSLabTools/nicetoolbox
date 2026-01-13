@@ -12,6 +12,8 @@ from typing import Dict, List
 import cv2
 import numpy as np
 
+from nicetoolbox_core.dataloader import ImagePathsByFrameIndexLoader
+
 from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ..base_detector import BaseDetector
@@ -51,31 +53,33 @@ class MultiviewEthXgaze(BaseDetector):
             io (class): An instance of the IO class for input-output operations.
             data (class): An instance of the Data class for accessing data.
         """
-
         logging.info(
             f"Prepare Inference for '{self.algorithm}' and "
             f"components {self.components}."
         )
 
-        self.frames_list = data.frames_list
-        config["frames_list"] = self.frames_list
-        config["frame_indices_list"] = data.frame_indices_list
-        self.video_start = data.video_start
-
+        # (1) Call the base class constructor (with updated config including keypoints)
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
 
+        # (2) Specific data and config initializations
         self.camera_names = config["camera_names"]
-        while "" in self.camera_names:
-            self.camera_names.remove("")
         self.cam_sees_subjects = config["cam_sees_subjects"]
+        self.video_start = data.video_start
 
         self.result_folders = config["result_folders"][self.components[0]]
         self.alg_out_folder = config["out_folder"]
+
         self.filtered = config["filtered"]
         if self.filtered:
             self.filter_window_length = config["window_length"]
             self.filter_polyorder = config["polyorder"]
         self.calibration = config["calibration"]
+
+        # (3) Initialise data loader
+        self.dataloader = ImagePathsByFrameIndexLoader(
+            config=config, expected_cameras=self.camera_names
+        )
+
         logging.info("Inference Preparation completed.\n")
 
     def post_inference(self):
@@ -100,10 +104,10 @@ class MultiviewEthXgaze(BaseDetector):
         if self.filtered:
             # Apply filter
             logging.info("APPLYING filtering to Gaze Individual data...")
-            results_3d_filtered = prediction["3d"].copy()[:, :, :, None]
+            results_3d_filtered = prediction["3d_multiview"].copy()[:, :, :, None]
             filter = SGFilter(self.filter_window_length, self.filter_polyorder)
             results_3d_filtered = filter.apply(results_3d_filtered, is_3d=True)
-            data_description.update({"3d_filtered": data_description["3d"]})
+            data_description.update({"3d_filtered": data_description["3d_multiview"]})
             predictions_dict["3d_filtered"] = results_3d_filtered[:, :, :, 0]
 
             if len(self.camera_names) == 1:
@@ -116,7 +120,7 @@ class MultiviewEthXgaze(BaseDetector):
             results_3d = predictions_dict["3d_filtered"]
 
         else:
-            results_3d = prediction["3d"]
+            results_3d = prediction["3d_multiview"]
 
         assert self.camera_names == data_description["landmarks_2d"]["axis1"]
 
@@ -127,9 +131,9 @@ class MultiviewEthXgaze(BaseDetector):
         data_description.update(
             {
                 k: dict(
-                    axis0=data_description["3d"]["axis0"],
+                    axis0=data_description["3d_multiview"]["axis0"],
                     axis1=self.camera_names,
-                    axis2=data_description["3d"]["axis2"],
+                    axis2=data_description["3d_multiview"]["axis2"],
                     axis3=["coordinate_u", "coordinate_v"],
                 )
             }
@@ -171,8 +175,8 @@ class MultiviewEthXgaze(BaseDetector):
                     dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(
                         cam_R, gaze_vectors, image_width
                     )
-                    projected_data[subject_idx, cam_idx, :, 0] = dx
-                    projected_data[subject_idx, cam_idx, :, 1] = dy
+                    projected_data[subject_idx, cam_idx, :, 0] = -dx
+                    projected_data[subject_idx, cam_idx, :, 1] = -dy
 
         return projected_data
 
@@ -207,19 +211,19 @@ class MultiviewEthXgaze(BaseDetector):
             if self.filtered
             else predictions["2d_projected_from_3d"]
         )
-        mean_face = np.nanmean(predictions["landmarks_2d"], axis=3)
+        landmarks_2d = predictions["landmarks_2d"][..., :2]  # drop conf scores
+        mean_face = np.nanmean(landmarks_2d, axis=3)
 
         # per camera and frame, visualize each subject's gaze
         success = True
-        for camera_name in self.camera_names:
-            cam_idx = self.camera_names.index(camera_name)
+        for cam_idx, camera_name in enumerate(self.camera_names):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
-            for frame_idx in range(gaze_data.shape[2]):
-                # load the original input image
-                image_file = [
-                    file for file in self.frames_list[frame_idx] if camera_name in file
-                ][0]
+            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(
+                self.dataloader
+            ):
+                image_file = frame_paths_per_camera[camera_name]
+
                 image = cv2.imread(image_file)
 
                 for subject_idx in range(n_subj):
@@ -227,7 +231,7 @@ class MultiviewEthXgaze(BaseDetector):
                         continue
 
                     # the predicted gaze vector + the mid point of all face landmarks
-                    gaze_vector = -gaze_data[subject_idx, cam_idx, frame_idx]
+                    gaze_vector = gaze_data[subject_idx, cam_idx, frame_idx]
                     subject_eyes_mid = mean_face[subject_idx, cam_idx, frame_idx]
                     # in case no face was detected, draw the arrow in the middle
                     if (subject_eyes_mid != subject_eyes_mid).any():
@@ -254,7 +258,7 @@ class MultiviewEthXgaze(BaseDetector):
                     os.path.join(
                         self.viz_folder,
                         camera_name,
-                        f"{frame_idx + int(self.video_start):05d}.jpg",
+                        f"{real_frame_idx:09d}.jpg",
                     ),
                     image,
                 )

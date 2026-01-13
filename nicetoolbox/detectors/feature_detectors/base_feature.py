@@ -42,7 +42,8 @@ class BaseFeature(ABC):
             None
         """
         # input folder of the feature is the result folder of detector
-        self.input_folders, self.input_files = [], []
+        self.input_folders, self.input_files = [], []  # Keep for now for backward comp
+        self.input_map = {}  # New and more precise mapping of comp/algo to input file
         for comp, alg in config["input_detector_names"]:
             input_folder = io.get_detector_output_folder(comp, alg, "result")
             input_file = os.path.join(input_folder, f"{alg}.npz")
@@ -53,6 +54,7 @@ class BaseFeature(ABC):
                 )
             self.input_folders.append(input_folder)
             self.input_files.append(input_file)
+            self.input_map[(comp, alg)] = input_file
 
         # output folders
         self.result_folders = dict(
@@ -77,29 +79,6 @@ class BaseFeature(ABC):
             "run_config.toml",
         )
         save_config(config, self.config_path)
-
-    def get_input(self, input_list: list, token: str, listdir: bool = True) -> str:
-        """
-        This method is used to find a specific file in a list of files based on a token.
-
-        Args:
-            input_list (str or list): The path to the directory or a list of files.
-            token (str): The token to search for in the file names.
-            listdir (bool, optional): If True, the input_list is treated as a directory
-            and its contents are listed. Defaults to True.
-
-        Returns:
-            str: The file that contains the token.
-
-        Raises:
-            AssertionError: If no file is found or if more than one file is found.
-        """
-        if listdir:
-            input_list = sorted(os.listdir(input_list))
-        detected = [f for f in input_list if token in f]
-        log_ut.assert_and_log(len(detected) != 0, "Input file could not find.")
-        log_ut.assert_and_log(len(detected) == 1, "There is more than one input file")
-        return detected[0]
 
     def __str__(self):
         """

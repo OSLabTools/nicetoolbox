@@ -53,9 +53,8 @@ class GazeDistance(BaseFeature):
         detector output.
 
         This method initializes the GazeDistance class by setting up the necessary
-        configurations, input/output handler, and data. It also extracts the gaze
-        component and algorithm from the configuration and prepares the list of gaze
-        detector output files. It supports handling of multiple cameras.
+        configurations, input/output handler, and data. It supports handling of multiple
+        cameras.
 
         Args:
             config (dict): The configuration settings for the feature detector. It
@@ -69,31 +68,19 @@ class GazeDistance(BaseFeature):
         """
         super().__init__(config, io, data, requires_out_folder=False)
 
-        # Extract gaze component and algorithm from the config
-        gaze_component, gaze_algorithm = [
-            name
-            for name in config["input_detector_names"]
-            if any(["gaze" in s for s in name])
-        ][0]
-        gaze_out_folder = io.get_detector_output_folder(
-            gaze_component, gaze_algorithm, "output"
-        )
-
-        self.gaze_detector_file_list = [
-            [
-                os.path.join(gaze_out_folder, f)
-                for f in os.listdir(gaze_out_folder)
-                if "cam3" in f
-            ],
-            [
-                os.path.join(gaze_out_folder, f)
-                for f in os.listdir(gaze_out_folder)
-                if "cam4" in f
-            ],
-        ]
-
         self.threshold_look_at = config["threshold_look_at"]
         logging.info(f"Feature detector for component {self.components} initialized.")
+
+    def _get_input(self, component: str) -> np.ndarray:
+        """
+        Finds input file given a component.
+        """
+        # TODO: Handle components from multiple algorithms if needed in future
+        for (comp, _algo), path in self.input_map.items():
+            if comp == component:
+                return np.load(path, allow_pickle=True)
+
+        raise ValueError(f"Required input component '{component}' not found.")
 
     def compute(self):
         """
@@ -125,9 +112,7 @@ class GazeDistance(BaseFeature):
             face, and a boolean array indicating whether the gaze is mutual.
         """
 
-        gaze_data = np.load(
-            self.get_input(self.input_files, "gaze", listdir=False), allow_pickle=True
-        )
+        gaze_data = self._get_input("gaze_individual")
         camera_names = gaze_data["data_description"].item()["landmarks_2d"]["axis1"]
         dim = "2d" if len(camera_names) == 1 else "3d"
         if f"{dim}_filtered" in gaze_data["data_description"].item().keys():  # noqa: SIM118
@@ -138,10 +123,7 @@ class GazeDistance(BaseFeature):
         gaze_description = gaze_data["data_description"].item()[data_name]
 
         if dim == "3d":
-            keypoints_data = np.load(
-                self.get_input(self.input_files, "landmarks", listdir=False),
-                allow_pickle=True,
-            )
+            keypoints_data = self._get_input("face_landmarks")
             keypoints = keypoints_data["3d"]
             keypoints_description = keypoints_data["data_description"].item()["3d"]
             indices = [

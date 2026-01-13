@@ -109,3 +109,13 @@ class BodyAngleConfig(BaseModel):
 class BodyDistanceConfig(BaseModel):
     input_detector_names: List[List[str]]
     used_keypoints: List[str]
+
+
+@detector_config("gaze_fusion")
+class GazeFusionConfig(BaseModel):
+    input_detector_names: List[List[str]]
+    fusion_method: str
+    filtered: bool
+    window_length: int
+    polyorder: int
+    ensemble_enabled: bool
