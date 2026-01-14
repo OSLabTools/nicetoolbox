@@ -53,7 +53,6 @@ class PyFeatConfig(BaseModel):
     env_name: str
     log_frame_idx_interval: int
     batch_size: int
-    max_cores: int
 
 
 @detector_config("multiview_eth_xgaze")

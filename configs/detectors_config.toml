@@ -85,8 +85,7 @@ env_name = "venv:py_feat"
 log_frame_idx_interval = 200
 # For batch_size, ensure:
 # [(batch_size) * (~Size of one frame (GB))] < Available vRAM (RAM) (GB)
-batch_size = 50
-max_cores = -1  # -1 will use all available cores
+batch_size = 512
 
 # head_orientation
 [algorithms.spiga]
