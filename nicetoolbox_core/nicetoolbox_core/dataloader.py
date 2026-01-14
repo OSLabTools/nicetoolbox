@@ -143,9 +143,7 @@ class ImagePathsBatchByFrameIndexLoader(InputDataLoader):
         super().__init__(config, expected_cameras)
 
         if not isinstance(batch_size, int) or batch_size <= 0:
-            raise ValueError(
-                f"Invalid batch_size: {batch_size}. Must be positive integer."
-            )
+            raise ValueError(f"Invalid batch_size: {batch_size}. Must be positive integer.")
         self.batch_size = batch_size
 
     def __iter__(self) -> Iterator[IMAGE_PATHS_BATCHED_BY_FRAMES_INDICES]:

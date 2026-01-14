@@ -8,9 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def visualize_gaze_interaction(
-    data, categories_list, output_folder, people_names=None, camera_names=None
-) -> None:
+def visualize_gaze_interaction(data, categories_list, output_folder, people_names=None, camera_names=None) -> None:
     """
     Visualizes the gaze interaction results across frames for multiple
     people and cameras.
@@ -98,9 +96,7 @@ def visualize_gaze_interaction(
                 bbox_to_anchor=(1.03, 1),
             )
 
-        camera_name = (
-            camera_names[camera_idx] if camera_names is not None else "camera_3d"
-        )
+        camera_name = camera_names[camera_idx] if camera_names is not None else "camera_3d"
         # Save the plot
         plt.subplots_adjust(right=0.85)
         plt.savefig(

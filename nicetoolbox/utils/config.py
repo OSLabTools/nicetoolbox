@@ -45,9 +45,7 @@ def save_config(configs: dict, config_file: str) -> None:
 
     if config_file.suffix in [".yml", ".yaml"]:
         with open(config_file, "w") as file:
-            yaml.dump_all(
-                configs, file, default_flow_style=False, indent=4, sort_keys=False
-            )
+            yaml.dump_all(configs, file, default_flow_style=False, indent=4, sort_keys=False)
     elif config_file.suffix == ".toml":
         with open(config_file, "w") as file:
             toml.dump(configs, file, encoder=toml.TomlNumpyEncoder())
@@ -56,8 +54,7 @@ def save_config(configs: dict, config_file: str) -> None:
             json.dump(configs, file, default=default)
     else:
         raise NotImplementedError(
-            f"config_file type {config_file} is not supported currently. "
-            f"Implemented are yaml/yml and toml."
+            f"config_file type {config_file} is not supported currently. " f"Implemented are yaml/yml and toml."
         )
 
 
@@ -80,16 +77,9 @@ def config_fill_placeholders(config, placeholders):
     for ph_key, ph_value in placeholders.items():
         for config_key, config_value in filled_config.items():
             if isinstance(config_value, dict):
-                filled_config[config_key] = config_fill_placeholders(
-                    config_value, placeholders
-                )
+                filled_config[config_key] = config_fill_placeholders(config_value, placeholders)
             elif isinstance(config_value, list):
-                if any(
-                    [
-                        f"<{ph_key}>" in val if isinstance(val, str) else False
-                        for val in config_value
-                    ]
-                ):
+                if any([f"<{ph_key}>" in val if isinstance(val, str) else False for val in config_value]):
                     filled_config[config_key] = [
                         (
                             val.replace(f"<{ph_key}>", ph_value)
@@ -99,9 +89,7 @@ def config_fill_placeholders(config, placeholders):
                         for val in config_value
                     ]
             elif isinstance(config_value, str) and f"<{ph_key}>" in config_value:
-                filled_config[config_key] = config_value.replace(
-                    f"<{ph_key}>", f"{ph_value}"
-                )
+                filled_config[config_key] = config_value.replace(f"<{ph_key}>", f"{ph_value}")
             else:
                 continue
 

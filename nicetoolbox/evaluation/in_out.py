@@ -55,9 +55,7 @@ class IO:
         self.output_folder.mkdir(parents=True, exist_ok=True)
 
         self.experiment_folder = io_config.experiment_folder
-        self._experiment_folder_placeholders = (
-            experiment_io.detector_final_result_folder
-        )  # noqa: E501
+        self._experiment_folder_placeholders = experiment_io.detector_final_result_folder  # noqa: E501
 
     # TODO: IO mutates itself, when we call init_dataset
     # it should be immutable and only return mutated data
@@ -94,9 +92,7 @@ class IO:
             "cur_video_start": video_config.video_start,
             "cur_video_length": video_config.video_length,
         }
-        resolved_folder_path = self._cfg_loader.resolve(
-            str(self._experiment_folder_placeholders), runtime_ctx
-        )
+        resolved_folder_path = self._cfg_loader.resolve(str(self._experiment_folder_placeholders), runtime_ctx)
         return Path(resolved_folder_path) / f"{algorithm}.npz"
 
     def get_out_folder(self, selection="", component=""):

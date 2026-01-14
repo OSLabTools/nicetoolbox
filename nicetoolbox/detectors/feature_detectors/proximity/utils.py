@@ -48,9 +48,7 @@ def visualize_proximity_score(data, output_folder, keypoint, camera_names=None):
 
         # Save the plot
         plt.savefig(
-            os.path.join(
-                output_folder, f"proximity_score_{keypoint}_{camera_name}.png"
-            ),
+            os.path.join(output_folder, f"proximity_score_{keypoint}_{camera_name}.png"),
             dpi=500,
         )
 

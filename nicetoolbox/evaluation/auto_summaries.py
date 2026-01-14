@@ -31,20 +31,13 @@ def create_auto_summaries(
         results.reset()
 
         # (1) Check that selected metrics exist
-        selected_metrics_exist = all(
-            metric in results.available_metrics for metric in aggr_config.metric_names
-        )
+        selected_metrics_exist = all(metric in results.available_metrics for metric in aggr_config.metric_names)
         if not selected_metrics_exist:
-            logging.error(
-                f"Selected metrics {aggr_config.metric_names} not present in results, "
-                "Skipping."
-            )
+            logging.error(f"Selected metrics {aggr_config.metric_names} not present in results, " "Skipping.")
             continue
 
         # (2) Invert: aggregation dimensions to groupby dimensions
-        group_by = [
-            level for level in INDEX_LEVELS if level not in aggr_config.aggregate_dims
-        ]
+        group_by = [level for level in INDEX_LEVELS if level not in aggr_config.aggregate_dims]
         # Since aggregate_dims is a subset of "sequence", "person", "camera", "label",
         # "frame", group_by will always contain at least "metric_name", "dataset",
         # "component", "algorithm, "metric_type"

@@ -17,7 +17,6 @@ pre-commit-checks:
   script:
     - pip install pre-commit
     - pre-commit run --all-files
-  allow_failure: true
 
 test-job:
   stage: test

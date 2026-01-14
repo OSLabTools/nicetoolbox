@@ -22,9 +22,7 @@ def load_calibration(calibration_file, video_input_config, camera_names="all"):
     if camera_names == "all":
         calib = dict((key, value) for key, value in loaded_calib.items())
     else:
-        calib = dict(
-            (key, value) for key, value in loaded_calib.items() if key in camera_names
-        )
+        calib = dict((key, value) for key, value in loaded_calib.items() if key in camera_names)
     return calib
 
 
@@ -84,9 +82,7 @@ def vector_to_pitchyaw(vector):
 
 def reproject_gaze_to_camera_view_vectorized(cam_rotation, gaze_vectors, image_width):
     # Convert the gaze to current camera coordinate system for multiple vectors
-    gaze_cam = np.dot(
-        cam_rotation, gaze_vectors.T
-    ).T  # Apply rotation to all gaze vectors
+    gaze_cam = np.dot(cam_rotation, gaze_vectors.T).T  # Apply rotation to all gaze vectors
     draw_gaze_dir = vector_to_pitchyaw(gaze_cam)
     dx, dy = return_2d_vector(image_width, draw_gaze_dir)
     return dx, dy

@@ -15,21 +15,15 @@ def test_resolve_placeholder_dict_basic_and_self_reference():
     assert result == {"key1": "replaced", "key2": "Hello World"}
 
     # Non-string values preserved
-    result = resolve_placeholders_dict_mut(
-        {"str": "<val>", "int": 42, "float": 3.14, "bool": True}, {"val": "TEXT"}
-    )
+    result = resolve_placeholders_dict_mut({"str": "<val>", "int": 42, "float": 3.14, "bool": True}, {"val": "TEXT"})
     assert result == {"str": "TEXT", "int": 42, "float": 3.14, "bool": True}
 
     # Simple self-reference
-    result = resolve_placeholders_dict_mut(
-        {"base": "/home/user", "path": "<base>/data"}, {}
-    )
+    result = resolve_placeholders_dict_mut({"base": "/home/user", "path": "<base>/data"}, {})
     assert result == {"base": "/home/user", "path": "/home/user/data"}
 
     # Multiple self-references
-    result = resolve_placeholders_dict_mut(
-        {"a": "A", "b": "B", "ab": "<a><b>", "ba": "<b><a>"}, {}
-    )
+    result = resolve_placeholders_dict_mut({"a": "A", "b": "B", "ab": "<a><b>", "ba": "<b><a>"}, {})
     assert result == {"a": "A", "b": "B", "ab": "AB", "ba": "BA"}
 
     # Self-reference with external placeholders and chained dependencies
@@ -56,18 +50,14 @@ def test_resolve_placeholder_dict_basic_and_self_reference():
     }
 
     # Mixed with external context
-    result = resolve_placeholders_dict_mut(
-        {"base": "<root>/app", "config": "<base>/config.yml"}, {"root": "/var"}
-    )
+    result = resolve_placeholders_dict_mut({"base": "<root>/app", "config": "<base>/config.yml"}, {"root": "/var"})
     assert result == {"base": "/var/app", "config": "/var/app/config.yml"}
 
 
 def test_resolve_placeholder_dict_unreachable():
     """Test unreachable placeholders that are allowed to remain unresolved."""
     # Single unreachable placeholder
-    result = resolve_placeholders_dict_mut(
-        {"key1": "value", "key2": "<runtime_var>"}, {}, unreachable={"runtime_var"}
-    )
+    result = resolve_placeholders_dict_mut({"key1": "value", "key2": "<runtime_var>"}, {}, unreachable={"runtime_var"})
     assert result == {"key1": "value", "key2": "<runtime_var>"}
 
     # Multiple unreachable placeholders
@@ -83,9 +73,7 @@ def test_resolve_placeholder_dict_unreachable():
     }
 
     # Mixed resolved and unreachable
-    result = resolve_placeholders_dict_mut(
-        {"a": "<b>", "b": "B", "c": "<runtime>"}, {}, unreachable={"runtime"}
-    )
+    result = resolve_placeholders_dict_mut({"a": "<b>", "b": "B", "c": "<runtime>"}, {}, unreachable={"runtime"})
     assert result == {"a": "B", "b": "B", "c": "<runtime>"}
 
 
@@ -165,9 +153,7 @@ def test_resolve_placeholder_dict_edge_cases():
     }
 
     # Empty strings
-    result = resolve_placeholders_dict_mut(
-        {"empty": "", "filled": "<val>"}, {"val": "V"}
-    )
+    result = resolve_placeholders_dict_mut({"empty": "", "filled": "<val>"}, {"val": "V"})
     assert result == {"empty": "", "filled": "V"}
 
     # Context dict is mutated

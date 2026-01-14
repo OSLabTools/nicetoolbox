@@ -154,9 +154,7 @@ def test_jpe_get_axis3(pred_axis3, reconciliation_map, expected):
         ),
     ],
 )
-def test_jpe_update_calculates_correct_error(
-    jpe_metric, mock_jpe_metadata, preds, gts, expected_errors
-):
+def test_jpe_update_calculates_correct_error(jpe_metric, mock_jpe_metadata, preds, gts, expected_errors):
     """
     Given: Prediction and Ground Truth tensors (both 2D and 3D).
     When:  The update() method is called.

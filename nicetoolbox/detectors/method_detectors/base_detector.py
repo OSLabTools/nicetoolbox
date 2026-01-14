@@ -6,7 +6,6 @@ import logging
 import os
 import subprocess
 from abc import ABC, abstractmethod
-from pathlib import Path
 
 from ...utils import system
 from ...utils.config import save_config
@@ -53,19 +52,14 @@ class BaseDetector(ABC):
 
         # output folders for inference and visualizations
         config["result_folders"] = dict(
-            (comp, io.get_detector_output_folder(comp, self.algorithm, "result"))
-            for comp in self.components
+            (comp, io.get_detector_output_folder(comp, self.algorithm, "result")) for comp in self.components
         )
         main_component = self.components[0]
         if requires_out_folder:
-            config["out_folder"] = io.get_detector_output_folder(
-                main_component, self.algorithm, "output"
-            )
+            config["out_folder"] = io.get_detector_output_folder(main_component, self.algorithm, "output")
             self.out_folder = config["out_folder"]
         if config["visualize"]:
-            self.viz_folder = io.get_detector_output_folder(
-                main_component, self.algorithm, "visualization"
-            )
+            self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, "visualization")
 
         config["algorithm"] = self.algorithm
         config["calibration"] = data.calibration
@@ -100,12 +94,8 @@ class BaseDetector(ABC):
             str: A string representation of the method detector, including its
                 components, and the associated algorithm.
         """
-        return (
-            f"Instance of component {self.components} \n\t"
-            f"algorithm = {self.algorithm} \n\t"
-            + " \n\t".join(
-                [f"{attr} = {value}" for (attr, value) in self.__dict__.items()]
-            )
+        return f"Instance of component {self.components} \n\t" f"algorithm = {self.algorithm} \n\t" + " \n\t".join(
+            [f"{attr} = {value}" for (attr, value) in self.__dict__.items()]
         )
 
     def run_inference(self):
@@ -122,9 +112,7 @@ class BaseDetector(ABC):
                 )
             elif os_type == "linux":
                 conda_path = os.path.join(self.conda_path, "bin/activate")
-                python_path = os.path.join(
-                    self.conda_path, "envs", self.env_name, "bin/python"
-                )
+                python_path = os.path.join(self.conda_path, "envs", self.env_name, "bin/python")
                 command = (
                     f"conda init bash && source ~/.bashrc && "
                     f"{conda_path} {self.env_name} && "
@@ -135,26 +123,16 @@ class BaseDetector(ABC):
         elif self.venv == "venv":
             # create terminal command
             if os_type == "windows":
-                command = (
-                    f'cmd "/c {self.venv_path} && '
-                    f'python {self.script_path} {self.config_path}"'
-                )
+                command = f'cmd "/c {self.venv_path} && ' f'python {self.script_path} {self.config_path}"'
             elif os_type == "linux":
-                command = (
-                    f"source {self.venv_path} && "
-                    f"python {self.script_path} {self.config_path}"
-                )
+                command = f"source {self.venv_path} && " f"python {self.script_path} {self.config_path}"
 
         else:
-            print(
-                f"WARNING! venv '{self.venv}' is not known. " f"Detector not running."
-            )
+            print(f"WARNING! venv '{self.venv}' is not known. " f"Detector not running.")
 
         # run in terminal/cmd
         if system.detect_os_type() == "windows":
-            cmd_result = subprocess.run(
-                command, capture_output=True, text=True, shell=True, check=False
-            )
+            cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, check=False)
         else:
             cmd_result = subprocess.run(
                 command,
@@ -170,10 +148,7 @@ class BaseDetector(ABC):
             self.post_inference()
 
         else:
-            logging.error(
-                f"INFERENCE Pipeline - ERROR occurred with return code "
-                f"{cmd_result.returncode}"
-            )
+            logging.error(f"INFERENCE Pipeline - ERROR occurred with return code " f"{cmd_result.returncode}")
             logging.error(f"INFERENCE Pipeline - ERROR: {cmd_result.stderr}")
             logging.info(f"INFERENCE Pipeline - Terminal OUTPUT {cmd_result.stdout}")
 

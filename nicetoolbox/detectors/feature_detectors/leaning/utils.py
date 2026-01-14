@@ -52,9 +52,7 @@ def calculate_angle_btw_three_points(data):
     return angles_deg
 
 
-def visualize_lean_in_out_per_person(
-    hip_angle, person_list, output_folder, camera_names=None
-):
+def visualize_lean_in_out_per_person(hip_angle, person_list, output_folder, camera_names=None):
     """
     Visualize the leaning angle between midpoint of shoulders, hips, and knees for each
     person.
@@ -77,17 +75,12 @@ def visualize_lean_in_out_per_person(
         logging.error("Number of subjects and data shape mismatch!")
 
     for camera_idx in range(hip_angle.shape[1]):
-        plt.title(
-            f"Leaning Angle between Midpoint of Shoulders, Hips, and Knees "
-            f"({person_list})"
-        )
+        plt.title(f"Leaning Angle between Midpoint of Shoulders, Hips, and Knees " f"({person_list})")
         _, axes = plt.subplots(2, len(person_list), figsize=(10, 8))
         axes = axes.reshape(2, len(person_list))
 
         for i in range(len(person_list)):
-            axes[0, i].plot(
-                hip_angle[i, camera_idx, :, 0], label=f"Leaning Angle {person_list[i]}"
-            )
+            axes[0, i].plot(hip_angle[i, camera_idx, :, 0], label=f"Leaning Angle {person_list[i]}")
             axes[1, i].plot(
                 hip_angle[i, camera_idx, :, 1],
                 label=f"Derivative of Leaning Angle {person_list[i]}",
@@ -104,11 +97,7 @@ def visualize_lean_in_out_per_person(
         # Adjust layout
         plt.tight_layout()
         # Save the plot
-        camera_name = (
-            camera_names[camera_idx]
-            if camera_names is not None
-            else f"camera_{camera_idx}"
-        )
+        camera_name = camera_names[camera_idx] if camera_names is not None else f"camera_{camera_idx}"
         plt.savefig(
             os.path.join(output_folder, f"leaning_angle_graph_{camera_name}.png"),
             dpi=500,
@@ -137,9 +126,7 @@ def frame_with_linegraph(frame, current_frame, data, fig, canvas, axL, axR):
     """
     colors = ["#98FB98", "#FFB347", "#DDA0DD", "#ADD8E6"]
     if len(data) != 2:
-        logging.error(
-            "The data shape is wrong. Data should be given as a list [dataL, dataR]"
-        )
+        logging.error("The data shape is wrong. Data should be given as a list [dataL, dataR]")
     dataL, dataR = data
     axL.clear()
     axR.clear()

@@ -144,9 +144,7 @@ def check_correct_and_sort_person_detections(
     logging.info("Starting... Check correct and sort person detections")
     updated_frame_predictions_list = []
     for i, frame in enumerate(data):
-        frame_predictions = frame["predictions"][
-            0
-        ]  # [0] to unlist # list of dict. Each detect is a detected person.
+        frame_predictions = frame["predictions"][0]  # [0] to unlist # list of dict. Each detect is a detected person.
         # delete bbox and related predictions if it is below confidence level threshold
         bbox_list = []
         bbox_score_list = []
@@ -167,9 +165,7 @@ def check_correct_and_sort_person_detections(
                 updated_bboxes, updated_bbox_conf_scores, bbox_overlapping_threshold
             )
             updated_bboxes = updated_bboxes[indices]
-            updated_frame_predictions = [
-                updated_frame_predictions[index] for index in keep_bbox_indices
-            ]
+            updated_frame_predictions = [updated_frame_predictions[index] for index in keep_bbox_indices]
             if len(updated_frame_predictions) != num_subjects:
                 is_correct_num_detections = False
             else:
@@ -180,12 +176,8 @@ def check_correct_and_sort_person_detections(
         if is_correct_num_detections:
             # Sort detected people from left to right - lowest top_left x value will be
             # first
-            sorted_indices = sorted(
-                range(len(updated_bboxes)), key=lambda i: updated_bboxes[i][0]
-            )
-            sorted_frame_predictions = [
-                updated_frame_predictions[i] for i in sorted_indices
-            ]
+            sorted_indices = sorted(range(len(updated_bboxes)), key=lambda i: updated_bboxes[i][0])
+            sorted_frame_predictions = [updated_frame_predictions[i] for i in sorted_indices]
             updated_frame_predictions_list.append(sorted_frame_predictions)
         else:
             logging.error(
@@ -194,9 +186,7 @@ def check_correct_and_sort_person_detections(
                 f"description. previous frame detections will be used"
             )
             try:
-                updated_frame_predictions_list.append(
-                    updated_frame_predictions_list[-1]
-                )
+                updated_frame_predictions_list.append(updated_frame_predictions_list[-1])
             except IndexError:
                 updated_frame_predictions_list.append([])
     return updated_frame_predictions_list
@@ -227,31 +217,18 @@ def convert_output_to_numpy(data, num_persons):
     num_keypoints = len(
         data[0]["predictions"][0][0]["keypoints"]
     )  # results[0] first frame: ["predictions"][0][0] first person
-    num_estimations = (
-        len(data[0]["predictions"][0][0]["keypoints"][0]) + 1
-    )  # x, y, [z], and confidence_score
-    logging.info(
-        f"frames: {num_frames}, keypoints: {num_keypoints}, "
-        f"estimations: {num_estimations}"
-    )
-    sorted_frame_predictions = check_correct_and_sort_person_detections(
-        data, num_persons
-    )
+    num_estimations = len(data[0]["predictions"][0][0]["keypoints"][0]) + 1  # x, y, [z], and confidence_score
+    logging.info(f"frames: {num_frames}, keypoints: {num_keypoints}, " f"estimations: {num_estimations}")
+    sorted_frame_predictions = check_correct_and_sort_person_detections(data, num_persons)
 
     # Initialize numpy arrays
-    keypoints_array = np.zeros(
-        (num_persons, num_frames, num_keypoints, num_estimations)
-    )
-    bbox_array = np.zeros(
-        (num_persons, num_frames, 1, 5)
-    )  # 1 is because detected category is person
+    keypoints_array = np.zeros((num_persons, num_frames, num_keypoints, num_estimations))
+    bbox_array = np.zeros((num_persons, num_frames, 1, 5))  # 1 is because detected category is person
 
     for frame_index, frame in enumerate(sorted_frame_predictions):
         for person_index, person in enumerate(frame):
             # keypoints and scores
-            for kp_index, (kp, score) in enumerate(
-                zip(person["keypoints"], person["keypoint_scores"])
-            ):
+            for kp_index, (kp, score) in enumerate(zip(person["keypoints"], person["keypoint_scores"])):
                 keypoints_array[person_index, frame_index, kp_index] = [
                     kp[0],
                     kp[1],
@@ -309,9 +286,7 @@ def main(config):
     logging.info("Creating input data loader...")
     logging.info(f'Using cameras: {config["camera_names"]}')
     # Create input data loader from nicetoolbox-core shared code
-    dataloader = ImagePathsByCameraLoader(
-        config=config, expected_cameras=config["camera_names"]
-    )
+    dataloader = ImagePathsByCameraLoader(config=config, expected_cameras=config["camera_names"])
     logging.info(f"Data loader created with cams: {dataloader.cameras}")
 
     # Create inferencer object from MMPose API
@@ -350,9 +325,7 @@ def main(config):
 
         # convert results to numpy array
         num_subjects = len(config["subjects_descr"])
-        keypoints_array, bbox_array, estimations_data_descr = convert_output_to_numpy(
-            results, num_subjects
-        )
+        keypoints_array, bbox_array, estimations_data_descr = convert_output_to_numpy(results, num_subjects)
         camera_keypoints_output.append(keypoints_array)
         camera_bbox_output.append(bbox_array)
 

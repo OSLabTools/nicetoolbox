@@ -39,9 +39,7 @@ def save_calibration_npz_json(entries, matrix_dict):
     # convert matrix_dict
     for session_name, session_data in matrix_dict.items():
         for sequence_name, sequence_data in session_data.items():
-            name = "__".join(
-                [word for word in [session_name, sequence_name] if word != "None"]
-            )
+            name = "__".join([word for word in [session_name, sequence_name] if word != "None"])
             calibration[name] = get_calibration_dict(sequence_data)
 
     # save to npz

@@ -50,15 +50,11 @@ def merge_dicts(a: dict, b: dict) -> dict:
 def get_latest_expirement_config_path(exp_folder: Path) -> Path:
     # check if folder exist
     if not exp_folder.is_dir():
-        raise FileNotFoundError(
-            f"Experiment folder does not exist or is not a directory: {exp_folder}"
-        )
+        raise FileNotFoundError(f"Experiment folder does not exist or is not a directory: {exp_folder}")
     # check if it's not empty
     config_files = sorted(list(exp_folder.glob("config_*.toml")))
     if not config_files:
-        raise RuntimeError(
-            f"No 'config_*.toml' files found in experiment folder: {exp_folder}"
-        )
+        raise RuntimeError(f"No 'config_*.toml' files found in experiment folder: {exp_folder}")
     return config_files[-1]
 
 

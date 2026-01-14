@@ -3,8 +3,9 @@ Helper functions for git integration of the code
 """
 
 import os
+from typing import NamedTuple, Optional
+
 from git import Repo
-from typing import Optional, NamedTuple
 
 
 class GitMetadata(NamedTuple):
@@ -25,7 +26,7 @@ def try_get_toolbox_git_metadata(repo_path: str = ".") -> Optional[GitMetadata]:
         git.exc.GitCommandError: If git operations fail
 
     Returns:
-        Optional[GitMetadata]: with fields commit_hash and commit_summary, 
+        Optional[GitMetadata]: with fields commit_hash and commit_summary,
         or None if neither is available.
     """
     # Checks if there's a .git folder in repo_path

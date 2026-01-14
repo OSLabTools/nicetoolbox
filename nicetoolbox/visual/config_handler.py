@@ -5,11 +5,7 @@ from ..configs.config_loader import ConfigLoader
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
-from ..configs.utils import (
-    default_auto_placeholders,
-    default_runtime_placeholders,
-    model_to_dict,
-)
+from ..configs.utils import default_auto_placeholders, default_runtime_placeholders, model_to_dict
 from ..utils import visual_utils as vis_ut
 
 
@@ -27,18 +23,12 @@ class Configuration:
         # init config loader
         self.auto_placeholders = default_auto_placeholders()
         self.runtime_placeholders = default_runtime_placeholders()
-        self.cfg_loader = ConfigLoader(
-            self.auto_placeholders, self.runtime_placeholders
-        )
+        self.cfg_loader = ConfigLoader(self.auto_placeholders, self.runtime_placeholders)
         # machine specific
-        machine_specific_config = self.cfg_loader.load_config(
-            machine_specifics_file, MachineSpecificConfig
-        )
+        machine_specific_config = self.cfg_loader.load_config(machine_specifics_file, MachineSpecificConfig)
         self.cfg_loader.extend_global_ctx(machine_specific_config)
         # visualizer config
-        visualizer_config = self.cfg_loader.load_config(
-            visualizer_config_file, VisualizerConfig
-        )
+        visualizer_config = self.cfg_loader.load_config(visualizer_config_file, VisualizerConfig)
         self.cfg_loader.extend_global_ctx(visualizer_config.io)
 
         # TODO: rest of the codebase except the configs as dict
@@ -53,9 +43,7 @@ class Configuration:
             self._initialize_media()
 
     def _initialize_statistics(self) -> None:
-        self.nice_tool_out_folder = self.visualizer_config["io"][
-            "nice_tool_output_folder"
-        ]
+        self.nice_tool_out_folder = self.visualizer_config["io"]["nice_tool_output_folder"]
 
     def _initialize_media(self) -> None:
         # load the latest config from the experiment output of nicetoolbox
@@ -99,21 +87,15 @@ class Configuration:
         self.dataset_name = self.visualizer_config["io"]["dataset_name"]
 
         # update visualizer config - which will be given to components
-        self.visualizer_config["video"] = self.experiment_run_config["run"][
-            self.dataset_name
-        ]["videos"][0]
+        self.visualizer_config["video"] = self.experiment_run_config["run"][self.dataset_name]["videos"][0]
         # add properties of the dataset
-        self.visualizer_config["dataset_properties"] = self.dataset_properties[
-            self.dataset_name
-        ]
+        self.visualizer_config["dataset_properties"] = self.dataset_properties[self.dataset_name]
 
         algorithms_list = list(
             set(
                 [
                     alg
-                    for alg_list in self.experiment_run_config[
-                        "component_algorithm_mapping"
-                    ].values()
+                    for alg_list in self.experiment_run_config["component_algorithm_mapping"].values()
                     for alg in alg_list
                 ]
             )
@@ -169,9 +151,7 @@ class Configuration:
 
     def check_calibration(self, calib, cam_name):
         if self.visualizer_config["media"]["visualize"]["camera_position"] is True:
-            _, _, cam_rotation, cam_extrinsic = vis_ut.get_cam_para_studio(
-                calib, cam_name
-            )
+            _, _, cam_rotation, cam_extrinsic = vis_ut.get_cam_para_studio(calib, cam_name)
             if (cam_rotation is None) | (cam_extrinsic is None):
                 assert ValueError(
                     "The rotation and extrinsic matrix of the camera could not found.\n"
@@ -190,9 +170,7 @@ class Configuration:
 
         # check start frame
         if self.visualizer_config["media"]["visualize"]["start_frame"] < 0:
-            raise ValueError(
-                "Visualizer_config 'start_frame' parameter cannot be negative."
-            )
+            raise ValueError("Visualizer_config 'start_frame' parameter cannot be negative.")
         if self.visualizer_config["media"]["visualize"]["start_frame"] > video_length:
             raise ValueError(
                 f"Visualizer_config 'start_frame' parameter cannot be greater than the "
@@ -207,19 +185,14 @@ class Configuration:
             )
 
         # check visualize interval
-        if (
-            self.visualizer_config["media"]["visualize"]["visualize_interval"]
-            > video_length
-        ):
+        if self.visualizer_config["media"]["visualize"]["visualize_interval"] > video_length:
             raise ValueError(
                 f"Visualizer_config 'visualize_interval' parameter cannot be greater "
                 f"than the video length. \nVideo length: {video_length} frames."
             )
 
     def _check_component_name(self):
-        component_algorithm_mapping = self.experiment_run_config[
-            "component_algorithm_mapping"
-        ]
+        component_algorithm_mapping = self.experiment_run_config["component_algorithm_mapping"]
         for component in self.visualizer_config["media"]["visualize"]["components"]:
             if component not in component_algorithm_mapping:
                 raise ValueError(
@@ -229,9 +202,7 @@ class Configuration:
                 )
 
     def _check_algorithms(self):
-        component_algorithm_mapping = self.experiment_run_config[
-            "component_algorithm_mapping"
-        ]
+        component_algorithm_mapping = self.experiment_run_config["component_algorithm_mapping"]
         for component in self.visualizer_config["media"]["visualize"]["components"]:
             algorithms = self.visualizer_config["media"][component]["algorithms"]
             for alg in algorithms:
@@ -250,9 +221,7 @@ class Configuration:
             ValueError: If the camera position parameter is set to True but calibration
             parameters were not provided.
         """
-        if (self.visualizer_config["media"]["visualize"]["camera_position"]) and (
-            not calibration_file
-        ):
+        if (self.visualizer_config["media"]["visualize"]["camera_position"]) and (not calibration_file):
             raise ValueError(
                 "ERROR: No valid calibration file is found. Visualization of camera "
                 "position requires calibration data. Set camera_position to False "

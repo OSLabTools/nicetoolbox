@@ -1,5 +1,5 @@
 # collection of all method and feature detectors configurations
-# new detectors should be added and registred here
+# new detectors should be added and registered here
 
 from typing import List
 

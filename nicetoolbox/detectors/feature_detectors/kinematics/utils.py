@@ -49,23 +49,17 @@ def visualize_mean_of_motion_magnitude_by_bodypart(
 
             if people_names is None:
                 people_names = ["PersonL", "PersonR"]
-            ax.set_title(
-                f"Mean of Movements by Body Part Across Frames ({people_names[i]})"
-            )
+            ax.set_title(f"Mean of Movements by Body Part Across Frames ({people_names[i]})")
             ax.set_xlabel("Frame Index")
             ax.set_ylabel("Mean of Movements")
             # ax.set_ylim(global_min - delta, global_max + delta)
             ax.legend(loc="upper left", bbox_to_anchor=(1.03, 1))
 
-        camera_name = (
-            camera_names[camera_idx] if camera_names is not None else "camera_3d"
-        )
+        camera_name = camera_names[camera_idx] if camera_names is not None else "camera_3d"
         # Save the plot
         plt.subplots_adjust(right=0.85)
         plt.savefig(
-            os.path.join(
-                output_folder, f"mean_of_motion_by_bodypart_{camera_name}.png"
-            ),
+            os.path.join(output_folder, f"mean_of_motion_by_bodypart_{camera_name}.png"),
             bbox_inches="tight",
             dpi=500,
         )
@@ -103,9 +97,7 @@ def frame_with_linegraph(
         combined_img (numpy.ndarray): The video frame combined with the line graphs.
     """
     if len(data) != 2:
-        logging.error(
-            "The data shape is wrong. Data should be given as a list [dataL, dataR]"
-        )
+        logging.error("The data shape is wrong. Data should be given as a list [dataL, dataR]")
     dataL, dataR = data
 
     fig, (axL, axR) = plt.subplots(1, 2, figsize=(10, 4))
@@ -133,9 +125,7 @@ def frame_with_linegraph(
 
     plt.subplots_adjust(bottom=0.20)
 
-    leg = plt.legend(
-        loc="upper center", bbox_to_anchor=(1.0, 0.8), ncol=columns, facecolor="black"
-    )
+    leg = plt.legend(loc="upper center", bbox_to_anchor=(1.0, 0.8), ncol=columns, facecolor="black")
     for text in leg.get_texts():
         text.set_color("white")
 
@@ -188,9 +178,7 @@ def create_video_evolving_linegraphs(
     """
     # Get a sample image to determine video dimensions
     sample_frame = cv2.imread(frames_data_list[0])
-    sample_combined_img = frame_with_linegraph(
-        sample_frame, data, categories, 0, global_min, global_max
-    )
+    sample_combined_img = frame_with_linegraph(sample_frame, data, categories, 0, global_min, global_max)
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # for .mp4 format
     if file_name is None:
@@ -213,8 +201,6 @@ def create_video_evolving_linegraphs(
             out.write(frame)  # because there is no movement score for the first frame
         else:
             # i-1 because movement score data starts from the 2nd frame
-            combined = frame_with_linegraph(
-                frame, data, categories, i - 1, global_min, global_max
-            )
+            combined = frame_with_linegraph(frame, data, categories, i - 1, global_min, global_max)
             out.write(combined)
     out.release()

@@ -10,9 +10,7 @@ from .constants import px, py
 
 def save(entries):
     if "data" not in entries:
-        entries["message"].set(
-            "No data for saving. Please load or create calibration data."
-        )
+        entries["message"].set("No data for saving. Please load or create calibration data.")
         return
 
     if entries["output_directory"].get() == "":
@@ -106,13 +104,9 @@ def calibration_converter():
     # define the output directory path
     frame_output = tk.Frame(root)
     frame_output.pack(side=tk.TOP, padx=px, pady=py)
-    label_output = tk.Label(
-        frame_output, text="Output directory path: ", anchor="w", justify=tk.LEFT
-    )
+    label_output = tk.Label(frame_output, text="Output directory path: ", anchor="w", justify=tk.LEFT)
     label_output.pack(side=tk.TOP, fill=tk.X)
-    entry_output = tk.Entry(
-        frame_output, textvariable=entries["output_directory"], width=101
-    )
+    entry_output = tk.Entry(frame_output, textvariable=entries["output_directory"], width=101)
     entry_output.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
     button_output = tk.Button(
         frame_output,
@@ -127,9 +121,7 @@ def calibration_converter():
     button_quit = tk.Button(frame_quit, text="Quit", command=root.quit)
     button_quit.pack(side=tk.RIGHT, fill=tk.X)
     # create save button
-    button_submit = tk.Button(
-        frame_quit, text="Save", command=(lambda e=entries: save(e))
-    )
+    button_submit = tk.Button(frame_quit, text="Save", command=(lambda e=entries: save(e)))
     button_submit.pack(side=tk.RIGHT, fill=tk.X, padx=px, pady=py)
     label_quit = tk.Label(frame_quit, text="   ", width=85)
     label_quit.pack(side=tk.RIGHT, fill=tk.X)

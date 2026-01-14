@@ -55,20 +55,14 @@ class BodyAngle(BaseFeature):
 
         # POSE
         joints_component, joints_algorithm = [
-            name
-            for name in config["input_detector_names"]
-            if any(["joints" in s for s in name])
+            name for name in config["input_detector_names"] if any(["joints" in s for s in name])
         ][0]
-        pose_config_folder = io.get_detector_output_folder(
-            joints_component, joints_algorithm, "run_config"
-        )
+        pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, "run_config")
         pose_config = load_config(os.path.join(pose_config_folder, "run_config.toml"))
         predictions_mapping_config = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.predictions_mapping = predictions_mapping_config["human_pose"][
-            pose_config["keypoint_mapping"]
-        ]
+        self.predictions_mapping = predictions_mapping_config["human_pose"][pose_config["keypoint_mapping"]]
         self.camera_names = pose_config["camera_names"]
 
         # will be used during visualizations
@@ -83,16 +77,10 @@ class BodyAngle(BaseFeature):
         for pair in self.used_keypoints:
             for keypoint in pair:
                 if keypoint not in self.predictions_mapping["keypoints_index"]["body"]:
-                    logging.error(
-                        f"Given used_keypoint could not find in "
-                        f"predictions_mapping {keypoint}"
-                    )
+                    logging.error(f"Given used_keypoint could not find in " f"predictions_mapping {keypoint}")
 
         self.keypoint_index = [
-            [
-                self.predictions_mapping["keypoints_index"]["body"][keypoint]
-                for keypoint in keypoint_pair
-            ]
+            [self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in keypoint_pair]
             for keypoint_pair in self.used_keypoints
         ]
 
@@ -143,21 +131,13 @@ class BodyAngle(BaseFeature):
             del data_description["axis3"], data_description["axis4"]
             out_dict.update({f"body_angle_{dim}": leaning_data})
             out_dict["data_description"].update(
-                {
-                    f"body_angle_{dim}": dict(
-                        **data_description, axis3=["angle_deg", "gradient_angle"]
-                    )
-                }
+                {f"body_angle_{dim}": dict(**data_description, axis3=["angle_deg", "gradient_angle"])}
             )
 
-        save_file_path = os.path.join(
-            self.result_folders["leaning"], f"{self.algorithm}.npz"
-        )
+        save_file_path = os.path.join(self.result_folders["leaning"], f"{self.algorithm}.npz")
         np.savez_compressed(save_file_path, **out_dict)
 
-        logging.info(
-            f"Computation of feature detector for {self.components} completed."
-        )
+        logging.info(f"Computation of feature detector for {self.components} completed.")
         return out_dict
 
     def visualization(self, out_dict):
@@ -186,9 +166,7 @@ class BodyAngle(BaseFeature):
 
         for dim, data_item in data.items():
             camera_names = self.camera_names if dim == "2d" else ["3d"]
-            lean_utils.visualize_lean_in_out_per_person(
-                data_item, self.subjects_descr, self.viz_folder, camera_names
-            )
+            lean_utils.visualize_lean_in_out_per_person(data_item, self.subjects_descr, self.viz_folder, camera_names)
             # Determine global_min and global_max - define y-lims of graphs
             # global_min = np.nanmin(data[0])
             # global_max = np.nanmax(data[0])

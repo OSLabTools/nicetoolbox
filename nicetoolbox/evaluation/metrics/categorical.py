@@ -31,11 +31,7 @@ class CategoricalMetric(MetricHandler):
             "recall": Recall,
             "f1_score": F1Score,
         }
-        return {
-            name: metric_map[name]()
-            for name in self.cfg.metric_names
-            if name in metric_map
-        }
+        return {name: metric_map[name]() for name in self.cfg.metric_names if name in metric_map}
 
 
 class _BinaryClassificationMetric(Metric):
@@ -47,9 +43,7 @@ class _BinaryClassificationMetric(Metric):
     def reset(self) -> None:
         """Reset the metric's internal state: counts of TP, TN, FP, FN."""
         # Key: (component, algorithm, person, camera)
-        self.counts: Dict[Tuple[str, str, str, str], Dict[str, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        self.counts: Dict[Tuple[str, str, str, str], Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     def update(
         self,
@@ -77,8 +71,7 @@ class _BinaryClassificationMetric(Metric):
         assert preds_bool.shape == gts_bool.shape, "Preds and gts shape does not match."
 
         context_keys = [
-            (meta_chunk.component, meta_chunk.algorithm, frame.person, frame.camera)
-            for frame in meta_frames
+            (meta_chunk.component, meta_chunk.algorithm, frame.person, frame.camera) for frame in meta_frames
         ]
         unique_keys = set(context_keys)
 
@@ -115,9 +108,7 @@ class Accuracy(_BinaryClassificationMetric):
         results = {}
         for (component, algorithm, person, camera), counts in self.counts.items():
             denominator = counts["tp"] + counts["tn"] + counts["fp"] + counts["fn"]
-            value = (
-                (counts["tp"] + counts["tn"]) / denominator if denominator > 0 else 0.0
-            )
+            value = (counts["tp"] + counts["tn"]) / denominator if denominator > 0 else 0.0
             key = (component, algorithm, person, camera, "accuracy")
             results[key] = AggregatedResult(
                 value=value,
@@ -197,20 +188,10 @@ class F1Score(_BinaryClassificationMetric):
     def compute(self) -> Dict[Tuple[str, str, str, str, str], MetricReturnType]:
         results = {}
         for (component, algorithm, person, camera), counts in self.counts.items():
-            precision = (
-                counts["tp"] / (counts["tp"] + counts["fp"])
-                if (counts["tp"] + counts["fp"]) > 0
-                else 0.0
-            )
-            recall = (
-                counts["tp"] / (counts["tp"] + counts["fn"])
-                if (counts["tp"] + counts["fn"]) > 0
-                else 0.0
-            )
+            precision = counts["tp"] / (counts["tp"] + counts["fp"]) if (counts["tp"] + counts["fp"]) > 0 else 0.0
+            recall = counts["tp"] / (counts["tp"] + counts["fn"]) if (counts["tp"] + counts["fn"]) > 0 else 0.0
             denominator = precision + recall
-            f1_score = (
-                (2 * precision * recall / denominator) if denominator > 0 else 0.0
-            )
+            f1_score = (2 * precision * recall / denominator) if denominator > 0 else 0.0
             key = (component, algorithm, person, camera, "f1_score")
             results[key] = AggregatedResult(
                 value=f1_score,

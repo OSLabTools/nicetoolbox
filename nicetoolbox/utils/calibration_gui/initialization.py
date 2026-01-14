@@ -11,9 +11,7 @@ def init_entries_3x3():
     var_21, var_22, var_23 = tk.DoubleVar(), tk.DoubleVar(), tk.DoubleVar()
     var_31, var_32, var_33 = tk.DoubleVar(), tk.DoubleVar(), tk.DoubleVar()
 
-    entries = np.array(
-        [[var_11, var_21, var_31], [var_12, var_22, var_32], [var_13, var_23, var_33]]
-    ).T
+    entries = np.array([[var_11, var_21, var_31], [var_12, var_22, var_32], [var_13, var_23, var_33]]).T
     return entries
 
 
@@ -121,9 +119,7 @@ def init_calibration_format(entries, chosen_format):
         case "OpenCV":
             chosen_matrices = ["mtx", "rtvec", "dist", "cams"]
         case _:
-            entries["message"].set(
-                f"Format '{chosen_format.get()}' is not yet implemented."
-            )
+            entries["message"].set(f"Format '{chosen_format.get()}' is not yet implemented.")
             return
 
     entries["chosen_format"] = chosen_format

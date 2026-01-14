@@ -48,8 +48,7 @@ class AggregationConfig(BaseModel):
         invalid = set(values) - allowed
         if invalid:
             raise ValueError(
-                f"Invalid aggregate_dims entries: {sorted(invalid)}. "
-                f"Allowed values are {sorted(allowed)}."
+                f"Invalid aggregate_dims entries: {sorted(invalid)}. " f"Allowed values are {sorted(allowed)}."
             )
         return values
 

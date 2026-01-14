@@ -80,9 +80,7 @@ class DatasetRunner:
         try:
             pred_loader = PredictionLoader()
             annot_loader = None
-            gt_needed = any(
-                cfg.gt_required for cfg in self.evaluation_config.metric_types.values()
-            )
+            gt_needed = any(cfg.gt_required for cfg in self.evaluation_config.metric_types.values())
             if gt_needed:
                 annot_loader = AnnotationLoader(self.io_manager.path_to_annotations)
 

@@ -69,20 +69,14 @@ class VelocityBody(BaseFeature):
         super().__init__(config, io, data, requires_out_folder=False)
 
         joints_component, joints_algorithm = [
-            name
-            for name in config["input_detector_names"]
-            if any(["joints" in s for s in name])
+            name for name in config["input_detector_names"] if any(["joints" in s for s in name])
         ][0]
-        pose_config_folder = io.get_detector_output_folder(
-            joints_component, joints_algorithm, "run_config"
-        )
+        pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, "run_config")
         pose_config = load_config(os.path.join(pose_config_folder, "run_config.toml"))
         predictions_mapping_config = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.predictions_mapping = predictions_mapping_config["human_pose"][
-            pose_config["keypoint_mapping"]
-        ]
+        self.predictions_mapping = predictions_mapping_config["human_pose"][pose_config["keypoint_mapping"]]
 
         self.camera_names = pose_config["camera_names"]
         self.bodyparts_list = list(self.predictions_mapping["bodypart_index"].keys())
@@ -95,9 +89,7 @@ class VelocityBody(BaseFeature):
         # self.frames_data_list = [os.path.join(self.frames_data, f)
         #    for f in sorted(os.listdir(self.frames_data))]
 
-        logging.info(
-            f"Feature detector {self.components} {self.algorithm} initialized."
-        )
+        logging.info(f"Feature detector {self.components} {self.algorithm} initialized.")
 
     def compute(self):
         """
@@ -128,7 +120,7 @@ class VelocityBody(BaseFeature):
         """
         joint_data = np.load(self.input_files[0], allow_pickle=True)
         dimensions = ["2d"]
-        if "3d" in joint_data["data_description"].item().keys():
+        if "3d" in joint_data["data_description"].item():
             dimensions.append("3d")
 
         out_dict = {"data_description": {}}
@@ -158,9 +150,7 @@ class VelocityBody(BaseFeature):
             # calculate confidence score, saves the minimum confidence between consecutive frames
             # again, first frame keeps nan
             min_confidence = np.full_like(conf_score, np.nan)
-            min_confidence[:, :, 1:] = np.minimum(
-                conf_score[:, :, 1:], conf_score[:, :, :-1]
-            )
+            min_confidence[:, :, 1:] = np.minimum(conf_score[:, :, 1:], conf_score[:, :, :-1])
 
             # Compute the Euclidean distance for each keypoint between adjacent frames
             motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)
@@ -197,20 +187,14 @@ class VelocityBody(BaseFeature):
                         if dim == "3d"
                         else ["coordinate_x", "coordinate_y", "confidence_score"],
                     ),
-                    f"velocity_body_{dim}": dict(
-                        **data_description, axis4=["velocity", "confidence_score"]
-                    ),
+                    f"velocity_body_{dim}": dict(**data_description, axis4=["velocity", "confidence_score"]),
                 }
             )
 
-        save_file_path = os.path.join(
-            self.result_folders["kinematics"], f"{self.algorithm}.npz"
-        )
+        save_file_path = os.path.join(self.result_folders["kinematics"], f"{self.algorithm}.npz")
         np.savez_compressed(save_file_path, **out_dict)
 
-        logging.info(
-            f"Computation of feature detector for {self.components} completed."
-        )
+        logging.info(f"Computation of feature detector for {self.components} completed.")
         return out_dict
 
     def visualization(self, out_dict):
@@ -285,9 +269,7 @@ class VelocityBody(BaseFeature):
         """
         bodypart_motion = []
         for joint_indices in self.predictions_mapping["bodypart_index"].values():
-            bodypart_motion.append(
-                np.nanmean(motion_velocity[:, :, :, joint_indices, :], axis=-2)
-            )
+            bodypart_motion.append(np.nanmean(motion_velocity[:, :, :, joint_indices, :], axis=-2))
 
         bodypart_motion = np.concatenate(bodypart_motion, axis=-1)
 

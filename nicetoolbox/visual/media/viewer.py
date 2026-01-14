@@ -32,15 +32,11 @@ class Viewer:
 
         canvas_list = []
         for component in self.visualizer_config["media"]["visualize"]["components"]:
-            for canvases in self.visualizer_config["media"][component][
-                "canvas"
-            ].values():
+            for canvases in self.visualizer_config["media"][component]["canvas"].values():
                 canvas_list.extend(canvases)
         self.canvas_list = list(set(canvas_list))
 
-        self.is_camera_position = visualizer_config["media"]["visualize"][
-            "camera_position"
-        ]
+        self.is_camera_position = visualizer_config["media"]["visualize"]["camera_position"]
         self.fps = self.visualizer_config["dataset_properties"]["fps"]
         self._create_canvas_roots()
 
@@ -203,10 +199,7 @@ class Viewer:
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
             else:
-                entity_path = (
-                    f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/"
-                    f"{subject_name}"
-                )
+                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/" f"{subject_name}"
         elif component == "proximity":
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}"
@@ -219,10 +212,7 @@ class Viewer:
                 entity_path = f"{alg_name}_{subject_name}_{cam_name}/{bodypart}"
 
         else:
-            raise ValueError(
-                f"ERROR in generate_component_entity_path(): Component {component} "
-                "did not implemented"
-            )
+            raise ValueError(f"ERROR in generate_component_entity_path(): Component {component} " "did not implemented")
 
         return entity_path
 
@@ -250,9 +240,7 @@ class Viewer:
         # center *= 1000
         rr.log(entity_path, rr.Transform3D(mat3x3=R_inv, translation=center.flatten()))
 
-    def log_image(
-        self, image: np.array, entity_path: str, img_quality: int = 75
-    ) -> None:
+    def log_image(self, image: np.array, entity_path: str, img_quality: int = 75) -> None:
         """
         Logs an image in the viewer.
 
@@ -271,9 +259,7 @@ class Viewer:
             ValueError: If the multi-view parameter is set to False but a 3D canvas is
                 present.
         """
-        if (self.visualizer_config["media"]["multi_view"] is False) and (
-            "3D_Canvas" in self.canvas_list
-        ):
+        if (self.visualizer_config["media"]["multi_view"] is False) and ("3D_Canvas" in self.canvas_list):
             raise ValueError(
                 "ERROR: multi-view parameter in Visualizer_config set false,\n "
                 "But 3D_Canvas found in components, canvas lists.\n"
@@ -281,5 +267,3 @@ class Viewer:
                 "canvases\nIf you have multiple cameras, change multi-view "
                 "parameter as true\n"
             )
-
-

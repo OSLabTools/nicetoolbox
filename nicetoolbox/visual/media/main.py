@@ -33,9 +33,7 @@ def main(visualizer_config_file, machine_specifics_file):
     """
 
     # CONFIGURATION - IO
-    config_handler = vis_cfg.Configuration(
-        visualizer_config_file, machine_specifics_file
-    )
+    config_handler = vis_cfg.Configuration(visualizer_config_file, machine_specifics_file)
     visualizer_config = config_handler.get_updated_visualizer_config()
 
     # IO
@@ -90,9 +88,7 @@ def main(visualizer_config_file, machine_specifics_file):
         components.append(component)
 
     if "body_joints" in components:
-        body_joints_component = BodyJointsComponent(
-            visualizer_config, io, viewer, "body_joints"
-        )
+        body_joints_component = BodyJointsComponent(visualizer_config, io, viewer, "body_joints")
         eyes_middle_2d_data = body_joints_component.calculate_middle_eyes(dimension=2)
         eyes_middle_3d_data = (
             body_joints_component.calculate_middle_eyes(dimension=3)
@@ -105,9 +101,7 @@ def main(visualizer_config_file, machine_specifics_file):
         eyes_middle_3d_data = None, None
 
     hand_joints_component = (
-        HandJointsComponent(visualizer_config, io, viewer, "hand_joints")
-        if "hand_joints" in components
-        else None
+        HandJointsComponent(visualizer_config, io, viewer, "hand_joints") if "hand_joints" in components else None
     )
     face_landmarks_component = (
         FaceLandmarksComponent(visualizer_config, io, viewer, "face_landmarks")
@@ -121,9 +115,7 @@ def main(visualizer_config_file, machine_specifics_file):
     )
 
     look_at_data_tuple = (
-        gaze_interaction_component.get_lookat_data()
-        if "gaze_interaction" in components
-        else None
+        gaze_interaction_component.get_lookat_data() if "gaze_interaction" in components else None
     )  # returns (data, data_labels)
 
     gaze_ind_component = (
@@ -166,9 +158,7 @@ def main(visualizer_config_file, machine_specifics_file):
     )
 
     kinematics_component = (
-        KinematicsComponent(visualizer_config, io, viewer, "kinematics")
-        if "kinematics" in components
-        else None
+        KinematicsComponent(visualizer_config, io, viewer, "kinematics") if "kinematics" in components else None
     )
 
     instances = [
@@ -189,21 +179,13 @@ def main(visualizer_config_file, machine_specifics_file):
         if viewer.get_is_camera_position():
             entity_path_cams = viewer.get_camera_pos_entity_path(camera)
             viewer.log_camera(calib[camera], entity_path_cams)
-    for frame_idx in range(
-        viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()
-    ):
+    for frame_idx in range(viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()):
         viewer.go_to_timestamp(frame_idx)
-        frame_no = (
-            viewer.get_video_start()
-            + frame_idx
-            + config_handler.get_dataset_starting_index()
-        )
+        frame_no = viewer.get_video_start() + frame_idx + config_handler.get_dataset_starting_index()
         image_name = f"{frame_no:09}.png"
         for camera in all_cameras:
             # log camera into 3d canvas
-            image_path = os.path.join(
-                nice_tool_input_folder, camera, "frames", image_name
-            ).replace("\\", "/")
+            image_path = os.path.join(nice_tool_input_folder, camera, "frames", image_name).replace("\\", "/")
             image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
             entity_path_imgs = viewer.get_images_entity_path(camera)
             viewer.log_image(image, entity_path_imgs, img_quality=75)

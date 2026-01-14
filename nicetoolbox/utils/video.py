@@ -98,9 +98,7 @@ def sequential2frame_number(number: int, start_frame: int) -> int:
     return start_frame + (number - 1)
 
 
-def split_into_frames(
-    video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True
-) -> tuple:
+def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True) -> tuple:
     """
     Split a video into individual frames using ffmpeg.
 
@@ -134,8 +132,7 @@ def split_into_frames(
     n_frames_expected = get_number_of_frames(video_file)
     if n_frames_expected != n_frames_extracted:
         logging.warning(
-            f"Expected {n_frames_expected} frames, but extracted "
-            f"{n_frames_extracted} frames from {video_file}."
+            f"Expected {n_frames_expected} frames, but extracted " f"{n_frames_extracted} frames from {video_file}."
         )
         raise AssertionError("Splitting video into frames failed. See log for details.")
 
@@ -195,15 +192,10 @@ def equal_splits_by_frames(
     # extract the total number of frames in the video
     total_frames = min(number_of_frames, get_number_of_frames(video_file))
 
-    assert (
-        total_frames >= frames_per_split
-    ), f"total_frames ({total_frames}) > frames_per_split ({frames_per_split})"
+    assert total_frames >= frames_per_split, f"total_frames ({total_frames}) > frames_per_split ({frames_per_split})"
 
     # create a string of the frame numbers at which the video should be split
-    segment_frames = ",".join(
-        str(i)
-        for i in np.arange(0, total_frames, frames_per_split, dtype=int)[1:].tolist()
-    )
+    segment_frames = ",".join(str(i) for i in np.arange(0, total_frames, frames_per_split, dtype=int)[1:].tolist())
 
     # define file to save a list of all created segments
     output_folder = os.path.dirname(output_base)
@@ -269,9 +261,7 @@ def cut_length(
     """
     format = video_file.split(".")[-1]
     # start to construct the string to run ffmpeg in command line
-    string = get_ffmpeg_input_string(
-        video_file, number_of_frames, start_frame, skip_frames=None
-    )
+    string = get_ffmpeg_input_string(video_file, number_of_frames, start_frame, skip_frames=None)
 
     # add desired output file and format
     string += f"{output_base}.{format} -y"
@@ -322,9 +312,7 @@ def remove_last_segment_from_file(segments_list_file: str) -> None:
     segments_df.to_csv(segments_list_file)
 
 
-def frames_to_video(
-    input_folder: str, out_filename: str, fps: float = 30.0, start_frame: int = 0
-) -> int:
+def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0, start_frame: int = 0) -> int:
     """
     Convert a folder of frames to a video using ffmpeg.
 

@@ -8,18 +8,9 @@ from pathlib import Path
 from typing import Iterator, List, Tuple
 
 from ..configs.config_loader import ConfigLoader
-from ..configs.schemas.dataset_properties import (
-    DatasetConfig,
-    DatasetConfigEvaluation,
-    DatasetProperties,
-)
+from ..configs.schemas.dataset_properties import DatasetConfig, DatasetConfigEvaluation, DatasetProperties
 from ..configs.schemas.detectors_run_file import DetectorsRunConfig, DetectorsRunIO
-from ..configs.schemas.evaluation_config import (
-    AggregationConfig,
-    EvaluationConfig,
-    EvaluationIO,
-    EvaluationMetricType,
-)
+from ..configs.schemas.evaluation_config import AggregationConfig, EvaluationConfig, EvaluationIO, EvaluationMetricType
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.utils import (
@@ -60,19 +51,13 @@ class ConfigHandler:
         # Init config loader
         self.auto_placeholders = default_auto_placeholders()
         self.runtime_placeholders = default_runtime_placeholders()
-        self.cfg_loader = ConfigLoader(
-            self.auto_placeholders, self.runtime_placeholders
-        )
+        self.cfg_loader = ConfigLoader(self.auto_placeholders, self.runtime_placeholders)
         # Machine specific
-        self.machine_specific_config = self.cfg_loader.load_config(
-            machine_specifics_file, MachineSpecificConfig
-        )
+        self.machine_specific_config = self.cfg_loader.load_config(machine_specifics_file, MachineSpecificConfig)
         self.cfg_loader.extend_global_ctx(self.machine_specific_config)
 
         # Evaluation config
-        self.global_settings = self.cfg_loader.load_config(
-            eval_config_file, EvaluationConfig
-        )
+        self.global_settings = self.cfg_loader.load_config(eval_config_file, EvaluationConfig)
         # Shortcuts for evaluation config fields
         self.io_config = self.global_settings.io
         self.metric_type_configs = self.global_settings.metrics
@@ -82,9 +67,7 @@ class ConfigHandler:
         # It contains the run_config and dataset_properties
         experiment_folder = self.io_config.experiment_folder
         experiment_cfg_path = get_latest_expirement_config_path(experiment_folder)
-        logging.info(
-            f"Loading latest experiment run configuration from: {experiment_cfg_path}"
-        )
+        logging.info(f"Loading latest experiment run configuration from: {experiment_cfg_path}")
         self.experiment_config = self.cfg_loader.load_config(
             str(experiment_cfg_path),
             DetectorsExperimentConfig,
@@ -112,14 +95,8 @@ class ConfigHandler:
                 machine_specific_config=model_to_dict(self.machine_specific_config),
                 io_config=model_to_dict(self.io_config),
                 global_eval_config=model_to_dict(self.global_settings),
-                run_configs={
-                    name: model_to_dict(config)
-                    for name, config in self.all_run_configs.items()
-                },
-                dataset_properties={
-                    name: model_to_dict(props)
-                    for name, props in self.all_dataset_properties.items()
-                },
+                run_configs={name: model_to_dict(config) for name, config in self.all_run_configs.items()},
+                dataset_properties={name: model_to_dict(props) for name, props in self.all_dataset_properties.items()},
                 component_algorithm_mapping=self.component_algorithm_mapping,
             ),
             str(output_folder),
@@ -142,20 +119,15 @@ class ConfigHandler:
         for dataset_name, run_config in self.all_run_configs.items():
             if dataset_name not in self.all_dataset_properties:
                 logging.error(
-                    f"Dataset '{dataset_name}' from run_configs not found in"
-                    " dataset_properties. Skipping."
+                    f"Dataset '{dataset_name}' from run_configs not found in" " dataset_properties. Skipping."
                 )
                 continue
 
             # (1) Dataset properties and run config per dataset
-            dataset_properties: DatasetConfig = self.all_dataset_properties[
-                dataset_name
-            ]
+            dataset_properties: DatasetConfig = self.all_dataset_properties[dataset_name]
 
             # (2) Build evaluation configs based on dataset properties
-            evaluation_entries: List[DatasetConfigEvaluation] = (
-                dataset_properties.evaluation
-            )
+            evaluation_entries: List[DatasetConfigEvaluation] = dataset_properties.evaluation
 
             # (3) Prepare evaluation config
             metric_types_dict = {}

@@ -137,9 +137,7 @@ class EvaluationResults:
 
         return self
 
-    def aggregate(
-        self, group_by: Iterable[str], agg_funcs: Union[str, List[str]] = "mean"
-    ) -> "EvaluationResults":
+    def aggregate(self, group_by: Iterable[str], agg_funcs: Union[str, List[str]] = "mean") -> "EvaluationResults":
         """
         Performs a flexible aggregation using pandas groupby. Any index levels not
         included in `group_by` are automatically aggregated.
@@ -174,9 +172,7 @@ class EvaluationResults:
 
         """
         # Any level not in 'group_by' is automatically aggregated.
-        agg_df = self.df.groupby(level=list(group_by), observed=True)["value"].agg(
-            agg_funcs
-        )
+        agg_df = self.df.groupby(level=list(group_by), observed=True)["value"].agg(agg_funcs)
 
         self.df = agg_df
 

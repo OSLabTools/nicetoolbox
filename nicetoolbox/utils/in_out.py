@@ -28,11 +28,7 @@ def list_files_under_root(root_path: str, ext: str = "") -> list:
     else:
         pattern = "/**"
     # list all files under all subdirectories
-    file_list = [
-        path
-        for path in glob.glob(f"{rootdir}{pattern}", recursive=True)
-        if os.path.isfile(path)
-    ]
+    file_list = [path for path in glob.glob(f"{rootdir}{pattern}", recursive=True) if os.path.isfile(path)]
 
     return file_list
 

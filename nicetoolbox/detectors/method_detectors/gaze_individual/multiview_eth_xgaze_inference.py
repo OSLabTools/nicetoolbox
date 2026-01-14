@@ -49,22 +49,16 @@ def main(config, debug=False):
     calibration = config["calibration"]
 
     # (2) Prepare data loader
-    dataloader = ImagePathsByFrameIndexLoader(
-        config=config, expected_cameras=camera_names
-    )
+    dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
     n_frames = len(dataloader)
     n_subjects = len(subjects_descr)
     n_cams = len(camera_names)
 
     # (3) Initialize gaze estimator and face detector
     logging.info("Load gaze estimator and start detection.")
-    gaze_estimator = GazeEstimator(
-        config["face_model_filename"], config["pretrained_model_filename"]
-    )
+    gaze_estimator = GazeEstimator(config["face_model_filename"], config["pretrained_model_filename"])
 
-    face_detector = lm.get_face_detector(
-        config["shape_predictor_filename"], config["face_detector_filename"]
-    )
+    face_detector = lm.get_face_detector(config["shape_predictor_filename"], config["face_detector_filename"])
 
     # (4) Prepare to store results
     results = np.zeros((n_frames, n_subjects, 3))  # Back compatibility
@@ -83,10 +77,7 @@ def main(config, debug=False):
         # (A) Face and Landmark Detection per camera
         for cam_idx, camera_name in enumerate(camera_names):
             if camera_name not in frame_paths_per_camera:
-                logging.error(
-                    f"Camera '{camera_name}' not found in frame paths for frame "
-                    f"index {real_frame_idx}."
-                )
+                logging.error(f"Camera '{camera_name}' not found in frame paths for frame " f"index {real_frame_idx}.")
                 continue
 
             subjects_by_cam = cam_sees_subjects[camera_name]
@@ -101,9 +92,7 @@ def main(config, debug=False):
                 if landmark_predictions.shape[0] > len(subjects_by_cam):
                     # Too many faces detected, select the ones with highest scores
                     scores = score.mean(axis=1)
-                    max_value_indices = sorted(
-                        scores.argsort()[-len(subjects_by_cam) :]
-                    )
+                    max_value_indices = sorted(scores.argsort()[-len(subjects_by_cam) :])
                     landmark_predictions = landmark_predictions[max_value_indices]
                     # Filter scores to match the selected faces
                     score = score[max_value_indices]
@@ -127,9 +116,7 @@ def main(config, debug=False):
                         ),
                         np.nan,
                     )
-                    landmark_predictions = np.vstack(
-                        (landmark_predictions, extended_landmarks)
-                    )
+                    landmark_predictions = np.vstack((landmark_predictions, extended_landmarks))
                     # Also pad scores
                     extended_scores = np.full((missing_rows, 6), np.nan)
                     score = np.vstack((score, extended_scores))
@@ -139,9 +126,7 @@ def main(config, debug=False):
                 # 1. Expand scores: (N, 6) -> (N, 6, 1)
                 scores_expanded = score[:, :, np.newaxis]
                 # 2. Concatenate: (N, 6, 2) + (N, 6, 1) -> (N, 6, 3)
-                landmarks_and_scores = np.concatenate(
-                    (landmark_predictions, scores_expanded), axis=2
-                )
+                landmarks_and_scores = np.concatenate((landmark_predictions, scores_expanded), axis=2)
 
                 # Store landmarks with scores for the subjects seen by this camera
                 landmarks_2d[frame_idx, cam_idx, subjects_by_cam] = landmarks_and_scores
@@ -170,20 +155,14 @@ def main(config, debug=False):
 
                 # get camera parameters given the calibration
                 image = images[camera_name]
-                cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(
-                    calibration, camera_name, image
-                )
+                cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(calibration, camera_name, image)
 
                 # Predict gaze dir in the camera coordinate system (Run Neural Net)
-                pred_gaze = gaze_estimator.gaze_estimation(
-                    image, landmarks, cam_matrix, cam_distor
-                )
+                pred_gaze = gaze_estimator.gaze_estimation(image, landmarks, cam_matrix, cam_distor)
 
                 # Convert the gaze direction to the world coordinate system
                 if pred_gaze != "":
-                    pred_gaze_world = np.dot(
-                        np.linalg.inv(cam_rotation), pred_gaze
-                    ).reshape((1, 3))
+                    pred_gaze_world = np.dot(np.linalg.inv(cam_rotation), pred_gaze).reshape((1, 3))
                     pred_gaze_world = pred_gaze_world / np.linalg.norm(pred_gaze_world)
                     # SAVE per camera results (RAW)
                     results_per_camera[sub_id, camera_idx, frame_idx] = pred_gaze_world
@@ -205,9 +184,7 @@ def main(config, debug=False):
             pitchyaw = np.empty((n_subjects, 2))
             gaze_norm = gaze_camera / np.linalg.norm(gaze_camera, axis=1, keepdims=True)
             pitchyaw[:, 0] = np.arcsin(-1 * gaze_norm[:, 1])  # theta
-            pitchyaw[:, 1] = np.arctan2(
-                -1 * gaze_norm[:, 0], -1 * gaze_norm[:, 2]
-            )  # phi
+            pitchyaw[:, 1] = np.arctan2(-1 * gaze_norm[:, 0], -1 * gaze_norm[:, 2])  # phi
 
             length_ratio = 5.0
             length = image.shape[1] / length_ratio
@@ -227,9 +204,7 @@ def main(config, debug=False):
                 out_dir = os.path.join(config["out_folder"], camera_name)
                 os.makedirs(out_dir, exist_ok=True)
 
-                _, _, cam_rotation, _ = get_cam_para_studio(
-                    calibration, camera_name, image
-                )
+                _, _, cam_rotation, _ = get_cam_para_studio(calibration, camera_name, image)
 
                 for sub_id in range(n_subjects):
                     if sub_id not in cam_sees_subjects[camera_name]:
@@ -238,15 +213,10 @@ def main(config, debug=False):
                     landmarks = landmarks_2d[frame_idx, camera_idx, sub_id, :, :2]
                     gaze_result = results[frame_idx][sub_id]
 
-                    if (
-                        not np.isnan(landmarks).all()
-                        and not np.isnan(gaze_result).all()
-                    ):
+                    if not np.isnan(landmarks).all() and not np.isnan(gaze_result).all():
                         # project 3D gaze to 2D
                         gaze_cam = np.dot(cam_rotation, gaze_result.T)
-                        gaze_2d_direction = vector_to_pitchyaw(gaze_cam[None]).reshape(
-                            -1
-                        )
+                        gaze_2d_direction = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
                         face_center = np.nanmean(landmarks, axis=0)
                         draw_gaze(
                             image,
@@ -317,9 +287,7 @@ def main(config, debug=False):
             }
         )
 
-    save_file_name = os.path.join(
-        config["result_folders"]["gaze_individual"], f"{config['algorithm']}.npz"
-    )
+    save_file_name = os.path.join(config["result_folders"]["gaze_individual"], f"{config['algorithm']}.npz")
     np.savez_compressed(save_file_name, **out_dict)
 
     logging.info("Gaze detection 'Multiview ETH-XGaze' COMPLETED!\n")

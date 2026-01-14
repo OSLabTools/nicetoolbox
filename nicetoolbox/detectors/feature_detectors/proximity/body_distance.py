@@ -62,10 +62,7 @@ class BodyDistance(BaseFeature):
         """
         self.valid_run = True
         if len(data.subjects_descr) == 1:
-            logging.warning(
-                "Feature detector 'proximity' requires data of more than one persons. "
-                "Skipping."
-            )
+            logging.warning("Feature detector 'proximity' requires data of more than one persons. " "Skipping.")
             self.valid_run = False
             return
 
@@ -73,20 +70,14 @@ class BodyDistance(BaseFeature):
 
         # POSE
         joints_component, joints_algorithm = [
-            name
-            for name in config["input_detector_names"]
-            if any(["joints" in s for s in name])
+            name for name in config["input_detector_names"] if any(["joints" in s for s in name])
         ][0]
-        pose_config_folder = io.get_detector_output_folder(
-            joints_component, joints_algorithm, "run_config"
-        )
+        pose_config_folder = io.get_detector_output_folder(joints_component, joints_algorithm, "run_config")
         pose_config = load_config(os.path.join(pose_config_folder, "run_config.toml"))
         predictions_mapping_config = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        self.predictions_mapping = predictions_mapping_config["human_pose"][
-            pose_config["keypoint_mapping"]
-        ]
+        self.predictions_mapping = predictions_mapping_config["human_pose"][pose_config["keypoint_mapping"]]
         self.camera_names = pose_config["camera_names"]
 
         # # will be used during visualizations
@@ -99,13 +90,9 @@ class BodyDistance(BaseFeature):
         # proximity index
         for keypoint in self.used_keypoints:
             if keypoint not in self.predictions_mapping["keypoints_index"]["body"]:
-                logging.error(
-                    f"Given used_keypoint could not find in "
-                    f"predictions_mapping {keypoint}"
-                )
+                logging.error(f"Given used_keypoint could not find in " f"predictions_mapping {keypoint}")
         self.keypoint_index = [
-            self.predictions_mapping["keypoints_index"]["body"][keypoint]
-            for keypoint in self.used_keypoints
+            self.predictions_mapping["keypoints_index"]["body"][keypoint] for keypoint in self.used_keypoints
         ]
         logging.info(f"Feature detector for component {self.components} initialized.")
 
@@ -133,7 +120,7 @@ class BodyDistance(BaseFeature):
 
         joint_data = np.load(self.input_files[0], allow_pickle=True)
         dimensions = ["2d"]
-        if "3d" in joint_data["data_description"].item().keys():
+        if "3d" in joint_data["data_description"].item():
             dimensions.append("3d")
 
         out_dict = {"data_description": {}}
@@ -144,8 +131,7 @@ class BodyDistance(BaseFeature):
 
             if len(data) != 2:
                 logging.error(
-                    "The number of persons in the video is != 2. "
-                    "Proximity can not be calculated. Skipping."
+                    "The number of persons in the video is != 2. " "Proximity can not be calculated. Skipping."
                 )
                 return None
 
@@ -153,41 +139,23 @@ class BodyDistance(BaseFeature):
 
             # Calculate the average coordinates for the selected keypoints in both
             # objects for each frame
-            average_coords_L = np.mean(
-                personL[:, :, self.keypoint_index, :], axis=2, keepdims=True
-            )
-            average_coords_R = np.mean(
-                personR[:, :, self.keypoint_index, :], axis=2, keepdims=True
-            )
+            average_coords_L = np.mean(personL[:, :, self.keypoint_index, :], axis=2, keepdims=True)
+            average_coords_R = np.mean(personR[:, :, self.keypoint_index, :], axis=2, keepdims=True)
 
             # Calculate the Euclidean distance between the average coordinates for
             # each frame
-            proximity_score = np.linalg.norm(
-                average_coords_L - average_coords_R, axis=-1
-            )
+            proximity_score = np.linalg.norm(average_coords_L - average_coords_R, axis=-1)
 
             # update results dictionary
             del data_description["axis3"], data_description["axis4"]
-            out_dict.update(
-                {
-                    f"body_distance_{dim}": np.stack(
-                        (proximity_score, proximity_score), axis=0
-                    )
-                }
-            )
-            out_dict["data_description"].update(
-                {f"body_distance_{dim}": dict(**data_description, axis3="distance")}
-            )
+            out_dict.update({f"body_distance_{dim}": np.stack((proximity_score, proximity_score), axis=0)})
+            out_dict["data_description"].update({f"body_distance_{dim}": dict(**data_description, axis3="distance")})
 
         # save results
-        save_file_path = os.path.join(
-            self.result_folders["proximity"], f"{self.algorithm}.npz"
-        )
+        save_file_path = os.path.join(self.result_folders["proximity"], f"{self.algorithm}.npz")
         np.savez_compressed(save_file_path, **out_dict)
 
-        logging.info(
-            f"Computation of feature detector for {self.components} completed."
-        )
+        logging.info(f"Computation of feature detector for {self.components} completed.")
         return out_dict
 
     def visualization(self, out_dict):
@@ -216,9 +184,7 @@ class BodyDistance(BaseFeature):
 
             for dim, body_distance in data.items():
                 camera_names = self.camera_names if dim == "2d" else ["3d"]
-                pro_utils.visualize_proximity_score(
-                    body_distance, self.viz_folder, self.used_keypoints, camera_names
-                )
+                pro_utils.visualize_proximity_score(body_distance, self.viz_folder, self.used_keypoints, camera_names)
                 # # Determine global_min and global_max - define y-lims of graphs
                 # global_min = data[0].min() + 0.5
                 # global_max = data[0].max() - 0.5
@@ -241,9 +207,7 @@ class BodyDistance(BaseFeature):
                 #   frame, data, i, global_min, global_max)
                 #         out.write(combined)
                 # out.release()
-            logging.info(
-                f"Visualization of feature detector {self.components} completed."
-            )
+            logging.info(f"Visualization of feature detector {self.components} completed.")
 
     def post_compute(self, distance_data):
         pass

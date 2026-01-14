@@ -87,9 +87,7 @@ class DiscoveryEngine:
         self.dataset_props: DatasetConfig = dataset_properties
         self.eval_config: FinalEvaluationConfig = evaluation_config
 
-        self.gt_needed = any(
-            cfg.gt_required for cfg in self.eval_config.metric_types.values()
-        )
+        self.gt_needed = any(cfg.gt_required for cfg in self.eval_config.metric_types.values())
         self.annot_descriptions = self._load_and_process_annot_descriptions()
 
     def _load_and_process_annot_descriptions(self) -> Optional[Dict]:
@@ -107,9 +105,7 @@ class DiscoveryEngine:
         try:
             with np.load(annot_path, allow_pickle=True) as data:
                 if "data_description" not in data:
-                    logging.error(
-                        f"'data_description' not found in annotation file: {annot_path}"
-                    )
+                    logging.error(f"'data_description' not found in annotation file: {annot_path}")
                     return None
                 descriptions = data["data_description"].item()
         except FileNotFoundError:
@@ -143,9 +139,7 @@ class DiscoveryEngine:
             List[ChunkWorkItem]: A list of all discovered chunk work items.
         """
         all_chunk_items: List[ChunkWorkItem] = []
-        logging.info(
-            f"Starting discovery for dataset '{self.run_config._dataset_name}'..."
-        )
+        logging.info(f"Starting discovery for dataset '{self.run_config._dataset_name}'...")
         for video_config in self.run_config.videos:
             session, sequence = video_config.session_ID, video_config.sequence_ID
             start_frame = video_config.video_start
@@ -155,20 +149,13 @@ class DiscoveryEngine:
                 metric_cfg: EvaluationMetricType = self.eval_config.metric_types[mt]
 
                 for component in components:
-                    for algorithm in self.eval_config.component_algorithm_mapping[
-                        component
-                    ]:
-                        file = self.io.get_detector_results_file(
-                            video_config, component, algorithm
-                        )
+                    for algorithm in self.eval_config.component_algorithm_mapping[component]:
+                        file = self.io.get_detector_results_file(video_config, component, algorithm)
                         try:
                             with np.load(file, allow_pickle=True) as data:
                                 description = data["data_description"].item()
                         except (FileNotFoundError, Exception) as e:
-                            logging.error(
-                                f"Failed to load prediction file: {file}. Error: {e}. "
-                                "Skipping this file."
-                            )
+                            logging.error(f"Failed to load prediction file: {file}. Error: {e}. " "Skipping this file.")
                             continue
 
                         chunk_items = self._create_chunks_from_description(
@@ -248,9 +235,7 @@ class DiscoveryEngine:
                         if metric_cfg.gt_required and self.annot_descriptions:
                             if gt_desc is None and annot_data_key is None:
                                 dim = "3d" if "3d" in pred_desc_key.lower() else "2d"
-                                gt_key = DiscoveryEngine._parse_gt_key(
-                                    session, sequence, dim
-                                )
+                                gt_key = DiscoveryEngine._parse_gt_key(session, sequence, dim)
                                 if gt_key in self.annot_descriptions:
                                     gt_desc = self.annot_descriptions[gt_key]
                                     annot_path = self.dataset_props.path_to_annotations
@@ -280,16 +265,13 @@ class DiscoveryEngine:
 
             if not frame_info_list:
                 logging.warning(
-                    f"No valid frames found for {session}, {sequence}, {component}, "
-                    f"{algorithm}, {metric_type}."
+                    f"No valid frames found for {session}, {sequence}, {component}, " f"{algorithm}, {metric_type}."
                 )
                 continue
 
             # Reconciliation maps e.g. if labels differ between GT and preds
             if gt_desc:
-                pred_rec_map, gt_rec_map = DiscoveryEngine._create_reconciliation_maps(
-                    pred_desc, gt_desc
-                )
+                pred_rec_map, gt_rec_map = DiscoveryEngine._create_reconciliation_maps(pred_desc, gt_desc)
             else:
                 pred_rec_map, gt_rec_map = {}, {}
 
@@ -361,26 +343,14 @@ class DiscoveryEngine:
             )
         # For Axis 3: Create map only if lists are different but have overlap.
         if common_set_ax3 and pred_ax3 != gt_ax3:
-            common_ax3_ordered = tuple(
-                label for label in pred_ax3 if label in common_set_ax3
-            )
-            pred_rec_map["axis3"] = tuple(
-                pred_ax3.index(label) for label in common_ax3_ordered
-            )
-            gt_rec_map["axis3"] = tuple(
-                gt_ax3.index(label) for label in common_ax3_ordered
-            )
+            common_ax3_ordered = tuple(label for label in pred_ax3 if label in common_set_ax3)
+            pred_rec_map["axis3"] = tuple(pred_ax3.index(label) for label in common_ax3_ordered)
+            gt_rec_map["axis3"] = tuple(gt_ax3.index(label) for label in common_ax3_ordered)
 
         # For Axis 4: Create map only if lists are different but have overlap.
         if common_set_ax4 and pred_ax4 != gt_ax4:
-            common_ax4_ordered = tuple(
-                label for label in pred_ax4 if label in common_set_ax4
-            )
-            pred_rec_map["axis4"] = tuple(
-                pred_ax4.index(label) for label in common_ax4_ordered
-            )
-            gt_rec_map["axis4"] = tuple(
-                gt_ax4.index(label) for label in common_ax4_ordered
-            )
+            common_ax4_ordered = tuple(label for label in pred_ax4 if label in common_set_ax4)
+            pred_rec_map["axis4"] = tuple(pred_ax4.index(label) for label in common_ax4_ordered)
+            gt_rec_map["axis4"] = tuple(gt_ax4.index(label) for label in common_ax4_ordered)
 
         return pred_rec_map, gt_rec_map

@@ -11,8 +11,8 @@ from ..utils import logging_utils as log_ut
 from ..utils import to_csv as csv
 from . import config_handler as confh
 from .data import Data
-from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
+from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
 from .feature_detectors.kinematics.velocity_body import VelocityBody
 from .feature_detectors.leaning.body_angle import BodyAngle
 from .feature_detectors.proximity.body_distance import BodyDistance
@@ -71,10 +71,7 @@ def main(run_config_file, machine_specifics_file):
 
     # LOGGING
     log_ut.setup_logging(*io.get_log_file_level())
-    logging.info(
-        f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to "
-        f"'{io.out_folder}'.\n\n{'#' * 80}\n\n"
-    )
+    logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to " f"'{io.out_folder}'.\n\n{'#' * 80}\n\n")
 
     # save experiment configs
     config_handler.save_experiment_config(io.get_config_file())
@@ -104,9 +101,7 @@ def main(run_config_file, machine_specifics_file):
         recipe = data.get_input_recipe()
 
         # RUN method detectors
-        for method_config, method_name in config_handler.get_method_configs(
-            method_names
-        ):
+        for method_config, method_name in config_handler.get_method_configs(method_names):
             start_time = time.time()
             logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
             method_config.update(recipe)
@@ -114,23 +109,17 @@ def main(run_config_file, machine_specifics_file):
             detector.run_inference()
             if method_config["visualize"]:
                 detector.visualization(data)
-            logging.info(
-                f"FINISHED method '{method_name}' in {time.time() - start_time}s.\n\n"
-            )
+            logging.info(f"FINISHED method '{method_name}' in {time.time() - start_time}s.\n\n")
 
         # RUN feature detectors
-        for feature_config, feature_name in config_handler.get_feature_configs(
-            feature_names
-        ):
+        for feature_config, feature_name in config_handler.get_feature_configs(feature_names):
             start_time = time.time()
             logging.info(f"STARTING feature '{feature_name}'.\n{'-' * 80}")
             feature = all_feature_detectors[feature_name](feature_config, io, data)
             feature_data = feature.compute()
             if feature_config["visualize"]:
                 feature.visualization(feature_data)
-            logging.info(
-                f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n"
-            )
+            logging.info(f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n")
 
     # convert results
     logging.info(f"Detectors finished.\n{'-' * 80}")

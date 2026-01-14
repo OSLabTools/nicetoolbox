@@ -52,13 +52,10 @@ class EvalResults:
         dataset_name = io_manager.dataset_name
         if not self.file_groups and not self.summaries:
             logging.error(
-                f"No results to save for dataset {dataset_name}. "
-                "Ensure metrics are computed and stored correctly."
+                f"No results to save for dataset {dataset_name}. " "Ensure metrics are computed and stored correctly."
             )
         if self.file_groups:
-            logging.info(
-                f"Saving {len(self.file_groups)} npy groups for dataset {dataset_name}."
-            )
+            logging.info(f"Saving {len(self.file_groups)} npy groups for dataset {dataset_name}.")
             self._export_file_groups(io_manager)
         if self.summaries:
             logging.info(f"Saving {len(self.summaries)} aggregated metrics to file")
@@ -72,16 +69,10 @@ class EvalResults:
             io_manager (IO): IO manager for file operations.
         """
         for group in self.file_groups:
-            payload = {
-                "data_description": {g.metric_name: g.description for g in group.grids}
-            }
+            payload = {"data_description": {g.metric_name: g.description for g in group.grids}}
             for grid in group.grids:
                 payload[grid.metric_name] = grid.values
-            selection = (
-                f"{group.session}__{group.sequence}"
-                if group.sequence
-                else group.session
-            )
+            selection = f"{group.session}__{group.sequence}" if group.sequence else group.session
             out_folder = io_manager.get_out_folder(selection, group.component)
             file_name = f"{group.algorithm}__{group.metric_type}.npz"
             io_manager.save_npz(out_folder / file_name, **payload)
@@ -96,15 +87,11 @@ class EvalResults:
         metric_types = set(s.metric_type for s in self.summaries)
 
         for metric_type in metric_types:
-            metric_summaries = [
-                s for s in self.summaries if s.metric_type == metric_type
-            ]
+            metric_summaries = [s for s in self.summaries if s.metric_type == metric_type]
             if not metric_summaries:
                 continue
 
-            summary_path = (
-                io_manager.output_folder / f"{dataset_name}_{metric_type}_summary.csv"
-            )
+            summary_path = io_manager.output_folder / f"{dataset_name}_{metric_type}_summary.csv"
             summary_data = [
                 {
                     "metric_type": s.metric_type,
@@ -234,9 +221,7 @@ class _ResultsProcessor:
                     aggregated_results.append(result_object)
         return frame_results, aggregated_results
 
-    def _group_by_file(
-        self, flat_results: List[FrameResult]
-    ) -> Dict[Tuple, List[FrameResult]]:
+    def _group_by_file(self, flat_results: List[FrameResult]) -> Dict[Tuple, List[FrameResult]]:
         """
         Groups frame-level results by unique file identifiers.
 
@@ -275,9 +260,7 @@ class _ResultsProcessor:
         for (ses, seq, comp, algo, metric_type), frame_list in grouped_data.items():
             grids = self._grid_results(frame_list)
             if grids:
-                final_groups.append(
-                    ResultFileGroup(ses, seq, comp, algo, metric_type, grids)
-                )
+                final_groups.append(ResultFileGroup(ses, seq, comp, algo, metric_type, grids))
         return final_groups
 
     def _grid_results(self, frame_results: List[FrameResult]) -> List[ResultGrid]:
@@ -329,7 +312,5 @@ class _ResultsProcessor:
                 "axis2": [str(f) for f in f_list],  # TODO: frames should not be strings
                 "axis3": metric_desc,
             }
-            result_grids.append(
-                ResultGrid(metric_name=metric_name, values=grid, description=desc)
-            )
+            result_grids.append(ResultGrid(metric_name=metric_name, values=grid, description=desc))
         return result_grids

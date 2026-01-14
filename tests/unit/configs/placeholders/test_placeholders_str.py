@@ -4,10 +4,7 @@ Unit tests for placeholder resolution in strings.
 
 import pytest
 
-from nicetoolbox.configs.placeholders import (
-    resolve_placeholders_str,
-    resolve_placeholders_str_strict,
-)
+from nicetoolbox.configs.placeholders import resolve_placeholders_str, resolve_placeholders_str_strict
 
 
 def test_resolve_placeholders_str_basic():
@@ -59,20 +56,14 @@ def test_resolve_placeholders_str_unresolved():
 def test_resolve_placeholders_str_special_cases():
     """Test special characters and edge cases."""
     # Underscores and hyphens
-    ret = resolve_placeholders_str(
-        "<my_var> and <my-var>", {"my_var": "underscore", "my-var": "hyphen"}
-    )
+    ret = resolve_placeholders_str("<my_var> and <my-var>", {"my_var": "underscore", "my-var": "hyphen"})
     assert ret == "underscore and hyphen"
 
     # Empty placeholder value
-    assert (
-        resolve_placeholders_str("Before<empty>After", {"empty": ""}) == "BeforeAfter"
-    )
+    assert resolve_placeholders_str("Before<empty>After", {"empty": ""}) == "BeforeAfter"
 
     # Adjacent placeholders
-    ret = resolve_placeholders_str(
-        "<first><second><third>", {"first": "A", "second": "B", "third": "C"}
-    )
+    ret = resolve_placeholders_str("<first><second><third>", {"first": "A", "second": "B", "third": "C"})
     assert ret == "ABC"
 
     # Invalid formats
@@ -107,9 +98,7 @@ def test_resolve_placeholders_str_nonstring_values():
     assert ret == "Port: 8080, Version: 2.0, Enabled: True"
 
     # Mixed string and non-string placeholders
-    ret = resolve_placeholders_str(
-        "<host>:<port>/<name>", {"host": "localhost", "port": 3000, "name": "myapp"}
-    )
+    ret = resolve_placeholders_str("<host>:<port>/<name>", {"host": "localhost", "port": 3000, "name": "myapp"})
     assert ret == "localhost:3000/myapp"
 
 
@@ -117,9 +106,7 @@ def test_resolve_placeholders_str_unreachable_and_circular():
     """Test unreachable parameter and circular dependency detection."""
     # Single unreachable - not marked as unresolved
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<resolved> and <runtime>", {"resolved": "VALUE"}, unresolved, {"runtime"}
-    )
+    ret = resolve_placeholders_str("<resolved> and <runtime>", {"resolved": "VALUE"}, unresolved, {"runtime"})
     assert ret == "VALUE and <runtime>"
     assert unresolved == {"runtime"}
 
@@ -131,9 +118,7 @@ def test_resolve_placeholders_str_unreachable_and_circular():
 
     # Mix: resolved, missing, unreachable
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<resolved> <missing> <runtime>", {"resolved": "OK"}, unresolved, {"runtime"}
-    )
+    ret = resolve_placeholders_str("<resolved> <missing> <runtime>", {"resolved": "OK"}, unresolved, {"runtime"})
     assert ret == "OK <missing> <runtime>"
     assert unresolved == {"missing", "runtime"}
 
@@ -155,33 +140,25 @@ def test_resolve_placeholders_str_unreachable_and_circular():
 
     # Unreachable placeholder in resolved value - NOT marked as unresolved
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<path>", {"path": "/data/<runtime>"}, unresolved, {"runtime"}
-    )
+    ret = resolve_placeholders_str("<path>", {"path": "/data/<runtime>"}, unresolved, {"runtime"})
     assert ret == "/data/<runtime>"
     assert unresolved == set()
 
     # Mix of unreachable and reachable in resolved value
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<config>", {"config": "<base>/<runtime>"}, unresolved, {"runtime"}
-    )
+    ret = resolve_placeholders_str("<config>", {"config": "<base>/<runtime>"}, unresolved, {"runtime"})
     assert ret == "<base>/<runtime>"
     assert "config" in unresolved  # Due to '<base>'
 
     # All placeholders in resolved value are unreachable
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<path>", {"path": "<v1>/<v2>/<v3>"}, unresolved, {"v1", "v2", "v3"}
-    )
+    ret = resolve_placeholders_str("<path>", {"path": "<v1>/<v2>/<v3>"}, unresolved, {"v1", "v2", "v3"})
     assert ret == "<v1>/<v2>/<v3>"
     assert unresolved == set()
 
     # Chained placeholders - single level resolution
     unresolved = set()
-    ret = resolve_placeholders_str(
-        "<final>", {"final": "<mid>", "mid": "<base>", "base": "val"}, unresolved
-    )
+    ret = resolve_placeholders_str("<final>", {"final": "<mid>", "mid": "<base>", "base": "val"}, unresolved)
     assert ret == "<mid>"
     assert "final" in unresolved
 
@@ -203,9 +180,7 @@ def test_resolve_placeholders_str_no_mutation():
     original_placeholders = {"name": "Alice", "age": 30, "city": "NYC"}
     placeholders_copy = dict(original_placeholders)
 
-    result = resolve_placeholders_str(
-        "Hello <name>, age <age> from <city>", original_placeholders
-    )
+    result = resolve_placeholders_str("Hello <name>, age <age> from <city>", original_placeholders)
     assert result == "Hello Alice, age 30 from NYC"
     assert original_placeholders == placeholders_copy
 
@@ -220,9 +195,7 @@ def test_resolve_placeholders_str_no_mutation():
     unreachable_copy = set(unreachable)
     unresolved = set()
 
-    result = resolve_placeholders_str(
-        "Hello <name> and <runtime>", {"name": "Test"}, unresolved, unreachable
-    )
+    result = resolve_placeholders_str("Hello <name> and <runtime>", {"name": "Test"}, unresolved, unreachable)
     assert result == "Hello Test and <runtime>"
     assert unreachable == unreachable_copy  # Not mutated
 
@@ -233,9 +206,7 @@ def test_resolve_placeholders_str_no_mutation():
     unreachable = {"runtime"}
     unreachable_copy = set(unreachable)
 
-    result = resolve_placeholders_str(
-        "<a> <b> <runtime>", placeholders, unresolved, unreachable
-    )
+    result = resolve_placeholders_str("<a> <b> <runtime>", placeholders, unresolved, unreachable)
     assert result == "VALUE_A <c> <runtime>"
     assert placeholders == placeholders_copy  # Not mutated
     assert unreachable == unreachable_copy  # Not mutated
@@ -245,9 +216,7 @@ def test_resolve_placeholders_str_no_mutation():
 def test_resolve_placeholders_str_strict():
     """Test resolve_placeholders_str_strict raises on missing placeholders."""
     # Should work when all placeholders are resolved
-    result = resolve_placeholders_str_strict(
-        "Hello <name>, age <age>", {"name": "Alice", "age": 30}
-    )
+    result = resolve_placeholders_str_strict("Hello <name>, age <age>", {"name": "Alice", "age": 30})
     assert result == "Hello Alice, age 30"
 
     # Should RAISE when placeholder is missing
@@ -255,9 +224,7 @@ def test_resolve_placeholders_str_strict():
         resolve_placeholders_str_strict("Hello <name> and <missing>", {"name": "Bob"})
 
     # Should NOT raise if missing placeholder is in unreachable set
-    result = resolve_placeholders_str_strict(
-        "Hello <name> and <runtime>", {"name": "Test"}, {"runtime"}
-    )
+    result = resolve_placeholders_str_strict("Hello <name> and <runtime>", {"name": "Test"}, {"runtime"})
     assert result == "Hello Test and <runtime>"
 
     # Should RAISE if only some missing are unreachable

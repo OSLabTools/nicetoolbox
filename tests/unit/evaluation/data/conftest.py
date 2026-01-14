@@ -8,11 +8,7 @@ from unittest.mock import MagicMock, create_autospec
 import numpy as np
 import pytest
 
-from nicetoolbox.evaluation.data.discovery import (
-    ChunkWorkItem,
-    DiscoveryEngine,
-    FrameInfo,
-)
+from nicetoolbox.evaluation.data.discovery import ChunkWorkItem, DiscoveryEngine, FrameInfo
 from nicetoolbox.evaluation.data.loaders import AnnotationLoader, PredictionLoader
 from nicetoolbox.evaluation.in_out import IO
 from tests.unit.evaluation.data.helpers import DiscoveryMockDataBuilder
@@ -48,13 +44,9 @@ def discovery_engine_factory(mocker):  # mocker is a fixture from pytest-mock pl
         def np_load_side_effect(path, allow_pickle=True):  # noqa: ARG001
             mock_context = MagicMock()
             if path == "fake/pred.npz" and mock_pred_desc:
-                mock_context.__enter__.return_value = {
-                    "data_description": np.array(mock_pred_desc)
-                }
+                mock_context.__enter__.return_value = {"data_description": np.array(mock_pred_desc)}
             elif path == dataset_props.path_to_annotations and mock_annot_desc:
-                mock_context.__enter__.return_value = {
-                    "data_description": np.array(mock_annot_desc)
-                }
+                mock_context.__enter__.return_value = {"data_description": np.array(mock_annot_desc)}
             else:
                 # Default case or error case
                 raise FileNotFoundError

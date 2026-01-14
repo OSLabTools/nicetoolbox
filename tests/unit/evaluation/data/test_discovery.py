@@ -24,9 +24,7 @@ def test_parse_gt_key(session, sequence, gt_dim_key, expected):
     without duplicating boilerplate.
     """
 
-    result = DiscoveryEngine._parse_gt_key(
-        session=session, sequence=sequence, gt_dim_key=gt_dim_key
-    )
+    result = DiscoveryEngine._parse_gt_key(session=session, sequence=sequence, gt_dim_key=gt_dim_key)
     assert result == expected
 
 
@@ -67,9 +65,7 @@ def test_parse_gt_key(session, sequence, gt_dim_key, expected):
         # Case 5: NO overlaps (should raise ValueError) - see next test.
     ],
 )
-def test_create_reconciliation_maps_success_cases(
-    pred_desc, gt_desc, expected_pred_map, expected_gt_map
-):
+def test_create_reconciliation_maps_success_cases(pred_desc, gt_desc, expected_pred_map, expected_gt_map):
     """
     Tests the core reconciliation logic for scenarios that should succeed.
     """
@@ -112,9 +108,7 @@ def test_load_and_process_annot_descriptions_with_synonyms(discovery_engine_fact
     mock_annot_desc = {"S1__Seq1__3d": {"axis3": ["original_name_1", "name_2"]}}
     synonyms = {"axis3": {"original_name_1": "new_synonym_name"}}
 
-    engine = discovery_engine_factory(
-        dataset_props_overrides={"synonyms": synonyms}, mock_annot_desc=mock_annot_desc
-    )
+    engine = discovery_engine_factory(dataset_props_overrides={"synonyms": synonyms}, mock_annot_desc=mock_annot_desc)
 
     # Act: The method is called during the engine's __init__
     processed_desc = engine.annot_descriptions
@@ -219,9 +213,7 @@ def test_create_chunks_handles_missing_gt_for_frame(discovery_engine_factory):
             "axis4": ["x", "y"],
         }
     }
-    engine = discovery_engine_factory(
-        mock_pred_desc=pred_desc, mock_annot_desc=annot_desc
-    )
+    engine = discovery_engine_factory(mock_pred_desc=pred_desc, mock_annot_desc=annot_desc)
 
     # Act
     chunks = engine._create_chunks_from_description(

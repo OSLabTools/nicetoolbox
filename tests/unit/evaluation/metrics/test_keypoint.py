@@ -5,11 +5,7 @@ import torch
 
 from nicetoolbox.configs.schemas.evaluation_config import EvaluationMetricType
 from nicetoolbox.evaluation.data.discovery import ChunkWorkItem, FrameInfo
-from nicetoolbox.evaluation.metrics.keypoint import (
-    BoneLength,
-    JumpDetection,
-    KeypointMetric,
-)
+from nicetoolbox.evaluation.metrics.keypoint import BoneLength, JumpDetection, KeypointMetric
 
 
 @pytest.fixture
@@ -83,9 +79,7 @@ def test_keypoint_handler_creates_metrics(patched_toml_load, mock_keypoints_mapp
 # --- (2) Tests for the BoneLength Metric ---
 
 
-def test_bonelength_calculates_correctly(
-    mock_keypoints_mapping, mock_keypoint_metadata
-):
+def test_bonelength_calculates_correctly(mock_keypoints_mapping, mock_keypoint_metadata):
     """
     Given: Predictions with known 3D coordinates.
     When:  The BoneLength metric is updated.
@@ -165,9 +159,7 @@ def test_bonelength_raises_err_2d_data(mock_keypoints_mapping, mock_keypoint_met
 # --- (3) Tests for the JumpDetection Metric ---
 
 
-def test_jumpdetection_detects_jumps_correctly(
-    mock_keypoints_mapping, mock_keypoint_metadata
-):
+def test_jumpdetection_detects_jumps_correctly(mock_keypoints_mapping, mock_keypoint_metadata):
     """
     Given: A sequence of predictions with small and large movements.
     When:  The JumpDetection metric is updated.
@@ -218,9 +210,7 @@ def test_jumpdetection_detects_jumps_correctly(
     assert results[summary_key].value == 2  # Two True values in the tensor
 
 
-def test_jumpdetection_is_stateful_across_updates(
-    mock_keypoints_mapping, mock_keypoint_metadata
-):
+def test_jumpdetection_is_stateful_across_updates(mock_keypoints_mapping, mock_keypoint_metadata):
     """
     Given: A sequence of predictions split across two batches.
     When:  The JumpDetection metric is updated twice.
