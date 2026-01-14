@@ -40,11 +40,7 @@ class EvaluationEngine:
             evaluation_config: FinalEvaluationConfig = evaluation_config_instance
 
             dataset_name = dataset_properties._dataset_name
-            logging.info(
-                f"\n\n{'-' * 80}\n"
-                f"Processing dataset: {dataset_name.upper()}"
-                f"\n{'-' * 80}\n\n"
-            )
+            logging.info(f"\n\n{'-' * 80}\n" f"Processing dataset: {dataset_name.upper()}" f"\n{'-' * 80}\n\n")
 
             runner = DatasetRunner(
                 io_manager=self.io_manager,
@@ -56,12 +52,8 @@ class EvaluationEngine:
             try:
                 runner.run()
             except Exception as e:
-                logging.error(
-                    f"Error processing dataset {dataset_name}: {e}", exc_info=True
-                )
-                logging.warning(
-                    f"Skipping to next dataset due to error in {dataset_name}."
-                )
+                logging.error(f"Error processing dataset {dataset_name}: {e}", exc_info=True)
+                logging.warning(f"Skipping to next dataset due to error in {dataset_name}.")
                 continue
 
         logging.info("EvaluationEngine: Finished processing all datasets.")

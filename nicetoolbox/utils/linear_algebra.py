@@ -26,9 +26,7 @@ def distance_line_point(line_point, line_direction, point):
         AssertionError: If the shapes of line_point, line_direction, or point
             are inconsistent.
     """
-    assert_and_log(
-        point.shape[-1] in [1, 2, 3], f"invalid point dimensions: {point.shape}"
-    )
+    assert_and_log(point.shape[-1] in [1, 2, 3], f"invalid point dimensions: {point.shape}")
     assert_and_log(
         line_direction.shape == line_point.shape == point.shape,
         "inconsistent shapes inputted to distance_line_point",

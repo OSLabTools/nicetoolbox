@@ -68,9 +68,7 @@ class MetricHandler(ABC):
             device (str): Device to run the metrics on (e.g., 'cpu' or 'cuda').
         """
         if device.startswith("cuda") and not torch.cuda.is_available():
-            logging.warning(
-                f"Selected CUDA device {device} is not available." " Using cpu instead."
-            )
+            logging.warning(f"Selected CUDA device {device} is not available." " Using cpu instead.")
             self.device = torch.device("cpu")
         else:
             self.device = torch.device(device)
@@ -102,8 +100,7 @@ class MetricHandler(ABC):
                 metric.update(preds, gts, meta_chunk, meta_frames)
             except Exception as e:
                 logging.error(
-                    f"Metric '{metric_name}' in handler '{self.name}' failed "
-                    f"during update call: {e})",
+                    f"Metric '{metric_name}' in handler '{self.name}' failed " f"during update call: {e})",
                     exc_info=True,
                 )
 
@@ -116,8 +113,7 @@ class MetricHandler(ABC):
                 all_results.update(metric_results)
             except Exception as e:
                 logging.error(
-                    f"Metric'{metric_name}' in handler '{self.name}' failed "
-                    f"during compute call: {e})",
+                    f"Metric'{metric_name}' in handler '{self.name}' failed " f"during compute call: {e})",
                     exc_info=True,
                 )
             finally:

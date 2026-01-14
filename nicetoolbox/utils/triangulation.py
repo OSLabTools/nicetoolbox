@@ -17,15 +17,11 @@ def undistort_points_pinhole(point_coords, intrinsics, distortions):
     Returns:
         np.array: The undistorted 2D point coordinates.
     """
-    undistorted = cv2.undistortPoints(
-        point_coords, intrinsics, distortions, P=intrinsics
-    )
+    undistorted = cv2.undistortPoints(point_coords, intrinsics, distortions, P=intrinsics)
     return undistorted
 
 
-def triangulate_stereo(
-    projection_matrix1, projection_matrix2, undistorted_points1, undistorted_points2
-):
+def triangulate_stereo(projection_matrix1, projection_matrix2, undistorted_points1, undistorted_points2):
     """
     Triangulates the 3D position of points in Euclidean coordinates from two camera
     views.

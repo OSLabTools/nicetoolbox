@@ -47,9 +47,7 @@ def main(config: dict) -> None:
     cam_sees_subjects = config["cam_sees_subjects"]
 
     # (2) Prepare data loader
-    dataloader = ImagePathsByFrameIndexLoader(
-        config=config, expected_cameras=camera_names
-    )
+    dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
     n_frames = len(dataloader)
     n_cams = len(camera_names)
 
@@ -71,9 +69,7 @@ def main(config: dict) -> None:
 
     # (5) Prepare results storage
     headpose_vectors = np.zeros((len(subjects_descr), n_cams, n_frames, 6))
-    bbox_vectors = np.zeros(
-        (len(subjects_descr), n_cams, n_frames, 4)
-    )  # [x0, y0, bw, bh]
+    bbox_vectors = np.zeros((len(subjects_descr), n_cams, n_frames, 4))  # [x0, y0, bw, bh]
     landmarks_vectors = np.zeros(
         (
             len(subjects_descr),
@@ -101,9 +97,7 @@ def main(config: dict) -> None:
             # (B) Detect faces with InsightFace
             faces = face_detector.get(cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB))
             if not faces:
-                logging.warning(
-                    f"No faces found in frame {real_frame_idx}, camera {camera_name}"
-                )
+                logging.warning(f"No faces found in frame {real_frame_idx}, camera {camera_name}")
                 continue
 
             # (C) Sort faces by x-coordinate to maintain consistent ordering (TODO!)
@@ -129,13 +123,9 @@ def main(config: dict) -> None:
                     logging.warning(f"Subject index {subj_idx} out of bounds")
                     continue
 
-                headpose_vectors[subj_idx, cam_i, frame_idx, :] = features["headpose"][
-                    i
-                ]
+                headpose_vectors[subj_idx, cam_i, frame_idx, :] = features["headpose"][i]
 
-                landmarks_vectors[subj_idx, cam_i, frame_idx, :, :] = np.array(
-                    features["landmarks"][i]
-                )
+                landmarks_vectors[subj_idx, cam_i, frame_idx, :, :] = np.array(features["landmarks"][i])
                 bbox_vectors[subj_idx, cam_i, frame_idx, :] = bbox
 
                 # Draw overlay
@@ -198,9 +188,7 @@ def main(config: dict) -> None:
             },
         },
     }
-    result_path = os.path.join(
-        config["result_folders"]["head_orientation"], f"{config['algorithm']}.npz"
-    )
+    result_path = os.path.join(config["result_folders"]["head_orientation"], f"{config['algorithm']}.npz")
     logging.info(f"Saving SPIGA result to {result_path}")
     np.savez_compressed(result_path, **out)
     logging.info("SPIGA result saved successfully.")

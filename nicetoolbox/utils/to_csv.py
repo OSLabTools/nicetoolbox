@@ -34,9 +34,7 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
             arr_dimensions = len(arr.shape)
 
             if len(set(data_desc_arr["axis3"])) == 1:
-                data_desc_arr["axis3"] = [
-                    f"{value}_{idx}" for idx, value in enumerate(data_desc_arr["axis3"])
-                ]
+                data_desc_arr["axis3"] = [f"{value}_{idx}" for idx, value in enumerate(data_desc_arr["axis3"])]
 
             # first 3 dimensions always, Subject, Camera, Frames
             # if array has 4 dimensions - column names will be dimension4[i]
@@ -50,10 +48,7 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
                         flat_values = arr[i, j, k].flatten()
                         if arr_dimensions == 4:
                             # Create column labels based on the flattened structure
-                            column_labels = [
-                                f"{data_desc_arr['axis3'][int(idx)]}"
-                                for idx in range(len(flat_values))
-                            ]
+                            column_labels = [f"{data_desc_arr['axis3'][int(idx)]}" for idx in range(len(flat_values))]
                         elif arr_dimensions == 5:
                             last_dim = arr.shape[-1]
                             column_labels = [
@@ -68,30 +63,21 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
             df = pd.DataFrame(
                 rows,
                 columns=column_labels,
-                index=pd.MultiIndex.from_tuples(
-                    index_tuples, names=["Subject", "Camera", "Frame"]
-                ),
+                index=pd.MultiIndex.from_tuples(index_tuples, names=["Subject", "Camera", "Frame"]),
             )
             df.reset_index(inplace=True)
 
             # Relabel subject and camera columns
-            subjects_dict = {
-                i: data_desc_arr["axis0"][i] for i in range(len(data_desc_arr["axis0"]))
-            }
+            subjects_dict = {i: data_desc_arr["axis0"][i] for i in range(len(data_desc_arr["axis0"]))}
             df["Subject"] = df["Subject"].map(subjects_dict).fillna(df["Subject"])
 
             if data_desc_arr["axis1"]:
-                cameras_dict = {
-                    i: data_desc_arr["axis1"][i]
-                    for i in range(len(data_desc_arr["axis1"]))
-                }
+                cameras_dict = {i: data_desc_arr["axis1"][i] for i in range(len(data_desc_arr["axis1"]))}
             else:
                 cameras_dict = {0: "none"}
             df["Camera"] = df["Camera"].map(cameras_dict).fillna(df["Camera"])
 
-            output_filename = (
-                f'{video_name}_{component_name}_{filename.split(".")[0]}_{key}.csv'
-            )
+            output_filename = f'{video_name}_{component_name}_{filename.split(".")[0]}_{key}.csv'
             df.to_csv(os.path.join(output_folder, output_filename), index=False)
 
 

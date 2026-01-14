@@ -30,9 +30,7 @@ class ConfigLoader:
         self.runtime_placeholders = runtime
         self.global_placeholders = {}
 
-    def load_config(
-        self, path: str, schema: type[ModelT], ignore_auto_and_global=False
-    ) -> ModelT:
+    def load_config(self, path: str, schema: type[ModelT], ignore_auto_and_global=False) -> ModelT:
         """
         Loads a TOML configuration file, resolves all placeholders using available
         contexts (auto, global and runtime) and validates the result against a Pydantic
@@ -65,9 +63,7 @@ class ConfigLoader:
         cfg = dict_to_model(cfg_raw_resolved, schema)
         return cfg
 
-    def extend_global_ctx(
-        self, add_ctx: dict[str, PLACEHOLDERS_TYPE] | BaseModel
-    ) -> None:
+    def extend_global_ctx(self, add_ctx: dict[str, PLACEHOLDERS_TYPE] | BaseModel) -> None:
         """
         Extends the global placeholder context that will be available to all
         future load_config() calls. Typically used to register values from

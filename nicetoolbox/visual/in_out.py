@@ -21,19 +21,15 @@ class IO:
         )
         # Replace the <cur_component_name> placeholder for the experiment video component
         # folder
-        self.experiment_video_component_folder = config["io"][
-            "experiment_video_component"
-        ].replace("<experiment_video_folder>", self.experiment_video_folder)
+        self.experiment_video_component_folder = config["io"]["experiment_video_component"].replace(
+            "<experiment_video_folder>", self.experiment_video_folder
+        )
 
     def get_component_nice_tool_input_folder(self, video_details, dataset_name):
         folder_path = copy.deepcopy(self.nice_tool_input_folder)
         folder_path = folder_path.replace("<cur_dataset_name>", dataset_name)
-        folder_path = folder_path.replace(
-            "<cur_session_ID>", video_details["session_ID"]
-        )
-        folder_path = folder_path.replace(
-            "<cur_sequence_ID>", video_details["sequence_ID"]
-        )
+        folder_path = folder_path.replace("<cur_session_ID>", video_details["session_ID"])
+        folder_path = folder_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])
         return folder_path
 
     def get_experiment_video_folder(self):
@@ -51,7 +47,5 @@ class IO:
     def get_calibration_file(self, video_details):
         calib_path = copy.deepcopy(self.path_to_calibs)
         calib_path = calib_path.replace("<cur_session_ID>", video_details["session_ID"])
-        calib_path = calib_path.replace(
-            "<cur_sequence_ID>", video_details["sequence_ID"]
-        )
+        calib_path = calib_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])
         return calib_path

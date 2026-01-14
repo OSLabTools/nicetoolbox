@@ -150,9 +150,7 @@ class GazeFusion(BaseFeature):
             logging.info(f"Fusing results for {base_algo_name}...")
 
             # Fuse -> Filter
-            fused_3d, fused_3d_filtered = self._process_single_input(
-                vectors, conf_scores
-            )
+            fused_3d, fused_3d_filtered = self._process_single_input(vectors, conf_scores)
 
             # Save and collect
             filename = f"{self.algorithm}_{base_algo_name}"
@@ -181,14 +179,10 @@ class GazeFusion(BaseFeature):
                 all_conf_scores = np.concatenate(conf_scores, axis=1)
 
             # Fuse combined data
-            ensemble_fused, ensemble_fused_filtered = self._process_single_input(
-                combined_vectors, all_conf_scores
-            )
+            ensemble_fused, ensemble_fused_filtered = self._process_single_input(combined_vectors, all_conf_scores)
 
             # Save
-            out_dict = self._save_fused_result(
-                ensemble_fused, ensemble_fused_filtered, f"{self.algorithm}_ensemble"
-            )
+            out_dict = self._save_fused_result(ensemble_fused, ensemble_fused_filtered, f"{self.algorithm}_ensemble")
             out_dict["_meta_title"] = "Ensemble Fusion"
             all_results.append(out_dict)
 
@@ -225,9 +219,7 @@ class GazeFusion(BaseFeature):
 
         return fused, fused_filtered
 
-    def _fuse_vectors(
-        self, vectors: np.ndarray, weights: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    def _fuse_vectors(self, vectors: np.ndarray, weights: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Fuses vectors using the configured method.
 
@@ -305,26 +297,18 @@ class GazeFusion(BaseFeature):
 
         # 2. Handle Filtered
         if fused_3d_filtered is not None:  # Add 3d camera axis (Common NICE format)
-            out_dict["gaze_fused_filtered"] = fused_3d_filtered[
-                :, np.newaxis, :, :
-            ].copy()
+            out_dict["gaze_fused_filtered"] = fused_3d_filtered[:, np.newaxis, :, :].copy()
 
             # Project Filtered
             proj_filtered = self._project_to_cameras(fused_3d_filtered)
             out_dict["gaze_2d_filtered"] = proj_filtered
 
             # Metadata for Filtered (Copy structure)
-            out_dict["data_description"]["gaze_fused_filtered"] = out_dict[
-                "data_description"
-            ]["gaze_fused"]
-            out_dict["data_description"]["gaze_2d_filtered"] = out_dict[
-                "data_description"
-            ]["gaze_2d"]
+            out_dict["data_description"]["gaze_fused_filtered"] = out_dict["data_description"]["gaze_fused"]
+            out_dict["data_description"]["gaze_2d_filtered"] = out_dict["data_description"]["gaze_2d"]
 
         # Save
-        save_path = os.path.join(
-            self.result_folders["gaze_multiview"], f"{filename}.npz"
-        )
+        save_path = os.path.join(self.result_folders["gaze_multiview"], f"{filename}.npz")
         np.savez_compressed(save_path, **out_dict)
 
         return out_dict
@@ -347,8 +331,7 @@ class GazeFusion(BaseFeature):
         for cam_idx, cam_name in enumerate(self.camera_names):
             if not self.calibration or cam_name not in self.calibration:
                 logging.warning(
-                    f"Calibration missing or camera '{cam_name}' not found;"
-                    " skipping projection for this camera."
+                    f"Calibration missing or camera '{cam_name}' not found;" " skipping projection for this camera."
                 )
                 continue
 
@@ -367,9 +350,7 @@ class GazeFusion(BaseFeature):
 
                 valid_vectors = vectors[valid_mask]
 
-                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(
-                    cam_R, valid_vectors, image_width
-                )
+                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, valid_vectors, image_width)
                 projected[sub_id, cam_idx, valid_mask, 0] = -dx
                 projected[sub_id, cam_idx, valid_mask, 1] = -dy
 
@@ -392,9 +373,7 @@ class GazeFusion(BaseFeature):
         landmarks_2d = first_input.get("landmarks")  # (S, C, F, 6, 3)
 
         if landmarks_2d is None:
-            logging.warning(
-                "No landmarks found in input. Cannot visualize gaze origin."
-            )
+            logging.warning("No landmarks found in input. Cannot visualize gaze origin.")
             return
 
         landmarks_2d = landmarks_2d[..., :2]  # Use only (u, v)
@@ -404,9 +383,7 @@ class GazeFusion(BaseFeature):
             title = result.get("_meta_title", "Gaze Fusion Result")
             logging.info(f"Visualizing: {title}")
 
-            dataloader = ImagePathsByFrameIndexLoader(
-                self.dataloader_config, expected_cameras=self.camera_names
-            )
+            dataloader = ImagePathsByFrameIndexLoader(self.dataloader_config, expected_cameras=self.camera_names)
 
             # Prefer to use filtered gaze if available
             if "gaze_2d_filtered" in result:

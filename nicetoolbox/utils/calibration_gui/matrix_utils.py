@@ -14,9 +14,7 @@ def nested_entries2matrix(entries):
             matrix_dict[session_name][sequence_name] = {}
 
             for camera_name, camera_data in sequence_data.items():
-                matrix_dict[session_name][sequence_name][camera_name] = entries2matrix(
-                    camera_data
-                )
+                matrix_dict[session_name][sequence_name][camera_name] = entries2matrix(camera_data)
 
     return matrix_dict
 
@@ -60,23 +58,15 @@ def matrix2entries(matrix_dict, entries):
         if matrix_key[0] == "distortions" and len(matrix) == 4:
             matrix = np.array(matrix_dict[matrix_key[0]] + [0.0])
         if name == "R" and matrix.shape == (3, 4):
-            t_dist = (
-                matrix[:, 3].flatten() - np.array(matrix_dict["translation"]).flatten()
-            )
+            t_dist = matrix[:, 3].flatten() - np.array(matrix_dict["translation"]).flatten()
             if np.linalg.norm(t_dist) > 0.01:
-                return (
-                    "Loaded rotation matrix of shape 3x4 does not align with the "
-                    "loaded translation vector."
-                )
+                return "Loaded rotation matrix of shape 3x4 does not align with the " "loaded translation vector."
             matrix = matrix[:, :3]
 
         try:
             matrix = matrix.reshape(vars.shape)
         except ValueError:
-            return (
-                f"Shape mismatch! Loaded '{matrix_key}' and variable '{name}' "
-                "do not match."
-            )
+            return f"Shape mismatch! Loaded '{matrix_key}' and variable '{name}' " "do not match."
 
         for i, row in enumerate(vars):
             for j, item in enumerate(row):
@@ -96,9 +86,7 @@ def fill_matrix_dict(matrix_dict):
         matrix_dict["tvec"] = t
         matrix_dict["dist"] = matrix_dict["d"]
 
-    elif all(
-        [name in list(matrix_dict.keys()) for name in ["mtx", "dist", "rvec", "tvec"]]
-    ):
+    elif all([name in list(matrix_dict.keys()) for name in ["mtx", "dist", "rvec", "tvec"]]):
         K = matrix_dict["mtx"]
         R = cv2.Rodrigues(matrix_dict["rvec"])[0]
         t = matrix_dict["tvec"]
@@ -128,9 +116,7 @@ def fill_nested_matrix_dict(entries):
             matrix_dict[session_name][sequence_name] = {}
 
             for camera_name, camera_data in sequence_data.items():
-                matrix_dict[session_name][sequence_name][camera_name] = (
-                    fill_matrix_dict(camera_data)
-                )
+                matrix_dict[session_name][sequence_name][camera_name] = fill_matrix_dict(camera_data)
 
     return matrix_dict
 

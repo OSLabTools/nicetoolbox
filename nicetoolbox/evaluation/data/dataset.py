@@ -42,9 +42,7 @@ class EvaluationDataset(IterableDataset):
         return self.total
 
     @staticmethod
-    def _apply_reconciliation(
-        data: np.ndarray, rec_map: Dict[str, Tuple[int, ...]]
-    ) -> np.ndarray:
+    def _apply_reconciliation(data: np.ndarray, rec_map: Dict[str, Tuple[int, ...]]) -> np.ndarray:
         """
         Applies a reconciliation map to a loaded data array. Slices the
         array according to the provided map. We use this to handle cases where
@@ -88,16 +86,12 @@ class EvaluationDataset(IterableDataset):
         for chunk in self.work_items:
             try:
                 # === (1) Load full prediction and GT arrays ===
-                raw_pred_array = self.pred_loader.load_full_array(
-                    path=chunk.pred_path, data_key=chunk.pred_data_key
-                )
+                raw_pred_array = self.pred_loader.load_full_array(path=chunk.pred_path, data_key=chunk.pred_data_key)
                 raw_pred_array = raw_pred_array.astype(np.float32)
 
                 raw_gt_array: Optional[np.ndarray] = None
                 if self.annot_loader and chunk.annot_path and chunk.annot_data_key:
-                    raw_gt_array = self.annot_loader.load_full_array(
-                        data_key=chunk.annot_data_key
-                    )
+                    raw_gt_array = self.annot_loader.load_full_array(data_key=chunk.annot_data_key)
                     raw_gt_array = raw_gt_array.astype(np.float32)
             except Exception as e:
                 logging.error(f"Failed to load data for {chunk}: {e}", exc_info=True)
@@ -116,19 +110,14 @@ class EvaluationDataset(IterableDataset):
                         raw_gt_data = raw_gt_array[p_idx_gt, c_idx_gt, f_idx_gt, ...]
 
                     # === (3) Apply reconciliation maps if available ===
-                    pred_data = EvaluationDataset._apply_reconciliation(
-                        raw_pred_data, chunk.pred_reconciliation_map
-                    )
-                    gt_data = EvaluationDataset._apply_reconciliation(
-                        raw_gt_data, chunk.gt_reconciliation_map
-                    )
+                    pred_data = EvaluationDataset._apply_reconciliation(raw_pred_data, chunk.pred_reconciliation_map)
+                    gt_data = EvaluationDataset._apply_reconciliation(raw_gt_data, chunk.gt_reconciliation_map)
 
                     yield pred_data, gt_data, chunk, frame_info
 
                 except Exception as e:
                     logging.error(
-                        f"Failed to process frame {frame_info} in chunk "
-                        f"{chunk.pred_path}: {e}",
+                        f"Failed to process frame {frame_info} in chunk " f"{chunk.pred_path}: {e}",
                         exc_info=True,
                     )
                     continue
@@ -171,10 +160,7 @@ class EvaluationDataset(IterableDataset):
             # Ensure that all chunks are equal objects since we grouped them
             all_equal = all(chunk == chunks[0] for chunk in chunks)
             if not all_equal:
-                logging.error(
-                    "In collate_fn, not all chunks are equal within a group. "
-                    "This should not happen."
-                )
+                logging.error("In collate_fn, not all chunks are equal within a group. " "This should not happen.")
                 raise ValueError("Inconsistent chunks in collate_fn grouping.")
             stacked_preds = torch.from_numpy(np.stack(preds))
             stacked_gts = None

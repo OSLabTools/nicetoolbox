@@ -67,9 +67,7 @@ class Jpe(Metric):
         comp, algo = meta_chunk.component, meta_chunk.algorithm
         key = (comp, algo, "jpe")
         description = self.get_axis3(meta_chunk)
-        self.storage[key].append(
-            BatchResult(error.cpu(), description, meta_chunk, meta_frames)
-        )
+        self.storage[key].append(BatchResult(error.cpu(), description, meta_chunk, meta_frames))
 
     def compute(self) -> Dict[Tuple[str, str, str], MetricReturnType]:
         """Compute the final metric from the stored state."""

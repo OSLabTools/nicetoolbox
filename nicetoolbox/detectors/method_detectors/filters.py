@@ -76,19 +76,15 @@ class SGFilter:
                 for dim in range(num_dim):
                     if len(smooth_data.shape) == 5:
                         for kp in range(data.shape[3]):  # Loop through labels
-                            smooth_data[person_idx, camera_idx, :, kp, dim] = (
-                                signal.savgol_filter(
-                                    data[person_idx, camera_idx, :, kp, dim],
-                                    window_length=self.window_length,
-                                    polyorder=self.polyorder,
-                                )
-                            )
-                    elif len(smooth_data.shape) == 4:
-                        smooth_data[person_idx, camera_idx, :, dim] = (
-                            signal.savgol_filter(
-                                data[person_idx, camera_idx, :, dim],
+                            smooth_data[person_idx, camera_idx, :, kp, dim] = signal.savgol_filter(
+                                data[person_idx, camera_idx, :, kp, dim],
                                 window_length=self.window_length,
                                 polyorder=self.polyorder,
                             )
+                    elif len(smooth_data.shape) == 4:
+                        smooth_data[person_idx, camera_idx, :, dim] = signal.savgol_filter(
+                            data[person_idx, camera_idx, :, dim],
+                            window_length=self.window_length,
+                            polyorder=self.polyorder,
                         )
         return smooth_data

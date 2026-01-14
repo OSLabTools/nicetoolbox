@@ -115,7 +115,7 @@ class GazeDistance(BaseFeature):
         gaze_data = self._get_input("gaze_individual")
         camera_names = gaze_data["data_description"].item()["landmarks_2d"]["axis1"]
         dim = "2d" if len(camera_names) == 1 else "3d"
-        if f"{dim}_filtered" in gaze_data["data_description"].item().keys():  # noqa: SIM118
+        if f"{dim}_filtered" in gaze_data["data_description"].item():
             data_name = f"{dim}_filtered"
         else:
             data_name = dim
@@ -126,9 +126,7 @@ class GazeDistance(BaseFeature):
             keypoints_data = self._get_input("face_landmarks")
             keypoints = keypoints_data["3d"]
             keypoints_description = keypoints_data["data_description"].item()["3d"]
-            indices = [
-                "face_landmarks" in key for key in keypoints_description["axis3"]
-            ]
+            indices = ["face_landmarks" in key for key in keypoints_description["axis3"]]
             keypoint_values = keypoints[:, :, :, indices]
             head = keypoint_values[..., :3].mean(axis=-2)
         else:
@@ -168,9 +166,7 @@ class GazeDistance(BaseFeature):
         mutual = reshape(np.concatenate((mutual, mutual), axis=0))
 
         #  save as npz file
-        data_description = dict(
-            axis0=subject_description, axis1=[dim], axis2=gaze_description["axis2"]
-        )
+        data_description = dict(axis0=subject_description, axis1=[dim], axis2=gaze_description["axis2"])
         out_dict = {
             f"distance_gaze_{dim}": distances_face,
             f"gaze_look_at_{dim}": look_at,
@@ -190,14 +186,10 @@ class GazeDistance(BaseFeature):
                 ),
             },
         }
-        filepath = os.path.join(
-            self.result_folders["gaze_interaction"], f"{self.algorithm}.npz"
-        )
+        filepath = os.path.join(self.result_folders["gaze_interaction"], f"{self.algorithm}.npz")
         np.savez_compressed(filepath, **out_dict)
 
-        logging.info(
-            f"Computation of feature detector for {self.components} completed."
-        )
+        logging.info(f"Computation of feature detector for {self.components} completed.")
         return visualization_data
 
     def visualization(self, data):
@@ -243,9 +235,7 @@ class GazeDistance(BaseFeature):
             gaze_interaction_utils.visualize_gaze_interaction(
                 input_data, categories, self.viz_folder, self.subjects_descr
             )
-            logging.info(
-                f"Visualization of feature detector {self.components} completed."
-            )
+            logging.info(f"Visualization of feature detector {self.components} completed.")
 
     def post_compute(self, data):
         pass

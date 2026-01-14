@@ -75,15 +75,11 @@ def main_evaluation_run(eval_config: str, machine_specifics: str) -> None:
     if config_handler.global_settings.verbose:
         logging.info("Loading evaluation results for automatic summary reports.")
         try:
-            results: EvaluationResults = EvaluationResults(
-                root=io_manager.get_out_folder()
-            )
+            results: EvaluationResults = EvaluationResults(root=io_manager.get_out_folder())
             create_auto_summaries(io_manager, results, config_handler.summaries_configs)
             logging.info("Automatic summaries created and exported.")
         except Exception as err:
-            logging.error(
-                f"Automatic summary creation failed with error: {err}", exc_info=True
-            )
+            logging.error(f"Automatic summary creation failed with error: {err}", exc_info=True)
 
 
 def entry_point():
@@ -99,9 +95,7 @@ def entry_point():
         default="machine_specific_paths.toml",
         help="Path to machine specifics config",
     )
-    parser.add_argument(
-        "--profile", action="store_true", help="Enable memory profiling"
-    )
+    parser.add_argument("--profile", action="store_true", help="Enable memory profiling")
     args = parser.parse_args()
 
     if args.profile:

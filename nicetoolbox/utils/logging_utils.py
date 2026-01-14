@@ -110,9 +110,7 @@ def setup_custom_logging(log_path: str, name: str, level=logging.DEBUG) -> None:
     logger.setLevel(level)
 
     # create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s")
 
     # create file and console handler
     fh = logging.FileHandler(log_path)

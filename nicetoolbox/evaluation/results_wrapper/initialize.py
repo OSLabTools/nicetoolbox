@@ -73,10 +73,7 @@ def build_index(root: Path) -> pd.DataFrame:
                     if metric_name == "data_description":
                         continue
                     if metric_name not in descriptions:
-                        logging.warning(
-                            f"Metric '{metric_name}' in file {path} has no description,"
-                            " skipping."
-                        )
+                        logging.warning(f"Metric '{metric_name}' in file {path} has no description," " skipping.")
                         continue
 
                     # (1) Get description for the current metric name

@@ -110,10 +110,7 @@ def resolve_placeholders_str_strict(
     result = resolve_placeholders_str(input, placeholders, unresolved, unreachable)
     unexpected = unresolved - unreachable
     if unexpected:
-        raise ValueError(
-            f"Could not resolve placeholders: {unexpected}. "
-            f"Check for typos or circular dependencies."
-        )
+        raise ValueError(f"Could not resolve placeholders: {unexpected}. " f"Check for typos or circular dependencies.")
     return result
 
 
@@ -155,10 +152,7 @@ def resolve_placeholders_dict_mut(
     # check fields name collision
     collision = keys_collision_dict(placeholders, input)
     if collision:
-        raise KeyError(
-            f"Fields collision between local and "
-            f"placeholders field names: {collision}"
-        )
+        raise KeyError(f"Fields collision between local and " f"placeholders field names: {collision}")
 
     # default values and copies
     if unreachable is None:
@@ -167,17 +161,13 @@ def resolve_placeholders_dict_mut(
 
     for _ in range(max_iterations):
         # update placeholders context with local dict fields
-        local_ctx = {
-            k: v for k, v in result.items() if isinstance(v, PLACEHOLDERS_TYPE)
-        }
+        local_ctx = {k: v for k, v in result.items() if isinstance(v, PLACEHOLDERS_TYPE)}
         placeholders.update(local_ctx)
 
         # try to resolve placeholders with combined context
         unresolved: set[str] = set()
         new_result = {
-            k: resolve_placeholders_str(v, placeholders, unresolved, unreachable)
-            if isinstance(v, str)
-            else v
+            k: resolve_placeholders_str(v, placeholders, unresolved, unreachable) if isinstance(v, str) else v
             for k, v in result.items()
         }
 
@@ -186,8 +176,7 @@ def resolve_placeholders_dict_mut(
             unexpected = unresolved - unreachable
             if unexpected:
                 raise ValueError(
-                    f"Could not resolve placeholders: {unexpected}. "
-                    f"Check for typos or circular dependencies."
+                    f"Could not resolve placeholders: {unexpected}. " f"Check for typos or circular dependencies."
                 )
             return new_result
 
@@ -239,9 +228,7 @@ def resolve_placeholders(
         # run recursively for all non-strings (strings should be already resolved)
         # we send a copy of placeholders to avoid contamination
         return {
-            k: resolve_placeholders(v, new_placeholders, unreachable)
-            if not isinstance(v, str)
-            else v
+            k: resolve_placeholders(v, new_placeholders, unreachable) if not isinstance(v, str) else v
             for k, v in result.items()
         }
 

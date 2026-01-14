@@ -65,9 +65,7 @@ class Data:
         self.annotation_interval = 2.0
         self.subjects_descr = config["subjects_descr"]
         self.start_frame_index = config["start_frame_index"]
-        self.camera_mapping = dict(
-            (key, config[key]) for key in config if "cam_" in key
-        )
+        self.camera_mapping = dict((key, config[key]) for key in config if "cam_" in key)
         self.filename_template = config.get("filename_template", "{idx:09d}.png")
 
         # For BACKWARD COMPATIBILITY with detectors using frames_list
@@ -137,15 +135,12 @@ class Data:
         if os_type == "linux":
             filepath = os.path.join(self.code_folder, "envs", env_name, "bin/activate")
         elif os_type == "windows":
-            filepath = os.path.join(
-                self.code_folder, "envs", env_name, "Scripts", "activate"
-            )
+            filepath = os.path.join(self.code_folder, "envs", env_name, "Scripts", "activate")
         try:
             exc.file_exists(filepath)
         except FileNotFoundError:
             logging.exception(
-                f"Virtual environment file {filepath} for detector = "
-                f"'{detector_name}' does not exist!"
+                f"Virtual environment file {filepath} for detector = " f"'{detector_name}' does not exist!"
             )
             raise
         return filepath
@@ -165,9 +160,7 @@ class Data:
             # This requires knowing the original folder structure and
             # filename template from config, including session_ID, sequence_ID, etc.
             # cam_folder = root / self.session_ID / self.sequence_ID / cam / ?
-            raise NotImplementedError(
-                f"Input recipe generation for '{self.input_format}' not implemented."
-            )
+            raise NotImplementedError(f"Input recipe generation for '{self.input_format}' not implemented.")
 
         # TODO: Pydantic model for recipe?
         return {
@@ -195,13 +188,8 @@ class Data:
         """
         possible_formats = [".mp4", ".avi", ".png", ".jpg", ".jpeg"]
 
-        example_input_folder = str(self.source_folder).replace(
-            "<camera_name>", self.all_camera_names[0]
-        )
-        found_formats = [
-            name in "_".join(sorted(os.listdir(example_input_folder)))
-            for name in possible_formats
-        ]
+        example_input_folder = str(self.source_folder).replace("<camera_name>", self.all_camera_names[0])
+        found_formats = [name in "_".join(sorted(os.listdir(example_input_folder))) for name in possible_formats]
         if sum(found_formats) != 1:
             exc.error_log_and_raise(
                 ValueError,
@@ -225,16 +213,11 @@ class Data:
         """
         if self.input_format in [".mp4", ".avi"]:
             example_camera_name = self.all_camera_names[0]
-            example_input_folder = str(self.source_folder).replace(
-                "<camera_name>", example_camera_name
-            )
+            example_input_folder = str(self.source_folder).replace("<camera_name>", example_camera_name)
             video_files = sorted(glob.glob(os.path.join(example_input_folder, "*")))
             fps = vid.get_fps(video_files[0])
             if fps != target_fps:
-                logging.warning(
-                    f"Detected fps = {fps} does not match fps given in the "
-                    f"config = {target_fps}!"
-                )
+                logging.warning(f"Detected fps = {fps} does not match fps given in the " f"config = {target_fps}!")
             return fps
         return target_fps
 
@@ -247,9 +230,7 @@ class Data:
                 logging.info("Frames FOUND in nicetoolbox input folder")
                 # === START BACKWARD COMPATIBILITY ===
                 logging.info("LOADING frames_list for BACKWARD COMPATIBILITY...")
-                data_list = self.get_inputs_list(
-                    self.data_formats[0], self.all_camera_names
-                )
+                data_list = self.get_inputs_list(self.data_formats[0], self.all_camera_names)
                 self.frames_list = []
                 frames_list = []
                 frame_indices_list = set()
@@ -260,13 +241,9 @@ class Data:
 
                 self.frame_indices_list = list(frame_indices_list)
                 for camera_name in sorted(self.all_camera_names):
-                    cam_frames = sorted(
-                        [file for file in frames_list if camera_name in file]
-                    )
+                    cam_frames = sorted([file for file in frames_list if camera_name in file])
                     self.frames_list.append(cam_frames)
-                self.frames_list = [
-                    frame.tolist() for frame in np.array(self.frames_list).T
-                ]
+                self.frames_list = [frame.tolist() for frame in np.array(self.frames_list).T]
                 # === END BACKWARD COMPATIBILITY ===
             else:
                 logging.info("EXTRACTING frames from video...")
@@ -275,13 +252,9 @@ class Data:
 
         elif self.input_format in [".png", ".jpg", ".jpeg"]:
             if not self._check_frames_exist(is_source=True):
-                raise FileNotFoundError(
-                    f"Required source frames missing for dataset {self.dataset_name}."
-                )
+                raise FileNotFoundError(f"Required source frames missing for dataset {self.dataset_name}.")
         else:
-            raise NotImplementedError(
-                f"Input format '{self.input_format}' not supported for data creation."
-            )
+            raise NotImplementedError(f"Input format '{self.input_format}' not supported for data creation.")
         logging.info("DATA CREATION completed.")
 
     def _check_frames_exist(self, is_source: bool = False) -> bool:
@@ -304,9 +277,7 @@ class Data:
 
         for cam in self.all_camera_names:
             if is_source:
-                raise NotImplementedError(
-                    "Checking source frames is not implemented yet."
-                )
+                raise NotImplementedError("Checking source frames is not implemented yet.")
                 # TODO: implement source frame checking
                 # This requires knowing the original folder structure and
                 # filename template from config, including session_ID, sequence_ID, etc.
@@ -322,10 +293,7 @@ class Data:
 
             # Check existence
             if not (start_path.exists() and end_path.exists()):
-                logging.info(
-                    f"No input frames found for camera '{cam}': "
-                    f"Files will be created in '{cam_folder}'."
-                )
+                logging.info(f"No input frames found for camera '{cam}': " f"Files will be created in '{cam_folder}'.")
                 return False
 
         return True
@@ -349,10 +317,7 @@ class Data:
         video_files = sorted(glob.glob(str(pattern)))
 
         for video_file in video_files:
-            camera_name_indices = [
-                name.lower() in video_file.lower()
-                for name in list(self.all_camera_names)
-            ]
+            camera_name_indices = [name.lower() in video_file.lower() for name in list(self.all_camera_names)]
             if not any(camera_name_indices):
                 continue
             camera_name = list(self.all_camera_names)[camera_name_indices.index(True)]
@@ -375,11 +340,7 @@ class Data:
                 if self.frame_indices_list is None:
                     slice_end = self.video_start + self.video_length
 
-                    self.frame_indices_list = [
-                        idx
-                        for idx in frame_indices_list
-                        if self.video_start <= idx < slice_end
-                    ]
+                    self.frame_indices_list = [idx for idx in frame_indices_list if self.video_start <= idx < slice_end]
                     slice_frames = frames_list[self.video_start : slice_end]
                     self.frames_list = [[f] for f in slice_frames]
                 else:
@@ -416,9 +377,7 @@ class Data:
             return None
 
         # 2. Load calibration file
-        calib_details = "__".join(
-            [word for word in [self.session_ID, self.sequence_ID] if word]
-        )
+        calib_details = "__".join([word for word in [self.session_ID, self.sequence_ID] if word])
         try:
             loaded_calib = np.load(calib_path, allow_pickle=True)[calib_details].item()
         except KeyError as err:
@@ -429,15 +388,9 @@ class Data:
             )
             raise err
         try:
-            calib = dict(
-                (key, value)
-                for key, value in loaded_calib.items()
-                if key in self.all_camera_names
-            )
+            calib = dict((key, value) for key, value in loaded_calib.items() if key in self.all_camera_names)
         except Exception as err:
-            logging.exception(
-                f"An error occurred while creating calibration dictionary: {err}"
-            )
+            logging.exception(f"An error occurred while creating calibration dictionary: {err}")
             raise err
 
         return calib
@@ -453,19 +406,12 @@ class Data:
 
         inputs_list = []
         if data_format == "snippets":
-            raise NotImplementedError(
-                "Data format 'snippets' not implemented in get_inputs_list."
-            )
+            raise NotImplementedError("Data format 'snippets' not implemented in get_inputs_list.")
         if data_format == "segments":
-            raise NotImplementedError(
-                "Data format 'segments' not implemented in get_inputs_list."
-            )
+            raise NotImplementedError("Data format 'segments' not implemented in get_inputs_list.")
         if data_format == "frames":
             skip = 1 if not self.video_skip_frames else self.video_skip_frames
             file_names = [f"{x:05d}.png" for x in range(start, end, skip)]
             for camera_name in camera_names:
-                inputs_list += [
-                    os.path.join(self.input_folder, camera_name, "frames", n)
-                    for n in file_names
-                ]
+                inputs_list += [os.path.join(self.input_folder, camera_name, "frames", n) for n in file_names]
         return inputs_list

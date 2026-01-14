@@ -87,20 +87,12 @@ class Spiga(BaseDetector):
             io (class): IO class instance for input/output operations.
             data (class): Data class instance for frame and subject data.
         """
-        logging.info(
-            f"Prepare Inference for '{self.algorithm}' and component {self.components}."
-        )
+        logging.info(f"Prepare Inference for '{self.algorithm}' and component {self.components}.")
 
         # (1) Get keypoint indices and add to config
-        predictions_mapping = load_validated_config_raw(
-            "./configs/predictions_mapping.toml", PredictionsMappingConfig
-        )
-        self.keypoints_indices = predictions_mapping[self.components[0]][
-            self.algorithm
-        ]["keypoints_index"]
-        config["face_landmarks_description"] = confh.flatten_list(
-            extract_key_per_value(self.keypoints_indices["face"])
-        )
+        predictions_mapping = load_validated_config_raw("./configs/predictions_mapping.toml", PredictionsMappingConfig)
+        self.keypoints_indices = predictions_mapping[self.components[0]][self.algorithm]["keypoints_index"]
+        config["face_landmarks_description"] = confh.flatten_list(extract_key_per_value(self.keypoints_indices["face"]))
 
         # (2) Call the base class constructor (with updated config including keypoints)
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
@@ -113,9 +105,7 @@ class Spiga(BaseDetector):
         self.results_folder = config["result_folders"][self.components[0]]
 
         # (4) Initialise data loader
-        self.dataloader = ImagePathsByFrameIndexLoader(
-            config=config, expected_cameras=self.camera_names
-        )
+        self.dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=self.camera_names)
 
         logging.info("Inference Preparation completed.\n")
 
@@ -143,9 +133,7 @@ class Spiga(BaseDetector):
                     # Extract headpose
                     headpose = headposes[subj_idx][cam_idx][frame_idx]  # shape (6,)
                     landmarks = face_landmarks[subj_idx][cam_idx][frame_idx]
-                    euler_yzx = np.array(
-                        headpose[:3]
-                    )  # first three value is euler angles
+                    euler_yzx = np.array(headpose[:3])  # first three value is euler angles
 
                     # Rotation matrix
                     rotation_matrix = self._euler_to_rotation_matrix(euler_yzx)
@@ -163,9 +151,7 @@ class Spiga(BaseDetector):
                     )
 
                     # Rotation order Y-Z-X, body’s forward axis is +X
-                    forward_tip = nose_org + return_direction_vector(
-                        rotation_matrix, "x"
-                    )
+                    forward_tip = nose_org + return_direction_vector(rotation_matrix, "x")
                     axisy_tip = nose_org + return_direction_vector(rotation_matrix, "y")
                     axisz_tip = nose_org + return_direction_vector(rotation_matrix, "z")
 
@@ -219,9 +205,7 @@ class Spiga(BaseDetector):
         for cam_idx, camera_name in enumerate(self.camera_names):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
-            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(
-                self.dataloader
-            ):
+            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(self.dataloader):
                 image_file = frame_paths_per_camera[camera_name]
                 image = cv2.imread(image_file)
 
@@ -240,16 +224,12 @@ class Spiga(BaseDetector):
 
                     for i, tip in enumerate([axisz_tip, axisy_tip, forward_tip]):
                         if tip == forward_tip:
-                            cv2.arrowedLine(
-                                image, start, tip, colors[i], thickness=3, tipLength=0.1
-                            )
+                            cv2.arrowedLine(image, start, tip, colors[i], thickness=3, tipLength=0.1)
                         else:
                             cv2.line(image, start, tip, colors[i], thickness=3)
 
                 cv2.imwrite(
-                    os.path.join(
-                        self.viz_folder, camera_name, f"{(real_frame_idx):09d}.jpg"
-                    ),
+                    os.path.join(self.viz_folder, camera_name, f"{(real_frame_idx):09d}.jpg"),
                     image,
                 )
 
@@ -261,10 +241,7 @@ class Spiga(BaseDetector):
                 start_frame=int(self.video_start),
             )
 
-        logging.info(
-            f"Detector {self.components}: visualization finished with code "
-            f"{success}."
-        )
+        logging.info(f"Detector {self.components}: visualization finished with code " f"{success}.")
 
         # Note taken from spiga.demo.visualize.layouts.plot_headpose
 

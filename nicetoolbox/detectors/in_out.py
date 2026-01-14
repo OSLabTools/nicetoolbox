@@ -59,9 +59,7 @@ class IO:
         try:
             os.makedirs(os.path.dirname(config["data_folder"]), exist_ok=True)
         except OSError:
-            logging.exception(
-                f"Failed creating the base data folder {config['data_folder']}."
-            )
+            logging.exception(f"Failed creating the base data folder {config['data_folder']}.")
             raise
 
         self.log_level = config["log_level"]
@@ -113,9 +111,7 @@ class IO:
         self.algorithm_names = algorithm_names
         self.detector_out_folder = config["detector_out_folder"]
         self.detector_visualization_folder = config["detector_visualization_folder"]
-        self.detector_additional_output_folder = config[
-            "detector_additional_output_folder"
-        ]
+        self.detector_additional_output_folder = config["detector_additional_output_folder"]
         self.detector_run_config_path = config["detector_run_config_path"]
         self.detector_final_result_folder = config["detector_final_result_folder"]
 
@@ -177,8 +173,7 @@ class IO:
             os.makedirs(self.csv_folder, exist_ok=True)
             return self.csv_folder
         raise NotImplementedError(
-            f"IO return output folder: Token '{token}' unknown! "
-            f"Supported are 'tmp', 'output', 'main', 'csv'."
+            f"IO return output folder: Token '{token}' unknown! " f"Supported are 'tmp', 'output', 'main', 'csv'."
         )
 
     def get_detector_output_folder(self, component, algorithm, token):
@@ -220,9 +215,7 @@ class IO:
                 f"'additional', 'tmp', 'result'."
             )
 
-        folder_name = folder_name.replace("<cur_component_name>", component).replace(
-            "<cur_algorithm_name>", algorithm
-        )
+        folder_name = folder_name.replace("<cur_component_name>", component).replace("<cur_algorithm_name>", algorithm)
         os.makedirs(folder_name, exist_ok=True)
         return folder_name
 
@@ -268,9 +261,7 @@ class IO:
         try:
             exc.check_options(config["process_data_to"], str, ["data_folder"])
         except (TypeError, ValueError):
-            logging.exception(
-                "Unsupported 'process_data_to' in io. " "Valid options: 'data_folder'."
-            )
+            logging.exception("Unsupported 'process_data_to' in io. " "Valid options: 'data_folder'.")
             raise
 
         # check all given detector output folders
@@ -288,9 +279,7 @@ class IO:
                 logging.exception(f"'{base}' is not an accessible directory.")
                 raise
 
-        check_base_folder(
-            config["detector_out_folder"], "<cur_component_name>", "detector_out_folder"
-        )
+        check_base_folder(config["detector_out_folder"], "<cur_component_name>", "detector_out_folder")
         check_base_folder(
             config["detector_visualization_folder"],
             "<cur_component_name>",

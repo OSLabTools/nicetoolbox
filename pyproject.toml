@@ -106,7 +106,10 @@ select = [
     # "RUF",  # ruff-specific rules
 ]
 preview = true
-ignore = ["RET504"]  # TODO fix later
+ignore = [
+    "RET504",  # TODO fix later
+    "SIM108",  # if-else-block-instead-of-if-exp
+]  
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false

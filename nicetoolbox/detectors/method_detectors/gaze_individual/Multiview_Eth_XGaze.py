@@ -53,10 +53,7 @@ class MultiviewEthXgaze(BaseDetector):
             io (class): An instance of the IO class for input-output operations.
             data (class): An instance of the Data class for accessing data.
         """
-        logging.info(
-            f"Prepare Inference for '{self.algorithm}' and "
-            f"components {self.components}."
-        )
+        logging.info(f"Prepare Inference for '{self.algorithm}' and " f"components {self.components}.")
 
         # (1) Call the base class constructor (with updated config including keypoints)
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
@@ -76,9 +73,7 @@ class MultiviewEthXgaze(BaseDetector):
         self.calibration = config["calibration"]
 
         # (3) Initialise data loader
-        self.dataloader = ImagePathsByFrameIndexLoader(
-            config=config, expected_cameras=self.camera_names
-        )
+        self.dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=self.camera_names)
 
         logging.info("Inference Preparation completed.\n")
 
@@ -95,9 +90,7 @@ class MultiviewEthXgaze(BaseDetector):
             predictions_dict = {key: prediction[key] for key in prediction.files}
             data_description = predictions_dict["data_description"].item()
         except FileNotFoundError:
-            logging.error(
-                "Prediction file is not found, skipping the visualization of output"
-            )
+            logging.error("Prediction file is not found, skipping the visualization of output")
             return 2
 
         # Filter the 3d results for less flickering estimates
@@ -157,9 +150,7 @@ class MultiviewEthXgaze(BaseDetector):
             List[Dict]: The projected gaze data for the camera views.
         """
         n_subjects, _, n_frames, _ = data.shape
-        projected_data = np.full(
-            (n_subjects, len(self.camera_names), n_frames, 2), np.nan
-        )
+        projected_data = np.full((n_subjects, len(self.camera_names), n_frames, 2), np.nan)
 
         # Iterate over all cameras
         for cam_name in self.camera_names:
@@ -172,9 +163,7 @@ class MultiviewEthXgaze(BaseDetector):
                 if subject_idx in self.cam_sees_subjects[cam_name]:
                     # Extract all frames at once
                     gaze_vectors = data[subject_idx, 0, :, :]
-                    dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(
-                        cam_R, gaze_vectors, image_width
-                    )
+                    dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, gaze_vectors, image_width)
                     projected_data[subject_idx, cam_idx, :, 0] = -dx
                     projected_data[subject_idx, cam_idx, :, 1] = -dy
 
@@ -207,9 +196,7 @@ class MultiviewEthXgaze(BaseDetector):
             return success
 
         gaze_data = (
-            predictions["2d_projected_from_3d_filtered"]
-            if self.filtered
-            else predictions["2d_projected_from_3d"]
+            predictions["2d_projected_from_3d_filtered"] if self.filtered else predictions["2d_projected_from_3d"]
         )
         landmarks_2d = predictions["landmarks_2d"][..., :2]  # drop conf scores
         mean_face = np.nanmean(landmarks_2d, axis=3)
@@ -219,9 +206,7 @@ class MultiviewEthXgaze(BaseDetector):
         for cam_idx, camera_name in enumerate(self.camera_names):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
-            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(
-                self.dataloader
-            ):
+            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(self.dataloader):
                 image_file = frame_paths_per_camera[camera_name]
 
                 image = cv2.imread(image_file)
@@ -236,9 +221,7 @@ class MultiviewEthXgaze(BaseDetector):
                     # in case no face was detected, draw the arrow in the middle
                     if (subject_eyes_mid != subject_eyes_mid).any():
                         h, w = image.shape[:2]
-                        subject_eyes_mid = np.array(
-                            [w / n_subj * (0.5 + subject_idx), h / 2]
-                        )
+                        subject_eyes_mid = np.array([w / n_subj * (0.5 + subject_idx), h / 2])
                     gaze_direction = subject_eyes_mid + gaze_vector
                     if (gaze_direction != gaze_direction).any():
                         continue
@@ -271,8 +254,5 @@ class MultiviewEthXgaze(BaseDetector):
                 start_frame=int(self.video_start),
             )
 
-        logging.info(
-            f"Detector {self.components}: visualization finished with code "
-            f"{success}."
-        )
+        logging.info(f"Detector {self.components}: visualization finished with code " f"{success}.")
         return success

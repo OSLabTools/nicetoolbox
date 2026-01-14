@@ -63,9 +63,7 @@ class AnnotationLoader:
                 if data_key in npz:
                     return npz[data_key]
         except Exception as e:
-            logging.error(
-                f"Failed to load annotation array '{data_key}' from {self._path}: {e}"
-            )
+            logging.error(f"Failed to load annotation array '{data_key}' from {self._path}: {e}")
             return None
         return None
 

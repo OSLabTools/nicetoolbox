@@ -76,10 +76,7 @@ class MMPose(BaseDetector):
             data (class): An instance of the Data class for accessing data.
         """
 
-        logging.info(
-            f"Prepare Inference for '{self.algorithm}' and "
-            f"components {self.components}."
-        )
+        logging.info(f"Prepare Inference for '{self.algorithm}' and " f"components {self.components}.")
 
         self.camera_names = config["camera_names"]
         self.video_start = data.video_start
@@ -90,9 +87,7 @@ class MMPose(BaseDetector):
 
         # output
         main_component = self.components[0]
-        self.out_folder = io.get_detector_output_folder(
-            main_component, self.algorithm, "output"
-        )
+        self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, "output")
         self.prediction_folders = self.get_prediction_folders(make_dirs=True)
         self.image_folders = self.get_image_folders(make_dirs=config["visualize"])
         config["prediction_folders"] = self.prediction_folders
@@ -103,9 +98,7 @@ class MMPose(BaseDetector):
         self.predictions_mapping = load_validated_config_raw(
             "./configs/predictions_mapping.toml", PredictionsMappingConfig
         )
-        keypoints_indices = self.predictions_mapping["human_pose"][
-            config["keypoint_mapping"]
-        ]["keypoints_index"]
+        keypoints_indices = self.predictions_mapping["human_pose"][config["keypoint_mapping"]]["keypoints_index"]
         mapping = self.get_per_component_keypoint_mapping(keypoints_indices)
         config["keypoints_indices"], config["keypoints_description"] = mapping
 
@@ -146,9 +139,7 @@ class MMPose(BaseDetector):
         Returns:
             List[List[str]]: The skeleton connections for the algorithm index.
         """
-        return self.predictions_mapping["human_pose"][self.keypoint_mapping][
-            "connections"
-        ][component_name]
+        return self.predictions_mapping["human_pose"][self.keypoint_mapping]["connections"][component_name]
 
     def visualization(self, data):
         """
@@ -168,15 +159,10 @@ class MMPose(BaseDetector):
             specific format (`%05d.jpg`), where each frame's name is a zero-padded
             five-digit number representing its sequence in the video.
         """
-        logging.info(
-            f"VISUALIZING the method detector output of {self.components} "
-            f"and {self.algorithm}."
-        )
+        logging.info(f"VISUALIZING the method detector output of {self.components} " f"and {self.algorithm}.")
 
         # Create input data loader from nicetoolbox-core shared code
-        dataloader = ImagePathsByCameraLoader(
-            config=self.config, expected_cameras=self.camera_names
-        )
+        dataloader = ImagePathsByCameraLoader(config=self.config, expected_cameras=self.camera_names)
 
         n_subj = len(self.subjects_descr)
         for _component, result_folder in self.result_folders.items():
@@ -186,9 +172,7 @@ class MMPose(BaseDetector):
             prediction = np.load(prediction_file, allow_pickle=True)
 
             data = prediction["2d_interpolated"]
-            algorithm_labels = prediction["data_description"].item()["2d_interpolated"][
-                "axis3"
-            ]
+            algorithm_labels = prediction["data_description"].item()["2d_interpolated"]["axis3"]
 
             # visualization parameters
             if _component == "body_joints":
@@ -224,17 +208,13 @@ class MMPose(BaseDetector):
                                     thickness=-1,
                                 )
 
-                        keypoints_dict = {
-                            label: i for i, label in enumerate(algorithm_labels)
-                        }
+                        keypoints_dict = {label: i for i, label in enumerate(algorithm_labels)}
 
                         connections = self._get_skeleton_connections(_component)
                         start_points, end_points = [], []
                         for connect in connections:
                             for k in range(len(connect) - 1):
-                                if (connect[k] in keypoints_dict) & (
-                                    connect[k + 1] in keypoints_dict
-                                ):
+                                if (connect[k] in keypoints_dict) & (connect[k + 1] in keypoints_dict):
                                     start = keypoints_dict[connect[k]]
                                     end = keypoints_dict[connect[k + 1]]
                                     start_points.append([subject_2d_points[start]])
@@ -272,10 +252,7 @@ class MMPose(BaseDetector):
                     start_frame=int(self.video_start),
                 )
 
-        logging.info(
-            f"Detector {self.components}: visualization finished with code "
-            f"{success}."
-        )
+        logging.info(f"Detector {self.components}: visualization finished with code " f"{success}.")
 
     def post_inference(self):
         """
@@ -342,15 +319,11 @@ class MMPose(BaseDetector):
                 results_2d_interpolated = results_2d.copy()
             keypoint_conf_threshold = 0.60
             # Creating the mask where the confidence score is below the threshold
-            low_confidence_mask = (
-                results_2d_interpolated[:, :, :, :, 2] < keypoint_conf_threshold
-            )
+            low_confidence_mask = results_2d_interpolated[:, :, :, :, 2] < keypoint_conf_threshold
             # Applying the mask to set the first and second values of num_estimates
             # to NaN where the confidence is low
             results_2d_interpolated[low_confidence_mask, 0:2] = np.nan
-            results_2d_interpolated = pose_utils.interpolate_data(
-                results_2d_interpolated, is_3d=False
-            )
+            results_2d_interpolated = pose_utils.interpolate_data(results_2d_interpolated, is_3d=False)
 
             data_description["2d_interpolated"] = data_description["2d"]
             data_description.update(
@@ -415,14 +388,8 @@ class MMPose(BaseDetector):
                     results_2d_interpolated[:, 1],
                 )
 
-                if (
-                    results_2d.shape[0]
-                    != len(data_description["2d"]["axis0"])
-                    != len(self.subjects_descr)
-                ):
-                    logging.error(
-                        "Loaded prediction results differ in the number of persons."
-                    )
+                if results_2d.shape[0] != len(data_description["2d"]["axis0"]) != len(self.subjects_descr):
+                    logging.error("Loaded prediction results differ in the number of persons.")
 
                 person_data_list = []
                 for i in range(len(self.subjects_descr)):
@@ -455,60 +422,36 @@ class MMPose(BaseDetector):
                     cam1_undistorted = np.squeeze(
                         tri.undistort_points_pinhole(
                             filtered_xy_points_cam1,
-                            np.array(
-                                self.calibration[self.camera_names[0]][
-                                    "intrinsic_matrix"
-                                ]
-                            ),
-                            np.array(
-                                self.calibration[self.camera_names[0]]["distortions"]
-                            ),
+                            np.array(self.calibration[self.camera_names[0]]["intrinsic_matrix"]),
+                            np.array(self.calibration[self.camera_names[0]]["distortions"]),
                         )
                     )
                     cam2_undistorted = np.squeeze(
                         tri.undistort_points_pinhole(
                             filtered_xy_points_cam2,
-                            np.array(
-                                self.calibration[self.camera_names[1]][
-                                    "intrinsic_matrix"
-                                ]
-                            ),
-                            np.array(
-                                self.calibration[self.camera_names[1]]["distortions"]
-                            ),
+                            np.array(self.calibration[self.camera_names[1]]["intrinsic_matrix"]),
+                            np.array(self.calibration[self.camera_names[1]]["distortions"]),
                         )
                     )
                     # triangulate data
                     person_data_3d = tri.triangulate_stereo(
-                        np.array(
-                            self.calibration[self.camera_names[0]]["projection_matrix"]
-                        ),
-                        np.array(
-                            self.calibration[self.camera_names[1]]["projection_matrix"]
-                        ),
+                        np.array(self.calibration[self.camera_names[0]]["projection_matrix"]),
+                        np.array(self.calibration[self.camera_names[1]]["projection_matrix"]),
                         cam1_undistorted.T,
                         cam2_undistorted.T,
                     )
                     # add confidence score, first combine cam1 & cam2,
                     # will keep the minimum confidence value
-                    confidence_combined = np.minimum(
-                        filtered_confidence_cam1, filtered_confidence_cam2
-                    )
-                    person_data_3d_with_conf = np.concatenate(
-                        [person_data_3d.T, confidence_combined], axis=1
-                    )
+                    confidence_combined = np.minimum(filtered_confidence_cam1, filtered_confidence_cam2)
+                    person_data_3d_with_conf = np.concatenate([person_data_3d.T, confidence_combined], axis=1)
 
                     # reshape 3d array
                     # Create output arrays filled with NaNs
                     output_shape = (xy_points_cam1.shape[0], 4)
                     output_data_3d = np.full(output_shape, np.nan)
                     # Insert the processed data back into the correct positions
-                    output_data_3d[~combined_nan_mask.reshape(-1)] = (
-                        person_data_3d_with_conf
-                    )
-                    reshaped_3D_points = output_data_3d.reshape(
-                        person_cam1.shape[0], person_cam1.shape[1], 4
-                    )
+                    output_data_3d[~combined_nan_mask.reshape(-1)] = person_data_3d_with_conf
+                    reshaped_3D_points = output_data_3d.reshape(person_cam1.shape[0], person_cam1.shape[1], 4)
                     person_data_list.append(reshaped_3D_points)
 
                 # check if any [0,0,0] prediction
@@ -671,8 +614,7 @@ class HRNetw48(MMPose):
         """
         indices = dict(
             body_joints=confh.flatten_list(
-                list(keypoints_indices["body"].values())
-                + list(keypoints_indices["foot"].values())
+                list(keypoints_indices["body"].values()) + list(keypoints_indices["foot"].values())
             ),
             hand_joints=confh.flatten_list(list(keypoints_indices["hand"].values())),
             face_landmarks=confh.flatten_list(list(keypoints_indices["face"].values())),
@@ -680,15 +622,10 @@ class HRNetw48(MMPose):
 
         description = dict(
             body_joints=confh.flatten_list(
-                extract_key_per_value(keypoints_indices["body"])
-                + extract_key_per_value(keypoints_indices["foot"])
+                extract_key_per_value(keypoints_indices["body"]) + extract_key_per_value(keypoints_indices["foot"])
             ),
-            hand_joints=confh.flatten_list(
-                extract_key_per_value(keypoints_indices["hand"])
-            ),
-            face_landmarks=confh.flatten_list(
-                extract_key_per_value(keypoints_indices["face"])
-            ),
+            hand_joints=confh.flatten_list(extract_key_per_value(keypoints_indices["hand"])),
+            face_landmarks=confh.flatten_list(extract_key_per_value(keypoints_indices["face"])),
         )
 
         return indices, description
@@ -734,14 +671,8 @@ class VitPose(MMPose):
                     component.
 
         """
-        indices = dict(
-            body_joints=confh.flatten_list(list(keypoints_indices["body"].values()))
-        )
+        indices = dict(body_joints=confh.flatten_list(list(keypoints_indices["body"].values())))
 
-        description = dict(
-            body_joints=confh.flatten_list(
-                extract_key_per_value(keypoints_indices["body"])
-            )
-        )
+        description = dict(body_joints=confh.flatten_list(extract_key_per_value(keypoints_indices["body"])))
 
         return indices, description

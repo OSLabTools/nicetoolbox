@@ -5,7 +5,6 @@ A template class for Detectors.
 import os
 from abc import ABC, abstractmethod
 
-from ...utils import logging_utils as log_ut
 from ...utils.config import save_config
 
 
@@ -48,28 +47,20 @@ class BaseFeature(ABC):
             input_folder = io.get_detector_output_folder(comp, alg, "result")
             input_file = os.path.join(input_folder, f"{alg}.npz")
             if not os.path.isfile(input_file):
-                raise FileNotFoundError(
-                    f"Feature detector {self.components}: File '{input_file}' does "
-                    "not exist!"
-                )
+                raise FileNotFoundError(f"Feature detector {self.components}: File '{input_file}' does " "not exist!")
             self.input_folders.append(input_folder)
             self.input_files.append(input_file)
             self.input_map[(comp, alg)] = input_file
 
         # output folders
         self.result_folders = dict(
-            (comp, io.get_detector_output_folder(comp, self.algorithm, "result"))
-            for comp in self.components
+            (comp, io.get_detector_output_folder(comp, self.algorithm, "result")) for comp in self.components
         )
         main_component = self.components[0]
         if requires_out_folder:
-            self.out_folder = io.get_detector_output_folder(
-                main_component, self.algorithm, "output"
-            )
+            self.out_folder = io.get_detector_output_folder(main_component, self.algorithm, "output")
         if config["visualize"]:
-            self.viz_folder = io.get_detector_output_folder(
-                main_component, self.algorithm, "visualization"
-            )
+            self.viz_folder = io.get_detector_output_folder(main_component, self.algorithm, "visualization")
 
         self.subjects_descr = data.subjects_descr
 
@@ -88,11 +79,9 @@ class BaseFeature(ABC):
             str: A string representation of the feature detector, including its
                 components, and the associated algorithm.
         """
-        return (
-            f"Instance of component {self.components} \n\t"
-            f"algorithm = {self.algorithm} \n\t "
-            f"\n\t"
-        ).join([f"{attr} = {value}" for (attr, value) in self.__dict__.items()])
+        return (f"Instance of component {self.components} \n\t" f"algorithm = {self.algorithm} \n\t " f"\n\t").join(
+            [f"{attr} = {value}" for (attr, value) in self.__dict__.items()]
+        )
 
     @abstractmethod
     def compute(self):

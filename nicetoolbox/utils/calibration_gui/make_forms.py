@@ -93,11 +93,7 @@ def load_dataset_directory(frame, entries):
         session_name = os.path.basename(session_folder)
         entries["data"][session_name] = {}
 
-        sequence_folders = (
-            walk_directory(session_folder)
-            if walk_directory(session_folder) != []
-            else ["None"]
-        )
+        sequence_folders = walk_directory(session_folder) if walk_directory(session_folder) != [] else ["None"]
 
         # SEQUENCES
         for sequence_folder in sequence_folders:
@@ -106,14 +102,10 @@ def load_dataset_directory(frame, entries):
 
             if sequence_name == "None" or walk_directory(sequence_folder) == []:
                 camera_names = (
-                    find_video_files(sequence_folder)
-                    if sequence_folder != "None"
-                    else find_video_files(session_folder)
+                    find_video_files(sequence_folder) if sequence_folder != "None" else find_video_files(session_folder)
                 )
             else:
-                camera_names = [
-                    os.path.basename(cam) for cam in walk_directory(sequence_folder)
-                ]
+                camera_names = [os.path.basename(cam) for cam in walk_directory(sequence_folder)]
 
             # CAMERAS
             for camera_name in camera_names:
@@ -122,9 +114,7 @@ def load_dataset_directory(frame, entries):
                 camera_entries["name"][0][0].set(camera_name)
 
                 # add the matrix variables to the entries dict
-                entries["data"][session_name][sequence_name][camera_name] = (
-                    camera_entries
-                )
+                entries["data"][session_name][sequence_name][camera_name] = camera_entries
 
     # make the form for the calibration loaded
     make_content_form(frame, entries, fields)
@@ -189,8 +179,7 @@ def load_calibration_file(frame, entries):
         load_type = "toml"
     else:
         entries["message"].set(
-            f"Calibration file is not a.npz, .json, or .toml file and currently "
-            f"not supported: '{calibration_file}'"
+            f"Calibration file is not a.npz, .json, or .toml file and currently " f"not supported: '{calibration_file}'"
         )
         return
 
@@ -242,13 +231,9 @@ def make_input_form(frame, main, entries):
     # input directory
     io_dataset = tk.Frame(io)
     io_dataset.pack(side=tk.TOP, padx=px, pady=py)
-    label_dataset = tk.Label(
-        io_dataset, text="Dataset directory path: ", anchor="w", justify=tk.LEFT
-    )
+    label_dataset = tk.Label(io_dataset, text="Dataset directory path: ", anchor="w", justify=tk.LEFT)
     label_dataset.pack(side=tk.TOP, fill=tk.X)
-    entry_dataset = tk.Entry(
-        io_dataset, textvariable=entries["input_directory"], width=90
-    )
+    entry_dataset = tk.Entry(io_dataset, textvariable=entries["input_directory"], width=90)
     entry_dataset.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
     # create select and load buttons
     button_dataset = tk.Button(
@@ -267,13 +252,9 @@ def make_input_form(frame, main, entries):
     # input calibration file
     io_calibration = tk.Frame(io)
     io_calibration.pack(side=tk.TOP, padx=px, pady=py)
-    label_calibration = tk.Label(
-        io_calibration, text="Calibration file path: ", anchor="w", justify=tk.LEFT
-    )
+    label_calibration = tk.Label(io_calibration, text="Calibration file path: ", anchor="w", justify=tk.LEFT)
     label_calibration.pack(side=tk.TOP, fill=tk.X)
-    entry_calibration = tk.Entry(
-        io_calibration, textvariable=entries["input_file"], width=90
-    )
+    entry_calibration = tk.Entry(io_calibration, textvariable=entries["input_file"], width=90)
     entry_calibration.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
     # create select and load buttons
     button_calibration = tk.Button(
@@ -292,9 +273,7 @@ def make_input_form(frame, main, entries):
     # free form input
     io_free = tk.Frame(io)
     io_free.pack(side=tk.TOP, padx=px, pady=py)
-    label_free = tk.Label(
-        io_free, text="Start a new file: ", anchor="w", justify=tk.LEFT
-    )
+    label_free = tk.Label(io_free, text="Start a new file: ", anchor="w", justify=tk.LEFT)
     label_free.pack(side=tk.TOP, fill=tk.X)
     entry_free_sess = tk.Entry(io_free, textvariable=entries["session_names"], width=32)
     entry_free_sess.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
@@ -302,9 +281,7 @@ def make_input_form(frame, main, entries):
     entry_free_seq.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
     entry_free_cam = tk.Entry(io_free, textvariable=entries["camera_names"], width=32)
     entry_free_cam.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
-    button_load_free = tk.Button(
-        io_free, text="Load", command=(lambda e=(main, entries): load_new_file(*e))
-    )
+    button_load_free = tk.Button(io_free, text="Load", command=(lambda e=(main, entries): load_new_file(*e)))
     button_load_free.pack(side=tk.LEFT, fill=tk.Y, padx=px, pady=py)
 
     return entries
@@ -324,9 +301,7 @@ def make_camera_form(tab, fields, entries):
         # each field can be connected to multiple metrics
         matrix_names = [matrix["name"] for matrix in field["variables"]]
         # write matrix or matrices
-        matrix2form(
-            tab, dict((key, val) for key, val in entries.items() if key in matrix_names)
-        )
+        matrix2form(tab, dict((key, val) for key, val in entries.items() if key in matrix_names))
 
 
 def make_content_form(frame, entries, fields):
@@ -353,10 +328,7 @@ def make_content_form(frame, entries, fields):
         session_tabs.add(session_tab, text=session_name)
 
         # are there sequences?
-        if (
-            len(session_entries.keys()) == 1
-            and list(session_entries.keys())[0] == "None"
-        ):
+        if len(session_entries.keys()) == 1 and list(session_entries.keys())[0] == "None":
             # no sequences
             create_camera_tabs(session_tab, session_entries["None"], fields)
 

@@ -7,8 +7,6 @@ import os
 
 import numpy as np
 
-from . import filehandling as fh
-
 
 def check_token_in_filepath(folder_name: str, token: str, description: str) -> None:
     """
@@ -26,10 +24,7 @@ def check_token_in_filepath(folder_name: str, token: str, description: str) -> N
         None
     """
     if token not in folder_name:
-        raise ValueError(
-            f"The given {description} '{folder_name}' does not contain "
-            f"the required token '{token}'."
-        )
+        raise ValueError(f"The given {description} '{folder_name}' does not contain " f"the required token '{token}'.")
 
 
 def check_options(object, object_type, options) -> None:
@@ -50,19 +45,12 @@ def check_options(object, object_type, options) -> None:
         None
     """
     if not isinstance(object, object_type):
-        raise TypeError(
-            f"Expected object of type {object_type.__name__}, "
-            f"got {type(object).__name__}"
-        )
+        raise TypeError(f"Expected object of type {object_type.__name__}, " f"got {type(object).__name__}")
     if object not in options:
-        raise ValueError(
-            f"Object {object} is not in the list of valid options: {options}"
-        )
+        raise ValueError(f"Object {object} is not in the list of valid options: {options}")
 
 
-def check_value_bounds(
-    object, object_type=None, object_min=None, object_max=None
-) -> None:
+def check_value_bounds(object, object_type=None, object_min=None, object_max=None) -> None:
     """
     Check if an object's value falls within specified bounds.
 
@@ -86,19 +74,11 @@ def check_value_bounds(
         None
     """
     if object_type is not None and not isinstance(object, object_type):
-        raise TypeError(
-            f"Expected object of type {object_type.__name__}, "
-            f"got {type(object).__name__}"
-        )
+        raise TypeError(f"Expected object of type {object_type.__name__}, " f"got {type(object).__name__}")
     if object_min is not None and object < object_min:
-        raise ValueError(
-            f"Object value {object} is less than the minimum allowed value {object_min}"
-        )
+        raise ValueError(f"Object value {object} is less than the minimum allowed value {object_min}")
     if object_max is not None and object > object_max:
-        raise ValueError(
-            f"Object value {object} is greater than the maximum allowed "
-            f"value {object_max}"
-        )
+        raise ValueError(f"Object value {object} is greater than the maximum allowed " f"value {object_max}")
 
 
 def file_exists(file: str) -> None:
@@ -159,6 +139,4 @@ def check_zeros(arr: np.ndarray) -> None:
     zero_cells = np.all(arr == zero_vector, axis=-1)
 
     if np.any(zero_cells):
-        logging.warning(
-            f" Warning. Data array contains zero cells at {np.argwhere(zero_cells)}"
-        )
+        logging.warning(f" Warning. Data array contains zero cells at {np.argwhere(zero_cells)}")

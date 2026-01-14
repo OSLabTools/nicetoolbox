@@ -28,9 +28,7 @@ class PyFeat(BaseDetector):
         Initialize the PyFeat method detector with all inference preparation.
         """
 
-        logging.info(
-            f"Prepare Inference for '{self.algorithm}' and component {self.components}."
-        )
+        logging.info(f"Prepare Inference for '{self.algorithm}' and component {self.components}.")
 
         # Base class setup
         super().__init__(config, io, data, requires_out_folder=config["visualize"])
@@ -41,9 +39,7 @@ class PyFeat(BaseDetector):
         self.results_folder = config["result_folders"][self.components[0]]
 
         # Initialize standardized data loader
-        self.dataloader = ImagePathsByFrameIndexLoader(
-            config=config, expected_cameras=self.camera_names
-        )
+        self.dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=self.camera_names)
 
         logging.info("Inference Preparation complete.\n")
 
@@ -81,9 +77,7 @@ class PyFeat(BaseDetector):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
             # Synchronized Indexing via dataloader
-            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(
-                self.dataloader
-            ):
+            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(self.dataloader):
                 image_file = frame_paths_per_camera[camera_name]
                 image = cv2.imread(image_file)
 
@@ -95,9 +89,7 @@ class PyFeat(BaseDetector):
                         continue
 
                     sbj_facebbox = facebbox_data[subject_idx, cam_idx, frame_idx]
-                    subject_emotion_probability = emotion_data[
-                        subject_idx, cam_idx, frame_idx
-                    ]
+                    subject_emotion_probability = emotion_data[subject_idx, cam_idx, frame_idx]
                     max_probability_idx = np.argmax(subject_emotion_probability)
 
                     x, y, width, height = sbj_facebbox[:4].astype(int)
@@ -125,9 +117,7 @@ class PyFeat(BaseDetector):
 
                 # Save using real_frame_idx to keep video timeline sync
                 cv2.imwrite(
-                    os.path.join(
-                        self.viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"
-                    ),
+                    os.path.join(self.viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"),
                     image,
                 )
 
@@ -138,6 +128,4 @@ class PyFeat(BaseDetector):
                 start_frame=int(self.video_start),
             )
 
-        logging.info(
-            f"Detector {self.components}: visualization finished with code {success}."
-        )
+        logging.info(f"Detector {self.components}: visualization finished with code {success}.")

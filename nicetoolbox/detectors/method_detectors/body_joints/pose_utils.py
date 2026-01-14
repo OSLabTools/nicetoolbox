@@ -3,8 +3,8 @@ Pose estimation utilities. # TODO: Move to a more appropriate location?
 """
 
 import logging
+
 import numpy as np
-import pandas as pd
 import scipy.interpolate as interp
 
 
@@ -47,13 +47,9 @@ def interpolate_data(data, is_3d=True, max_empty=10):  # TODO make max_empty 1/3
                         small_gaps_valid_idx = valid_idx[small_gaps_idx]
 
                         if small_gaps_valid_idx.size > 0:
-                            small_gaps_valid_idx = np.append(
-                                small_gaps_valid_idx, valid_idx[small_gaps_idx[-1] + 1]
-                            )
+                            small_gaps_valid_idx = np.append(small_gaps_valid_idx, valid_idx[small_gaps_idx[-1] + 1])
 
-                        if (
-                            small_gaps_valid_idx.size > 1
-                        ):  # Need at least two points to interpolate
+                        if small_gaps_valid_idx.size > 1:  # Need at least two points to interpolate
                             # Create interpolation functions for bounded regions
                             f_x = interp.interp1d(
                                 small_gaps_valid_idx,
@@ -80,21 +76,14 @@ def interpolate_data(data, is_3d=True, max_empty=10):  # TODO make max_empty 1/3
                                 )
 
                             # Apply interpolation only within the gaps
-                            for gap_start, gap_end in zip(
-                                small_gaps_valid_idx[:-1], small_gaps_valid_idx[1:]
-                            ):
-                                data[i, j, gap_start : gap_end + 1, k, 0] = f_x(
-                                    np.arange(gap_start, gap_end + 1)
-                                )
-                                data[i, j, gap_start : gap_end + 1, k, 1] = f_y(
-                                    np.arange(gap_start, gap_end + 1)
-                                )
+                            for gap_start, gap_end in zip(small_gaps_valid_idx[:-1], small_gaps_valid_idx[1:]):
+                                data[i, j, gap_start : gap_end + 1, k, 0] = f_x(np.arange(gap_start, gap_end + 1))
+                                data[i, j, gap_start : gap_end + 1, k, 1] = f_y(np.arange(gap_start, gap_end + 1))
                                 if is_3d:
-                                    data[i, j, gap_start : gap_end + 1, k, 2] = f_z(
-                                        np.arange(gap_start, gap_end + 1)
-                                    )
+                                    data[i, j, gap_start : gap_end + 1, k, 2] = f_z(np.arange(gap_start, gap_end + 1))
 
     return data
+
 
 def create_iou_all_pairs(data):
     """
@@ -117,7 +106,6 @@ def create_iou_all_pairs(data):
 
     # boxes: (S, C, F, 1, 4) with coords (x1, y1, x2, y2) in the last dim, 4th dimension is "full_body" label
     boxes = data[..., 0, :4].astype(np.float32)
-    S, C, F, _ = boxes.shape
     x1_raw, y1_raw, x2_raw, y2_raw = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]
     x1 = np.minimum(x1_raw, x2_raw)
     x2 = np.maximum(x1_raw, x2_raw)
@@ -129,13 +117,14 @@ def create_iou_all_pairs(data):
     invalid_mask = (w <= 0) | (h <= 0)
     if np.any(invalid_mask):
         num_invalid = np.sum(invalid_mask)
-        logging.error(f"Found {num_invalid} boxes with non-positive area."
-                      f"The area will be saved as zero for that cases")
+        logging.error(
+            f"Found {num_invalid} boxes with non-positive area." f"The area will be saved as zero for that cases"
+        )
     # Areas (safe)
     w = np.maximum(0.0, w)
     h = np.maximum(0.0, h)
     # Area per subject/camera/frame
-    area = w*h  # (S,C,F)
+    area = w * h  # (S,C,F)
 
     # Pairwise intersections across subjects -> (S,S,C,F)
     # This creates an intersection coordinates matrix for all subjects pairs
@@ -162,7 +151,7 @@ def create_iou_all_pairs(data):
     # We sum pairwise original areas and remove intersections areas from them
     # This result pairwise union areas matrix (S,S,C,F)
     union = area[:, None, :, :] + area[None, :, :, :] - inter
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         iou_sscf = inter / union
 
     # Reorder to array: (S, C, F, S)

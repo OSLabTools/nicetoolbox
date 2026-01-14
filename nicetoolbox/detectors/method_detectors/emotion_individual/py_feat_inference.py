@@ -31,9 +31,7 @@ def get_safe_batch_size(target_batch_size, reserved_vram_gb=4.0, mb_per_image=50
     try:
         total_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
         available_gb = total_memory - reserved_vram_gb
-        actual_limit = (
-            int((available_gb * 1024) / mb_per_image) if available_gb > 0 else 1
-        )
+        actual_limit = int((available_gb * 1024) / mb_per_image) if available_gb > 0 else 1
 
         if target_batch_size <= actual_limit:
             return target_batch_size
@@ -41,10 +39,7 @@ def get_safe_batch_size(target_batch_size, reserved_vram_gb=4.0, mb_per_image=50
         powers_of_2 = [1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
         for p in powers_of_2:
             if p <= actual_limit:
-                logging.warning(
-                    f"Target batch_size {target_batch_size} is unsafe for this GPU. "
-                    f"Adjusting to: {p}"
-                )
+                logging.warning(f"Target batch_size {target_batch_size} is unsafe for this GPU. " f"Adjusting to: {p}")
                 return p
         return 1
     except Exception:
@@ -111,35 +106,24 @@ def main(config: dict) -> None:
 
     # Process Camera by Camera
     for cam_idx, (camera_name, all_frame_paths) in enumerate(dataloader):
-        logging.info(
-            f"Processing Camera: {camera_name} ({len(all_frame_paths)} frames)"
-        )
+        logging.info(f"Processing Camera: {camera_name} ({len(all_frame_paths)} frames)")
 
         # Create a lookup map: FilePath -> (Array Index 0..N, Real Frame Index)
         # We need this because Py-Feat returns a DataFrame that might not be
         # perfectly ordered
         frame_range_indices = range(dataloader.start, dataloader.end, dataloader.step)
-        path_map = {
-            path: (i, real_idx)
-            for i, (path, real_idx) in enumerate(
-                zip(all_frame_paths, frame_range_indices)
-            )
-        }
+        path_map = {path: (i, real_idx) for i, (path, real_idx) in enumerate(zip(all_frame_paths, frame_range_indices))}
 
         try:
             # Pass ALL paths to detector. Py-Feat handles the batching internally.
-            results = detector.detect_image(
-                all_frame_paths, batch_size=inference_batch_size
-            )
+            results = detector.detect_image(all_frame_paths, batch_size=inference_batch_size)
         except Exception as e:
             logging.critical(f"Inference failed for camera {camera_name}: {e}")
             raise e
 
         # Crash if results are empty
         if results is None or results.empty:
-            error_msg = (
-                f"ERROR: No faces detected in ANY frame for camera {camera_name}."
-            )
+            error_msg = f"ERROR: No faces detected in ANY frame for camera {camera_name}."
             logging.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -170,9 +154,7 @@ def main(config: dict) -> None:
                         row["FaceRectWidth"],
                         row["FaceRectHeight"],
                     ]
-                    emotion_vectors[subj_idx, cam_idx, array_idx, :] = (
-                        row.emotions.values
-                    )
+                    emotion_vectors[subj_idx, cam_idx, array_idx, :] = row.emotions.values
                     au_vectors[subj_idx, cam_idx, array_idx, :] = row.aus.values
                     pose_vectors[subj_idx, cam_idx, array_idx, :] = row.poses.values
 
@@ -242,9 +224,7 @@ def main(config: dict) -> None:
         },
     }
 
-    result_path = os.path.join(
-        config["result_folders"]["emotion_individual"], f"{config['algorithm']}.npz"
-    )
+    result_path = os.path.join(config["result_folders"]["emotion_individual"], f"{config['algorithm']}.npz")
     np.savez_compressed(result_path, **out)
     logging.info("Py-Feat processing complete.")
 

@@ -6,10 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from nicetoolbox.configs.schemas.dataset_properties import DatasetConfig
-from nicetoolbox.configs.schemas.detectors_run_file import (
-    DetectorsRunConfig,
-    RunConfigVideo,
-)
+from nicetoolbox.configs.schemas.detectors_run_file import DetectorsRunConfig, RunConfigVideo
 from nicetoolbox.configs.schemas.evaluation_config import EvaluationMetricType
 from nicetoolbox.evaluation.config_schema import FinalEvaluationConfig
 
@@ -20,16 +17,10 @@ class DiscoveryMockDataBuilder:
     def __init__(self, dataset_name="mock_dataset"):
         self.dataset_name = dataset_name
 
-    def build_run_config(
-        self, overrides: Optional[Dict[str, Any]] = None
-    ) -> DetectorsRunConfig:
+    def build_run_config(self, overrides: Optional[Dict[str, Any]] = None) -> DetectorsRunConfig:
         data = {
             "components": ["body_joints"],
-            "videos": [
-                RunConfigVideo(
-                    session_ID="S1", sequence_ID="Seq1", video_start=0, video_length=100
-                )
-            ],
+            "videos": [RunConfigVideo(session_ID="S1", sequence_ID="Seq1", video_start=0, video_length=100)],
         }
         if overrides:
             data.update(overrides)
@@ -37,9 +28,7 @@ class DiscoveryMockDataBuilder:
         config._dataset_name = self.dataset_name
         return config
 
-    def build_dataset_config(
-        self, overrides: Optional[Dict[str, Any]] = None
-    ) -> DatasetConfig:
+    def build_dataset_config(self, overrides: Optional[Dict[str, Any]] = None) -> DatasetConfig:
         data = {
             "path_to_annotations": Path(f"/{self.dataset_name}/annotations.npz"),
             "session_IDs": ["S1"],
@@ -62,9 +51,7 @@ class DiscoveryMockDataBuilder:
         config._dataset_name = self.dataset_name
         return config
 
-    def build_evaluation_config(
-        self, overrides: Optional[Dict[str, Any]] = None
-    ) -> FinalEvaluationConfig:
+    def build_evaluation_config(self, overrides: Optional[Dict[str, Any]] = None) -> FinalEvaluationConfig:
         data = {
             "git_hash": "ffffffff",
             "skip_evaluation": True,

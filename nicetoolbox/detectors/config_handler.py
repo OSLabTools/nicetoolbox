@@ -8,11 +8,7 @@ from ..configs.schemas.dataset_properties import DatasetProperties
 from ..configs.schemas.detectors_config import DetectorsConfig
 from ..configs.schemas.detectors_run_file import DetectorsRunFile
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
-from ..configs.utils import (
-    default_auto_placeholders,
-    default_runtime_placeholders,
-    model_to_dict,
-)
+from ..configs.utils import default_auto_placeholders, default_runtime_placeholders, model_to_dict
 from ..utils.logging_utils import log_configs
 
 
@@ -58,13 +54,9 @@ class Configuration:
         # init config loader
         self.auto_placeholders = default_auto_placeholders()
         self.runtime_placeholders = default_runtime_placeholders()
-        self.cfg_loader = ConfigLoader(
-            self.auto_placeholders, self.runtime_placeholders
-        )
+        self.cfg_loader = ConfigLoader(self.auto_placeholders, self.runtime_placeholders)
         # machine specific
-        machine_specific_config = self.cfg_loader.load_config(
-            machine_specifics_file, MachineSpecificConfig
-        )
+        machine_specific_config = self.cfg_loader.load_config(machine_specifics_file, MachineSpecificConfig)
         self.cfg_loader.extend_global_ctx(machine_specific_config)
         # run file
         run_config = self.cfg_loader.load_config(run_config_file, DetectorsRunFile)
@@ -72,14 +64,10 @@ class Configuration:
         # detectors config
         # TODO: Need to convert path to string. To be unified.
         detector_config_file = str(run_config.io.detectors_config)
-        detector_config = self.cfg_loader.load_config(
-            detector_config_file, DetectorsConfig
-        )
+        detector_config = self.cfg_loader.load_config(detector_config_file, DetectorsConfig)
         # dataset config
         dataset_config_file = str(run_config.io.dataset_properties)
-        dataset_config = self.cfg_loader.load_config(
-            dataset_config_file, DatasetProperties
-        )
+        dataset_config = self.cfg_loader.load_config(dataset_config_file, DatasetProperties)
 
         # TODO: rest of the codebase except the configs as dict
         # so we convert them from models to configs
@@ -103,8 +91,7 @@ class Configuration:
             # get all components specific for this dataset
             # we resolve actual components name with respect of the mapping
             component_dict = dict(
-                (comp, self.run_config["component_algorithm_mapping"][comp])
-                for comp in dataset_dict["components"]
+                (comp, self.run_config["component_algorithm_mapping"][comp]) for comp in dataset_dict["components"]
             )
             cur_dataset_config = self.dataset_config[dataset_name]
 
@@ -144,29 +131,19 @@ class Configuration:
 
     def get_method_configs(self, method_names):
         for method_name in method_names:
-            method_config = flatten_dict(
-                self.detector_config["algorithms"][method_name]
-            )
+            method_config = flatten_dict(self.detector_config["algorithms"][method_name])
             method_config["visualize"] = self.run_config["visualize"]
 
             if "algorithm" in method_config:
-                method_config.update(
-                    self.detector_config["methods"][method_name][
-                        method_config["algorithm"]
-                    ]
-                )
+                method_config.update(self.detector_config["methods"][method_name][method_config["algorithm"]])
 
             localized_config = self.cfg_loader.resolve(method_config, self.runtime_ctx)
-            localized_config["camera_names"] = [
-                cam for cam in localized_config["camera_names"] if cam != ""
-            ]
+            localized_config["camera_names"] = [cam for cam in localized_config["camera_names"] if cam != ""]
             yield localized_config, method_name
 
     def get_feature_configs(self, feature_names):
         for feature_name in feature_names:
-            feature_config = copy.deepcopy(
-                self.detector_config["algorithms"][feature_name]
-            )
+            feature_config = copy.deepcopy(self.detector_config["algorithms"][feature_name])
             feature_config["visualize"] = self.run_config["visualize"]
 
             yield feature_config, feature_name
@@ -196,14 +173,10 @@ class Configuration:
     def get_all_camera_names(self, algorithm_names):
         # TODO: mark that it requires get_video_and_comps_configs first
         all_camera_names = set()
-        detector_config = self.cfg_loader.resolve(
-            self.detector_config, self.runtime_ctx
-        )
+        detector_config = self.cfg_loader.resolve(self.detector_config, self.runtime_ctx)
         for detector in algorithm_names:
             if "camera_names" in detector_config["algorithms"][detector]:
-                all_camera_names.update(
-                    detector_config["algorithms"][detector]["camera_names"]
-                )
+                all_camera_names.update(detector_config["algorithms"][detector]["camera_names"])
         if "" in all_camera_names:
             all_camera_names.remove("")
         return list(all_camera_names)
@@ -212,9 +185,7 @@ class Configuration:
         data_formats = set()
         for detector in algorithm_names:
             if "input_data_format" in self.detector_config["algorithms"][detector]:
-                data_formats.add(
-                    self.detector_config["algorithms"][detector]["input_data_format"]
-                )
+                data_formats.add(self.detector_config["algorithms"][detector]["input_data_format"])
         return list(data_formats)
 
     def get_all_dataset_names(self):

@@ -12,9 +12,7 @@ import pytest
 from pandas.testing import assert_frame_equal
 
 
-def compare_npz_files(
-    generated_path: Path, golden_path: Path, rtol: float = 1e-5, atol: float = 1e-8
-) -> None:
+def compare_npz_files(generated_path: Path, golden_path: Path, rtol: float = 1e-5, atol: float = 1e-8) -> None:
     """Compare two .npz files for key equality and numerical similarity.
 
     Args:
@@ -35,9 +33,7 @@ def compare_npz_files(
     generated_keys = sorted(generated_data.files)
     golden_keys = sorted(golden_data.files)
     assert generated_keys == golden_keys, (
-        f"NPZ files have different keys.\n"
-        f"Generated: {generated_keys}\n"
-        f"Golden: {golden_keys}"
+        f"NPZ files have different keys.\n" f"Generated: {generated_keys}\n" f"Golden: {golden_keys}"
     )
 
     for key in golden_data.files:
@@ -52,9 +48,7 @@ def compare_npz_files(
                 gen_arr, gold_arr, rtol=rtol, atol=atol, equal_nan=True
             ), f"Floating point array '{key}' differs from golden result."
         else:
-            assert np.array_equal(
-                gen_arr, gold_arr
-            ), f"Non-float array '{key}' differs from golden result."
+            assert np.array_equal(gen_arr, gold_arr), f"Non-float array '{key}' differs from golden result."
 
 
 def compare_csv_files(generated_path: Path, golden_path: Path) -> None:
@@ -76,17 +70,10 @@ def compare_csv_files(generated_path: Path, golden_path: Path) -> None:
         pytest.fail(f"Could not load CSV files for comparison: {e}")
 
     # Sort by all columns to make comparison independent of row order
-    sorted_golden = golden_df.sort_values(by=list(golden_df.columns)).reset_index(
-        drop=True
-    )
-    sorted_generated = generated_df.sort_values(
-        by=list(generated_df.columns)
-    ).reset_index(drop=True)
+    sorted_golden = golden_df.sort_values(by=list(golden_df.columns)).reset_index(drop=True)
+    sorted_generated = generated_df.sort_values(by=list(generated_df.columns)).reset_index(drop=True)
 
     try:
         assert_frame_equal(sorted_generated, sorted_golden, check_dtype=False)
     except AssertionError as e:
-        pytest.fail(
-            f"CSV content differs from golden result for "
-            f"{generated_path.name}:\n{e}"
-        )
+        pytest.fail(f"CSV content differs from golden result for " f"{generated_path.name}:\n{e}")

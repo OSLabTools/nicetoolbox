@@ -112,9 +112,7 @@ def test_dataset_iteration_flow(
     mock_pred_loader.load_full_array.return_value = raw_preds
     mock_annot_loader.load_full_array.return_value = raw_gts
 
-    chunk = mock_chunk_factory(
-        pred_reconciliation_map=pred_rec_map, gt_reconciliation_map=gt_rec_map
-    )
+    chunk = mock_chunk_factory(pred_reconciliation_map=pred_rec_map, gt_reconciliation_map=gt_rec_map)
     dataset = EvaluationDataset([chunk], mock_pred_loader, mock_annot_loader)
 
     # Act

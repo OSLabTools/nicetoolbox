@@ -52,9 +52,7 @@ class BoneLength(Metric):
         # For frame-based results, key is (comp, algo, "bone_length")
         self.storage: Dict[Tuple[str, str, str], List[BatchResult]] = defaultdict(list)
         # For summary, key is (comp, algo, person, bone_name)
-        self.summary_storage: Dict[Tuple[str, str, str, str], List[float]] = (
-            defaultdict(list)
-        )
+        self.summary_storage: Dict[Tuple[str, str, str, str], List[float]] = defaultdict(list)
 
     def get_axis3(self) -> List[str]:
         """Get the bone names the metric is concerned with."""
@@ -84,10 +82,7 @@ class BoneLength(Metric):
 
         # Determine if any bone has both endpoints present in the reconciled keypoints
         keypoint_set = set(keypoint_names)
-        has_valid_bone = any(
-            kp1 in keypoint_set and kp2 in keypoint_set
-            for kp1, kp2 in self.bone_dict.values()
-        )
+        has_valid_bone = any(kp1 in keypoint_set and kp2 in keypoint_set for kp1, kp2 in self.bone_dict.values())
         if not has_valid_bone:
             return
 
@@ -95,9 +90,7 @@ class BoneLength(Metric):
 
         comp, algo = meta_chunk.component, meta_chunk.algorithm
         num_frames = preds.shape[0]
-        bone_lengths = torch.full(
-            (num_frames, len(self.bone_names)), torch.nan, device=preds.device
-        )
+        bone_lengths = torch.full((num_frames, len(self.bone_names)), torch.nan, device=preds.device)
         for i, bone_name in enumerate(self.bone_names):
             keypoint1, keypoint2 = self.bone_dict[bone_name]
 
@@ -119,9 +112,7 @@ class BoneLength(Metric):
         comp, algo = meta_chunk.component, meta_chunk.algorithm
         key = (comp, algo, "bone_length")
         description = self.get_axis3()
-        self.storage[key].append(
-            BatchResult(bone_lengths.cpu(), description, meta_chunk, meta_frames)
-        )
+        self.storage[key].append(BatchResult(bone_lengths.cpu(), description, meta_chunk, meta_frames))
 
     def compute(self) -> Dict[Tuple[str, str, str], MetricReturnType]:
         """Compute the final metric from the stored state."""
@@ -172,9 +163,7 @@ class JumpDetection(Metric):
 
     def __init__(self, keypoints_mapping: Dict[str, Any]):
         self.keypoints_mapping = keypoints_mapping
-        self.joint_diameter_map = self.keypoints_mapping["human_pose"][
-            "joint_diameter_size"
-        ]
+        self.joint_diameter_map = self.keypoints_mapping["human_pose"]["joint_diameter_size"]
         super().__init__()
 
     def reset(self) -> None:
@@ -214,10 +203,7 @@ class JumpDetection(Metric):
         # Create a threshold tensor based on the order of keypoints in the input
         # Convert diameter from mm to meters
         thresholds = torch.tensor(
-            [
-                self.joint_diameter_map.get(name, float("inf")) * 1000.0
-                for name in keypoint_names
-            ],
+            [self.joint_diameter_map.get(name, float("inf")) * 1000.0 for name in keypoint_names],
             device=preds.device,
         )
 
@@ -248,20 +234,14 @@ class JumpDetection(Metric):
                 continue
 
             # Calculate movement between consecutive frames
-            movements = torch.linalg.norm(
-                full_sequence[1:] - full_sequence[:-1], dim=-1
-            )
+            movements = torch.linalg.norm(full_sequence[1:] - full_sequence[:-1], dim=-1)
             # Detect jumps where movement exceeds the joint diameter threshold
             jumps = movements > thresholds
 
             # --- Store Frame-Based Results ---
             key = (comp, algo, "jump_detection")
             description = self.get_axis3(meta_chunk)
-            self.storage[key].append(
-                BatchResult(
-                    jumps.cpu(), description, meta_chunk, list(current_frames_list)
-                )
-            )
+            self.storage[key].append(BatchResult(jumps.cpu(), description, meta_chunk, list(current_frames_list)))
 
             # --- Update Summary Counts ---
             # Sum jumps per frame and add to the total for this context

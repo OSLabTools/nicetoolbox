@@ -14,9 +14,7 @@ class ConfigValidationError(Exception):
     Provides better formatting for Pydantic validation errors.
     """
 
-    def __init__(
-        self, error: pydantic.ValidationError, filepath: Optional[Path] = None
-    ):
+    def __init__(self, error: pydantic.ValidationError, filepath: Optional[Path] = None):
         message = f"Config validation error in {filepath.name}\n" if filepath else ""
         for err in error.errors():
             message += "=" * 40 + "\n"
@@ -52,8 +50,7 @@ def load_config(config_file: str) -> dict:
         config = toml.load(config_file)
     else:
         raise NotImplementedError(
-            f"config_file type {config_file} is not supported. "
-            f"Only toml config files are supported."
+            f"config_file type {config_file} is not supported. " f"Only toml config files are supported."
         )
     return config
 

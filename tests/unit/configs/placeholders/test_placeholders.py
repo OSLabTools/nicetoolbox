@@ -24,9 +24,7 @@ def test_resolve_placeholders_basic_structures():
     assert result == ["first", "Hello second", "No placeholder"]
 
     # String
-    result = resolve_placeholders(
-        "<greeting> <name>!", {"greeting": "Hello", "name": "Alice"}
-    )
+    result = resolve_placeholders("<greeting> <name>!", {"greeting": "Hello", "name": "Alice"})
     assert result == "Hello Alice!"
 
     # Empty structures
@@ -66,9 +64,7 @@ def test_resolve_placeholders_nested():
         },
         {"deep1": "D1", "deep2": "D2", "mid": "M", "top": "T"},
     )
-    assert result == {
-        "level1": {"level2": {"level3": ["D1", "D2"], "value": "M"}, "another": "T"}
-    }
+    assert result == {"level1": {"level2": {"level3": ["D1", "D2"], "value": "M"}, "another": "T"}}
 
 
 def test_resolve_placeholders_mixed_types():
@@ -128,9 +124,7 @@ def test_resolve_placeholders_unreachable():
     import pytest
 
     with pytest.raises(ValueError, match="Could not resolve"):
-        resolve_placeholders(
-            {"key1": "<resolved>", "key2": "<missing>"}, {"resolved": "VALUE"}
-        )
+        resolve_placeholders({"key1": "<resolved>", "key2": "<missing>"}, {"resolved": "VALUE"})
 
 
 def test_resolve_placeholders_nonstring_values():
@@ -230,9 +224,7 @@ def test_resolve_placeholders_pydantic_basic():
         path: str
 
     config = SimpleConfig(name="<app_name>", path="<base_dir>/data")
-    result = resolve_placeholders(
-        config, {"app_name": "MyApp", "base_dir": "/home/user"}
-    )
+    result = resolve_placeholders(config, {"app_name": "MyApp", "base_dir": "/home/user"})
 
     assert isinstance(result, SimpleConfig)
     assert result.name == "MyApp"
@@ -345,9 +337,7 @@ def test_resolve_placeholders_pydantic_special_cases():
 
     # Optional fields
     config = ConfigWithOptional(name="<app_name>", description="<desc>", path=None)
-    result = resolve_placeholders(
-        config, {"app_name": "MyApp", "desc": "My Application"}
-    )
+    result = resolve_placeholders(config, {"app_name": "MyApp", "desc": "My Application"})
     assert result.description == "My Application"
     assert result.path is None
 
@@ -357,9 +347,7 @@ def test_resolve_placeholders_pydantic_special_cases():
         path: str
 
     config = SimpleConfig(name="<app_name>", path="<runtime_dir>/data")
-    result = resolve_placeholders(
-        config, {"app_name": "MyApp"}, unreachable={"runtime_dir"}
-    )
+    result = resolve_placeholders(config, {"app_name": "MyApp"}, unreachable={"runtime_dir"})
     assert result.name == "MyApp"
     assert result.path == "<runtime_dir>/data"
 

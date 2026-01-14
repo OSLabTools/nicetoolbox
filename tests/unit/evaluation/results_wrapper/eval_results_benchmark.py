@@ -83,9 +83,7 @@ class BenchmarkConfig:
     metric_names: Tuple[str, ...] = DEFAULT_METRIC_NAMES
     sequence_config: Dict[str, Dict[str, Dict[str, List[str]]]] = field(
         default_factory=lambda: {
-            ds: {
-                seq: {k: v.copy() for k, v in cfg.items()} for seq, cfg in seqs.items()
-            }
+            ds: {seq: {k: v.copy() for k, v in cfg.items()} for seq, cfg in seqs.items()}
             for ds, seqs in DEFAULT_SEQUENCE_CONFIG.items()
         }
     )
@@ -94,9 +92,7 @@ class BenchmarkConfig:
     camera_distributions: Dict[str, Tuple[float, float]] = field(
         default_factory=lambda: DEFAULT_CAMERA_DISTRIBUTIONS.copy()
     )
-    labels: Dict[str, List[str]] = field(
-        default_factory=lambda: {k: v.copy() for k, v in DEFAULT_LABELS.items()}
-    )
+    labels: Dict[str, List[str]] = field(default_factory=lambda: {k: v.copy() for k, v in DEFAULT_LABELS.items()})
     num_frames: int = DEFAULT_NUM_FRAMES
     # CHANGED: Add frame range for randomization
     frame_range: Optional[Tuple[int, int]] = None
@@ -192,12 +188,7 @@ def setup_demo_tree(root: Path, config: Optional[BenchmarkConfig] = None) -> Non
                         num_frames = seq_cfg.get("num_frames", config.num_frames)
 
                     shape = (len(persons), len(cameras), num_frames, len(labels))
-                    path = (
-                        root
-                        / f"{dataset}__{seq}"
-                        / comp
-                        / f"{alg}__keypoint_metrics.npz"
-                    )
+                    path = root / f"{dataset}__{seq}" / comp / f"{alg}__keypoint_metrics.npz"
 
                     create_dummy_npz(
                         path=path,
@@ -248,8 +239,7 @@ def create_simple_benchmark(
 
     for dataset in config.datasets:
         config.sequence_config[dataset] = {
-            f"seq_{j:02d}": {"persons": persons, "cameras": cameras}
-            for j in range(num_sequences_per_dataset)
+            f"seq_{j:02d}": {"persons": persons, "cameras": cameras} for j in range(num_sequences_per_dataset)
         }
 
     setup_demo_tree(root, config)
@@ -267,9 +257,7 @@ if __name__ == "__main__":
         frame_range=(5000, 15000),
     )
     custom_config.sequence_config = {
-        "my_dataset": {
-            "recording_01": {"persons": ["subject_1"], "cameras": ["cam_front"]}
-        }
+        "my_dataset": {"recording_01": {"persons": ["subject_1"], "cameras": ["cam_front"]}}
     }
     setup_demo_tree(Path("./benchmark_data_custom"), custom_config)
 

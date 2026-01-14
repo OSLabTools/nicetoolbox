@@ -23,25 +23,19 @@ def test_load_detectors_config():
     cfg_loader = ConfigLoader(auto_mock, runtime_mock)
 
     # machine specific
-    machine_specific = cfg_loader.load_config(
-        "machine_specific_paths.toml", MachineSpecificConfig
-    )
+    machine_specific = cfg_loader.load_config("machine_specific_paths.toml", MachineSpecificConfig)
     # each config has access to machine config (i.e. <datasets_folder_path>)
     # so we register all fields in global context
     cfg_loader.extend_global_ctx(machine_specific)
 
     # run file (or vis_config/evaluation_config)
-    run_file = cfg_loader.load_config(
-        "configs/detectors_run_file.toml", DetectorsRunFile
-    )
+    run_file = cfg_loader.load_config("configs/detectors_run_file.toml", DetectorsRunFile)
     # we register only [io] part of run_file
     cfg_loader.extend_global_ctx(run_file.io)
 
     # detectors dataser are not added to globabl context
     detectors = cfg_loader.load_config("configs/detectors_config.toml", DetectorsConfig)
-    dataset = cfg_loader.load_config(
-        "configs/dataset_properties.toml", DatasetProperties
-    )
+    dataset = cfg_loader.load_config("configs/dataset_properties.toml", DatasetProperties)
 
     # check that we resolved all placeholders
     assert get_placeholders(machine_specific) <= runtime_mock
