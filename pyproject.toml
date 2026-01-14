@@ -77,7 +77,7 @@ readme = {file = "README.md"}
 
 # ruff
 [tool.ruff]
-line-length = 88
+line-length = 120
 # exclude = ['./nicetoolbox/..']
 # include = ['./nicetoolbox/..']
 
@@ -85,10 +85,7 @@ line-length = 88
 # Enable reformatting of code snippets in docstrings.
 docstring-code-format = true
 # Format all docstring code snippets with a line length of 88.
-docstring-code-line-length = 88
-# Existing trailing commas are used as an indication that short lines should be left separate.
-# Set to true, to ignore the magic trailing comma.
-skip-magic-trailing-comma = true
+docstring-code-line-length = 120
 
 [tool.ruff.lint]
 select = [
