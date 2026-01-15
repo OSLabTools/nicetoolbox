@@ -103,24 +103,19 @@ def main(config, debug=False):
                         f"{landmark_predictions.shape[0]} subjects instead of "
                         f"{len(subjects_by_cam)} in frame file {frame_file}."
                     )
-                    # A quick fix for saving same landmarks for both people,
-                    # When the landmark detection is missing for one people.
-                    # Now, missing landmarks are filled with np.nan.
-                    # note: might swap the people-need a better people tracking
-                    missing_rows = len(subjects_by_cam) - landmark_predictions.shape[0]
-                    extended_landmarks = np.full(
+                    # When the landmark detection is missing for one subject.
+                    # We assign missing for all subjects,
+                    # bec. not possible to know which subject is missing
+                    landmark_predictions = np.full(
                         (
-                            missing_rows,
+                            len(subjects_by_cam),
                             landmark_predictions.shape[1],
                             landmark_predictions.shape[2],
                         ),
                         np.nan,
                     )
-                    landmark_predictions = np.vstack((landmark_predictions, extended_landmarks))
                     # Also pad scores
-                    extended_scores = np.full((missing_rows, 6), np.nan)
-                    score = np.vstack((score, extended_scores))
-                    # Todo: check if this is correct (I mean we need a fix here anyway)
+                    score = np.full((len(subjects_by_cam), 6), np.nan)
 
                 # Add confidence scores to the landmarks
                 # 1. Expand scores: (N, 6) -> (N, 6, 1)
