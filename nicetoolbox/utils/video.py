@@ -98,7 +98,7 @@ def sequential2frame_number(number: int, start_frame: int) -> int:
     return start_frame + (number - 1)
 
 
-def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True) -> tuple:
+def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True) -> None:
     """
     Split a video into individual frames using ffmpeg.
 
@@ -137,7 +137,6 @@ def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, k
         raise AssertionError("Splitting video into frames failed. See log for details.")
 
     # convert continuous file numbers to actual frame indices
-    frames_list, frame_indices_list = [], []  # BACKWARD COMPATIBILITY
     for file in sorted(frames_list_tmp):
         old_idx = int(os.path.basename(file)[:9])
         if keep_indices:
@@ -147,14 +146,6 @@ def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, k
                 shutil.move(file, new_filename)
             else:
                 os.system(f"mv {file} {new_filename}")
-            # Below: BACKWARD COMPATIBILITY
-            frame_indices_list.append(new_idx)
-            frames_list.append(new_filename)
-        else:
-            frame_indices_list.append(old_idx)
-            frames_list.append(file)
-
-    return frames_list, frame_indices_list
 
 
 def equal_splits_by_frames(

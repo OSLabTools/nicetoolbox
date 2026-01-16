@@ -79,12 +79,12 @@ class BaseDetector(ABC):
         self.framework = (
             config["framework"] if "framework" in config.keys() else self.algorithm  # noqa: SIM118
         )
-        self.script_path = data.get_inference_path(main_component, self.framework)
+        self.script_path = io.get_inference_path(main_component, self.framework)
 
         # specify the virtual environment for the third party method/detector
         self.venv, self.env_name = config["env_name"].split(":")
         if self.venv == "venv":
-            self.venv_path = data.get_venv_path(self.framework, self.env_name)
+            self.venv_path = io.get_venv_path(self.framework, self.env_name)
 
     def __str__(self):
         """
