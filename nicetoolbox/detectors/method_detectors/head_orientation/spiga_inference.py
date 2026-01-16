@@ -10,11 +10,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 import onnxruntime
-import toml
 import torch
 from insightface.app import FaceAnalysis
 
 from nicetoolbox_core.dataloader import ImagePathsByFrameIndexLoader
+from nicetoolbox_core.entrypoint import run_inference_entrypoint
 
 # --- Add submodule path ---
 top_level_dir = Path(__file__).resolve().parents[4]
@@ -32,12 +32,28 @@ torch.backends.cudnn.benchmark = True
 NUM_FACIAL_LANDMARKS = 98
 
 
-def main(config: dict) -> None:
-    logging.basicConfig(
-        filename=config["log_file"],
-        level=config["log_level"],
-        format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
-    )
+@run_inference_entrypoint
+def spiga_inference(config: dict) -> None:
+    """
+    Run SPIGA head orientation detection on the provided data.
+
+    1) Setup logging and validate hardware for ONNXRuntime.
+    2) Initialize `ImagePathsByFrameIndexLoader` to yield all frame paths per
+         frame index.
+    3) Pre-allocate standardized NumPy arrays (Subject, Camera, Frame, Data).
+    4) For each frame index:
+        a. For each camera:
+            i.   Load image.
+            ii.  Detect faces with InsightFace.
+            iii. Run SPIGA inference given image and detected bboxes.
+            iv.  Store head pose, landmarks, and bbox results.
+            v.   Optionally visualize and save annotated frames.
+    5) Save results as compressed .npz file.
+
+    Args:
+        config (dict): Configuration dictionary.
+    """
+
     logging.info("Running SPIGA head orientation detection!")
 
     # (1) Access config parameters
@@ -192,14 +208,3 @@ def main(config: dict) -> None:
     logging.info(f"Saving SPIGA result to {result_path}")
     np.savez_compressed(result_path, **out)
     logging.info("SPIGA result saved successfully.")
-
-
-if __name__ == "__main__":
-    try:
-        config_path = sys.argv[1]
-        config = toml.load(config_path)
-        main(config)
-        sys.exit(0)
-    except Exception as e:
-        logging.critical(f"Script crashed -> {e}", exc_info=True)
-        sys.exit(1)
