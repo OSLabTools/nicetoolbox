@@ -5,8 +5,10 @@ IO module for the NICE toolbox.
 import copy
 import logging
 import os
+from pathlib import Path
 
 from ..utils import check_and_exception as exc
+from ..utils import system as oslab_sys
 
 
 class IO:
@@ -64,6 +66,8 @@ class IO:
 
         self.log_level = config["log_level"]
 
+        self.code_folder = Path(config["code_folder"])
+
     def get_log_file_level(self):
         """
         Returns the path of the log file and the log level.
@@ -96,14 +100,14 @@ class IO:
 
         self.out_sub_folder = config["out_sub_folder"]
         if config["process_data_to"] == "data_folder":
-            self.data_folder = config["data_folder"]
+            self.nice_input_folder = Path(config["data_folder"])
         self.create_folders()
 
         # check the given io-config
         self.check_config(config)
 
         # get the relevant config entries
-        self.data_input_folder = config["data_input_folder"]
+        self.data_source_folder = Path(config["data_input_folder"])
         self.calibration_file = config["path_to_calibrations"]
         self.conda_path = config["conda_path"]
         self.csv_folder = config["csv_out_folder"]
@@ -115,14 +119,23 @@ class IO:
         self.detector_run_config_path = config["detector_run_config_path"]
         self.detector_final_result_folder = config["detector_final_result_folder"]
 
-    def get_input_folder(self):
+    def get_data_source_folder(self) -> Path:
         """
-        Returns the input folder path.
+        Returns the folder path to the original dataset source data. (E.g. storing mp4/avi files)
 
         Returns:
-            str: The path to the input folder.
+            str: The path to the source data folder.
         """
-        return self.data_input_folder
+        return self.data_source_folder
+
+    def get_nice_input_folder(self) -> Path:
+        """
+        Returns the data folder associated with the current instance.
+
+        Returns:
+            str: The path to the data folder.
+        """
+        return self.nice_input_folder
 
     def get_calibration_file(self):
         """
@@ -133,15 +146,6 @@ class IO:
         """
         return self.calibration_file
 
-    def get_data_folder(self):
-        """
-        Returns the data folder associated with the current instance.
-
-        Returns:
-            str: The path to the data folder.
-        """
-        return self.data_folder
-
     def get_conda_path(self):
         """
         Returns the path to the Conda installation directory.
@@ -150,6 +154,63 @@ class IO:
             str: The path to the Conda installation directory.
         """
         return self.conda_path
+
+    def get_inference_path(self, component_name, detector_name):
+        """
+        Get the file path for the inference script of a given detector.
+
+        Args:
+            detector_name (str): The name of the detector.
+
+        Returns:
+            str: The file path for the inference script.
+
+        Raises:
+            FileNotFoundError: If the inference script file does not exist.
+        """
+        filepath = os.path.join(
+            self.code_folder,
+            "nicetoolbox",
+            "detectors",
+            "method_detectors",
+            component_name,
+            f"{detector_name}_inference.py",
+        )
+        try:
+            exc.file_exists(filepath)
+        except FileNotFoundError:
+            logging.exception(f"Detector inference file {filepath} does not exist!")
+            raise
+        return filepath
+
+    def get_venv_path(self, detector_name, env_name):
+        """
+        Get the file path of the virtual environment for the given detector and
+        environment name.
+
+        Args:
+            detector_name (str): The name of the detector.
+            env_name (str): The name of the environment.
+
+        Returns:
+            str: The file path of the virtual environment.
+
+        Raises:
+            FileNotFoundError: If the virtual environment does not exist.
+        """
+        os_type = oslab_sys.detect_os_type()
+        if os_type == "linux":
+            filepath = os.path.join(self.code_folder, "envs", env_name, "bin/activate")
+        elif os_type == "windows":
+            filepath = os.path.join(self.code_folder, "envs", env_name, "Scripts", "activate")
+        try:
+            exc.file_exists(filepath)
+        except FileNotFoundError:
+            logging.exception(
+                f"Virtual environment file {filepath} for detector = " f"'{detector_name}' does not exist!"
+            )
+            raise
+        return filepath
 
     def get_output_folder(self, token):
         """
@@ -238,7 +299,7 @@ class IO:
             raise
         # create the data folders
         try:
-            os.makedirs(self.data_folder, exist_ok=True)
+            os.makedirs(self.nice_input_folder, exist_ok=True)
         except OSError:
             logging.exception("Failed creating the data folder.")
             raise

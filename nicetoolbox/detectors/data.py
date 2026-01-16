@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 
 from ..utils import check_and_exception as exc
-from ..utils import system as oslab_sys
 from ..utils import video as vid
 from .in_out import IO
 
@@ -48,11 +47,8 @@ class Data:
         self.all_dataset_names = all_dataset_names
 
         # Collect all required file/folder paths
-        # Note: In the future we expect io to return Path objects directly!
-        self.code_folder = Path(config["code_folder"])
-        self.input_folder = Path(io.get_data_folder())  # nicetoolbox_input (frames)
-        self.source_folder = Path(io.get_input_folder())  # original folder (vids)
-        # RENAME THESE TWO FUNCTIONS IN IO WTF
+        self.input_folder = io.get_nice_input_folder()  # nicetoolbox_input (frames)
+        self.source_folder = io.get_data_source_folder()  # original folder (vids)
 
         # Collect data details from config (We only look at a single video here)
         # Note: In the future we expect config to be a pydantic model!
@@ -68,10 +64,6 @@ class Data:
         self.camera_mapping = dict((key, config[key]) for key in config if "cam_" in key)
         self.filename_template = config.get("filename_template", "{idx:09d}.png")
 
-        # For BACKWARD COMPATIBILITY with detectors using frames_list
-        self.frames_list = None
-        self.frame_indices_list: None | list[int] = None
-
         # 1. Detect Input Type
         self.input_format: str = self._get_input_format()
 
@@ -85,65 +77,6 @@ class Data:
         self.calibration: dict | None = self._load_calibration()
 
         logging.info("DATA PREPARATION finished.\n\n")
-
-    # TODO move to IO class
-    def get_inference_path(self, component_name, detector_name):
-        """
-        Get the file path for the inference script of a given detector.
-
-        Args:
-            detector_name (str): The name of the detector.
-
-        Returns:
-            str: The file path for the inference script.
-
-        Raises:
-            FileNotFoundError: If the inference script file does not exist.
-        """
-        filepath = os.path.join(
-            self.code_folder,
-            "nicetoolbox",
-            "detectors",
-            "method_detectors",
-            component_name,
-            f"{detector_name}_inference.py",
-        )
-        try:
-            exc.file_exists(filepath)
-        except FileNotFoundError:
-            logging.exception(f"Detector inference file {filepath} does not exist!")
-            raise
-        return filepath
-
-    # TODO move to IO class
-    def get_venv_path(self, detector_name, env_name):
-        """
-        Get the file path of the virtual environment for the given detector and
-        environment name.
-
-        Args:
-            detector_name (str): The name of the detector.
-            env_name (str): The name of the environment.
-
-        Returns:
-            str: The file path of the virtual environment.
-
-        Raises:
-            FileNotFoundError: If the virtual environment does not exist.
-        """
-        os_type = oslab_sys.detect_os_type()
-        if os_type == "linux":
-            filepath = os.path.join(self.code_folder, "envs", env_name, "bin/activate")
-        elif os_type == "windows":
-            filepath = os.path.join(self.code_folder, "envs", env_name, "Scripts", "activate")
-        try:
-            exc.file_exists(filepath)
-        except FileNotFoundError:
-            logging.exception(
-                f"Virtual environment file {filepath} for detector = " f"'{detector_name}' does not exist!"
-            )
-            raise
-        return filepath
 
     def get_input_recipe(self) -> dict:
         """
@@ -228,23 +161,6 @@ class Data:
         if self.input_format in [".avi", ".mp4"]:
             if self._check_frames_exist():
                 logging.info("Frames FOUND in nicetoolbox input folder")
-                # === START BACKWARD COMPATIBILITY ===
-                logging.info("LOADING frames_list for BACKWARD COMPATIBILITY...")
-                data_list = self.get_inputs_list(self.data_formats[0], self.all_camera_names)
-                self.frames_list = []
-                frames_list = []
-                frame_indices_list = set()
-                for filename in data_list:
-                    if "frames" in filename:
-                        frames_list.append(filename)
-                        frame_indices_list.add(int(os.path.basename(filename)[:-4]))
-
-                self.frame_indices_list = list(frame_indices_list)
-                for camera_name in sorted(self.all_camera_names):
-                    cam_frames = sorted([file for file in frames_list if camera_name in file])
-                    self.frames_list.append(cam_frames)
-                self.frames_list = [frame.tolist() for frame in np.array(self.frames_list).T]
-                # === END BACKWARD COMPATIBILITY ===
             else:
                 logging.info("EXTRACTING frames from video...")
                 self._extract_frames_from_video()
@@ -328,28 +244,12 @@ class Data:
 
             if "frames" in self.data_formats:
                 os.makedirs(os.path.join(input_folder, "frames"), exist_ok=True)
-                frames_list, frame_indices_list = vid.split_into_frames(
+                vid.split_into_frames(
                     video_file,
                     os.path.join(input_folder, "frames/"),
                     start_frame=self.start_frame_index,
                     keep_indices=True,
                 )
-                # We now have the frames list for the entire video
-                # But the detectors only need the specified range
-                # Below: BACKWARD COMPATIBILITY for detectors using frames_list
-                if self.frame_indices_list is None:
-                    slice_end = self.video_start + self.video_length
-
-                    self.frame_indices_list = [idx for idx in frame_indices_list if self.video_start <= idx < slice_end]
-                    slice_frames = frames_list[self.video_start : slice_end]
-                    self.frames_list = [[f] for f in slice_frames]
-                else:
-                    slice_end = self.video_start + self.video_length
-                    slice_frames = frames_list[self.video_start : slice_end]
-
-                    for n, f in enumerate(slice_frames):
-                        if n < len(self.frames_list):
-                            self.frames_list[n].append(f)
 
     def _load_calibration(self) -> dict | None:
         """
@@ -394,24 +294,3 @@ class Data:
             raise err
 
         return calib
-
-    # BACKWARD COMPATIBILITY functions
-    def get_inputs_list(self, data_format, camera_names):
-        """
-        Returns a list of input file paths based on the specified input format,
-        data format, and camera names.
-        """
-        start = self.video_start
-        end = self.video_start + self.video_length
-
-        inputs_list = []
-        if data_format == "snippets":
-            raise NotImplementedError("Data format 'snippets' not implemented in get_inputs_list.")
-        if data_format == "segments":
-            raise NotImplementedError("Data format 'segments' not implemented in get_inputs_list.")
-        if data_format == "frames":
-            skip = 1 if not self.video_skip_frames else self.video_skip_frames
-            file_names = [f"{x:05d}.png" for x in range(start, end, skip)]
-            for camera_name in camera_names:
-                inputs_list += [os.path.join(self.input_folder, camera_name, "frames", n) for n in file_names]
-        return inputs_list
