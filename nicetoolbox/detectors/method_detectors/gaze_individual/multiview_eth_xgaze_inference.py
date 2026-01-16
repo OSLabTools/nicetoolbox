@@ -4,20 +4,20 @@ Run gaze detection on the provided data.
 
 import logging
 import os
-import sys
 
 import cv2
 import multiview_eth_xgaze.landmarks as lm
 import numpy as np
-import toml
-from multiview_eth_xgaze.eth_xgaze.utils import vector_to_pitchyaw  # noqa: E402
+from multiview_eth_xgaze.eth_xgaze.utils import vector_to_pitchyaw
 from multiview_eth_xgaze.gaze_estimator import GazeEstimator
 from multiview_eth_xgaze.xgaze_utils import draw_gaze, get_cam_para_studio
 
 from nicetoolbox_core.dataloader import ImagePathsByFrameIndexLoader
+from nicetoolbox_core.entrypoint import run_inference_entrypoint
 
 
-def main(config, debug=False):
+@run_inference_entrypoint
+def eth_xgaze_inference(config, debug=False):
     """
     Run multiview-eth-xgaze gaze detection on the provided data.
     code Code
@@ -35,11 +35,7 @@ def main(config, debug=False):
         debug (bool, optional): A flag indicating whether to print debug information.
             Defaults to False.
     """
-    logging.basicConfig(
-        filename=config["log_file"],
-        level=config["log_level"],
-        format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
-    )
+
     logging.info("RUNNING gaze detection 'Multiview ETH-Xgaze'!")
 
     # (1) Access config parameters
@@ -286,13 +282,3 @@ def main(config, debug=False):
     np.savez_compressed(save_file_name, **out_dict)
 
     logging.info("Gaze detection 'Multiview ETH-XGaze' COMPLETED!\n")
-
-
-def entry_point():
-    config_path = sys.argv[1]
-    config = toml.load(config_path)
-    main(config)
-
-
-if __name__ == "__main__":
-    entry_point()

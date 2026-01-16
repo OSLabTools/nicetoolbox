@@ -4,13 +4,12 @@ Run the MMPose inference algorithm and save the results as npz files.
 
 import logging
 import os
-import sys
 
 import numpy as np
-import toml
 from mmpose.apis import MMPoseInferencer
 
 from nicetoolbox_core.dataloader import ImagePathsByCameraLoader
+from nicetoolbox_core.entrypoint import run_inference_entrypoint
 
 
 def calculate_iou(box1, box2):
@@ -259,6 +258,7 @@ def convert_output_to_numpy(data, num_persons):
     return keypoints_array, bbox_array, data_description
 
 
+@run_inference_entrypoint
 def main(config):
     """
     Main function to run the MMPose inference.
@@ -276,18 +276,11 @@ def main(config):
         config (dict): A dictionary containing the configuration parameters for the
             MMPose inference algorithm.
     """
-    logging.basicConfig(
-        filename=config["log_file"],
-        level=config["log_level"],
-        format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
-    )
+
     logging.info(f'RUNNING MMPOSE - {config["algorithm"]}!')
 
-    logging.info("Creating input data loader...")
-    logging.info(f'Using cameras: {config["camera_names"]}')
     # Create input data loader from nicetoolbox-core shared code
     dataloader = ImagePathsByCameraLoader(config=config, expected_cameras=config["camera_names"])
-    logging.info(f"Data loader created with cams: {dataloader.cameras}")
 
     # Create inferencer object from MMPose API
     inferencer = MMPoseInferencer(
@@ -363,9 +356,3 @@ def main(config):
         np.savez_compressed(save_file_name, **out_dict)
 
     logging.info(f'MMPOSE - {config["algorithm"]} COMPLETED!\n')
-
-
-if __name__ == "__main__":
-    config_path = sys.argv[1]
-    config = toml.load(config_path)
-    main(config)

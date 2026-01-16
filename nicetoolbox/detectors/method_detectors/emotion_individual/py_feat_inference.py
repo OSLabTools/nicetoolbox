@@ -4,14 +4,13 @@ Run Py-FEAT on the data using full-camera processing and dynamic batching.
 
 import logging
 import os
-import sys
 
 import numpy as np
-import toml
 import torch
 from feat import Detector
 
 from nicetoolbox_core.dataloader import ImagePathsByCameraLoader
+from nicetoolbox_core.entrypoint import run_inference_entrypoint
 
 # Constants for output structure
 NUM_EMOTIONS = 7
@@ -46,7 +45,8 @@ def get_safe_batch_size(target_batch_size, reserved_vram_gb=4.0, mb_per_image=50
         return min(target_batch_size, 8)
 
 
-def main(config: dict) -> None:
+@run_inference_entrypoint
+def pyfeat_inference(config: dict) -> None:
     """
     Orchestrate the full Py-FEAT detection pipeline using Batched Inference.
 
@@ -64,11 +64,7 @@ def main(config: dict) -> None:
     Args:
         config (dict): Configuration dictionary.
     """
-    logging.basicConfig(
-        filename=config["log_file"],
-        level=config["log_level"],
-        format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
-    )
+
     logging.info("Starting Py-Feat Inference Pipeline (Camera-Level Processing).")
 
     camera_names = config["camera_names"]
@@ -227,12 +223,3 @@ def main(config: dict) -> None:
     result_path = os.path.join(config["result_folders"]["emotion_individual"], f"{config['algorithm']}.npz")
     np.savez_compressed(result_path, **out)
     logging.info("Py-Feat processing complete.")
-
-
-if __name__ == "__main__":
-    try:
-        main(toml.load(sys.argv[1]))
-        sys.exit(0)
-    except Exception as e:
-        logging.critical(f"Crashed: {e}", exc_info=True)
-        sys.exit(1)
