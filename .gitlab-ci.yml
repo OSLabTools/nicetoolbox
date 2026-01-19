@@ -26,7 +26,7 @@ test-job:
     - shell
   script:
     - bash scripts/build_docker.sh cicd true # build docker in dev mode
-    - docker run mpioslab/nicetoolbox:cicd bash -c
+    - docker run --rm mpioslab/nicetoolbox:cicd bash -c
       "source ./envs/nicetoolbox/bin/activate && pytest -v"
 
 publish-to-github:

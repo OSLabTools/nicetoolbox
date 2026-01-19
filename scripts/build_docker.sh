@@ -12,7 +12,7 @@ echo "Commit message: $GIT_SUMMARY"
 echo "Dev mode: $DEV"
 
 # remove current nicetoolbox to avoid dangling images
-docker rmi mpioslab/nicetoolbox:$TAG 2>/dev/null || true
+docker rmi -f mpioslab/nicetoolbox:$TAG 2>/dev/null || true
 
 # start rebuilding the docker
 docker build \
