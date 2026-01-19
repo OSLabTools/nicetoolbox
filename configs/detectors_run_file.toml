@@ -6,6 +6,8 @@
 visualize = true              # whether to save image/video visualizations of detectors
 save_csv = true               # whether to save all results to csv-files
 
+error_level = "DETECTOR"      # Options: "DETECTOR", "VIDEO", "STRICT" (from least to most strict)
+
 # each component can be assigned to / run with multiple different algorithms
 [component_algorithm_mapping]
 gaze_individual = ['multiview_eth_xgaze']

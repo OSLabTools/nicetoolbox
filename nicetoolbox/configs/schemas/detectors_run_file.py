@@ -2,7 +2,9 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr, field_validator
+
+from nicetoolbox_core.errors import ErrorLevel
 
 
 # Enum of python logging levels
@@ -73,9 +75,16 @@ class DetectorsRunFile(BaseModel):
     visualize: bool
     save_csv: bool
 
+    error_level: ErrorLevel
+
     component_algorithm_mapping: dict[str, list[str]]
     run: dict[str, DetectorsRunConfig]
     io: DetectorsRunIO
+
+    @field_validator("error_level", mode="before")
+    @classmethod
+    def parse_error_level(cls, v):
+        return ErrorLevel[v]
 
     def model_post_init(self, _):
         # injecting key into each DetectorsRunConfig

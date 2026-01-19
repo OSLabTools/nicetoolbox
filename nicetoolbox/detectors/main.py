@@ -7,8 +7,11 @@ import argparse
 import logging
 import time
 
+from nicetoolbox_core.errors import ErrorLevel
+
 from ..utils import logging_utils as log_ut
 from ..utils import to_csv as csv
+from ..utils.error_handling import manage_error_scope
 from . import config_handler as confh
 from .data import Data
 from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
@@ -73,53 +76,57 @@ def main(run_config_file, machine_specifics_file):
     log_ut.setup_logging(*io.get_log_file_level())
     logging.info(f"\n{'#' * 80}\n\nNICE TOOLBOX STARTED. Saving results to " f"'{io.out_folder}'.\n\n{'#' * 80}\n\n")
 
-    # save experiment configs
+    # Save experiment configs
     config_handler.save_experiment_config(io.get_config_file())
+
+    # Error handling level
+    error_level = ErrorLevel(config_handler.run_config["error_level"])
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # RUNNING
     for video_config, component_dict in config_handler.get_video_and_comps_configs():
-        logging.info(
-            f"\n{'=' * 80}\nRUNNING dataset {video_config['dataset_name']} and "
-            f"{video_config['session_ID']}.\n{'=' * 80}\n\n"
-        )
-        algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
-        method_names = [alg for alg in algorithm_names if alg in all_method_detectors]
-        feature_names = [alg for alg in algorithm_names if alg in all_feature_detectors]
+        with manage_error_scope(error_level, ErrorLevel.VIDEO, "video processing"):
+            logging.info(
+                f"\n{'=' * 80}\nRUNNING dataset {video_config['dataset_name']} and "
+                f"{video_config['session_ID']}.\n{'=' * 80}\n\n"
+            )
+            algorithm_names = list(set(confh.flatten_list(list(component_dict.values()))))
+            method_names = [alg for alg in algorithm_names if alg in all_method_detectors]
+            feature_names = [alg for alg in algorithm_names if alg in all_feature_detectors]
 
-        # IO
-        io.initialization(video_config, config_handler.get_all_detector_names())
+            # IO
+            io.initialization(video_config, config_handler.get_all_detector_names())
 
-        # DATA preparation
-        data = Data(
-            video_config,
-            io,
-            config_handler.get_all_input_data_formats(algorithm_names),
-            config_handler.get_all_camera_names(algorithm_names),
-            config_handler.get_all_dataset_names(),
-        )
-        recipe = data.get_input_recipe()
+            # DATA preparation
+            data = Data(
+                video_config,
+                io,
+                config_handler.get_all_input_data_formats(algorithm_names),
+                config_handler.get_all_camera_names(algorithm_names),
+                config_handler.get_all_dataset_names(),
+            )
 
-        # RUN method detectors
-        for method_config, method_name in config_handler.get_method_configs(method_names):
-            start_time = time.time()
-            logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
-            method_config.update(recipe)
-            detector = all_method_detectors[method_name](method_config, io, data)
-            detector.run_inference()
-            if method_config["visualize"]:
-                detector.visualization(data)
-            logging.info(f"FINISHED method '{method_name}' in {time.time() - start_time}s.\n\n")
+            # RUN method detectors
+            for method_config, method_name in config_handler.get_method_configs(method_names):
+                with manage_error_scope(error_level, ErrorLevel.DETECTOR, method_name):
+                    start_time = time.time()
+                    logging.info(f"STARTING method '{method_name}'.\n{'-' * 80}")
+                    detector = all_method_detectors[method_name](method_config, io, data)
+                    detector.run_inference()
+                    if method_config["visualize"]:
+                        detector.visualization(data)
+                    logging.info(f"FINISHED method '{method_name}' in {time.time() - start_time}s.\n\n")
 
-        # RUN feature detectors
-        for feature_config, feature_name in config_handler.get_feature_configs(feature_names):
-            start_time = time.time()
-            logging.info(f"STARTING feature '{feature_name}'.\n{'-' * 80}")
-            feature = all_feature_detectors[feature_name](feature_config, io, data)
-            feature_data = feature.compute()
-            if feature_config["visualize"]:
-                feature.visualization(feature_data)
-            logging.info(f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n")
+            # RUN feature detectors
+            for feature_config, feature_name in config_handler.get_feature_configs(feature_names):
+                with manage_error_scope(error_level, ErrorLevel.DETECTOR, feature_name):
+                    start_time = time.time()
+                    logging.info(f"STARTING feature '{feature_name}'.\n{'-' * 80}")
+                    feature = all_feature_detectors[feature_name](feature_config, io, data)
+                    feature_data = feature.compute()
+                    if feature_config["visualize"]:
+                        feature.visualization(feature_data)
+                    logging.info(f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n")
 
     # convert results
     logging.info(f"Detectors finished.\n{'-' * 80}")
