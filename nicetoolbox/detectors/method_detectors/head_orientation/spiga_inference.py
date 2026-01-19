@@ -57,7 +57,6 @@ def spiga_inference(config: dict) -> None:
     logging.info("Running SPIGA head orientation detection!")
 
     # (1) Access config parameters
-
     camera_names = config["camera_names"]
     subjects_descr = config["subjects_descr"]
     cam_sees_subjects = config["cam_sees_subjects"]

@@ -69,12 +69,16 @@ class BaseDetector(ABC):
 
         # (2) Extend the content of the detector config (used during venv inference)
         self.config["log_file"], self.config["log_level"] = io.get_log_file_level()  # Get log file and level
+
         self.config["result_folders"] = self.results_folders
         self.config["out_folder"] = self.out_folder
+
         self.config["algorithm"] = self.algorithm
         self.config["calibration"] = data.calibration
         self.config["subjects_descr"] = data.subjects_descr
         self.config["cam_sees_subjects"] = data.camera_mapping["cam_sees_subjects"]
+
+        self.config.update(data.get_input_recipe())  # Add data recipe to config for dataloader during inference
 
         # (3) Save the detector config (for venv inference)
         self.config_path = os.path.join(
