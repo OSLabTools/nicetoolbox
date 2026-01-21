@@ -204,7 +204,7 @@ class DiscoveryEngine:
             pred_path (Path): The path to the prediction file.
             metric_cfg (MetricTypeConfig): The configuration for the metric type.
             start_frame (int): The start frame of the video.
-            end_frame (int): The end frame of the video.
+            end_frame (int): The end frame of the video. Negative number means until the end.
             session (str): The session ID.
             sequence (str): The sequence ID.
             component (str): The component name.
@@ -215,7 +215,6 @@ class DiscoveryEngine:
             List[ChunkWorkItem]: A list of created chunk work items.
         """
         created_chunks = []
-
         for pred_desc_key, pred_desc in pred_descriptions.items():
             if pred_desc_key not in VALID_NPZ_PRED_KEYS[component]:
                 continue  # Skip unsupported prediction keys
@@ -228,7 +227,9 @@ class DiscoveryEngine:
                 for c_idx, cam_name in enumerate(pred_desc.get("axis1", [])):
                     for f_idx, frame_str in enumerate(pred_desc.get("axis2", [])):
                         frame_num = int(frame_str)
-                        if not (start_frame <= frame_num < end_frame):
+                        if frame_num < start_frame:
+                            continue
+                        if end_frame > 0 and end_frame <= frame_num:
                             continue
 
                         annot_slicing_idxs = None
