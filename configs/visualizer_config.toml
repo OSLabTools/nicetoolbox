@@ -1,7 +1,7 @@
 [io]
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
 dataset_name = 'communication_multiview'                                  # dataset of the video
-video_name = 'communication_multiview_session_xyz_s0_l99'                 # name of video result folder
+video_name = 'communication_multiview_session_xyz_s0_l-1'                 # name of video result folder
 nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>" # raw_processed input data
 nice_tool_output_folder = "<output_folder_path>/experiments"              # NICE Toolbox experiment output
 experiment_folder = "<output_folder_path>/experiments/<yyyymmdd>"         # select single NICE Toolbox experiment output folder

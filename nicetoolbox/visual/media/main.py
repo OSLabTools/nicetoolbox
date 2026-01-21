@@ -187,6 +187,10 @@ def main(visualizer_config_file, machine_specifics_file):
         for camera in all_cameras:
             # log camera into 3d canvas
             image_path = os.path.join(nice_tool_input_folder, camera, "frames", image_name).replace("\\", "/")
+            # TODO: we will stop if we will just stop when there is no frame exist
+            # is it a good idea? probably not, but we can fix it latter
+            if not os.path.exists(image_path):
+                return
             image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
             entity_path_imgs = viewer.get_images_entity_path(camera)
             viewer.log_image(image, entity_path_imgs, img_quality=75)

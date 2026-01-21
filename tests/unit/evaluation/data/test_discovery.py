@@ -241,3 +241,48 @@ def test_create_chunks_handles_missing_gt_for_frame(discovery_engine_factory):
     # Frame 1 is missing from GT, so its slicing indices must be None
     assert frames_info[1].frame == 1
     assert frames_info[1].annot_slicing_indices is None
+
+
+def test_create_chunks_end_frame_negative_processes_until_end(discovery_engine_factory):
+    """
+    Tests that when end_frame is -1 (or negative), all frames from start_frame
+    until the end of the prediction data are included.
+    """
+    # Arrange
+    pred_desc = {
+        "3d": {
+            "axis0": ["p1"],
+            "axis1": ["c1"],
+            "axis2": [str(i) for i in range(100)],  # Frames 0-99
+        }
+    }
+
+    engine = discovery_engine_factory(
+        mock_pred_desc=pred_desc,
+        gt_needed=False,  # Simplify test by not requiring GT
+    )
+
+    # Act
+    # Call with end_frame=-1 to indicate "process until the end"
+    chunks = engine._create_chunks_from_description(
+        pred_descriptions=pred_desc,
+        pred_path=MagicMock(),
+        metric_cfg=MagicMock(),
+        start_frame=50,
+        end_frame=-1,  # Negative value means process until the end
+        session="S1",
+        sequence="Seq1",
+        component="body_joints",
+        algorithm="vitpose",
+        metric_type="point_cloud_metrics",
+    )
+
+    # Assert
+    assert len(chunks) == 1
+    work_item = chunks[0]
+    assert isinstance(work_item, ChunkWorkItem)
+
+    # Should have all frames from 50 to 99 (50 frames total)
+    assert len(work_item.frames) == 50
+    assert work_item.frames[0].frame == 50
+    assert work_item.frames[-1].frame == 99
