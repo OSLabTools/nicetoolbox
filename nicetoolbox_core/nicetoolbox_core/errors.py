@@ -1,7 +1,9 @@
-from enum import IntEnum
+from enum import Enum
+
+error_level_to_int = {"STRICT": 0, "VIDEO": 10, "DETECTOR": 20}
 
 
-class ErrorLevel(IntEnum):
+class ErrorLevel(str, Enum):
     """
     Defines hierarchical error tolerance levels for the inference loop.
 
@@ -18,9 +20,9 @@ class ErrorLevel(IntEnum):
     frame-by-frame processing. This level will then also imply tolerance of VIDEO and DETECTOR levels.
     """
 
-    STRICT = 0  # Crash on everything
-    VIDEO = 10  # Suppress Video-scope errors, continue with next video
-    DETECTOR = 20  # Suppress Detector-scope errors, continue with next detector
+    STRICT = "STRICT"  # Crash on everything
+    VIDEO = "VIDEO"  # Suppress Video-scope errors, continue with next video
+    DETECTOR = "DETECTOR"  # Suppress Detector-scope errors, continue with next detector
 
     def __str__(self):
         # Prettier string representation for e.g. logging
