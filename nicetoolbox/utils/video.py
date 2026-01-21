@@ -205,7 +205,7 @@ def equal_splits_by_frames(
         f"-segment_frames {segment_frames} "
         f"-segment_list {segments_list_file} "
         f"-segment_list_entry_prefix '{output_folder}/' "
-        f"-reset_timestamps 1 {output_base}%05d.{input_format}"
+        f"-reset_timestamps 1 {output_base}%09d.{input_format}"
     )
 
     # split the video
