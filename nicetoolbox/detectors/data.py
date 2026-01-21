@@ -46,29 +46,35 @@ class Data:
         self.all_camera_names = all_camera_names
         self.all_dataset_names = all_dataset_names
 
-        # Collect all required file/folder paths
+        # --- Path Definitions ---
         self.input_folder = io.get_nice_input_folder()  # nicetoolbox_input (frames)
         self.source_folder = io.get_data_source_folder()  # original folder (vids)
 
-        # Collect data details from config (We only look at a single video here)
-        # Note: In the future we expect config to be a pydantic model!
+        # --- Config Parameters ---
         self.dataset_name = config["dataset_name"]
         self.session_ID = config["session_ID"]
         self.sequence_ID = config["sequence_ID"]
-        self.video_length = config["video_length"]
+
+        self.start_frame_index: int = config["start_frame_index"]
         self.video_start = config["video_start"]
+        self.video_length_config = config["video_length"]  # Can be -1 for full length
+
         self.video_skip_frames = None  # Hardcoded - No access via config yet
-        self.annotation_interval = 2.0
+        self.annotation_interval = 2.0  # Keep? Hardcoded - No access via config yet
         self.subjects_descr = config["subjects_descr"]
-        self.start_frame_index = config["start_frame_index"]
         self.camera_mapping = dict((key, config[key]) for key in config if "cam_" in key)
+
         self.filename_template = config.get("filename_template", "{idx:09d}.png")
 
-        # 1. Detect Input Type
-        self.input_format: str = self._get_input_format()
+        # --- Data Preparation Steps ---
 
-        # 2. Validate fps given an example video file
+        # 1. Detect input format and search for an example video file
+        self.input_format: str = self._get_input_format()
+        self.video_sample_path: Path = self._get_example_video_path()
+
+        # 2. Validate fps and video length given an example video file
         self.fps: int = self._get_fps_validated(config["fps"])
+        self.video_length = self._resolve_video_length()
 
         # 3. Check and create input data if necessary
         self._input_data_creation()
@@ -83,16 +89,9 @@ class Data:
         Generates the Recipe config to be injected into the subprocess TOML.
         """
         if self.input_format in [".avi", ".mp4"]:
-            # Extracted data lives in nicetoolbox_input
-            root = self.input_folder
-            # Structure: {cam}/frames/{idx:09d}.png
-            template = "{camera}/frames/" + self.filename_template
+            root = self.input_folder  # Extracted data lives in nicetoolbox_input
+            template = "{camera}/frames/" + self.filename_template  # Structure: {cam}/frames/{idx:09d}.png
         else:
-            pass
-            # TODO: implement source folder recipe generation
-            # This requires knowing the original folder structure and
-            # filename template from config, including session_ID, sequence_ID, etc.
-            # cam_folder = root / self.session_ID / self.sequence_ID / cam / ?
             raise NotImplementedError(f"Input recipe generation for '{self.input_format}' not implemented.")
 
         # TODO: Pydantic model for recipe?
@@ -132,6 +131,25 @@ class Data:
             )
         return possible_formats[found_formats.index(True)]
 
+    def _get_example_video_path(self) -> Path:
+        """
+        Finds a video file for metadata extraction Reused by FPS check and Length resolution.
+
+        Returns:
+            Path: The path to an example video file.
+        """
+        cam_0 = self.all_camera_names[0]
+        src_pattern = str(self.source_folder).replace("<camera_name>", cam_0)
+        search_path = Path(src_pattern)
+
+        files = sorted(search_path.glob(f"*{self.input_format}"))
+
+        if not files:
+            raise FileNotFoundError(
+                f"No video files ({self.input_format}) found in {search_path} " f"for camera {cam_0}."
+            )
+        return files[0]
+
     def _get_fps_validated(self, target_fps: int) -> int:
         """
         Validates the frames per second (fps) of the input video files against the
@@ -145,14 +163,44 @@ class Data:
                 or 'avi', the target_fps value specified in the config is returned.
         """
         if self.input_format in [".mp4", ".avi"]:
-            example_camera_name = self.all_camera_names[0]
-            example_input_folder = str(self.source_folder).replace("<camera_name>", example_camera_name)
-            video_files = sorted(glob.glob(os.path.join(example_input_folder, "*")))
-            fps = vid.get_fps(video_files[0])
+            fps = vid.get_fps(str(self.video_sample_path))
             if fps != target_fps:
                 logging.warning(f"Detected fps = {fps} does not match fps given in the " f"config = {target_fps}!")
             return fps
-        return target_fps
+
+        raise NotImplementedError(f"FPS validation for input format '{self.input_format}' is not implemented.")
+
+    def _resolve_video_length(self) -> int:
+        """
+        Resolves the video length in frames. If the video_length is specified in the
+        configuration, it is returned directly. If it is (-1), the length is determined
+        from the example video file.
+
+        Returns:
+            int: The resolved video length in frames.
+        """
+        if self.video_length_config > 0:
+            return self.video_length_config
+
+        # If length is -1, we need to figure out the length from the video file
+
+        if self.input_format in [".mp4", ".avi"]:
+            total_frames = vid.get_number_of_frames(str(self.video_sample_path))
+            available_length = total_frames - self.video_start
+
+            if available_length <= 0:
+                raise ValueError(
+                    f"video_start ({self.video_start}) is beyond the end of the video "
+                    f"({total_frames} frames) in {self.video_sample_path.name}"
+                )
+
+            logging.info(
+                f"Auto-detected length: {available_length} frames "
+                f"(Total: {total_frames}, Start: {self.video_start})"
+            )
+            return available_length
+
+        raise NotImplementedError(f"Video length resolution for '{self.input_format}' not implemented.")
 
     def _input_data_creation(self) -> None:
         """
@@ -184,7 +232,6 @@ class Data:
         Returns:
             bool: True if frames exist for all cameras, False otherwise.
         """
-        # todo check naming of input folders (see init...)
         root = self.source_folder if is_source else self.input_folder
         template = self.filename_template
 
@@ -198,14 +245,14 @@ class Data:
                 # This requires knowing the original folder structure and
                 # filename template from config, including session_ID, sequence_ID, etc.
                 # cam_folder = root / self.session_ID / self.sequence_ID / cam / ?
-            else:  # noqa: RET506
-                cam_folder = root / cam / "frames"
 
-                start_name = template.format(idx=start_idx)  # Loop over entire range?
-                end_name = template.format(idx=end_idx)
+            cam_folder = root / cam / "frames"
 
-                start_path = cam_folder / start_name
-                end_path = cam_folder / end_name
+            start_name = template.format(idx=start_idx)
+            end_name = template.format(idx=end_idx)
+
+            start_path = cam_folder / start_name
+            end_path = cam_folder / end_name
 
             # Check existence
             if not (start_path.exists() and end_path.exists()):

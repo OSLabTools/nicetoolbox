@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr
+from pydantic import BaseModel, NonNegativeInt, PrivateAttr
 
 from nicetoolbox_core.errors import ErrorLevel
 
@@ -49,7 +49,7 @@ class RunConfigVideo(BaseModel):
     session_ID: str
     sequence_ID: str
     video_start: NonNegativeInt
-    video_length: PositiveInt
+    video_length: int  # -1 for full length
 
 
 class DetectorsRunConfig(BaseModel):

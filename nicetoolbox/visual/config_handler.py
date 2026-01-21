@@ -171,6 +171,9 @@ class Configuration:
         # check start frame
         if self.visualizer_config["media"]["visualize"]["start_frame"] < 0:
             raise ValueError("Visualizer_config 'start_frame' parameter cannot be negative.")
+
+        if video_length == -1:
+            return
         if self.visualizer_config["media"]["visualize"]["start_frame"] > video_length:
             raise ValueError(
                 f"Visualizer_config 'start_frame' parameter cannot be greater than the "
