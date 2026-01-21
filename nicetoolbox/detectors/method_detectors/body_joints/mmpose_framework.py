@@ -156,7 +156,7 @@ class MMPose(BaseDetector):
 
         Note:
             - The method assumes that the processed image frames are named in a
-            specific format (`%05d.jpg`), where each frame's name is a zero-padded
+            specific format (`%09d.jpg`), where each frame's name is a zero-padded
             five-digit number representing its sequence in the video.
         """
         logging.info(f"VISUALIZING the method detector output of {self.components} " f"and {self.algorithm}.")
@@ -239,7 +239,7 @@ class MMPose(BaseDetector):
                         os.path.join(
                             viz_dir,
                             camera_name,
-                            f"{frame_idx + int(self.video_start):05d}.jpg",
+                            f"{frame_idx + int(self.video_start):09d}.jpg",
                         ),
                         image,
                     )
