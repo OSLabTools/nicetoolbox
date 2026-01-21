@@ -179,7 +179,8 @@ def main(visualizer_config_file, machine_specifics_file):
         if viewer.get_is_camera_position():
             entity_path_cams = viewer.get_camera_pos_entity_path(camera)
             viewer.log_camera(calib[camera], entity_path_cams)
-    for frame_idx in range(viewer.get_start_frame(), viewer.get_end_frame(), viewer.get_step()):
+    frame_idx = viewer.get_start_frame()
+    while True:
         viewer.go_to_timestamp(frame_idx)
         frame_no = viewer.get_video_start() + frame_idx + config_handler.get_dataset_starting_index()
         image_name = f"{frame_no:09}.png"
@@ -193,6 +194,8 @@ def main(visualizer_config_file, machine_specifics_file):
         for instance in instances:
             if instance is not None:
                 instance.visualize(frame_idx)
+
+        frame_idx += viewer.get_step()
 
 
 def entry_point():

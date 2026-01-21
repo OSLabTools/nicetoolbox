@@ -27,7 +27,7 @@ head_orientation = ['spiga']
 [run.communication_multiview]
 components = ["body_joints", "gaze_individual", "gaze_multiview", "gaze_interaction", "kinematics", "proximity", "emotion_individual", "head_orientation"]
 videos = [
-   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
+   {session_ID = "session_xyz", sequence_ID="", video_start = 0, video_length = -1}  # Note: -1 for full video length
 ]
 
 [io]
