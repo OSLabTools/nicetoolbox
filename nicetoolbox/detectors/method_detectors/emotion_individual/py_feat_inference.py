@@ -94,7 +94,7 @@ def pyfeat_inference(config: dict) -> None:
 
     # Initialize result arrays
     emotion_vectors = np.zeros((n_subjects, n_cams, n_frames, NUM_EMOTIONS))
-    bbox_vectors = np.zeros((n_subjects, n_cams, n_frames, 4))
+    bbox_vectors = np.zeros((n_subjects, n_cams, n_frames, 5))
     au_vectors = np.zeros((n_subjects, n_cams, n_frames, NUM_AUS))
     pose_vectors = np.zeros((n_subjects, n_cams, n_frames, NUM_POSES))
 
@@ -149,6 +149,7 @@ def pyfeat_inference(config: dict) -> None:
                         row["FaceRectY"],
                         row["FaceRectWidth"],
                         row["FaceRectHeight"],
+                        row["FaceScore"],
                     ]
                     emotion_vectors[subj_idx, cam_idx, array_idx, :] = row.emotions.values
                     au_vectors[subj_idx, cam_idx, array_idx, :] = row.aus.values
@@ -168,7 +169,7 @@ def pyfeat_inference(config: dict) -> None:
                 "axis0": subjects_descr,
                 "axis1": camera_names,
                 "axis2": frame_indices,
-                "axis3": ["x", "y", "w", "h"],
+                "axis3": ["FaceRectX", "FaceRectY", "FaceRectWidth", "FaceRectHeight", "FaceScore"],
             },
             "emotions": {
                 "axis0": subjects_descr,
