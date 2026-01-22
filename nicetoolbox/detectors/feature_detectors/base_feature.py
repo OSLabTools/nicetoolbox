@@ -40,9 +40,14 @@ class BaseFeature(ABC):
         Returns:
             None
         """
-        # input folder of the feature is the result folder of detector
-        self.input_folders, self.input_files = [], []  # Keep for now for backward comp
-        self.input_map = {}  # New and more precise mapping of comp/algo to input file
+        self.config = config
+        self.io = io
+        self.data = data
+        self.requires_out_folder = requires_out_folder
+
+        # (1) Input folder of the feature is the result folder of detector
+        self.input_map = {}
+        self.input_folders, self.input_files = [], []  # Keep for now for backward compatibility
         for comp, alg in config["input_detector_names"]:
             input_folder = io.get_detector_output_folder(comp, alg, "result")
             input_file = os.path.join(input_folder, f"{alg}.npz")
@@ -52,7 +57,7 @@ class BaseFeature(ABC):
             self.input_files.append(input_file)
             self.input_map[(comp, alg)] = input_file
 
-        # output folders
+        # (2) output folders
         self.result_folders = dict(
             (comp, io.get_detector_output_folder(comp, self.algorithm, "result")) for comp in self.components
         )
@@ -64,7 +69,7 @@ class BaseFeature(ABC):
 
         self.subjects_descr = data.subjects_descr
 
-        # save this method config
+        # (3) save this feature config
         self.config_path = os.path.join(
             io.get_detector_output_folder(main_component, self.algorithm, "run_config"),
             "run_config.toml",
