@@ -5,7 +5,6 @@ Fuses raw per-camera gaze vectors into a single world-space vector.
 
 import logging
 import os
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import cv2
@@ -76,19 +75,17 @@ class GazeFusion(BaseFeature):
         self.dataloader = None
         if config.get("visualize", False) and self.camera_names:
             self.dataloader_config = data.get_input_recipe().copy()
-            # TODO: input_recipe is required, we can assume it's passed in config from
-            # TODO: main or we can add the recipe inside the base feature detector init.
 
     def _load_inputs(self) -> None:
         """
         Loads data from all input files defined in configuration.
         Populates self.raw_inputs and metadata.
         """
-        if not self.input_files:
+        if not self.input_map:
             logging.error("No input files found for MultiviewFusion.")
             return
 
-        for file_path in self.input_files:
+        for (_comp, algo), file_path in self.input_map.items():
             try:
                 data = np.load(file_path, allow_pickle=True)
                 if "3d" not in data.files:
@@ -101,10 +98,6 @@ class GazeFusion(BaseFeature):
                     self.camera_names = desc["3d"]["axis1"]
                     self.subjects = desc["3d"]["axis0"]
                     self.frame_indices = desc["3d"]["axis2"]
-
-                # Extract Algorithm Name from path, e.g.:
-                # /gaze_individual/multiview_eth_xgaze.npz -> multiview_eth_xgaze
-                algo_name = Path(file_path).stem
 
                 # Extract Confidence from Landmarks
                 # Landmarks shape: (S, C, F, 6, 3) -> [u, v, conf]
@@ -119,7 +112,7 @@ class GazeFusion(BaseFeature):
                     conf = np.nanmean(raw_conf, axis=-1)  # Result: (S, C, F)
 
                 input_entry = {
-                    "name": algo_name,
+                    "name": algo,
                     "vectors": data["3d"],
                     "conf": conf,  # for weighted fusion
                     "landmarks": landmarks[..., :2],  # for viz arrow with face origin

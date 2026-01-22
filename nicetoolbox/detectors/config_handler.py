@@ -171,14 +171,22 @@ class Configuration:
         return list(set(flatten_list(algorithms + feature_methods)))
 
     def get_all_camera_names(self, algorithm_names):
+        """
+        Returns all camera names required by the given algorithms.
+        """
         # TODO: mark that it requires get_video_and_comps_configs first
-        all_camera_names = set()
         detector_config = self.cfg_loader.resolve(self.detector_config, self.runtime_ctx)
-        for detector in algorithm_names:
-            if "camera_names" in detector_config["algorithms"][detector]:
-                all_camera_names.update(detector_config["algorithms"][detector]["camera_names"])
-        if "" in all_camera_names:
-            all_camera_names.remove("")
+
+        # 1. Expand list to include upstream dependencies
+        full_algorithm_names = self._expand_dependencies(algorithm_names)
+
+        # 2. Collect all camera names
+        all_camera_names = set()
+        for detector in full_algorithm_names:
+            current_detector_config = detector_config["algorithms"][detector]
+            if "camera_names" in current_detector_config:
+                all_camera_names.update(current_detector_config["camera_names"])
+
         return list(all_camera_names)
 
     def get_all_input_data_formats(self, algorithm_names):
@@ -193,3 +201,27 @@ class Configuration:
 
     def save_csv(self):
         return self.run_config["save_csv"]
+
+    def _expand_dependencies(self, algorithm_names: list[str]) -> list[str]:
+        """
+        Finds all upstream method detectors required by the requested features.
+        """
+        # TODO: mark that it requires get_video_and_comps_configs first
+        full_detector_config = self.cfg_loader.resolve(self.detector_config, self.runtime_ctx)
+
+        expanded_set = set(algorithm_names)
+        for algo in algorithm_names:
+            # Check if this algorithm has dependencies (i.e. is a Feature Detector)
+            if algo in full_detector_config["algorithms"]:
+                algo_conf = full_detector_config["algorithms"][algo]
+
+                if "input_detector_names" in algo_conf:
+                    # input_detector_names format: [['component', 'algorithm'], ...]
+                    dependencies = [pair[1] for pair in algo_conf["input_detector_names"]]
+
+                    # Recursively add these dependencies
+                    # (Recursing only necessary for future multi-level dependencies like feature to feature
+                    # (gaze_individual -> gaze_multiview -> gaze_interaction))
+                    expanded_set.update(self._expand_dependencies(dependencies))
+
+        return list(expanded_set)
