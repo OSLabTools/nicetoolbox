@@ -46,7 +46,7 @@ detector_visualization_folder = "<out_sub_folder>/<cur_component_name>/<cur_algo
 detector_additional_output_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>/additional_output"
 detector_run_config_path = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>"
 detector_final_result_folder = "<out_sub_folder>/<cur_component_name>"
-csv_out_folder = "<out_folder>/csv_files"
+csv_out_folder = "<out_sub_folder>/_csv_files"
 code_folder = "<pwd>"
 
 log_level = "INFO" # Can be "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
