@@ -3,6 +3,7 @@ Data module handling the data loading and processing of the give datasets.
 """
 
 import glob
+import json
 import logging
 import os
 from pathlib import Path
@@ -285,6 +286,15 @@ class Data:
                 continue
             camera_name = list(self.all_camera_names)[camera_name_indices.index(True)]
 
+            logging.info("Extracting Video Specifications...")
+            raw_video_info = vid.probe_video(video_file)
+            video_info_path = os.path.join(self.input_folder, camera_name + "_meta.json")
+            with open(video_info_path, "w") as f:
+                json.dump(raw_video_info, f, indent=4)
+
+            logging.info("Parsing Video Specifications...")
+            video_info = vid.json_to_video_info(raw_video_info)
+
             # split video into frames
             input_folder = os.path.join(self.input_folder, camera_name)
             os.makedirs(input_folder, exist_ok=True)
@@ -294,6 +304,7 @@ class Data:
                 vid.split_into_frames(
                     video_file,
                     os.path.join(input_folder, "frames/"),
+                    video_info.frames,
                     start_frame=self.start_frame_index,
                     keep_indices=True,
                 )
