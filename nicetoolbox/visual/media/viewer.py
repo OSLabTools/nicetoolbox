@@ -40,8 +40,7 @@ class Viewer:
         self.fps = self.visualizer_config["dataset_properties"]["fps"]
         self._create_canvas_roots()
 
-    @staticmethod
-    def spawn(app_id: str = "NICE Toolbox Visualization") -> None:
+    def spawn(self, app_id: str = "NICE Toolbox Visualization") -> None:
         """
         Spawns a rerun application with the given app_id.
 
@@ -49,7 +48,7 @@ class Viewer:
             app_id (str): The ID of the visualization application. Defaults to
                 "NICE Toolbox Visualization".
         """
-        rr.init(app_id, spawn=True)
+        rr.init(app_id, spawn=self.visualizer_config["spawn_viewer"])
         rr.set_time_seconds("time", 0)
 
     def go_to_timestamp(self, frame_idx: int) -> None:

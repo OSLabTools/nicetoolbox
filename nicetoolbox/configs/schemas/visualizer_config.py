@@ -88,5 +88,6 @@ class VisualizerConfig(BaseModel):
     Configuration schema for the visualizer settings.
     """
 
+    spawn_viewer: bool
     io: VisualizerIO
     media: MediaConfig

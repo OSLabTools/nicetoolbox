@@ -1,3 +1,5 @@
+spawn_viewer = true                                                       # if true, will spawn window with GUI
+
 [io]
 dataset_folder = "<datasets_folder_path>"                                 # main dataset folder
 dataset_name = 'communication_multiview'                                  # dataset of the video
