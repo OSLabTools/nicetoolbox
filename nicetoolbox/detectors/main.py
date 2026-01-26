@@ -128,12 +128,12 @@ def main(run_config_file, machine_specifics_file):
                         feature.visualization(feature_data)
                     logging.info(f"FINISHED feature '{feature_name}' in {time.time() - start_time}s.\n\n")
 
-    # convert results
-    logging.info(f"Detectors finished.\n{'-' * 80}")
-    if config_handler.save_csv():
-        logging.info("START converting results to CSV-files.")
-        csv.results_to_csv(io.get_output_folder("main"), io.get_output_folder("csv"))
-        logging.info("FINISHED converting results to CSV-files.")
+            # convert results
+            logging.info(f"Detectors finished.\n{'-' * 80}")
+            if config_handler.save_csv():
+                logging.info("START converting results to CSV-files.")
+                csv.results_to_csv(io.get_output_folder("output"), io.get_output_folder("csv"))
+                logging.info("FINISHED converting results to CSV-files.")
 
 
 def entry_point():
