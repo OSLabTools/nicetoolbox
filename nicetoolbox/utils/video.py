@@ -8,6 +8,11 @@ import logging
 import os
 import shutil
 import subprocess
+from contextlib import suppress
+from dataclasses import dataclass
+from fractions import Fraction
+from pathlib import Path
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -98,13 +103,16 @@ def sequential2frame_number(number: int, start_frame: int) -> int:
     return start_frame + (number - 1)
 
 
-def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, keep_indices: bool = True) -> None:
+def split_into_frames(
+    video_file: str, output_base: str, n_frames_expected: Optional[int], start_frame: int = 0, keep_indices: bool = True
+) -> None:
     """
     Split a video into individual frames using ffmpeg.
 
     Args:
         video_file (str): Path to the input video file.
         output_base (str): Base directory where the frames will be saved.
+        n_frames_expected(Optional[int]): Expected number of frames
         start_frame (int, optional): The starting frame index.
             Defaults to 0.
         keep_indices (bool, optional): Whether to keep the original frame indices
@@ -129,8 +137,7 @@ def split_into_frames(video_file: str, output_base: str, start_frame: int = 0, k
 
     frames_list_tmp = glob.glob(os.path.join(output_base, "*_tmp.png"))
     n_frames_extracted = len(frames_list_tmp)
-    n_frames_expected = get_number_of_frames(video_file)
-    if n_frames_expected != n_frames_extracted:
+    if n_frames_expected and n_frames_expected != n_frames_extracted:
         logging.warning(
             f"Expected {n_frames_expected} frames, but extracted " f"{n_frames_extracted} frames from {video_file}."
         )
@@ -335,3 +342,120 @@ def frames_to_video(input_folder: str, out_filename: str, fps: float = 30.0, sta
 
     output = subprocess.run(command, shell=True, check=False)
     return output.returncode
+
+
+def probe_video(video_path: str) -> dict:
+    """
+    Parse video information using ffprobe.
+    The collected information: codec, fps, number_of_frames, width, height, duration
+
+    Args:
+        video_path (str): Path to the video file.
+
+    Returns:
+        dict: Return the dictionary holds the video information.
+    """
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        video_path,
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except Exception as e:
+        logging.error(f"Failed to execute ffprobe for {video_path}, error: {e}")
+        raise
+    if proc.returncode != 0:
+        logging.error(f"ffprobe failed while probing video {video_path}, stderr: {proc.stderr.strip()}")
+        raise
+
+    try:
+        data = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        logging.error(f"Failed to parse ffprobe JSON output for video: {video_path}")
+        raise
+
+    return data
+
+
+@dataclass
+class VideoInfo:
+    video_path: Path
+    codec: str
+    fps: Optional[float]
+    frames: Optional[int]
+    width: int
+    height: int
+    duration_in_sec: Optional[int]
+
+
+def json_to_video_info(data: dict) -> VideoInfo:
+    """
+    Parse ffprobe video json to compact video info.
+
+    Args:
+        data (dict): Dictionary holds video information.
+
+    Returns:
+        VideoInfo: Video meta information.
+    """
+    format = data["format"]
+    video_path = Path(format["filename"])
+
+    video_stream = None
+    for stream in data.get("streams", []):
+        if stream.get("codec_type") == "video":
+            video_stream = stream
+            break
+
+    if not video_stream:
+        raise RuntimeError(f"No video stream found in file: {video_path}")
+
+    codec = video_stream["codec_name"]
+    width = video_stream["width"]
+    height = video_stream["height"]
+
+    # get fps information
+    try:
+        rate = video_stream["avg_frame_rate"]  # fps in format e.g., "30/1"
+        if not rate or rate in ("0/0", "N/A"):
+            fps = None
+        else:
+            fps = float(Fraction(rate))
+    except (ValueError, ZeroDivisionError, TypeError) as e:
+        logging.warning(f"Video fps rate could not be extracted: {e}")
+        fps = None
+
+    # get number of frames info
+    nb_frames_raw = video_stream["nb_frames"]
+    frames = int(nb_frames_raw) if nb_frames_raw and nb_frames_raw.isdigit() else None
+
+    # get duration info
+    duration = None
+    with suppress(ValueError, TypeError):
+        duration = float(video_stream.get("duration"))
+
+    if duration is None:
+        with suppress(ValueError, TypeError):
+            duration = float(data.get("format", {}).get("duration"))
+
+    if duration is None:
+        logging.warning("Video duration could not be extracted")
+
+    video_info = {
+        "video_path": video_path,
+        "codec": codec,
+        "fps": fps,
+        "frames": frames,
+        "width": width,
+        "height": height,
+        "duration_in_sec": duration,
+    }
+    logging.info(", ".join(f"{k}={v}" for k, v in video_info.items()))
+
+    return VideoInfo(**video_info)
