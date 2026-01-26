@@ -45,7 +45,10 @@ class IO:
         return os.path.join(component_results_folder, f"{alg_name}.npz")
 
     def get_calibration_file(self, video_details):
-        calib_path = copy.deepcopy(self.path_to_calibs)
+        calib_path = self.path_to_calibs
+        if not calib_path:
+            return calib_path
+
         calib_path = calib_path.replace("<cur_session_ID>", video_details["session_ID"])
         calib_path = calib_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])
         return calib_path

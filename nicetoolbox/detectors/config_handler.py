@@ -187,6 +187,9 @@ class Configuration:
             if "camera_names" in current_detector_config:
                 all_camera_names.update(current_detector_config["camera_names"])
 
+        # remove empty cameras
+        all_camera_names -= set([""])
+
         return list(all_camera_names)
 
     def get_all_input_data_formats(self, algorithm_names):

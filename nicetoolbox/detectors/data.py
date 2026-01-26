@@ -329,8 +329,7 @@ class Data:
         """
         # 1. Get calibration file path
         calib_path = self.io.get_calibration_file()
-
-        if not calib_path or not os.path.exists(calib_path):
+        if not calib_path or not os.path.isfile(calib_path):
             logging.warning("Calibration file not found, skipping calibration.")
             return None
 

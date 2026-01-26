@@ -25,16 +25,16 @@ class DatasetConfig(BaseModel):
     session_IDs: List[str]
     sequence_IDs: List[str]
 
-    cam_front: str
-    cam_top: str
-    cam_face1: str
-    cam_face2: str
+    cam_front: str = ""
+    cam_top: str = ""
+    cam_face1: str = ""
+    cam_face2: str = ""
 
     subjects_descr: List[str]
     cam_sees_subjects: Optional[dict] = Field(default_factory=dict)
 
     data_input_folder: Path
-    path_to_calibrations: Path
+    path_to_calibrations: Optional[Path] = None
 
     start_frame_index: NonNegativeInt
     fps: PositiveInt
