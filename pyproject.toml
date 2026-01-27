@@ -148,6 +148,7 @@ skip_empty = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+markers = ["functional"]
 addopts = "-ra -q -m 'not functional'"
 testpaths = [
     "tests/unit", "tests/integration", "tests/functional"

@@ -14,10 +14,10 @@ from nicetoolbox.utils.comparison import compare_npz_files
 DEFAULT_GOLDEN_PATH = "../functional_tests/outputs/communication-multiview-0-2-1"
 DEFAULT_CANDIDATE_PATH = "../functional_tests/outputs/communication-multiview-0-2-2"
 DEFAULT_REPORT_PATH = "regression_output_report.txt"
-IGNORE_FILES = ["config_", ".jpg", ".png", ".json", ".mp4"]
+DEFAULT_IGNORE_FILES = "config_ .jpg .png .mp4 .json .csv"
 
 
-def compare_outputs(golden_data: Path, candidate_data: Path):
+def compare_outputs(golden_data: Path, candidate_data: Path, ignore_files: list[str]):
     # before doing anything - check if the data exist
     assert os.path.isdir(golden_data), f"No folder found at {golden_data}"
     # filter out directories, keeping only files
@@ -31,7 +31,7 @@ def compare_outputs(golden_data: Path, candidate_data: Path):
         relative_path = golden_file.relative_to(golden_data)
         generated_file = candidate_data / relative_path
         # skip ignore files
-        if any(ignore in str(relative_path) for ignore in IGNORE_FILES):
+        if any(ignore in str(relative_path) for ignore in ignore_files):
             continue
 
         # check that the file was actually created in the new run
@@ -59,12 +59,28 @@ def main():
         default=DEFAULT_CANDIDATE_PATH,
         help="Path to newer version (release candidate) data",
     )
+    parser.add_argument(
+        "--ignore_files",
+        default=DEFAULT_IGNORE_FILES,
+        help="Files to ignore if their path contains this elements.",
+    )
+    parser.add_argument(
+        "--report_path",
+        default=DEFAULT_REPORT_PATH,
+        help="Path to save text report output.",
+    )
     args = parser.parse_args()
 
-    errors = compare_outputs(Path(args.golden_data), Path(args.candidate_data))
+    ignore_files = args.ignore_files.split()
+    errors = compare_outputs(Path(args.golden_data), Path(args.candidate_data), ignore_files)
+
     if errors:
         report = pformat(errors)
         print("Errors list:\n" + f"{report}")
+
+        if args.report_path:
+            with open(args.report_path, "w") as output:
+                output.write(report)
 
 
 if __name__ == "__main__":

@@ -16,13 +16,14 @@ from nicetoolbox.visual.media.main import main as run_visualizer
 # if we already have results under temp folder
 RUN_DETECTORS = True
 
+INPUT_CONFIGS_FOLDER_PATH = Path("configs")
 INPUT_MACHINE_SPECIFIC_PATH = Path("machine_specific_paths.toml")
-INPUT_DETECTORS_RUN_FILE_PATH = Path("configs/detectors_run_file.toml")
-INPUT_VISUALIZER_CONFIG_PATH = Path("configs/visualizer_config.toml")
-INPUT_EVALUATION_CONFIG_PATH = Path("configs/evaluation_config.toml")
+INPUT_DETECTORS_RUN_FILE_PATH = INPUT_CONFIGS_FOLDER_PATH / "detectors_run_file.toml"
+INPUT_VISUALIZER_CONFIG_PATH = INPUT_CONFIGS_FOLDER_PATH / "visualizer_config.toml"
+INPUT_EVALUATION_CONFIG_PATH = INPUT_CONFIGS_FOLDER_PATH / "evaluation_config.toml"
 
-TMP_PATH = Path("../functional_tests/temp_results")
-TMP_OUTPUT_PATH = TMP_PATH / "functional_output"
+TMP_PATH = Path("../functional_tests/temp")
+TMP_OUTPUT_PATH = TMP_PATH / "outputs"
 TMP_MACHINE_SPECIFIC_PATH = TMP_PATH / INPUT_MACHINE_SPECIFIC_PATH.name
 TMP_DETECTORS_RUN_FILE_PATH = TMP_PATH / INPUT_DETECTORS_RUN_FILE_PATH.name
 TMP_VISUALIZER_CONFIG_PATH = TMP_PATH / INPUT_VISUALIZER_CONFIG_PATH.name
@@ -66,7 +67,7 @@ def detectors_output():
         create_temp_detectors_run_file()
 
         # run detectors
-        run_detectors(str(INPUT_DETECTORS_RUN_FILE_PATH), str(TMP_MACHINE_SPECIFIC_PATH))
+        run_detectors(str(TMP_DETECTORS_RUN_FILE_PATH), str(TMP_MACHINE_SPECIFIC_PATH))
 
     # get experiments output folder
     tmp_experiment_dir = TMP_OUTPUT_PATH / "experiments"
