@@ -5,11 +5,12 @@
 &emsp;&emsp;&emsp;
 [Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
 [Documentation](https://nicetoolbox.readthedocs.io/en/stable/index.html) &emsp;&emsp;&emsp;
+[Changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) &emsp;&emsp;&emsp;
 mailto: <nicetoolbox@tue.mpg.de>
 
 <br>
 
-> 🎉 We are releasing version 0.2.1, which includes an evaluation module, Docker support, additional detector output, and many other improvements.
+> 🚀 We are releasing version 0.2.2, which includes numerous performance improvements and bug fixes. Please check [the changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) for more information.
 
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
