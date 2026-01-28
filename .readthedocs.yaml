@@ -31,6 +31,8 @@ formats:
 python:
   install:
     - method: pip
+      path: nicetoolbox_core
+    - method: pip
       path: .
       extra_requirements:
         - dev
