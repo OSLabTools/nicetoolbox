@@ -64,24 +64,16 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
     if not calib:
         print(
             "WARNING: User did not provide a valid calibration file. "
-            "Visualization of camera positions, 3d pose estimation, and gaze results "
+            "Visualization of 3d pose estimation, and gaze results "
             "requires calibration data."
         )
-        if visualizer_config["media"]["multi_view"]:
-            raise ValueError(
-                "ERROR: Calibration file was not provided. Cannot visualize multi-view "
-                "Set it False in visualizer_config \n "
-            )
 
     # INITIALIZE VIEWER
     viewer = Viewer(visualizer_config)
 
     # CHECK CONFIGURATION
     all_cameras = config_handler.get_camera_names()
-    config_handler.check_config(calibration_file)
-    for cam in all_cameras:
-        config_handler.check_calibration(calib, cam)
-    viewer.check_multiview()
+    config_handler.check_config()
 
     # LOAD COMPONENTS DATA
     components_list = visualizer_config["media"]["visualize"]["components"]
@@ -99,16 +91,11 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
 
     if "body_joints" in components:
         body_joints_component = BodyJointsComponent(visualizer_config, io, viewer, "body_joints")
-        eyes_middle_2d_data = body_joints_component.calculate_middle_eyes(dimension=2)
-        eyes_middle_3d_data = (
-            body_joints_component.calculate_middle_eyes(dimension=3)
-            if visualizer_config["media"]["multi_view"] is True
-            else (None, None)
-        )
+        eyes_middle_2d_data, eyes_middle_3d_data = body_joints_component.calculate_middle_eyes()
     else:
         body_joints_component = None
-        eyes_middle_2d_data = None, None
-        eyes_middle_3d_data = None, None
+        eyes_middle_2d_data = None
+        eyes_middle_3d_data = None
 
     hand_joints_component = (
         HandJointsComponent(visualizer_config, io, viewer, "hand_joints") if "hand_joints" in components else None
@@ -186,9 +173,14 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
     # initialize rerun visualizer
     viewer.spawn()
     for camera in all_cameras:
-        if viewer.get_is_camera_position():
-            entity_path_cams = viewer.get_camera_pos_entity_path(camera)
-            viewer.log_camera(calib[camera], entity_path_cams)
+        # to get image width and height
+        example_image_path = os.path.join(nice_tool_input_folder, camera, "frames", f"{1:09}.png").replace("\\", "/")
+        example_image = cv2.cvtColor(cv2.imread(example_image_path), cv2.COLOR_BGR2RGB)
+        h, w = example_image.shape[:2]  # ← grab size from actual frame
+        image_size = (w, h)
+        entity_path_cams = viewer.get_camera_pos_entity_path(camera)
+        camera_calib = calib[camera] if calib else None
+        viewer.log_camera(camera_calib, entity_path_cams, image_size)
     frame_idx = viewer.get_start_frame()
     end_frame = viewer.get_end_frame()
     while True:
