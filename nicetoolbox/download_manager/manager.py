@@ -1,15 +1,23 @@
 import logging
+import shutil
 import time
 from pathlib import Path
 from typing import List
 
 import requests
+from huggingface_hub import logging as hf_logging
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import GatedRepoError, RepositoryNotFoundError
+from huggingface_hub.file_download import repo_folder_name
 from tqdm import tqdm
 
 from ..configs.schemas.asset_manifest import AssetManifest
-from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..utils import logging_utils as log_ut
 from ..utils.hf_token import effective_hf_hub_token
+
+# Silence Hugging Face Hub warnings/info and underlying httpx network logs
+hf_logging.set_verbosity_error()
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class AssetManager:
@@ -17,6 +25,7 @@ class AssetManager:
         """
         Initializes the manager by extracting paths directly from the active configuration.
         """
+        self.config = config  # Storing config to access machine config for tokens
         self.assets_root = Path(config.run_config.io.assets)
 
         manifest_path = config.run_config.io.asset_manifest
@@ -29,7 +38,6 @@ class AssetManager:
         Streams a file from a URL to a local destination with a progress bar.
         Incorporates resume (.tmp) and robust retry logic for network drops.
         """
-
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = dest_path.parent / (dest_path.name + ".tmp")
 
@@ -97,6 +105,49 @@ class AssetManager:
                     logging.error(f"Please check internet or manually place file at: {dest_path}")
                     raise
 
+    def download_hf_repo(self, repo_id: str, cache_dir: Path, desc: str):
+        """
+        Downloads a Hugging Face repository using snapshot_download.
+        Leverages HF's native resume and caching mechanisms.
+        """
+        token = effective_hf_hub_token(self.config.machine_specific_config)
+        if not token:
+            logging.warning(f"No HF token found in config. Attempting public download for '{repo_id}'.")
+
+        logging.info(f"Downloading Hugging Face repository: {repo_id} to cache: {cache_dir}")
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # cache_dir is the parent folder (e.g. <assets>/whisperx)
+                # huggingface_hub automatically structures it internally.
+                snapshot_download(repo_id=repo_id, cache_dir=cache_dir, token=token)
+                logging.info(f"HF repo '{repo_id}' successfully downloaded.")
+                return
+            except GatedRepoError:
+                logging.error(
+                    f"HF repo '{repo_id}' is gated. Accept the license on Hugging Face "
+                    "and ensure a valid token is configured."
+                )
+                # HF will leave empty folder, which breaks exist asset check
+                # we will try to delete it if exists
+                repo_dir = Path(cache_dir) / repo_folder_name(repo_id=repo_id, repo_type="model")
+                shutil.rmtree(repo_dir, ignore_errors=True)
+                raise
+            except RepositoryNotFoundError:
+                logging.error(f"HF repo '{repo_id}' was not found. Check the repo ID in asset_manifest.toml.")
+                raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logging.warning(
+                        f"Network drop while downloading HF repo '{desc}'. "
+                        f"Retrying in 5s... ({attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(5)
+                else:
+                    logging.error(f"Failed HF repo '{desc}' after {max_retries} attempts. Details: {e}")
+                    raise
+
     def verify_and_download(self, asset_keys: List[str]):
         """
         Checks if required assets exist, downloads them if missing.
@@ -111,22 +162,92 @@ class AssetManager:
             asset_info = self.manifest[key]
             dest_path = self.assets_root / key
 
-            if not dest_path.exists():
-                logging.info(f"Missing asset: {key}. Downloading...")
-                self.download_file(asset_info["url"], dest_path, desc=key)
+            source = asset_info.get("source")
+            url = asset_info.get("url")
+
+            if source == "huggingface":
+                if not dest_path.exists():
+                    logging.info(f"Missing HF asset: {key}. Downloading...")
+                    self.download_hf_repo(repo_id=url, cache_dir=dest_path.parent, desc=key)
+                else:
+                    logging.info(f"HF Asset '{key}' verified.")
+
+            elif source == "url":
+                if not dest_path.exists():
+                    logging.info(f"Missing asset: {key}. Downloading...")
+                    self.download_file(url, dest_path, desc=key)
+                else:
+                    logging.info(f"Asset '{key}' verified.")
             else:
-                logging.info(f"Asset '{key}' verified.")
+                logging.warning(f"Manifest entry '{key}' is missing valid source type. Found: '{source}'")
 
-    def ensure_assets_for_config(self, config):
+    def _is_gated(self, key: str) -> bool:
+        """True if the manifest marks this asset key as gated (restricted-access)."""
+        info = self.manifest.get(key)
+        return bool(info and info.get("access") == "gated")
+
+    def _asset_present(self, key: str) -> bool:
+        """True if the asset already exists locally. Mirrors verify_and_download's check."""
+        return (self.assets_root / key).exists()
+
+    def _gated_assets_by_algorithm(self) -> dict[str, list[str]]:
+        """Maps each algorithm instance to its gated required asset keys (empty algos omitted)."""
+        result: dict[str, list[str]] = {}
+        for algo_name, algo_model in self.config.detectors_config.algorithms.items():
+            if not hasattr(algo_model, "required_assets"):
+                continue
+            gated = []
+            for val in algo_model.required_assets.values():
+                try:
+                    key = str(Path(val).relative_to(self.assets_root)).replace("\\", "/")
+                except ValueError:
+                    continue
+                if self._is_gated(key):
+                    gated.append(key)
+            if gated:
+                result[algo_name] = gated
+        return result
+
+    def unobtainable_gated_algorithms(self) -> set[str]:
         """
-        Determines which assets are needed for the active run and downloads them.
+        Gated algorithms whose weights are unobtainable: at least one gated asset is missing
+        locally AND no HF token is available to download it. Weights that are already present
+        (e.g. download manually) are obtainable even without a token.
         """
+        has_token = bool(effective_hf_hub_token(self.config.machine_specific_config))
+        skip = set()
+        for algo_name, gated_keys in self._gated_assets_by_algorithm().items():
+            unobtainable = (not has_token) and any(not self._asset_present(k) for k in gated_keys)
+            if unobtainable:
+                skip.add(algo_name)
+        return skip
+
+    def ensure_assets_for_config(self) -> set[str]:
+        """
+        Ensure assets for the configured algorithms, skipping gated ones when no HF token
+        is available. Returns the set of algorithms that remain runnable.
+        """
+        # check algos that can't be obtained
+        selected_algorithms = set(self.config.run_config.algorithms)
+        unobtainable_algorithms = self.unobtainable_gated_algorithms()
+        skipped = selected_algorithms & unobtainable_algorithms
+        if skipped:
+            msg = (
+                "Gated models are required but unavailable (weights missing locally and no HF token): "
+                f"{', '.join(sorted(skipped))}.\n"
+                "Configure HF_TOKEN or hugging_face_token and accept the model license agreements."
+            )
+            if self.config.run_config.skip_gated_models_errors:
+                logging.warning(msg)
+            else:
+                raise RuntimeError(msg)
+
+        # remove skipped models from active algorithms list
+        active_algos = selected_algorithms - skipped
+        logging.info(f"Active algorithms for this config: {', '.join(sorted(active_algos)) or '(none)'}")
+
         required_assets = []
-
-        active_algos = set(config.run_config.algorithms)
-
-        # required_assets for those specific algorithms
-        algos_dict = config.detectors_config.algorithms
+        algos_dict = self.config.detectors_config.algorithms
         for algo in active_algos:
             algo_model = algos_dict.get(algo)
             if algo_model and hasattr(algo_model, "required_assets"):
@@ -141,17 +262,6 @@ class AssetManager:
                         logging.warning(f"Path '{val}' is not inside the assets root!")
 
         logging.info(f"AssetManager check: Found {len(required_assets)} required assets for this run.")
-        self.verify_and_download(required_assets)
-        self._log_hf_only_models(active_algos, config.machine_specific_config)
 
-    def _log_hf_only_models(self, active_algos: set, machine: MachineSpecificConfig) -> None:
-        """Log Hugging Face token status for algorithms not on the Keeper manifest."""
-        if "sam_3d_body" not in active_algos:
-            return
-        if effective_hf_hub_token(machine):
-            logging.info("AssetManager: sam_3d_body uses Hugging Face weights (token configured).")
-        else:
-            logging.error(
-                "AssetManager: sam_3d_body needs hugging_face_token in machine_specific_paths.toml "
-                "(and Hub license acceptance)."
-            )
+        self.verify_and_download(required_assets)
+        return active_algos

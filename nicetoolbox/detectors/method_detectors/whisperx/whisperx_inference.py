@@ -43,6 +43,13 @@ def whisperx_inference(config: dict) -> None:
         raise ValueError("WhisperX config must set hf_weights_cache_dir (see WhisperXConfig).")
     assets_dir = str(Path(cache_raw).expanduser())
     os.makedirs(assets_dir, exist_ok=True)
+    os.environ["TORCH_HOME"] = assets_dir
+
+    # to make sure whisperx components don't make a call to hf
+    # via snapshot_download and explicitly use downloaded assets
+    os.environ["HF_HUB_CACHE"] = assets_dir
+    os.environ["HF_HOME"] = assets_dir
+    os.environ["HF_HUB_OFFLINE"] = "1"
 
     model_size = config["model_size"]
     language = config["language"]
@@ -63,13 +70,18 @@ def whisperx_inference(config: dict) -> None:
         vad_options={"vad_onset": vad_onset, "vad_offset": vad_offset},
         download_root=assets_dir,
     )
+    # makes sure pytorch knows checkpoint subfolder under ../../assets
+    torch_hub_checkpoints_dir = os.path.join(assets_dir, "hub", "checkpoints")
+    os.makedirs(torch_hub_checkpoints_dir, exist_ok=True)
+
     align_model, metadata = whisperx.load_align_model(
         language_code=language,
         device=device,
         model_name=align_model_name,
-        model_dir=assets_dir,
+        model_dir=torch_hub_checkpoints_dir,
     )
-    diarize_model = whisperx.diarize.DiarizationPipeline(token=config["hf_token"], device=device, cache_dir=assets_dir)
+
+    diarize_model = whisperx.diarize.DiarizationPipeline(device=device, cache_dir=assets_dir)
 
     # Components output storage dicts
     out_transcription = {}

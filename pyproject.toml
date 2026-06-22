@@ -28,6 +28,7 @@ dependencies = [
     "requests",
     "tqdm",
     "scikit-learn",
+    "huggingface_hub",
 ]
 
 [project.optional-dependencies]

@@ -3,69 +3,143 @@
 # --- Eth XGaze ---
 ["eth_xgaze/shape_predictor_68_face_landmarks.dat"]
 url = "https://keeper.mpdl.mpg.de/f/cd7dfd31a27e47ab986e/?dl=1"
+source = "url"
+access = "hosted"
 
 ["eth_xgaze/face_model.txt"]
 url = "https://keeper.mpdl.mpg.de/f/21b9bf8bb4064564b215/?dl=1"
+source = "url"
+access = "hosted"
 
 ["eth_xgaze/epoch_24_ckpt.pth.tar"]
 url = "https://keeper.mpdl.mpg.de/f/cf93d03b37ba4b50a002/?dl=1"
+source = "url"
+access = "hosted"
 
 ["eth_xgaze/mmod_human_face_detector.dat"]
 url = "https://keeper.mpdl.mpg.de/f/aae1a60f13394f099048/?dl=1"
+source = "url"
+access = "hosted"
 
 # --- MMPose Framework (HRNet, ViTPose, RTMPose, MotionBERT) ---
 ["mmpose/configs/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"]
 url = "https://keeper.mpdl.mpg.de/f/b1ad36417abf45598c5c/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/faster_rcnn_r50_fpn_coco.py"]
 url = "https://keeper.mpdl.mpg.de/f/6f367697e29046cd82b7/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"]
 url = "https://keeper.mpdl.mpg.de/f/fee14e24f8ea4367b145/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"]
 url = "https://keeper.mpdl.mpg.de/f/7b8fbc37f96b40379547/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-l_8xb256-420e_aic-coco-384x288.py"]
 url = "https://keeper.mpdl.mpg.de/f/a4acf55761ea4599b2c6/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-l_simcc-aic-coco_pt-aic-coco_420e-384x288-97d6cb0f_20230228.pth"]
 url = "https://keeper.mpdl.mpg.de/f/f437a0e448c840ada76f/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py"]
 url = "https://keeper.mpdl.mpg.de/f/0d7ac775dbc54e6f8593/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-l_simcc-coco-wholebody_pt-aic-coco_270e-384x288-eaeb96c8_20230125.pth"]
 url = "https://keeper.mpdl.mpg.de/f/6dd06484de214632aace/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-m_8xb64-210e_mpii-256x256.py"]
 url = "https://keeper.mpdl.mpg.de/f/971b389926ee4fd5a60d/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/rtmpose-m_simcc-mpii_pt-aic-coco_210e-256x256-ec4dbec8_20230206.pth"]
 url = "https://keeper.mpdl.mpg.de/f/034a2e90816846678da4/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/td-hm_ViTPose-huge_8xb64-210e_coco-256x192-e32adcd4_20230314.pth"]
 url = "https://keeper.mpdl.mpg.de/f/3d8bbd4e6c3c4c049298/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/motionbert_dstformer-243frm_8xb32-240e_h36m.py"]
 url = "https://keeper.mpdl.mpg.de/f/912deef505e140be981f/?dl=1"
+source = "url"
+access = "hosted"
 
 ["mmpose/configs/motionbert_h36m-f554954f_20230531.pth"]
 url = "https://keeper.mpdl.mpg.de/f/2d618b9b1be14cbe8fb7/?dl=1"
+source = "url"
+access = "hosted"
 
 # --- SPIGA ---
 ["spiga/spiga_wflw.pt"]
 url = "https://keeper.mpdl.mpg.de/f/8843a556fd0a4947b05a/?dl=1"
+source = "url"
+access = "hosted"
 
 ["spiga/spiga_300wpublic.pt"]
 url = "https://keeper.mpdl.mpg.de/f/9ca0dd9c61794292805b/?dl=1"
+source = "url"
+access = "hosted"
 
 ["spiga/spiga_300wprivate.pt"]
 url = "https://keeper.mpdl.mpg.de/f/233f8871d9c4462ab1ef/?dl=1"
+source = "url"
+access = "hosted"
 
 ["spiga/spiga_merlrav.pt"]
 url = "https://keeper.mpdl.mpg.de/f/c3cbf5ea07e341bbba4e/?dl=1"
+source = "url"
+access = "hosted"
 
-# --- SAM 3 D Body ---
-# Weights are distributed on Hugging Face (gated).
-# AssetManager logs a reminder when `sam_3d_body` is in the run; use hugging_face_token in machine_specific_paths.toml.
+# --- WhisperX HuggingFace ---
+["whisperx/models--Systran--faster-whisper-large-v3"]
+url = "Systran/faster-whisper-large-v3"
+source = "huggingface"
+access = "open"
+
+["whisperx/models--pyannote--speaker-diarization-community-1"]
+url = "pyannote/speaker-diarization-community-1"
+source = "huggingface"
+access = "gated"
+
+# --- WhisperX Keeper ---
+["whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60k_asr_ls960.pth"]
+url = "https://keeper.mpdl.mpg.de/f/6c9f4a9680584f038ecb/?dl=1"
+source = "url"
+access = "hosted"
+
+# --- Sam_3d_body ---
+["sam_3d_body/models--facebook--sam-3d-body-dinov3"]
+url = "facebook/sam-3d-body-dinov3"
+source = "huggingface"
+access = "gated"
+
+["sam_3d_body/models--facebook--sam2-hiera-large"]
+url = "facebook/sam2-hiera-large"
+source = "huggingface"
+access = "open"
+
+# MoGE (Monocular Geometry Estimation) is a Microsoft Research project. The weights are hosted
+# by Ruicheng Feng (first author) on his personal HF profile — there is no official facebook/
+# or microsoft/ release on HuggingFace. This is the canonical source.
+["sam_3d_body/models--Ruicheng--moge-2-vitl-normal"]
+url = "Ruicheng/moge-2-vitl-normal"
+source = "huggingface"
+access = "open"

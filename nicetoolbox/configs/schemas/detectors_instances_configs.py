@@ -231,11 +231,7 @@ class WhisperXConfig(BaseAlgorithmConfig):
         default="<assets>/whisperx",
         description="Directory for WhisperX / Hugging Face weight caches (created at inference if missing).",
     )
-
-    class RuntimeConfig(MethodDetectorRuntime):
-        """Runtime including HF token for pyannote / Hub (resolved in detector init)."""
-
-        hf_token: str
+    required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
 @detector_config("sam_3d_body")

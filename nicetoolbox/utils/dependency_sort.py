@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Iterable, List
 
 from ..configs.schemas.detectors_config import DetectorsConfig
 from .graph import topological_sort
@@ -7,7 +7,7 @@ from .graph import topological_sort
 
 def sort_detectors_order(
     detectors_config: DetectorsConfig,
-    selected_algorithms: List[str],
+    selected_algorithms: Iterable[str],
     strict: bool = True,
 ) -> List[str]:
     """

@@ -94,12 +94,18 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
     log_ut.log_main_banner(f"NICE TOOLBOX STARTED. Saving results to '{main_output_folder}'.")
 
     # asset download manager
+    # checks user selected algorithms and download assets for it
+    # some algorithms can be skipped (i.e. missing hf key)
     manager = AssetManager(config)
-    manager.ensure_assets_for_config(config)
+    runnable_algorithms = manager.ensure_assets_for_config()
+    if not runnable_algorithms:
+        log_ut.log_with_underscore("No valid algorithms remain after asset checks. Nothing to do.")
+        return
 
+    # update config file
+    config.run_config.algorithms = runnable_algorithms
+    # save experiment config for visualizer and evaluation
     config.save_experiment_config(main_output_folder)
-
-    all_algorithms = config.get_all_detector_names()
 
     # ==========================
     # PHASE 2: Process Sequences
@@ -110,16 +116,15 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
         log_ut.log_banner(f"RUNNING {sequence_str}")
         with manage_error_scope(error_level, ErrorLevel.SEQUENCE, sequence_str):
             # Create IO and Data from runtime config for the current sequence
-            io = SequenceIO(sequence_context, all_algorithms)
+            io = SequenceIO(sequence_context)
             data = SequenceData(sequence_context, io)
 
             # Save video config
             config.save_video_config(sequence_context.video_config, io.get_output_folder("output"))
 
-            # Algorithms based on user-selected components, topologically sorted
-            selected_algorithms = sequence_context.algorithms
+            # Topologically sort the selected algorithms by their dependencies
             ordered_detectors = sort_detectors_order(
-                sequence_context.detectors_config, selected_algorithms, config.check_missing_detectors_dependencies
+                sequence_context.detectors_config, runnable_algorithms, config.check_missing_detectors_dependencies
             )
 
             # ======================

@@ -170,12 +170,6 @@ class Configuration(ProjectConfigHandler):
     # Static Queries (don't depend on runtime context)
     # -------------------------------------------------------------------------
 
-    def get_all_detector_names(self) -> list[str]:
-        """
-        Returns all detector names defined in the detectors configuration.
-        """
-        return list(self.detectors_config.algorithms.keys())
-
     def save_experiment_config(self, output_folder) -> None:
         # we save current auto_placeholders for reproduction purposes
         code_config = CodeConfig(**self.auto_placeholders)

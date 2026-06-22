@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:1
+# check=skip=SecretsUsedInArgOrEnv
+
 FROM docker.io/nvidia/cuda:12.6.0-cudnn-runtime-ubuntu24.04
 
 # install make, git, ffmpeg + some essential stuff
@@ -24,9 +27,19 @@ RUN wget --no-hsts --quiet https://github.com/conda-forge/miniforge/releases/lat
 COPY . /nicetoolbox
 WORKDIR /nicetoolbox
 
+# The token itself is mounted as a secret (never baked into the image). BuildKit
+# excludes secret contents from the cache key, so a changed token would otherwise
+# be ignored on rebuild. HF_TOKEN_SUFFIX (last 6 chars of the token) is referenced
+# below purely so the cache invalidates when the token changes.
+ARG HF_TOKEN_SUFFIX="none"
+
 # do all toolbox installation steps
 ARG NICETOOLBOX_DEV
-RUN make all DEV=${NICETOOLBOX_DEV}
+# ! don't remove echo HF token echo, important for cache invalidation
+RUN --mount=type=secret,id=hf_token \
+    export HF_TOKEN=$(cat /run/secrets/hf_token 2>/dev/null || true) && \
+    echo "Optional HF token: ${HF_TOKEN_SUFFIX}" && \
+    make all DEV=${NICETOOLBOX_DEV}
 
 # for version tracking we need to get git repository metadata 
 ARG NICETOOLBOX_GIT_HASH
