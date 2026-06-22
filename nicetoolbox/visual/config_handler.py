@@ -8,7 +8,6 @@ from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
 from ..configs.utils import model_to_dict
-from ..utils import visual_utils as vis_ut
 
 
 class Configuration(ProjectConfigHandler):
@@ -190,20 +189,9 @@ class Configuration(ProjectConfigHandler):
     def get_dataset_starting_index(self):
         return self.dataset_properties[self.dataset_name]["start_frame_index"]
 
-    def check_calibration(self, calib, cam_name):
-        if self.visualizer_config["media"]["visualize"]["camera_position"] is True:
-            _, _, cam_rotation, cam_extrinsic = vis_ut.get_cam_para_studio(calib, cam_name)
-            if (cam_rotation is None) | (cam_extrinsic is None):
-                assert ValueError(
-                    "The rotation and extrinsic matrix of the camera could not found.\n"
-                    "Please either change the Visualizer_config 'camera_position' "
-                    "parameter to false or provide extrinsics parameters of the camera"
-                )
-
-    def check_config(self, calibration_file):
+    def check_config(self):
         self._check_start_stop_frames()
         self._check_algorithms()
-        self._check_camera_position(calibration_file)
 
     def _check_start_stop_frames(self):
         video_length = self.visualizer_config["video"]["video_length"]
@@ -248,19 +236,3 @@ class Configuration(ProjectConfigHandler):
                         f"Delete or correct {alg} from Visualizer_config[media."
                         f"{component}] algorithms"
                     )
-
-    def _check_camera_position(self, calibration_file) -> None:
-        """
-        Checks the consistency of the camera position in the visualizer config.
-
-        Raises:
-            ValueError: If the camera position parameter is set to True but calibration
-            parameters were not provided.
-        """
-        if (self.visualizer_config["media"]["visualize"]["camera_position"]) and (not calibration_file):
-            raise ValueError(
-                "ERROR: No valid calibration file is found. Visualization of camera "
-                "position requires calibration data. Set camera_position to False "
-                "in visualizer_config.toml\n"
-            )
-        return 0

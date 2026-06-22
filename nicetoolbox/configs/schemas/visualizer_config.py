@@ -14,7 +14,6 @@ class MediaVisualizeConfig(BaseModel):
     """
 
     components: List[str]
-    camera_position: bool
     start_frame: NonNegativeInt
     end_frame: int  # -1 means until the end
     visualize_interval: NonNegativeInt
@@ -27,7 +26,6 @@ class MediaConfig(BaseModel):
     Contains a collection of visualizer component configurations.
     """
 
-    multi_view: bool
     visualize: MediaVisualizeConfig
 
     # visualizer components collection

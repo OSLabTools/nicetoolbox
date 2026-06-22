@@ -70,7 +70,10 @@ class Component(ABC):
                 self.algorithms_data = []
                 if self.algorithms_results:
                     for i, _alg in enumerate(self.algorithm_list):
-                        self.algorithms_data.append(self.algorithms_results[i][data_name])
+                        try:
+                            self.algorithms_data.append(self.algorithms_results[i][data_name])
+                        except KeyError:
+                            print(f"WARNING! {self.component_name}: '{data_name}' cannot be found, will be skipped.")
                     self.canvas_data[data_name] = self.algorithms_data
 
     def _parse_alg_color(self, alg_idx: int) -> List[int]:
@@ -137,37 +140,41 @@ class BodyJointsComponent(Component):
         # read from first algorithm data description axis0 gives subject information
         self.subject_names_2d = self.algorithms_results[0]["data_description"].item()["2d"]["axis0"]
         if "3D_Canvas" in self.canvas_list:
-            self.subject_names_3d = self.algorithms_results[0]["data_description"].item()["3d"]["axis0"]
+            if "3d" in self.algorithms_results[0]:
+                self.subject_names_3d = self.algorithms_results[0]["data_description"].item()["3d"]["axis0"]
+            else:
+                print("WARNING! velocity_body_3d cannot be found,will be skipped.")
+                self.canvas_list.remove("3D_Canvas")
         # data description axis1 gives camera information
         self.camera_names = self.algorithms_results[0]["data_description"].item()["2d"]["axis1"]
 
-    def calculate_middle_eyes(self, dimension: int) -> Tuple[np.ndarray, List[str]]:
+    def calculate_middle_eyes(self) -> Tuple[np.ndarray, np.ndarray | None]:
         """
-        Calculate the middle of the eyes for the given dimension.
-
-        Args:
-            dimension (int): The dimension for the middle eyes.
+        Calculate the middle of the eyes for the both dimensions.
+        If has only one camera, then 3d returns as None
 
         Returns:
-            Tuple[np.ndarray, List[str]]: The middle eyes data and the camera names.
+            Tuple[np.ndarray, np.ndarray]: The middle eyes 2d and 3d data.
         """
         # we will use first algorithm results
         labels = self._get_algorithms_labels()[0]
         right_eye_idx = labels.index("right_eye")
         left_eye_idx = labels.index("left_eye")
-        dim = f"{dimension}d"
-        if (dimension < 2) | (dimension > 3):
-            assert "supported dimensions are: 2 or 3"
-        elif dimension == 3 and dim not in self.canvas_data:
-            print(
-                f"{dim} results could not found in selected canvas data.\n"
-                f"If you don't have 3d results, set multi-view false in visualizer_config.toml.\n"
-                f"If you have 3d results, add '3D_Canvas' into body_joint.canvas in visualizer_config.toml"
-            )
-            return (None, None)
-        data = self.algorithms_results[0][dim]
-        mean_value = np.mean(data[:, :, :, [right_eye_idx, left_eye_idx], :dimension], axis=3)
-        return (mean_value, self.camera_names)
+
+        # compute 2d
+        data_2d = self.algorithms_results[0]["2d"]
+        mean_value_2d = np.mean(data_2d[:, :, :, [right_eye_idx, left_eye_idx], :2], axis=3)
+
+        if len(self.camera_names) == 1:
+            return mean_value_2d, None
+
+        if "3d" not in self.canvas_data:
+            print("3D results not found in canvas data — skipping 3D calculation\n")
+            return mean_value_2d, None
+        # compute 3d
+        data_3d = self.algorithms_results[0]["3d"]
+        mean_value_3d = np.mean(data_3d[:, :, :, [right_eye_idx, left_eye_idx], :3], axis=3)
+        return mean_value_2d, mean_value_3d
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """
@@ -290,6 +297,8 @@ class BodyJointsComponent(Component):
             frame_idx (int): The frame index.
         """
         for canvas in self.canvas_list:
+            if not canvas:
+                continue
             if canvas == "3D_Canvas":
                 for alg_idx, alg_data in enumerate(self.canvas_data["3d"]):
                     if frame_idx >= alg_data.shape[2]:  # number of frames
@@ -426,7 +435,7 @@ class GazeIndividualComponent(Component):
 
         # create subjects middle of face
         # 3d
-        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
+        self.eyes_middle_3d_data = eyes_middle_3d_data
         # camera view
         # create the camera view -- middle of subjects' face point dictionary
         mean_face = np.nanmean(self.landmarks_2d.astype(float)[:, :, :, :4, :], axis=3)
@@ -541,7 +550,7 @@ class GazeIndividualComponent(Component):
         """
         dataname = "3d_filtered" if "3d_filtered" in self.canvas_data else "3d"
         for canvas in self.canvas_list:
-            if canvas == "3D_Canvas":
+            if canvas == "3D_Canvas" and self.eyes_middle_3d_data is not None:
                 for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
                     if frame_idx >= alg_data.shape[2]:  # number of frames
                         continue
@@ -745,6 +754,8 @@ class EmotionIndividualComponent(Component):
         dataname = "emotions"
         head_bbox = "faceboxes"
         for canvas in self.canvas_list:
+            if not canvas:
+                continue
             cam_name = canvas
             camera_index = self.camera_names.index(cam_name)
             for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
@@ -859,6 +870,8 @@ class HeadOrientationComponent(Component):
             frame_idx (int): The frame index.
         """
         for canvas in self.canvas_list:
+            if not canvas:
+                continue
             cam_name = canvas
             camera_index = self.camera_names.index(cam_name)
             for alg_idx, alg_data in enumerate(self.canvas_data["head_orientation_2d"]):
@@ -914,13 +927,13 @@ class ProximityComponent(Component):
 
         # create subjects middle data
         # 3d
-        self.eyes_middle_3d_data, _ = eyes_middle_3d_data
+        self.eyes_middle_3d_data = eyes_middle_3d_data
         if self.eyes_middle_3d_data is not None:
             first_subject_eyes_middle_data = self.eyes_middle_3d_data[0, 0, :].mean(axis=0)
             second_subject_eyes_middle_data = self.eyes_middle_3d_data[1, 0, :].mean(axis=0)
             self.middle_point_3d = (first_subject_eyes_middle_data + second_subject_eyes_middle_data) / 2
         # 2d - camera view
-        self.eyes_middle_2d_data, _ = eyes_middle_2d_data
+        self.eyes_middle_2d_data = eyes_middle_2d_data
         # create camera view - middle point dictionary
         self.camera_view_middle_point_dict = {}
         for cam in self.camera_names:
@@ -1054,7 +1067,13 @@ class KinematicsComponent(Component):
         self.subject_names = self.algorithms_results[0]["data_description"].item()["velocity_body_2d"]["axis0"]
         self.subject_names_2d = self.algorithms_results[0]["data_description"].item()["velocity_body_2d"]["axis0"]
         if "velocity_body_3d" in self.canvas_data:
-            self.subject_names_3d = self.algorithms_results[0]["data_description"].item()["velocity_body_3d"]["axis0"]
+            if "velocity_body_3d" in self.algorithms_results[0]["data_description"].item():
+                self.subject_names_3d = self.algorithms_results[0]["data_description"].item()["velocity_body_3d"][
+                    "axis0"
+                ]
+            else:
+                print("WARNING! velocity_body_3d cannot be found,will be skipped.")
+                del self.canvas_data["velocity_body_3d"]
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """
@@ -1112,7 +1131,6 @@ class KinematicsComponent(Component):
                 subject_names = self.subject_names_3d
             else:
                 subject_names = self.subject_names_2d
-
             for alg_idx, _alg_data in enumerate(data):
                 alg_name = self.algorithm_list[alg_idx]
                 for subject_idx, subject in enumerate(subject_names):

@@ -46,8 +46,8 @@ class IO:
 
     def get_calibration_file(self, video_details):
         calib_path = self.path_to_calibs
-        if not calib_path:
-            return calib_path
+        if not calib_path or calib_path == ".":
+            return ""
 
         calib_path = calib_path.replace("<cur_session_ID>", video_details["session_ID"])
         calib_path = calib_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])

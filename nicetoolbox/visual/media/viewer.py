@@ -38,7 +38,6 @@ class Viewer:
                 canvas_list.extend(canvases)
         self.canvas_list = list(set(canvas_list))
 
-        self.is_camera_position = visualizer_config["media"]["visualize"]["camera_position"]
         self.fps = self.visualizer_config["dataset_properties"]["fps"]
         self._create_canvas_roots()
 
@@ -119,22 +118,9 @@ class Viewer:
 
         The root paths are used to log the cameras and images in the rerun viewer.
         """
-        if "3D_Canvas" in self.canvas_list:
-            self.ROOT3D = "3D_Canvas"
-            if self.is_camera_position:
-                self.CAMERAS_ROOT = "3D_Canvas/cameras"
-                self.IMAGES_ROOT = "3D_Canvas/cameras"
-            else:
-                self.CAMERAS_ROOT = None
-                self.IMAGES_ROOT = "cameras"
-        elif self.is_camera_position:
-            self.CAMERAS_ROOT = "3D_Canvas/cameras"
-            self.IMAGES_ROOT = "3D_Canvas/cameras"
-            self.ROOT3D = None
-        else:
-            self.IMAGES_ROOT = "cameras"
-            self.ROOT3D = None
-            self.CAMERAS_ROOT = None
+        self.ROOT3D = "3D_Canvas"
+        self.CAMERAS_ROOT = "3D_Canvas/cameras"
+        self.IMAGES_ROOT = "3D_Canvas/cameras"
 
     def get_camera_pos_entity_path(self, camera_name: str) -> str:
         """
@@ -158,16 +144,6 @@ class Viewer:
             str: The entity path for the images of the specified camera.
         """
         return f"{self.IMAGES_ROOT}/{camera_name}"
-
-    def get_is_camera_position(self):
-        """
-        Returns a boolean indicating whether to display the camera position in the
-        viewer.
-
-        Returns:
-            bool: Whether to display the camera position in the viewer.
-        """
-        return self.is_camera_position
 
     def generate_component_entity_path(
         self,
@@ -222,14 +198,31 @@ class Viewer:
 
         return entity_path
 
-    def log_camera(self, camera_calibration, entity_path) -> None:
+    def log_camera(self, camera_calibration, entity_path, image_size) -> None:
         """
-        Logs the camera calibration in the viewer.
-
+        Logs the camera calibration in the viewer. Always log to #DCanvas.
         Args:
             camera_calibration (dict): The camera calibration parameters.
             entity_path (str): The entity path for the camera.
+            image_size (tuple): width, height
         """
+        if camera_calibration is None:
+            w, h = image_size
+            f = (h / 2.0) / np.tan(np.deg2rad(30))  # 60° FOV
+            dummy_intrinsics = np.array(
+                [
+                    [f, 0, w / 2.0],
+                    [0, f, h / 2.0],
+                    [0, 0, 1.0],
+                ]
+            )
+            camera_calibration = {
+                "intrinsic_matrix": dummy_intrinsics,
+                "rotation_matrix": np.eye(3),
+                "translation": [0.0, 0.0, 0.0],
+                "image_size": [w, h],
+            }
+
         # intrinsic camera matrix
         K = np.array(camera_calibration["intrinsic_matrix"])
         rr.log(
@@ -256,20 +249,3 @@ class Viewer:
             img_quality (int, optional): The quality of the image. Defaults to 75.
         """
         rr.log(entity_path, rr.Image(image).compress(jpeg_quality=img_quality))
-
-    def check_multiview(self) -> None:
-        """
-        Checks the consistency of the multi-view parameter in the visualizer config.
-
-        Raises:
-            ValueError: If the multi-view parameter is set to False but a 3D canvas is
-                present.
-        """
-        if (self.visualizer_config["media"]["multi_view"] is False) and ("3D_Canvas" in self.canvas_list):
-            raise ValueError(
-                "ERROR: multi-view parameter in Visualizer_config set false,\n "
-                "But 3D_Canvas found in components, canvas lists.\n"
-                "If you don't have multiple cameras, delete 3D_Canvas in all "
-                "canvases\nIf you have multiple cameras, change multi-view "
-                "parameter as true\n"
-            )
