@@ -18,7 +18,6 @@ from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime, Sam3dBodyConfig
 from ....configs.schemas.predictions_mapping import Sam3dBodyMhr
 from ....utils import video as vd
-from ....utils.hf_token import effective_hf_hub_token
 from ..base_method import BaseMethod
 from ..filters import adaptive_savgol_filter
 from . import sam_3d_body_mesh_viz as mesh_viz
@@ -741,13 +740,6 @@ class Sam3dBody(BaseMethod):
         self.out_folder = self.out_folders["body_joints_local"]
 
         return super()._initialize_detector()
-
-    def run(self) -> None:
-        if not effective_hf_hub_token(self.sequence_context.machine):
-            raise RuntimeError(
-                "sam_3d_body: no Hugging Face token (set hugging_face_token in machine_specific_paths.toml)."
-            )
-        super().run()
 
     def post_inference(self) -> None:
         raw_path = (

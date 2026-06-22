@@ -10,7 +10,9 @@ error_level = "DETECTOR"      # Options: "DETECTOR", "SEQUENCE", "STRICT" (from 
 log_level = "INFO"            # Options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"
 
 # checks that all detectors have their input dependencies enabled
-check_missing_detectors_dependencies = true 
+check_missing_detectors_dependencies = true
+# remove all gated (Hugging Face restricted-access) models from algorithms list, if no HF token exists
+skip_gated_models_errors = true
 
 # algorithms to run on the data
 algorithms = [

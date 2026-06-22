@@ -47,9 +47,12 @@ def ensure_sam3d_repo(repo: str | None, nicetoolbox_root: Path) -> Path:
 
 
 def ensure_hf_hub_cache_env(nicetoolbox_root: Path) -> Path:
-    """Set HF_HOME / HUGGINGFACE_HUB_CACHE under assets/sam_3d_body/hf_home if unset."""
-    hf_home = default_sam3d_assets_root(nicetoolbox_root)
-    ensure_directory(hf_home)
-    os.environ.setdefault("HF_HOME", str(hf_home))
-    os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(hf_home / "hub"))
-    return hf_home
+    """Force Hugging Face to read exclusively from the pre-downloaded local assets root."""
+    assets_dir = default_sam3d_assets_root(nicetoolbox_root)
+
+    # Configure directory overrides
+    os.environ["HF_HUB_CACHE"] = str(assets_dir)
+    os.environ["HF_HOME"] = str(assets_dir)
+
+    # Native Hugging Face toggle to disable all internet/API lookups completely
+    os.environ["HF_HUB_OFFLINE"] = "1"

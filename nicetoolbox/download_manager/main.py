@@ -45,15 +45,6 @@ def entry_point():
 
     log_ut.init_console_logging()
     config = confh.Configuration(args.project_folder_path, args.machine_specifics, args.run_config)
-
-    log_level = config.run_config.log_level
-
-    main_output_folder = Path(config.run_config.io.out_folder)
-    main_output_folder.mkdir(parents=True, exist_ok=True)
-
-    log_file = main_output_folder / "nicetoolbox.log"
-    log_ut.init_file_logging(log_file, log_level.name)
-
     logging.info(f"Initialising asset manager; project: '{args.project_folder_path}', run_config: '{args.run_config}'")
     manager = AssetManager(config)
 
@@ -73,7 +64,7 @@ def entry_point():
 
     else:
         # Run the smart config extraction directly
-        manager.ensure_assets_for_config(config)
+        manager.ensure_assets_for_config()
 
 
 if __name__ == "__main__":

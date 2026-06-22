@@ -25,7 +25,7 @@ unit-test:
   tags:
     - shell
   script:
-    - bash scripts/build_docker.sh cicd true # build docker in dev mode
+    - bash scripts/build_docker.sh cicd true true # dev build, include gated HF models for tests
     - docker run --rm mpioslab/nicetoolbox:cicd bash -c
       "source ./envs/nicetoolbox/bin/activate && pytest -v"
 
@@ -38,7 +38,7 @@ publish-apptainer:
     - shell
   script:
     - apptainer registry login -u 'robot$'${HARBOR_ROBOT_NAME} -p $HARBOR_ROBOT_TOKEN $HARBOR_URL
-    - bash scripts/build_docker.sh cicd false
+    - bash scripts/build_docker.sh cicd false true # internal build: include gated HF models
     - apptainer build nicetoolbox.sif docker-daemon://mpioslab/nicetoolbox:cicd
     - apptainer push nicetoolbox.sif ${HARBOR_URL}/oslab/nicetoolbox:${CI_COMMIT_SHORT_SHA}
   after_script:
@@ -56,7 +56,7 @@ publish-to-github:
     entrypoint: [""]
   variables:
     GIT_STRATEGY: clone # make sure to clone it again, if tags were updated
-    GIT_DEPTH: 0  # Fetch full history
+    GIT_DEPTH: 0 # Fetch full history
     GITHUB_URL: https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/nicetoolbox.git
   script:
     - TAGS=$(git tag --points-at HEAD) 
@@ -66,10 +66,10 @@ publish-to-github:
         echo "Error: Expected exactly 1 tag, found $TAGS"
         exit 1
       fi
-    - git checkout main  # we start with HEAD, so first checkout branch
+    - git checkout main # we start with HEAD, so first checkout branch
     - git remote add github $GITHUB_URL
     - git push github main
-    - git push github $TAGS --force  # force push tags relevant to this commit
+    - git push github $TAGS --force # force push tags relevant to this commit
 
 publish-to-dockerhub:
   stage: publish
@@ -82,7 +82,7 @@ publish-to-dockerhub:
   tags:
     - shell
   script:
-    - TAGS=$(git tag --points-at HEAD) 
+    - TAGS=$(git tag --points-at HEAD)
     - TAG_COUNT=$(echo "$TAGS" | wc -l)
     - | # check that we have exactly one tag for this release
       if [ -z "$TAGS" ] || [ "$TAG_COUNT" -ne 1 ]; then
@@ -90,7 +90,7 @@ publish-to-dockerhub:
         exit 1
       fi
     - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-    - bash scripts/build_docker.sh latest false # build docker without dev deps
+    - bash scripts/build_docker.sh latest false false # public build: exclude gated HF models
     - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:latest
     - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:$TAGS
     - docker image push mpioslab/${DOCKERHUB_REPO}:latest

@@ -83,6 +83,7 @@ class DetectorsRunFile(BaseModel):
     log_level: LoggingLevelEnum
 
     check_missing_detectors_dependencies: bool
+    skip_gated_models_errors: bool
 
     algorithms: list[str]
     run: dict[str, DetectorsRunConfig]

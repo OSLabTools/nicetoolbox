@@ -162,9 +162,7 @@ camera_names = ["<cur_cam_top>", "<cur_cam_front>"]
 env_name = "venv:sam_3d_body"
 device = "cuda:0"
 visualize = true
-hf_repo_id = "facebook/sam-3d-body-dinov3"
 # If Empty, use git submodule at submodules/sam-3d-body
-# (run: git submodule update --init submodules/sam-3d-body).
 sam3d_repo_path = ""
 detector_name = "vitdet"
 segmentor_name = "sam2"
@@ -192,6 +190,11 @@ cross_view_consistency = true
 stereo_triangulation_body_joints = true
 triangulation_min_detection_confidence = 0.6
 keypoint_mapping = "sam_3d_body_mhr"
+
+[algorithms.sam_3d_body.required_assets]
+sam_3d_body_model = "<assets>/sam_3d_body/models--facebook--sam-3d-body-dinov3"
+sam2_model = "<assets>/sam_3d_body/models--facebook--sam2-hiera-large"
+moge2_model = "<assets>/sam_3d_body/models--Ruicheng--moge-2-vitl-normal"
 
 # ======================================================================
 #                               ETH XGaze 
@@ -285,3 +288,8 @@ alignment_model_name = "WAV2VEC2_ASR_LARGE_LV60K_960H"
 visualize = true
 # Hugging Face / WhisperX model cache root (directory created at inference if missing).
 hf_weights_cache_dir = "<assets>/whisperx"
+
+[algorithms.whisperx.required_assets]
+faster_whisper = "<assets>/whisperx/models--Systran--faster-whisper-large-v3"
+pyannote_diarization = "<assets>/whisperx/models--pyannote--speaker-diarization-community-1"
+alignment_model = "<assets>/whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60k_asr_ls960.pth"

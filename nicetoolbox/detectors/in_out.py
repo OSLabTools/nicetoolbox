@@ -5,7 +5,7 @@ IO module for the NICE toolbox.
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from ..configs.placeholders import resolve_placeholders
 from ..configs.video_runtime_config import SequenceRuntimeConfig
@@ -25,7 +25,6 @@ class SequenceIO:
     """
 
     # All attributes declared for type checking
-    algorithm_names: List[str]
     out_folder: Path
     out_sub_folder: Path
     csv_folder: Path
@@ -39,16 +38,13 @@ class SequenceIO:
     def __init__(
         self,
         sequence_context: SequenceRuntimeConfig,
-        algorithm_names: List[str],
     ):
         """
         Initialize for video processing.
 
         Args:
             sequence_context: Frozen video runtime configuration
-            algorithm_names: List of all algorithm names for folder creation
         """
-        self.algorithm_names = algorithm_names
         self._sequence_context = sequence_context
 
         # All paths from resolved IO config
