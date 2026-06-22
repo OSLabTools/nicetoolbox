@@ -125,6 +125,12 @@ url = "https://keeper.mpdl.mpg.de/f/6c9f4a9680584f038ecb/?dl=1"
 source = "url"
 access = "hosted"
 
+# --- CrisperWhisper HuggingFace ---
+["crisper_whisper/models--nyrahealth--CrisperWhisper"]
+url = "nyrahealth/CrisperWhisper"
+source = "huggingface"
+access = "open"
+
 # --- Sam_3d_body ---
 ["sam_3d_body/models--facebook--sam-3d-body-dinov3"]
 url = "facebook/sam-3d-body-dinov3"

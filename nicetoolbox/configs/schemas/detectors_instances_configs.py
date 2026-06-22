@@ -273,6 +273,21 @@ class Sam3dBodyConfig(BaseAlgorithmConfig):
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
+@detector_config("crisper_whisper")
+class CrisperWhisperConfig(BaseAlgorithmConfig):
+    track_names: List[str]
+    env_name: str
+    visualize: bool
+
+    batch_size: int
+    chunk_length_s: float
+    stride_length_s: float
+    vad_onset: float
+    vad_offset: float
+    hf_weights_cache_dir: str
+    required_assets: Dict[str, str] = Field(default_factory=dict)
+
+
 # === Add Method detectors HERE ===
 
 

@@ -24,7 +24,7 @@ algorithms = [
    "eth_xgaze", "gaze_fusion", "gaze_distance",       # gaze detection
    "spiga",                                           # head orientation
    "py_feat",                                         # emotions detection
-   "whisperx",                                        # audio transcription
+   "whisperx", "crisper_whisper"                      # audio transcription
 ]
 
 # define which data to run on
