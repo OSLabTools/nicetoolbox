@@ -112,7 +112,7 @@ class AudioDataHandler(BaseModalityHandler):
 
         if not source_path.exists():
             raise FileNotFoundError(f"Audio track '{track_name}': file not found: '{source_path}'")
-        logging.info(f"Auido track file: '{source_path}'")
+        logging.info(f"Audio track file: '{source_path}'")
 
         # did we already extracted it before?
         output_path = self.audio_output_folder / f"{track_name}.wav"

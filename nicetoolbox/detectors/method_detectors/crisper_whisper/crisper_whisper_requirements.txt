@@ -1,0 +1,5 @@
+accelerate
+faster-whisper
+git+https://github.com/OSLabTools/crhisper-whisper-transformers.git@crisper_whisper
+librosa
+scipy

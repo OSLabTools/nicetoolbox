@@ -91,3 +91,13 @@ WhisperX uses a gated model on Hugging Face for speaker diarization. You must re
 The pipeline runs in four stages: VAD preprocessing to segment speech, transcription via a `faster-whisper` backend, forced phoneme alignment for word-level timestamps, and speaker diarization via `pyannote-audio`. Note that speaker labels cannot currently be mapped to specific subjects in the video.
 
 [Bain et al., 2023](https://arxiv.org/abs/2303.00747)
+
+## CrisperWhisper
+
+**CrisperWhisper** is a fine-tuned Whisper variant focused on **verbatim** speech transcription with highly accurate **word-level timestamps**. Unlike standard Whisper models, which paraphrase and omit disfluencies, CrisperWhisper transcribes every spoken word — including fillers, false starts, and repetitions — and was retrained with an adjusted tokenizer and a custom attention-based timestamp objective to sharply localize word boundaries, even around pauses.
+
+In the NICE Toolbox, CrisperWhisper runs as the **`crisper_whisper`** algorithm and outputs the **`audio_transcription`** component only. It processes each configured audio track independently, returning per-word chunks with start/end timestamps. A post-processing step (ported from the original repository) redistributes inter-word pauses up to a small threshold evenly between adjacent words to refine the boundaries.
+
+The raw word chunks are then converted into the same unified `{segments, word_segments}` structure used by WhisperX's `audio_transcription` component, so the two transcription backbones are interchangeable downstream. Note that CrisperWhisper performs neither speaker diarization nor speaker-aligned transcription.
+
+[Wagner et al., 2024](https://arxiv.org/abs/2408.16589)

@@ -24,6 +24,7 @@ ifeq ($(OS), Windows_NT)
 	SPIGA_EXE_DIR = ./envs/spiga/Scripts
 	WHISPERX_EXE_DIR = ./envs/whisperx/Scripts
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/Scripts
+	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/Scripts
 else
 	PYTHON_EXE = python3.10
 	CONDA_DIR := $(shell conda info --base)
@@ -34,6 +35,7 @@ else
 	SPIGA_EXE_DIR = ./envs/spiga/bin
 	WHISPERX_EXE_DIR = ./envs/whisperx/bin
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/bin
+	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/bin
 endif
 
 # Download data variables
@@ -185,6 +187,7 @@ install:
 	-@make install_spiga
 	-@make install_whisperx
 	-@make install_sam3d_body
+	-@make install_crisper_whisper
 # detectors conda installations
 	-@make install_mmpose
 
@@ -283,6 +286,24 @@ install_whisperx:
 	@$(WHISPERX_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
 	@$(WHISPERX_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'WhisperX' environment setup completed successfully."
+
+
+# Install the venv for crisper-whisper
+.PHONY: install_crisper_whisper
+install_crisper_whisper:
+	@make create_separator
+	@make clean_venv NAME=crisper_whisper
+	@echo "Installing virtual environment for algorithm 'CrisperWhisper'..."
+
+	@echo "Creating virtual environment..."
+	@$(PYTHON_EXE) -m venv ./envs/crisper_whisper
+	@echo "Virtual environment created in ./envs/crisper_whisper"
+
+	@echo "Installing requirements for 'CrisperWhisper'..."
+	@$(CRISPER_WHISPER_EXE_DIR)/pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@$(CRISPER_WHISPER_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/crisper_whisper/crisper_whisper_requirements.txt
+	@$(CRISPER_WHISPER_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@echo "'CrisperWhisper' environment setup completed successfully."
 
 
 # Install the venv for mmpose

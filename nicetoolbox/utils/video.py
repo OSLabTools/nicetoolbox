@@ -391,6 +391,82 @@ def frames_to_video(
     return output.returncode
 
 
+def render_subtitled_track_video(
+    srt_path: str,
+    audio_path: str,
+    output_path: str,
+    fps: float,
+    default_start_frame: int = 0,
+    video_recipe=None,
+    camera: Optional[str] = None,
+    fallback_camera: Optional[str] = None,
+) -> bool:
+    """
+    Render a single subtitled video for one transcription track.
+
+    Encapsulates the per-track work shared by transcription detectors: it skips missing or empty
+    SRT files, resolves the frame folder from the video recipe (falling back to ``fallback_camera``,
+    then to a black background when no frames are available), and bakes the subtitles into the video
+    via :func:`frames_to_video`. Callers only need to provide the per-track paths
+    inside their own track loop.
+
+    Args:
+        srt_path (str): Path to the SRT subtitle file for this track.
+        audio_path (str): Path to the track's audio source.
+        out_filename (str): Path to the output ``.mp4`` (its directory is created if missing).
+        fps (float): Default frames per second (overridden by the recipe range when available).
+        default_start_frame (int, optional): Start frame used when no video recipe is given.
+        video_recipe (optional): Video input recipe exposing ``root_path``, ``camera_names``,
+            ``range_start`` and ``range_end``. When ``None`` a black background video is produced.
+        camera (Optional[str]): Preferred camera for this track; falls back to ``fallback_camera``
+            if missing or not present in the recipe.
+        fallback_camera (Optional[str]): Camera to use when ``camera`` is unavailable.
+
+    Returns:
+        bool: ``True`` if a video was rendered, ``False`` if the track was skipped.
+    """
+    if not os.path.exists(srt_path):
+        logging.warning(f"No SRT found at {srt_path}, skipping visualization.")
+        return False
+
+    if os.path.getsize(srt_path) == 0:
+        logging.warning(
+            f"SRT file {srt_path} is empty. This probably means no speech was detected "
+            "for this track. Skipping visualization."
+        )
+        return False
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    frame_folder = None
+    start_frame = default_start_frame
+    frame_limit = None
+
+    if video_recipe:
+        camera_to_use = camera
+        if not camera_to_use or camera_to_use not in video_recipe.camera_names:
+            camera_to_use = fallback_camera
+
+        if camera_to_use and camera_to_use in video_recipe.camera_names:
+            frame_folder = os.path.join(video_recipe.root_path, camera_to_use, "frames")
+        start_frame = video_recipe.range_start
+        frame_limit = video_recipe.range_end - video_recipe.range_start
+
+    logging.info(f"Baking subtitles into {output_path}")
+    logging.info(f"Using frame folder: {frame_folder}" if frame_folder else "Using black background fallback.")
+
+    frames_to_video(
+        input_folder=frame_folder,
+        audio_path=audio_path,
+        srt_path=srt_path,
+        out_filename=output_path,
+        fps=fps,
+        start_frame=start_frame,
+        frame_limit=frame_limit,
+    )
+    return True
+
+
 def probe_video(video_path: str) -> dict:
     """
     Parse video information using ffprobe.
