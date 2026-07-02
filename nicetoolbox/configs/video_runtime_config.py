@@ -75,10 +75,6 @@ class SequenceRuntimeConfig(BaseModel):
         return self.video_config.video_length
 
     @property
-    def fps(self) -> int:
-        return self.dataset_properties.fps
-
-    @property
     def subjects_descr(self) -> List[str]:
         return self.dataset_properties.subjects_descr
 
@@ -86,10 +82,6 @@ class SequenceRuntimeConfig(BaseModel):
     def calibration_path(self) -> Optional[Path]:
         path = self.dataset_properties.path_to_calibrations
         return Path(path) if path else None
-
-    @property
-    def data_source_folder(self) -> Path:
-        return Path(self.dataset_properties.data_input_folder)
 
     # -------------------------------------------------------------------------
     # Config Access (no resolution needed - already resolved)

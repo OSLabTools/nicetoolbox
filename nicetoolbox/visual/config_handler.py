@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from ..configs.project_config_handler import ProjectConfigHandler
-from ..configs.schemas.detectors_run_file import RunConfigVideo
+from ..configs.schemas.detectors_run_file import ResolvedSubsequenceMeta
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
@@ -89,16 +89,14 @@ class Configuration(ProjectConfigHandler):
             )
             raise
 
-        # Load the video config from the video/sequence output of nicetoolbox
-        try:
-            video_folder_path = os.path.join(
-                self.visualizer_config["io"]["experiment_folder"], self.visualizer_config["io"]["video_name"]
-            )
-
-            video_config_file = glob.glob(os.path.join(video_folder_path, "*config*.toml"))[-1]
-        except IndexError:
-            print("\nCould not find the video config file in " f"{video_folder_path}\n\n")
-            raise
+        # Load per-sequence resolved facts from the sequence output folder.
+        video_folder_path = os.path.join(
+            self.visualizer_config["io"]["experiment_folder"], self.visualizer_config["io"]["video_name"]
+        )
+        subsequence_meta_file = os.path.join(video_folder_path, "subsequence_meta.toml")
+        if not os.path.exists(subsequence_meta_file):
+            print(f"\nCould not find subsequence_meta.toml in {video_folder_path}\n\n")
+            raise FileNotFoundError(subsequence_meta_file)
 
         # load detectors expirement config
         # it should be already fully resolved except runtime placeholders
@@ -109,16 +107,16 @@ class Configuration(ProjectConfigHandler):
             ignore_auto_and_global=True,
         )
 
-        # load video config
-        loaded_video_config = self.cfg_loader.load_config(
-            Path(video_config_file),
-            RunConfigVideo,
+        # load per-sequence resolved facts (frame-resolved inputs + measured fps)
+        loaded_subsequence_meta = self.cfg_loader.load_config(
+            Path(subsequence_meta_file),
+            ResolvedSubsequenceMeta,
             ignore_auto_and_global=True,
         )
         # TODO: rest of the codebase except the configs as dict
         # so we convert them from models to configs
         loaded_experiment_config = model_to_dict(loaded_experiment_config)
-        loaded_video_config = model_to_dict(loaded_video_config)
+        loaded_video_config = model_to_dict(loaded_subsequence_meta)
 
         # verify that the visualizer project matches the experiment project
         exp_configs_folder = Path(loaded_experiment_config["project_config"]["configs_folder_path"])
@@ -139,7 +137,6 @@ class Configuration(ProjectConfigHandler):
 
         # update visualizer config - which will be given to components
         self.visualizer_config["video"] = loaded_video_config
-        # add properties of the dataset
         self.visualizer_config["dataset_properties"] = self.dataset_properties[self.dataset_name]
 
         algorithms_list = list(set(self.experiment_run_config["algorithms"]))
@@ -156,38 +153,19 @@ class Configuration(ProjectConfigHandler):
         return io_config
 
     def get_updated_visualizer_config(self):
-        cur_dataset_config = self.dataset_properties[self.dataset_name]
-        runtime_ctx = {
-            "cur_cam_face1": cur_dataset_config["cam_face1"],
-            "cur_cam_face2": cur_dataset_config["cam_face2"],
-            "cur_cam_top": cur_dataset_config["cam_top"],
-            "cur_cam_front": cur_dataset_config["cam_front"],
-        }
-        updated_visualizer_config = self.cfg_loader.resolve(
-            self.visualizer_config, runtime_ctx, ignore_auto_and_global=True
-        )
+        # Camera names are now written directly in visualizer_config.toml (no <cur_cam_*> indirection).
+        updated_visualizer_config = self.cfg_loader.resolve(self.visualizer_config, {}, ignore_auto_and_global=True)
         return updated_visualizer_config
 
     def get_camera_names(self):
-        # Extracting camera names
-        camera_names = [
-            value
-            for key, value in self.visualizer_config["dataset_properties"].items()
-            if (key.startswith("cam_")) & (value != "") & (type(value) is str)
-        ]
-        return camera_names
+        # Camera names come from the dataset's video.cameras dict.
+        video = self.visualizer_config["dataset_properties"].get("video", {})
+        cameras = video.get("cameras", {})
+        return list(cameras.keys())
 
     def _get_camera_placeholders(self):
-        # Extracting camera names
-        camera_names = [
-            key
-            for key, value in self.visualizer_config["dataset_properties"].items()
-            if (key.startswith("cam_")) & (value != "") & (type(value) is str)
-        ]
-        return camera_names
-
-    def get_dataset_starting_index(self):
-        return self.dataset_properties[self.dataset_name]["start_frame_index"]
+        # No more <cur_cam_*> placeholders — return the real track names.
+        return self.get_camera_names()
 
     def check_config(self):
         self._check_start_stop_frames()

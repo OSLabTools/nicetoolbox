@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from nicetoolbox.configs.schemas.dataset_properties import VideoTrackConfig
 from nicetoolbox.detectors.data_handlers.video_handler import FILENAME_TEMPLATE, VideoDataHandler
 
 # ---------------------------------------------------------------------------
 # Default constants
 # ---------------------------------------------------------------------------
-CONFIG_FPS = 30
 CONFIG_START = 0
 CONFIG_STOP = 100
 
@@ -58,37 +58,31 @@ def default_vid_patches():
 
 
 def make_sequence_context(
-    camera_names: list[str],
-    fps: int = CONFIG_FPS,
+    tracks: dict[str, Path],
     video_start: int | str = CONFIG_START,
     video_length: int | str = CONFIG_STOP,
     session_id: str = "session_01",
     sequence_id: str = "seq_01",
-    start_frame_index: int = 0,
 ):
     ctx = MagicMock()
-    ctx.fps = fps
     ctx.video_start = video_start
     ctx.video_length = video_length
-    ctx.all_camera_names = camera_names
+    ctx.all_camera_names = list(tracks.keys())
     ctx.session_id = session_id
     ctx.sequence_id = sequence_id
     ctx.subjects_descr = ["subject_1"]
     ctx.dataset_properties = MagicMock()
-    ctx.dataset_properties.start_frame_index = start_frame_index
+    ctx.dataset_properties.video.cameras = {
+        name: VideoTrackConfig(path=path, sees_subjects=[0]) for name, path in tracks.items()
+    }
     return ctx
 
 
-def make_io(
-    tmp_path: Path,
-    data_source_folder: Path,
-    calibration_file: Path = None,
-):
+def make_io(tmp_path: Path, calibration_file: Path = None):
     io = MagicMock()
     nice_input = tmp_path / "nice_input"
     nice_input.mkdir(parents=True, exist_ok=True)
     io.nice_input_folder = nice_input
-    io.get_data_source_folder.return_value = data_source_folder
     io.get_calibration_file.return_value = calibration_file
     return io
 
@@ -101,15 +95,17 @@ def make_frames_cache(io, ctx):
             (frames_dir / FILENAME_TEMPLATE.format(idx=idx)).write_bytes(b"\x89PNG")
 
 
-def make_simple_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
-    """Create a VideoDataHandler with a flat data source layout (one {cam}.mp4 per camera)."""
+def make_flat_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
+    """Create a VideoDataHandler with a flat layout: {tmp_path}/data_source/{cam}.mp4 per camera."""
     data_source_folder = tmp_path / "data_source"
+    data_source_folder.mkdir(parents=True, exist_ok=True)
+    tracks = {}
     for cam in cameras:
-        video_path = data_source_folder / f"{cam}.mp4"
-        video_path.parent.mkdir(parents=True, exist_ok=True)
-        video_path.touch()
-    ctx = make_sequence_context(cameras, **ctx_kwargs)
-    io = make_io(tmp_path, data_source_folder)
+        p = data_source_folder / f"{cam}.mp4"
+        p.touch()
+        tracks[cam] = p
+    ctx = make_sequence_context(tracks, **ctx_kwargs)
+    io = make_io(tmp_path)
     return VideoDataHandler(io=io, sequence_context=ctx), ctx, io
 
 
@@ -121,7 +117,7 @@ def make_simple_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
 def assert_handler_output(
     handler: VideoDataHandler,
     cameras: list[str],
-    fps: int = CONFIG_FPS,
+    fps: int = int(VIDEO_FPS),
     start_frame: int = CONFIG_START,
     length_frames: int = CONFIG_STOP,
     is_available: bool = True,

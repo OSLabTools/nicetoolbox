@@ -1,16 +1,23 @@
+import copy
 from pathlib import Path
 from typing import Any, Generator, List
 
 from ..configs.project_config_handler import ProjectConfigHandler
-from ..configs.schemas.dataset_properties import DatasetProperties
+from ..configs.schemas.dataset_properties import DatasetConfig, DatasetProperties
 from ..configs.schemas.detectors_config import DetectorsConfig
-from ..configs.schemas.detectors_run_file import DetectorsRunFile, LoggingLevelEnum
+from ..configs.schemas.detectors_run_file import (
+    DetectorsRunFile,
+    LoggingLevelEnum,
+    ResolvedSubsequenceMeta,
+    RunConfigVideo,
+)
 from ..configs.schemas.experiment_config import CodeConfig, DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
-from ..configs.utils import model_to_dict
+from ..configs.utils import model_to_dict, resolve_filter
 from ..configs.video_runtime_config import SequenceRuntimeConfig
 from ..utils.config import save_config
+from .data import SequenceData
 
 
 def flatten_list(input_list) -> list[Any]:
@@ -98,21 +105,21 @@ class Configuration(ProjectConfigHandler):
         """
         for dataset_name, videos_run_config in self.run_config.run.items():
             # Get dataset properties
-            dataset_props = self.dataset_properties[dataset_name]
+            dataset_config = self.dataset_properties[dataset_name]
 
             for video in videos_run_config.videos:
                 yield self._create_video_runtime_config(
-                    dataset_name=str(dataset_name),
+                    dataset_name=dataset_name,
                     video=video,
-                    dataset_props=dataset_props,
+                    dataset_config=dataset_config,
                     algorithms=self.run_config.algorithms,
                 )
 
     def _create_video_runtime_config(
         self,
         dataset_name: str,
-        video,
-        dataset_props,
+        video: RunConfigVideo,
+        dataset_config: DatasetConfig,
         algorithms: List[str],
     ) -> SequenceRuntimeConfig:
         """
@@ -120,16 +127,21 @@ class Configuration(ProjectConfigHandler):
 
         All placeholders are resolved before constructing the frozen model.
         """
-        # Collect all camera names defined in dataset properties
+        # Collect all camera names from the dataset's video tracks
         # We process all cameras all the time, no matter if any detector actually use them
         # This important for data consistency for visualizer and audio detectors
-        cameras = {
-            "cur_cam_face1": dataset_props.cam_face1,
-            "cur_cam_face2": dataset_props.cam_face2,
-            "cur_cam_top": dataset_props.cam_top,
-            "cur_cam_front": dataset_props.cam_front,
-        }
-        all_camera_names = list(cameras.values())
+        all_camera_names = list(dataset_config.video.cameras.keys())
+        all_track_names = list(dataset_config.audio.tracks.keys())
+
+        # TODO: move it to some more general system for handling optional input block deps
+        # for now it's hardcoded to specific attributes names
+        # Resolve per-detector camera_names / track_names filters against the available tracks.
+        resolved_detectors = copy.deepcopy(self.detectors_config)
+        for algo in resolved_detectors.algorithms.values():
+            if hasattr(algo, "camera_names"):
+                algo.camera_names = resolve_filter(algo.camera_names, all_camera_names)
+            if hasattr(algo, "track_names"):
+                algo.track_names = resolve_filter(algo.track_names, all_track_names)
 
         # Construct frozen model with all resolved values
         runtime_config = SequenceRuntimeConfig(
@@ -137,10 +149,10 @@ class Configuration(ProjectConfigHandler):
             log_file=self.log_file,
             dataset_name=dataset_name,
             video_config=video,
-            dataset_properties=dataset_props,
+            dataset_properties=dataset_config,
             io=self.run_config.io,
             machine=self.machine_specific_config,
-            detectors_config=self.detectors_config,
+            detectors_config=resolved_detectors,
             predictions_mapping=self.predictions_mapping,
             algorithms=algorithms,
             all_camera_names=all_camera_names,
@@ -152,19 +164,9 @@ class Configuration(ProjectConfigHandler):
             "cur_sequence_ID": video.sequence_ID,
             "cur_video_start": video.video_start,
             "cur_video_length": video.video_length,
-            **cameras,
         }
-        # Resolve placeholders
-        resolved_runtime = self.cfg_loader.resolve(runtime_config, runtime_ctx, ignore_auto_and_global=True)
-
-        # TODO: nasty quickfix, remove empty camera names if they aren't available for this dataset
-        # please add a better solution for camera handling without patching configs
-        resolved_runtime.__dict__["all_camera_names"] = list(set(resolved_runtime.all_camera_names) - {""})
-        for algo in resolved_runtime.detectors_config.algorithms.values():
-            if hasattr(algo, "camera_names"):
-                algo.camera_names = list(set(algo.camera_names) - {""})
-
-        return resolved_runtime
+        # Resolve placeholders (rebuilds every nested model via model_validate)
+        return self.cfg_loader.resolve(runtime_config, runtime_ctx, ignore_auto_and_global=True)
 
     # -------------------------------------------------------------------------
     # Static Queries (don't depend on runtime context)
@@ -190,8 +192,24 @@ class Configuration(ProjectConfigHandler):
         save_config(model_to_dict(config), output_folder / f"config_{code_config.time}.toml")
 
     @staticmethod
-    def save_video_config(video_config, output_folder) -> None:
-        save_config(model_to_dict(video_config), output_folder / "video_config.toml")
+    def save_subsequence_meta(sequence_context: SequenceRuntimeConfig, data: SequenceData) -> None:
+        """
+        Build and persist per-sequence resolved facts to `subsequence_meta.toml`
+        in the sequence's output sub-folder.
+
+        Uses identifiers from the user-declared video config plus frame-resolved
+        values measured by the video handler during data prep.
+        """
+        declared = sequence_context.video_config
+        subsequence_meta = ResolvedSubsequenceMeta(
+            session_ID=declared.session_ID,
+            sequence_ID=declared.sequence_ID,
+            video_start=data.video_start_frame_index,
+            video_length=data.video_length_frames,
+            fps=data.fps,
+        )
+        path = sequence_context.io.out_sub_folder / "subsequence_meta.toml"
+        save_config(model_to_dict(subsequence_meta), path)
 
     @property
     def visualize(self) -> bool:

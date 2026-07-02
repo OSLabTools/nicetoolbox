@@ -98,15 +98,8 @@ def main(config: dict) -> None:
         sys.path.insert(0, str(repo_root))
     from notebook.utils import setup_sam_3d_body
 
-    if not (os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")):
-        raise RuntimeError(
-            "No Hugging Face token in subprocess environment. "
-            "Set hugging_face_token in machine_specific_paths.toml; the parent process passes it as HF_TOKEN."
-        )
-
     camera_names = config["camera_names"]
     device = config["device"]
-
     estimator = setup_sam_3d_body(
         hf_repo_id=config.get("hf_repo_id", "facebook/sam-3d-body-dinov3"),
         detector_name=config.get("detector_name", "vitdet"),

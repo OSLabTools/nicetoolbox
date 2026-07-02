@@ -109,7 +109,7 @@ class MMPoseAlgorithmConfig(BaseAlgorithmConfig):
     and the produced components are declared via `components`.
     """
 
-    camera_names: List[str]
+    camera_names: str | list[str]
     env_name: str
     save_detector_images: bool
     save_detector_predictions: bool
@@ -145,7 +145,7 @@ class MMPoseAlgorithmConfig(BaseAlgorithmConfig):
 class MotionbertAlgorithmConfig(BaseAlgorithmConfig):
     """Static config for MotionBERT 3D lifting (2D NPZ input); kept separate from 2D MMPose algorithms."""
 
-    camera_names: List[str]
+    camera_names: str | list[str]
     env_name: str
     save_detector_images: bool
     save_detector_predictions: bool
@@ -178,7 +178,7 @@ class MotionbertAlgorithmConfig(BaseAlgorithmConfig):
 @detector_config("spiga")
 class SpigaConfig(BaseAlgorithmConfig):
     env_name: str
-    camera_names: List[str]
+    camera_names: str | list[str]
     log_frame_idx_interval: int
     batch_size: int
     visualize: bool
@@ -194,7 +194,7 @@ class SpigaConfig(BaseAlgorithmConfig):
 
 @detector_config("py_feat")
 class PyFeatConfig(BaseAlgorithmConfig):
-    camera_names: List[str]
+    camera_names: str | list[str]
     env_name: str
     log_frame_idx_interval: int
     batch_size: int
@@ -204,7 +204,7 @@ class PyFeatConfig(BaseAlgorithmConfig):
 
 @detector_config("eth_xgaze")
 class EthXGazeConfig(BaseAlgorithmConfig):
-    camera_names: List[str]
+    camera_names: str | list[str]
     env_name: str
     log_frame_idx_interval: int
     filtered: bool
@@ -218,7 +218,8 @@ class EthXGazeConfig(BaseAlgorithmConfig):
 class WhisperXConfig(BaseAlgorithmConfig):
     env_name: str
     visualize: bool
-    track_names: List[str]
+    track_names: str | list[str]
+    fallback_camera: Optional[str] = None
 
     model_size: str
     compute_type: str
@@ -238,7 +239,7 @@ class WhisperXConfig(BaseAlgorithmConfig):
 class Sam3dBodyConfig(BaseAlgorithmConfig):
     """SAM 3D Body (Hugging Face weights; set hugging_face_token in machine_specific_paths.toml)."""
 
-    camera_names: List[str]
+    camera_names: str | list[str]
     env_name: str
     device: str
     visualize: bool
@@ -275,9 +276,10 @@ class Sam3dBodyConfig(BaseAlgorithmConfig):
 
 @detector_config("crisper_whisper")
 class CrisperWhisperConfig(BaseAlgorithmConfig):
-    track_names: List[str]
+    track_names: str | list[str]
     env_name: str
     visualize: bool
+    fallback_camera: Optional[str] = None
 
     batch_size: int
     chunk_length_s: float

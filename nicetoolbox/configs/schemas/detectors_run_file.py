@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, NonNegativeInt, PrivateAttr
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr
 
 from nicetoolbox_core.errors import ErrorLevel
 
@@ -55,6 +55,19 @@ class RunConfigVideo(BaseModel):
     sequence_ID: str
     video_start: NonNegativeInt | VideoTimestamp  # can be frame index or timestamp
     video_length: int | VideoTimestamp  # frame index, timestamp or -1 for full length
+
+
+class ResolvedSubsequenceMeta(BaseModel):
+    """
+    Resolved video configuration, containing actual video fps, start and length frame indexes.
+    Used downstream for visualizer and evaluation.
+    """
+
+    session_ID: str
+    sequence_ID: str
+    video_start: NonNegativeInt  # resolved to frame index
+    video_length: PositiveInt  # resolved to frame count
+    fps: PositiveInt
 
 
 class DetectorsRunConfig(BaseModel):

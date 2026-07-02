@@ -8,19 +8,18 @@ from tests.unit.detectors.data_handlers.video.conftest import (
     VIDEO_FPS,
     VIDEO_FRAMES,
     FakeVideoInfo,
+    make_flat_handler,
     make_frames_cache,
     make_io,
     make_sequence_context,
-    make_simple_handler,
 )
 
 
-def test_fps_mismatch_detected_wins(tmp_path, default_vid_patches):
+def test_fps_detected_from_probe(tmp_path, default_vid_patches):
     cameras = ["cam_front"]
-    handler, ctx, io = make_simple_handler(tmp_path, cameras, fps=25)
+    handler, ctx, io = make_flat_handler(tmp_path, cameras)
     make_frames_cache(io, ctx)
 
-    # json_to_video_info returns VIDEO_FPS=30, config says 25
     handler.prepare()
 
     assert handler.fps == int(VIDEO_FPS)
@@ -29,7 +28,7 @@ def test_fps_mismatch_detected_wins(tmp_path, default_vid_patches):
 def test_video_start_beyond_length_raises(tmp_path, default_vid_patches):
     cameras = ["cam_front"]
     # VIDEO_FRAMES=300, start at 500 → no frames available
-    handler, _, _ = make_simple_handler(tmp_path, cameras, video_start=500, video_length=-1)
+    handler, _, _ = make_flat_handler(tmp_path, cameras, video_start=500, video_length=-1)
 
     with pytest.raises(ValueError, match="beyond the end"):
         handler.prepare()
@@ -37,7 +36,7 @@ def test_video_start_beyond_length_raises(tmp_path, default_vid_patches):
 
 def test_auto_length_detected_from_frame_count(tmp_path, default_vid_patches):
     cameras = ["cam_front"]
-    handler, ctx, io = make_simple_handler(tmp_path, cameras, video_start=0, video_length=-1)
+    handler, ctx, io = make_flat_handler(tmp_path, cameras, video_start=0, video_length=-1)
     make_frames_cache(io, ctx)
 
     default_vid_patches["json_to_video_info"].return_value = FakeVideoInfo(video_path=Path("fake.mp4"), frames=300)
@@ -48,7 +47,7 @@ def test_auto_length_detected_from_frame_count(tmp_path, default_vid_patches):
 
 def test_inconsistent_fps_across_cameras_raises(tmp_path, default_vid_patches):
     cameras = ["cam_front", "cam_top"]
-    handler, _, _ = make_simple_handler(tmp_path, cameras, video_length=100)
+    handler, _, _ = make_flat_handler(tmp_path, cameras, video_length=100)
 
     default_vid_patches["json_to_video_info"].side_effect = [
         FakeVideoInfo(video_path=Path("cam_front.mp4"), fps=30.0),
@@ -61,7 +60,7 @@ def test_inconsistent_fps_across_cameras_raises(tmp_path, default_vid_patches):
 
 def test_inconsistent_frame_counts_across_cameras_raises(tmp_path, default_vid_patches):
     cameras = ["cam_front", "cam_top"]
-    handler, _, _ = make_simple_handler(tmp_path, cameras, video_length=-1)
+    handler, _, _ = make_flat_handler(tmp_path, cameras, video_length=-1)
 
     default_vid_patches["json_to_video_info"].side_effect = [
         FakeVideoInfo(video_path=Path("cam_front.mp4"), frames=300),
@@ -75,7 +74,7 @@ def test_inconsistent_frame_counts_across_cameras_raises(tmp_path, default_vid_p
 def test_timestamp_video_start(tmp_path, default_vid_patches):
     # "00-00-02" = 2 seconds at 30fps = frame 60; VIDEO_FRAMES=300 → length=240
     cameras = ["cam_front"]
-    handler, _, io = make_simple_handler(tmp_path, cameras, video_start="00-00-02", video_length=-1)
+    handler, _, io = make_flat_handler(tmp_path, cameras, video_start="00-00-02", video_length=-1)
 
     # make_frames_cache can't handle string video_start — create frames manually
     from nicetoolbox.detectors.data_handlers.video_handler import FILENAME_TEMPLATE
@@ -93,19 +92,8 @@ def test_timestamp_video_start(tmp_path, default_vid_patches):
 
 
 def test_empty_camera_list_raises(tmp_path, default_vid_patches):
-    handler, _, _ = make_simple_handler(tmp_path, cameras=[], video_length=100)
+    ctx = make_sequence_context({}, video_length=100)
+    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
 
     with pytest.raises(ValueError, match="No camera names"):
-        handler.prepare()
-
-
-def test_blank_camera_name_raises(tmp_path, default_vid_patches):
-    cameras = [""]
-    data_source_folder = tmp_path / "data_source"
-    data_source_folder.mkdir(parents=True)
-    ctx = make_sequence_context(cameras)
-    io = make_io(tmp_path, data_source_folder)
-    handler = VideoDataHandler(io=io, sequence_context=ctx)
-
-    with pytest.raises(ValueError, match="Invalid camera name"):
         handler.prepare()

@@ -117,12 +117,11 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
         sequence_str = str(sequence_context.video_config)
         log_ut.log_banner(f"RUNNING {sequence_str}")
         with manage_error_scope(error_level, ErrorLevel.SEQUENCE, sequence_str):
-            # Create IO and Data from runtime config for the current sequence
+            # Create IO paths specific for the sequence
             io = SequenceIO(sequence_context)
+            # Init sequences data and dump resolved info (actual fps, number of frames, etc.)
             data = SequenceData(sequence_context, io)
-
-            # Save video config
-            config.save_video_config(sequence_context.video_config, io.get_output_folder("output"))
+            config.save_subsequence_meta(sequence_context, data)
 
             # Topologically sort the selected algorithms by their dependencies
             ordered_detectors = sort_detectors_order(

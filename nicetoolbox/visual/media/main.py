@@ -187,7 +187,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         if end_frame != -1 and frame_idx > end_frame:
             break
         viewer.go_to_timestamp(frame_idx)
-        frame_no = viewer.get_video_start() + frame_idx + config_handler.get_dataset_starting_index()
+        frame_no = viewer.get_video_start() + frame_idx
         image_name = f"{frame_no:09}.png"
         for camera in all_cameras:
             # log camera into 3d canvas

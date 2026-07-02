@@ -5,7 +5,7 @@ import os
 import time
 from pathlib import Path
 from pprint import pformat
-from typing import Optional, Type, TypeVar
+from typing import Optional, TypeVar
 
 import pydantic
 import toml
@@ -136,10 +136,6 @@ def default_runtime_placeholders():
         "cur_sequence_ID",
         "cur_dataset_name",
         "cur_session_ID",
-        "cur_cam_face1",
-        "cur_cam_face2",
-        "cur_cam_top",
-        "cur_cam_front",
         "cur_algorithm_name",
         "cur_component_name",
         "cur_camera_name",
@@ -147,29 +143,18 @@ def default_runtime_placeholders():
     }
 
 
-# TODO: Deprecated and should be removed after updating rerun visualization
-def load_validated_config_raw(config_filepath: str, schema: Type[ModelT]) -> dict:
+def resolve_filter(declared: str | list[str], all_names: list[str]) -> list[str]:
     """
-    Load a configuration file, validate it using a Pydantic model
-    and return the raw dictionary.
+    Resolve a name-filter declaration against a pool of available names.
 
-    Args:
-        config_filepath (str): Path to the config file.
-        schema (Type[ModelT]): Pydantic model class used to validate.
-
-    Returns:
-        dict: Raw config dictionary.
-
-    Raises:
-        IOError: When an array with no valid (existing)
-        FileNotFoundError: If the file does not exist.
-        NotImplementedError: If the file type is not supported.
-        TomlDecodeError: Error while decoding toml
-        ConfigValidationError: If validation fails.
+    - "*" (or ["*"]) expands to every available name, preserving pool order.
+    - A single string is treated as a one-element list.
+    - A list of names intersects with the available pool, preserving declared order.
+      Names absent from the pool are dropped silently.
     """
-    config_raw = load_raw_config(config_filepath)
-    try:
-        schema.model_validate(config_raw, extra="forbid")
-    except pydantic.ValidationError as e:
-        raise ConfigValidationError(e, Path(config_filepath)) from None
-    return config_raw
+    if declared == "*" or declared == ["*"]:
+        return list(all_names)
+    if isinstance(declared, str):
+        declared = [declared]
+    available = set(all_names)
+    return [name for name in declared if name in available]

@@ -7,8 +7,8 @@ from typing import Any
 
 import numpy as np
 
-from ...configs.models.video_timestamp import timestamp_to_frame_index
 from ...configs.placeholders import resolve_placeholders
+from ...configs.schemas.detectors_run_file import ResolvedSubsequenceMeta
 from ...configs.schemas.evaluation_input_block import (
     AnnotationInput,
     BaseInputBlock,
@@ -29,8 +29,8 @@ from ...utils.logging_utils import abbrev_list
 @dataclass
 class SubsequenceInfo:
     subsequence_index: int
-    video_start: int | str
-    video_length: int | str
+    video_start: int  # resolved frame index
+    video_length: int  # resolved frame count
 
 
 @dataclass
@@ -69,7 +69,6 @@ class ExperimentMeta(NpzMeta):
     sequence: str
     component: str
     algorithm: str
-    fps: int
     subsequence: SubsequenceInfo
 
     @classmethod
@@ -84,15 +83,13 @@ class ExperimentMeta(NpzMeta):
         return (self.dataset, self.session, self.sequence, self.component)
 
     def to_dict(self) -> dict[str, Any]:
-        subsequence_start = timestamp_to_frame_index(self.subsequence.video_start, self.fps)
-        subsequence_length = timestamp_to_frame_index(self.subsequence.video_length, self.fps)
         return {
             "dataset": self.dataset,
             "session": self.session,
             "sequence": self.sequence,
             "subsequence": self.subsequence.subsequence_index,
-            "subsequence_start": subsequence_start,
-            "subsequence_length": subsequence_length,
+            "subsequence_start": self.subsequence.video_start,
+            "subsequence_length": self.subsequence.video_length,
             "component": self.component,
             "algorithm": self.algorithm,
             "npz_key": self.npz_key,
@@ -244,12 +241,6 @@ def _resolve_experiment_source(
         # load dataset config
         if dataset_name not in exp_cfg.dataset_config:
             raise KeyError(f"Dataset {dataset_name} is presented in detectors_run_file, but not in dataset_properties")
-        ds_cfg = exp_cfg.dataset_config[dataset_name]
-        # TODO: detectors can resolve other fps from video
-        # this will result incorrect timestamps conversion latter
-        # we need to save actual fps (and maybe normalized start/length) in meta.toml
-        # and don't trust the fps from dataset properties
-        fps = ds_cfg.fps
 
         # "components" in run_ds is the list of enabled components for this dataset.
         for subsequence_idx, video in enumerate(run_ds.videos):
@@ -283,9 +274,21 @@ def _resolve_experiment_source(
                         "cur_component_name": component_name,
                         "cur_algorithm_name": algorithm_name,
                     }
-                    result_folder = resolve_placeholders(run_file.io.detector_final_result_folder, ctx)
-                    npz_path = Path(result_folder) / f"{algorithm_name}.npz"
 
+                    # get subsequence meta information
+                    out_sub_folder = resolve_placeholders(run_file.io.out_sub_folder, ctx)
+                    meta_path = out_sub_folder / "subsequence_meta.toml"
+                    if not meta_path.exists():
+                        raise FileNotFoundError(
+                            f"Missing subsequence_meta.toml for dataset={dataset_name}, session={video.session_ID}, "
+                            f"sequence={video.sequence_ID} at '{meta_path}'. "
+                            "Re-run the detectors pipeline to produce it."
+                        )
+                    subsequence_meta = dict_to_model(load_raw_config(meta_path), ResolvedSubsequenceMeta)
+
+                    # get npz path with detectors results
+                    result_folder: Path = resolve_placeholders(run_file.io.detector_final_result_folder, ctx)
+                    npz_path = result_folder / f"{algorithm_name}.npz"
                     if not npz_path.exists():
                         raise FileNotFoundError(
                             "Expected NPZ output is missing for configured detector: "
@@ -296,8 +299,8 @@ def _resolve_experiment_source(
 
                     subseq = SubsequenceInfo(
                         subsequence_index=subsequence_idx,
-                        video_start=video.video_start,
-                        video_length=video.video_length,
+                        video_start=subsequence_meta.video_start,
+                        video_length=subsequence_meta.video_length,
                     )
                     meta = ExperimentMeta(
                         dataset=dataset_name,
@@ -305,7 +308,6 @@ def _resolve_experiment_source(
                         sequence=video.sequence_ID,
                         component=component_name,
                         algorithm=algorithm_name,
-                        fps=fps,
                         subsequence=subseq,
                         npz_path=npz_path,
                         npz_key=input_block.npz_key,

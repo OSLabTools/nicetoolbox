@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from ..configs.placeholders import resolve_placeholders
 from ..configs.video_runtime_config import SequenceRuntimeConfig
 from ..utils import check_and_exception as exc
 from ..utils import system as oslab_sys
@@ -30,7 +29,6 @@ class SequenceIO:
     csv_folder: Path
     code_folder: Path
     nice_input_folder: Path
-    _data_source_folder: Path
     calibration_file: Optional[Path]
     conda_path: Path
     _sequence_context: SequenceRuntimeConfig
@@ -56,7 +54,6 @@ class SequenceIO:
         self.nice_input_folder = io.nicetoolbox_input_folder
 
         # Dataset properties
-        self._data_source_folder = sequence_context.data_source_folder
         self.calibration_file = sequence_context.calibration_path
 
         # Machine config
@@ -74,19 +71,6 @@ class SequenceIO:
     # -------------------------------------------------------------------------
     # Path Getters
     # -------------------------------------------------------------------------
-
-    def get_data_source_folder(self, camera_name: str) -> Path:
-        """
-        Returns the folder path to the original dataset source data. (E.g. storing mp4/avi files)
-
-        Args:
-            camera_name (str): Specific camera name, used for path resolut
-
-        Returns:
-            Path: The path to the source data folder.
-        """
-        resolved_path = resolve_placeholders(self._data_source_folder, {"cur_camera_name": camera_name})
-        return resolved_path
 
     def get_calibration_file(self):
         """

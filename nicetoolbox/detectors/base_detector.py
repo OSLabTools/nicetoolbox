@@ -65,6 +65,25 @@ class BaseDetector(ABC):
         config_components = getattr(self.detector_config, "components", None)
         if config_components:
             self.components = list(config_components)
+        self._check_declared_tracks_available()
+
+    def _check_declared_tracks_available(self) -> None:
+        """
+        Fail fast when a detector's declared camera/track filter resolves to an empty set
+        for this sequence. The filter has already been intersected against the sequence's
+        available tracks in the config handler, so an empty list here means none of the
+        requested tracks exist for this sequence.
+        """
+        if hasattr(self.detector_config, "camera_names") and not self.detector_config.camera_names:
+            raise ValueError(
+                f"Detector '{self.algorithm_instance}': none of the requested cameras are available "
+                f"for this sequence. Available cameras: {self.sequence_context.all_camera_names}."
+            )
+        if hasattr(self.detector_config, "track_names") and not self.detector_config.track_names:
+            raise ValueError(
+                f"Detector '{self.algorithm_instance}': none of the requested audio tracks are "
+                f"available for this sequence."
+            )
 
     @abstractmethod
     def run(self) -> Optional[Any]:

@@ -151,5 +151,5 @@ class WhisperX(BaseMethod):
                 default_start_frame=self.data.video_start_frame_index,
                 video_recipe=video_recipe,
                 camera=info.get("camera"),
-                fallback_camera=self.data.camera_mapping["cam_front"],
+                fallback_camera=self.detector_config.fallback_camera,
             )
