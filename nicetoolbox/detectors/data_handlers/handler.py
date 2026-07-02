@@ -28,7 +28,6 @@ class BaseModalityHandler(ABC):
 
         # References for child classes:
         self.nice_input_folder = self.io.nice_input_folder
-        self.fps = self.sequence_context.fps
         self.session_id = self.sequence_context.session_id
         self.sequence_id = self.sequence_context.sequence_id
         self.subjects_descr = self.sequence_context.subjects_descr

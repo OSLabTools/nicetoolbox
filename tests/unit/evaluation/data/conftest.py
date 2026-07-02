@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
 
 from nicetoolbox.configs.placeholders import resolve_placeholders
 from nicetoolbox.evaluation.data.input_loader import (
@@ -13,6 +14,7 @@ from nicetoolbox.evaluation.data.input_loader import (
     NpzMeta,
     SubsequenceInfo,
 )
+from nicetoolbox.utils.config import save_config
 
 # ---------------------------------------------------------------------------
 # LoadedArray factory
@@ -159,22 +161,25 @@ class FakeAnnotation:
 
 @dataclass
 class FakeDatasetConfig:
-    fps: int = 30
     session_IDs: list[str] = field(default_factory=list)
     sequence_IDs: list[str] = field(default_factory=list)
     annotation: FakeAnnotation = field(default_factory=FakeAnnotation)
 
 
-@dataclass
-class FakeRunIO:
+class FakeRunIO(BaseModel):
+    # Pydantic so resolve_placeholders can walk into it.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     detector_final_result_folder: Path = Path("")
+    out_sub_folder: Path = Path("")
 
 
-@dataclass
-class FakeRunFile:
-    run: dict[str, FakeRunDataset] = field(default_factory=dict)
-    algorithms: list[str] = field(default_factory=list)
-    io: FakeRunIO = field(default_factory=FakeRunIO)
+class FakeRunFile(BaseModel):
+    # Pydantic so resolve_placeholders can walk into it. `run` is nested dataclasses
+    # (no placeholders inside), so arbitrary_types_allowed keeps them unchanged.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    run: dict[str, FakeRunDataset] = Field(default_factory=dict)
+    algorithms: list[str] = Field(default_factory=list)
+    io: FakeRunIO = Field(default_factory=FakeRunIO)
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +201,7 @@ def make_experiment_config(tmp_path: Path, datasets: dict, algo_component_mappin
     """
     placeholder_path = Path("<cur_dataset_name>") / "<cur_session_ID>" / "<cur_sequence_ID>" / "<cur_component_name>"
     result_template = tmp_path / placeholder_path
+    sub_folder_template = tmp_path / "<cur_dataset_name>" / "<cur_session_ID>" / "<cur_sequence_ID>"
 
     run_datasets: dict[str, FakeRunDataset] = {}
     dataset_configs: dict[str, FakeDatasetConfig] = {}
@@ -220,19 +226,38 @@ def make_experiment_config(tmp_path: Path, datasets: dict, algo_component_mappin
                 resolved.touch()
 
         dataset_configs[ds_name] = FakeDatasetConfig(
-            fps=ds_spec.get("fps", 30),
             session_IDs=list({v["session_ID"] for v in ds_spec["videos"]}),
             sequence_IDs=list({v["sequence_ID"] for v in ds_spec["videos"]}),
             annotation=FakeAnnotation(components=annotation_components),
         )
 
-        # Create experiment .npz files on disk
+        # Create experiment .npz files and per-sequence subsequence_meta.toml on disk
+        ds_fps = ds_spec.get("fps", 30)
         for video in videos:
             for algo, components in algo_component_mapping.items():
                 for comp in components:
                     npz_dir = tmp_path / ds_name / video.session_ID / video.sequence_ID / comp
                     npz_dir.mkdir(parents=True, exist_ok=True)
                     (npz_dir / f"{algo}.npz").touch()
+
+            sub_folder = tmp_path / ds_name / video.session_ID / video.sequence_ID
+            sub_folder.mkdir(parents=True, exist_ok=True)
+
+            # ResolvedSequenceMeta as detectors would write post-prep. Only integer
+            # frame values are valid here; declared timestamps on FakeVideo are
+            # ignored (production would resolve them to frames before writing).
+            resolved_start = video.video_start if isinstance(video.video_start, int) else 0
+            resolved_length = video.video_length if isinstance(video.video_length, int) else 100
+            save_config(
+                {
+                    "session_ID": video.session_ID,
+                    "sequence_ID": video.sequence_ID,
+                    "video_start": resolved_start,
+                    "video_length": resolved_length,
+                    "fps": ds_fps,
+                },
+                sub_folder / "subsequence_meta.toml",
+            )
 
     # Build fake detector config: each algo has a config with .components set
     fake_detector_algorithms = {}
@@ -244,7 +269,7 @@ def make_experiment_config(tmp_path: Path, datasets: dict, algo_component_mappin
     run_file = FakeRunFile(
         run=run_datasets,
         algorithms=list(algo_component_mapping.keys()),
-        io=FakeRunIO(detector_final_result_folder=result_template),
+        io=FakeRunIO(detector_final_result_folder=result_template, out_sub_folder=sub_folder_template),
     )
 
     cfg = MagicMock()
@@ -269,7 +294,6 @@ def expected_experiment_metas(
     """Build the expected ExperimentMeta list matching make_experiment_config output."""
     out: list[ExperimentMeta] = []
     for ds_name, ds_spec in datasets.items():
-        fps = ds_spec.get("fps", 30)
         for subseq_idx, v in enumerate(ds_spec["videos"]):
             video_start = v.get("video_start", 0)
             video_length = v.get("video_length", 100)
@@ -282,7 +306,6 @@ def expected_experiment_metas(
                             sequence=v["sequence_ID"],
                             component=comp,
                             algorithm=algo,
-                            fps=fps,
                             subsequence=SubsequenceInfo(
                                 subsequence_index=subseq_idx,
                                 video_start=video_start,

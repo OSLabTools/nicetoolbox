@@ -18,6 +18,7 @@ from nicetoolbox_core.input_recipes import VideoInputRecipe
 from ...configs.models.video_timestamp import timestamp_to_frame_index
 from ...configs.video_runtime_config import SequenceRuntimeConfig
 from ...utils import video as vid
+from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
 from ..in_out import SequenceIO
 from .handler import BaseModalityHandler
@@ -30,7 +31,7 @@ class VideoDataHandler(BaseModalityHandler):
     Handles video/frame data preparation.
 
     Responsibilities:
-    - Validate camera names and locate one video file per camera
+    - Resolve each camera's configured video path (single-file, glob-single-match)
     - Validate that all cameras share the same FPS and frame count
     - Extract frames from video files (mp4, mov)
     - Validate existing frame sequences
@@ -41,9 +42,6 @@ class VideoDataHandler(BaseModalityHandler):
     def __init__(self, io: SequenceIO, sequence_context: SequenceRuntimeConfig):
         # Shared fields
         super().__init__(io, sequence_context)
-
-        # Video-specific state
-        self.start_frame_index = self.dataset_properties.start_frame_index
 
         # Resolved during prepare()
         self.camera_video_paths: Optional[Dict[str, Path]] = None
@@ -56,15 +54,11 @@ class VideoDataHandler(BaseModalityHandler):
     def prepare(self) -> None:
         log_with_underscore("Preparing Video Modality...")
 
-        # Validate camera names not empty
         if not self.all_camera_names:
             raise ValueError("No camera names provided.")
-        for name in self.all_camera_names:
-            if not name or not name.strip():
-                raise ValueError(f"Invalid camera name {name!r}")
 
-        # Find exactly one video per camera (recursive, exact name match)
-        self.camera_video_paths = self._find_video_paths()
+        # Resolve one video file per camera from its configured path.
+        self.camera_video_paths = self._resolve_video_paths()
 
         # Probe all videos, check cross-camera consistency, then validate against config
         self.fps, self.length_frames = self._resolve_fps_and_length()
@@ -96,46 +90,17 @@ class VideoDataHandler(BaseModalityHandler):
     # Helper methods
     # -------------------------------------------------------------------------
 
-    def _find_video_paths(self) -> Dict[str, Path]:
+    def _resolve_video_paths(self) -> Dict[str, Path]:
         """
-        For each camera, recursively search its source folder for exactly one
-        video file whose stem or any ancestor directory name equals the camera
-        name exactly.
+        Resolve each active camera's configured path to exactly one video file.
 
-        Returns:
-            dict mapping camera name -> Path of the matched video file.
-
-        Raises:
-            ValueError: If a camera matches zero or more than one file.
+        Paths may contain a `*` wildcard; zero or multiple matches raise.
         """
         result: Dict[str, Path] = {}
-
+        cameras = self.dataset_properties.video.cameras
         for cam in self.all_camera_names:
-            source_folder = self.io.get_data_source_folder(cam)
-
-            candidates = []
-            for p in source_folder.rglob("*"):
-                # is this a video extension?
-                if p.suffix.lower() not in vid.VIDEO_EXTENSIONS:
-                    continue
-                # does it contains exact match of camera name in path?
-                if not _contains_camera_name(p, cam):
-                    continue
-                candidates.append(p)
-
-            if len(candidates) == 0:
-                raise ValueError(
-                    f"No video file found for camera '{cam}' in '{source_folder}'. "
-                    f"Expected a file or directory named exactly '{cam}'."
-                )
-            if len(candidates) > 1:
-                raise ValueError(
-                    f"Ambiguous: found {len(candidates)} video files for camera '{cam}' "
-                    f"in '{source_folder}': {[str(p) for p in candidates]}"
-                )
-
-            result[cam] = candidates[0]
-
+            track = cameras[cam]
+            result[cam] = resolve_single_file(Path(track.path), label=f"Video track '{cam}'")
         return result
 
     def _resolve_fps_and_length(self) -> tuple[int, int]:
@@ -156,23 +121,20 @@ class VideoDataHandler(BaseModalityHandler):
             raw = vid.probe_video(str(path))
             infos[cam] = vid.json_to_video_info(raw)
 
-        # Cross-camera consistency
+        # Cross-camera consistency: every probed camera must agree on fps and frame count.
         fps_values = {cam: int(info.fps) for cam, info in infos.items() if info.fps is not None}
         frame_values = {cam: info.frames for cam, info in infos.items() if info.frames is not None}
 
+        if len(fps_values) != len(infos):
+            missing = sorted(set(infos) - set(fps_values))
+            raise ValueError(f"Could not determine FPS from cameras: {missing}.")
         if len(set(fps_values.values())) > 1:
             raise ValueError(f"Cameras have inconsistent FPS: {fps_values}")
-
         if len(set(frame_values.values())) > 1:
             raise ValueError(f"Cameras have inconsistent frame counts: {frame_values}")
 
-        # Resolve FPS
-        fps = next(iter(fps_values.values())) if fps_values else None
-        if fps is None:
-            raise ValueError("Could not determine FPS from any camera video.")
-
-        if fps != self.sequence_context.fps:
-            logging.warning(f"Detected fps={fps} does not match config fps={self.sequence_context.fps}!")
+        fps = next(iter(fps_values.values()))
+        logging.info(f"Auto-detected FPS: {fps}")
 
         # Resolve length
         video_length_frame = timestamp_to_frame_index(self.sequence_context.video_length, fps)
@@ -247,7 +209,6 @@ class VideoDataHandler(BaseModalityHandler):
                 str(video_path),
                 str(frames_folder) + "/",
                 video_info.frames,
-                start_frame=self.start_frame_index,
                 keep_indices=True,
             )
 
@@ -284,32 +245,3 @@ class VideoDataHandler(BaseModalityHandler):
             raise err
 
         return calib
-
-
-# -------------------------------------------------------------------------
-# Module-level helpers
-# -------------------------------------------------------------------------
-
-
-def _contains_camera_name(video_path: Path, camera_name: str) -> bool:
-    """
-    Return True if the camera name matches the video file's stem or any
-    directory component in its path exactly (case-insensitive).
-
-    'cam_front' matches:
-      - cam_front.mp4          (stem == camera_name)
-      - cam_front/video.mp4    (parent dir == camera_name)
-      - root/cam_front/sub/v.mp4
-
-    'cam_front' does NOT match:
-      - cam_front_test.mp4     (stem != camera_name)
-      - cam_front_test/v.mp4   (dir != camera_name)
-    """
-    cam_lower = camera_name.lower()
-
-    # Check file stem
-    if video_path.stem.lower() == cam_lower:
-        return True
-
-    # Check every directory component in the path
-    return any(part.lower() == cam_lower for part in video_path.parts[:-1])

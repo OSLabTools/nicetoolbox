@@ -12,7 +12,6 @@ DESIGN DECISIONS:
 3. Track configuration from dataset_properties.toml drives extraction.
 """
 
-import glob as glob_module
 import json
 import logging
 import subprocess
@@ -23,6 +22,7 @@ from nicetoolbox_core.input_recipes import AudioInputRecipe, AudioStreamRecipe
 
 from ...configs.schemas.dataset_properties import AudioTrackConfig
 from ...configs.video_runtime_config import SequenceRuntimeConfig
+from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
 from ..in_out import SequenceIO
 from .handler import BaseModalityHandler
@@ -105,13 +105,11 @@ class AudioDataHandler(BaseModalityHandler):
             source_type = "embedded"
             camera = track_cfg.camera
         elif track_cfg.is_standalone:
-            source_path = Path(track_cfg.path)
+            source_path = resolve_single_file(track_cfg.path, label=f"Audio track '{track_name}'")
             source_type = "standalone"
         else:
             raise ValueError("Audio track should be embedded or standalone")
 
-        if not source_path.exists():
-            raise FileNotFoundError(f"Audio track '{track_name}': file not found: '{source_path}'")
         logging.info(f"Audio track file: '{source_path}'")
 
         # did we already extracted it before?
@@ -178,20 +176,17 @@ class AudioDataHandler(BaseModalityHandler):
     # File discovery (video for embedded tracks)
     # -------------------------------------------------------------------------
 
-    def _find_video_for_camera(self, camera_name: str) -> Optional[Path]:
-        """Find the video file for a specific camera using IO."""
-        VIDEO_EXTS = [".mp4", ".avi"]  # TODO: Add more extensions
-        src = self.io.get_data_source_folder(camera_name)
-
-        # TODO: STRONG assumptions here...
-        # yeah, definitely asking for troubles
-        for ext in VIDEO_EXTS:
-            video_files = glob_module.glob(str(src / f"*{ext}"))
-            matches = [path for path in video_files if camera_name in path]
-            if matches:
-                return Path(matches[0])
-
-        raise ValueError(f"No video file found for camera '{camera_name}' in {src}")
+    def _find_video_for_camera(self, camera_name: str) -> Path:
+        """Look up the video file for a specific camera from the dataset's video tracks."""
+        tracks = self.dataset_properties.video.cameras
+        if camera_name not in tracks:
+            raise ValueError(
+                f"Embedded audio references camera '{camera_name}', which is not declared "
+                f"in dataset.video.tracks (available: {list(tracks.keys())})."
+            )
+        return resolve_single_file(
+            Path(tracks[camera_name].path), label=f"Embedded audio source (camera '{camera_name}')"
+        )
 
     # -------------------------------------------------------------------------
     # FFmpeg / FFprobe helpers

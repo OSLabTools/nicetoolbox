@@ -589,7 +589,9 @@ class GazeIndividualComponent(Component):
                         continue
                     alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
-                        if subject_idx in self.visualizer_config["dataset_properties"]["cam_sees_subjects"][cam_name]:
+                        cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
+                        subjs = cam["sees_subjects"]
+                        if subject_idx in subjs:
                             camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
                             if frame_idx >= camera_data.shape[1]:  # number of frames
                                 continue
@@ -764,7 +766,8 @@ class EmotionIndividualComponent(Component):
                     continue
                 alg_name = self.algorithm_list[alg_idx]
                 for subject_idx, subject in enumerate(self.subject_names):
-                    if subject_idx in self.visualizer_config["dataset_properties"]["cam_sees_subjects"][cam_name]:
+                    subjs = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]["sees_subjects"]
+                    if subject_idx in subjs:
                         subject_head_bbox = self.algorithms_results[alg_idx][head_bbox][
                             subject_idx, camera_index, frame_idx
                         ]
@@ -880,7 +883,9 @@ class HeadOrientationComponent(Component):
                     continue
                 alg_name = self.algorithm_list[alg_idx]
                 for subject_idx, subject in enumerate(self.subject_names):
-                    if subject_idx in self.visualizer_config["dataset_properties"]["cam_sees_subjects"][cam_name]:
+                    cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
+                    subjs = cam["sees_subjects"]
+                    if subject_idx in subjs:
                         frame_data = alg_data[subject_idx, camera_index, frame_idx]
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,

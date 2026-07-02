@@ -1,9 +1,30 @@
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt, PrivateAttr, model_validator
+from pydantic import BaseModel, Field, NonNegativeInt, PrivateAttr, model_validator
 
 from ..models.dict_model import DictModel
+
+
+class VideoTrackConfig(BaseModel):
+    """
+    Configuration for a single video track (camera).
+
+    A track has an arbitrary user-defined name, a path to its video file, and
+    declares which subjects it sees. The path may contain a `*` wildcard and
+    is expected to resolve to exactly one file (zero or multiple matches raise).
+    """
+
+    path: Path
+    sees_subjects: List[int] = Field(min_length=1)
+
+
+class DatasetVideo(BaseModel):
+    """
+    Configuration for dataset video modality.
+    """
+
+    cameras: Dict[str, VideoTrackConfig] = Field(default_factory=dict)
 
 
 class AudioTrackConfig(BaseModel):
@@ -86,21 +107,13 @@ class DatasetConfig(BaseModel):
     session_IDs: List[str]
     sequence_IDs: List[str]
 
-    cam_front: str = ""
-    cam_top: str = ""
-    cam_face1: str = ""
-    cam_face2: str = ""
-
     subjects_descr: List[str]
-    cam_sees_subjects: Optional[Dict[str, List[int]]] = Field(default_factory=dict)
 
     data_input_folder: Path
     path_to_calibrations: Optional[Path] = None
 
-    start_frame_index: NonNegativeInt
-    fps: PositiveInt
-
     annotation: DatasetAnnotation = Field(default_factory=DatasetAnnotation)
+    video: DatasetVideo = Field(default_factory=DatasetVideo)
     audio: DatasetAudio = Field(default_factory=DatasetAudio)
 
     # Runtime fields

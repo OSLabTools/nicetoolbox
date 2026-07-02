@@ -26,7 +26,6 @@ def _exp(algorithm: str = "algo_a") -> ExperimentMeta:
         sequence="seq01",
         component="body_joints",
         algorithm=algorithm,
-        fps=30,
         subsequence=SubsequenceInfo(0, 0, 100),
         npz_path=_DUMMY_PATH,
         npz_key=_DUMMY_KEY,

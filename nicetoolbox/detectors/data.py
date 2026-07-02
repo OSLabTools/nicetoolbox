@@ -61,14 +61,9 @@ class SequenceData:
         self.annotation_interval = 2.0  # Keep? Hardcoded - No access via config yet
 
         dataset_properties = sequence_context.dataset_properties
-        self.start_frame_index: int = dataset_properties.start_frame_index
-        self.cam_sees_subjects = dataset_properties.cam_sees_subjects
-        self.camera_mapping = {
-            "cam_front": dataset_properties.cam_front,
-            "cam_face1": dataset_properties.cam_face1,
-            "cam_face2": dataset_properties.cam_face2,
-            "cam_top": dataset_properties.cam_top,
-        }
+        cameras = dataset_properties.video.cameras
+        # TODO: remove cam_sees_subjects?
+        self.cam_sees_subjects = {name: t.sees_subjects for name, t in cameras.items()}
         # --- END: Config Parameters / Meta data used by detectors ---
         # (1) Always prepare video data (main source)
         self._video_handler = VideoDataHandler(io, sequence_context)

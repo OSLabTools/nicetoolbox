@@ -2,8 +2,10 @@
 Helper functions for reading, writing and parsing files
 """
 
+import glob
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import toml
@@ -74,3 +76,29 @@ def load_json_file(json_path: str) -> dict:
     with open(json_path) as file:
         data = json.load(file)
         return data
+
+
+def resolve_single_file(path: Path, *, label: str) -> Path:
+    """
+    Resolve `path` to exactly one existing file.
+
+    - If `path` contains a `*`, expand it as a glob; expect exactly one match.
+    - Otherwise, expect the file to exist as-is.
+
+    Zero matches or multiple matches raise ValueError. `label` is included in
+    error messages to identify the track/source that produced the path.
+    """
+    path_str = str(path)
+    if "*" in path_str:
+        matches = [Path(p) for p in glob.glob(path_str)]
+        matches = [p for p in matches if p.is_file()]
+        if not matches:
+            raise ValueError(f"{label}: no files match pattern '{path_str}'.")
+        if len(matches) > 1:
+            listing = ", ".join(str(m) for m in matches)
+            raise ValueError(f"{label}: pattern '{path_str}' matches {len(matches)} files: {listing}")
+        return matches[0]
+
+    if not path.is_file():
+        raise FileNotFoundError(f"{label}: file not found: '{path}'.")
+    return path

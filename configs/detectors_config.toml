@@ -14,7 +14,7 @@
 # detects 2d points => triangulates 3d points from multiple cameras => post-processing
 [templates.mmpose_2d_template]
 algorithm_type = "mmpose_2d"  # name of the detector
-camera_names = ["<cur_cam_top>", "<cur_cam_front>"]  # cameras used in inference
+camera_names = ["view_top", "view_center"]  # cameras used in inference
 keypoint_mapping = "coco_wholebody"  # default body joitns mapping format
 env_name = "conda:openmmlab"
 device = "cuda:0"
@@ -109,7 +109,7 @@ detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_2020
 # existing 2d points => 3d points from single camera => post-processing
 [templates.motionbert_template]
 algorithm_type = "motionbert"
-camera_names = ["<cur_cam_top>", "<cur_cam_front>"]
+camera_names = ["view_top", "view_center"]
 keypoint_mapping = "human36m"
 env_name = "conda:openmmlab"
 device = "cuda:0"
@@ -158,7 +158,7 @@ visualize = true
 
 [algorithms.sam_3d_body]
 algorithm_type = "sam_3d_body"
-camera_names = ["<cur_cam_top>", "<cur_cam_front>"]
+camera_names = ["view_top", "view_center"]
 env_name = "venv:sam_3d_body"
 device = "cuda:0"
 visualize = true
@@ -203,7 +203,7 @@ moge2_model = "<assets>/sam_3d_body/models--Ruicheng--moge-2-vitl-normal"
 # ETH XGaze for 3d gaze vector detection
 [algorithms.eth_xgaze]
 algorithm_type = "eth_xgaze"
-camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
+camera_names = "*"
 env_name = "venv:eth_xgaze"
 log_frame_idx_interval = 200
 filtered = true
@@ -245,7 +245,7 @@ visualize = true
 # head_orientation
 [algorithms.spiga]
 algorithm_type = "spiga"
-camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
+camera_names = "*"
 env_name = "venv:spiga"
 log_frame_idx_interval = 200
 batch_size = 32
@@ -262,7 +262,7 @@ model_weights_path = "<assets>/spiga/spiga_<dataset_name>.pt" # path to weights 
 # emotion_individual
 [algorithms.py_feat]
 algorithm_type = "py_feat"
-camera_names = ["<cur_cam_face1>", "<cur_cam_face2>", "<cur_cam_top>", "<cur_cam_front>"]
+camera_names = ["view_left", "view_right"]
 env_name = "venv:py_feat"
 log_frame_idx_interval = 200
 # For batch_size, ensure:
@@ -276,7 +276,8 @@ visualize = true
 
 [algorithms.whisperx]
 algorithm_type = "whisperx"
-track_names = ["room", "left_mic", "right_mic"]
+track_names = "*"
+fallback_camera = "view_center"
 env_name = "venv:whisperx"
 model_size = "large-v3"
 compute_type = "float16"
@@ -297,7 +298,8 @@ alignment_model = "<assets>/whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60
 
 [algorithms.crisper_whisper]
 algorithm_type = "crisper_whisper"
-track_names = ["room", "left_mic", "right_mic"]
+track_names = "*"
+fallback_camera = "view_center"
 env_name = "venv:crisper_whisper"
 batch_size = 16
 chunk_length_s = 30

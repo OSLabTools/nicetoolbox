@@ -38,7 +38,7 @@ class Viewer:
                 canvas_list.extend(canvases)
         self.canvas_list = list(set(canvas_list))
 
-        self.fps = self.visualizer_config["dataset_properties"]["fps"]
+        self.fps = self.visualizer_config["video"]["fps"]
         self._create_canvas_roots()
 
     def spawn(self, app_id: str = "NICE Toolbox Visualization") -> None:

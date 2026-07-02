@@ -15,23 +15,9 @@ from pathlib import Path
 from typing import Optional
 
 import cv2
-import numpy as np
-import pandas as pd
 
 from ..configs.models.video_timestamp import timestamp_to_ms
 from .system import normalize_ffmpeg_filter_path_in_windows
-
-# fmt: off
-# List of most common video extensions and images extensions
-VIDEO_EXTENSIONS = {
-    ".mp4", ".m4v", ".mkv", ".avi", ".mov", ".qt",
-    ".wmv", ".flv", ".webm", ".mpeg", ".mpg", ".mpe",
-    ".m2v", ".ts", ".m2ts", ".mts", ".vob", ".3gp",
-    ".3g2", ".ogv", ".ogg", ".rmvb", ".rm", ".asf",
-    ".divx", ".f4v", ".mxf", ".dv", ".h264", ".h265",
-    ".hevc", ".mjpeg", ".mjpg"
-}
-# fmt: on
 
 
 def get_number_of_frames(video_file: str) -> int:
@@ -108,24 +94,8 @@ def get_ffmpeg_base_args(video_file: str) -> list:
     # fmt: on
 
 
-def sequential2frame_number(number: int, start_frame: int) -> int:
-    """
-    Converts a sequential number to a frame number based on the given start frame
-    and skip frames.
-
-    Args:
-        number (int): The sequential number.
-        start_frame (int): The starting frame number.
-
-    Returns:
-        int: The corresponding frame number.
-
-    """
-    return start_frame + (number - 1)
-
-
 def split_into_frames(
-    video_file: str, output_base: str, n_frames_expected: Optional[int], start_frame: int = 0, keep_indices: bool = True
+    video_file: str, output_base: str, n_frames_expected: Optional[int], keep_indices: bool = True
 ) -> None:
     """
     Split a video into individual frames using ffmpeg.
@@ -134,8 +104,6 @@ def split_into_frames(
         video_file (str): Path to the input video file.
         output_base (str): Base directory where the frames will be saved.
         n_frames_expected(Optional[int]): Expected number of frames
-        start_frame (int, optional): The starting frame index.
-            Defaults to 0.
         keep_indices (bool, optional): Whether to keep the original frame indices
             or convert them to sequential numbers. Defaults to True.
 
@@ -145,10 +113,6 @@ def split_into_frames(
     Note:
         This function uses ffmpeg to split the video into frames. Make sure ffmpeg
             is installed and accessible in the system's PATH.
-
-    Warning:
-        The `skip_frames` option is not properly working yet. Its output is not fully
-            understood yet.
     """
     output_pattern = os.path.join(output_base, "%09d_tmp.png")
 
@@ -173,138 +137,13 @@ def split_into_frames(
         )
         raise AssertionError("Splitting video into frames failed (frame count mismatch). See log for details.")
 
-    # Convert continuous file numbers to actual frame indices
+    # Convert continuous file numbers (1-based from ffmpeg) to 0-based frame indices.
     for file in sorted(frames_list_tmp):
         old_idx = int(os.path.basename(file)[:9])
         if keep_indices:
-            new_idx = sequential2frame_number(old_idx, start_frame)
+            new_idx = old_idx - 1
             new_filename = os.path.join(output_base, f"{new_idx:09d}.png")
             shutil.move(file, new_filename)
-
-
-def equal_splits_by_frames(
-    video_file: str,
-    output_base: str,
-    frames_per_split: int,
-    keep_last_split: bool = True,
-    start_frame: int = None,
-    number_of_frames: int = None,
-) -> list:
-    """
-    Splits a video into equal segments based on the number of frames.
-
-    Args:
-        video_file (str): The path to the input video file.
-        output_base (str): The base path for the output segments.
-        frames_per_split (int): The number of frames per split segment.
-        keep_last_split (bool, optional): Whether to keep the last split segment if it
-            is shorter than the others. Defaults to True.
-        start_frame (int, optional): The starting frame index.
-            Defaults to None.
-        number_of_frames (int, optional): The total number of frames to consider.
-            Defaults to None.
-
-    Returns:
-        List[str]: A list of paths to the created segments.
-
-    Raises:
-        AssertionError: If the total number of frames is less than the frames per split.
-
-    """
-    # detect the format of the input video
-    input_format = video_file[video_file.rfind(".") + 1 :]
-
-    # extract the total number of frames in the video
-    total_frames = min(number_of_frames, get_number_of_frames(video_file))
-
-    assert total_frames >= frames_per_split, f"total_frames ({total_frames}) > frames_per_split ({frames_per_split})"
-
-    # create a string of the frame numbers at which the video should be split
-    segment_frames = ",".join(str(i) for i in np.arange(0, total_frames, frames_per_split, dtype=int)[1:].tolist())
-
-    # define file to save a list of all created segments
-    output_folder = os.path.dirname(output_base)
-    segments_list_file = os.path.join(output_folder, "segments_list.csv")
-
-    # define keyframe interval
-    gop = 10  # 12 is the default gop in ffmpeg
-    assert frames_per_split >= gop, "NOT IMPLEMENTED PROPERLY"
-    while frames_per_split % gop != 0:
-        gop += 1
-
-    # construct the command to run ffmpeg
-    # fmt: off
-    cmd = get_ffmpeg_base_args(video_file) + [
-        "-codec:v", "h264",
-        "-g", str(gop),
-        "-f", "segment",
-        "-segment_frames", segment_frames,
-        "-segment_list", segments_list_file,
-        "-segment_list_entry_prefix", f"{output_folder}/",
-        "-reset_timestamps", "1",
-        f"{output_base}%09d.{input_format}",
-    ]
-    # fmt: on
-
-    # split the video
-    subprocess.run(cmd, check=True)
-
-    # remove the very last segment if it is shorter than the others
-    if not keep_last_split and total_frames % frames_per_split != 0:
-        remove_last_segment_from_file(segments_list_file)
-
-    # change to descriptive filenames
-    # convert continuous file numbers to actual frame indices
-    results_files = []
-    segments_list = read_segments_list_from_file(segments_list_file)
-    for video_file, start_time, end_time in segments_list:
-        fps = get_fps(video_file)
-        start = start_frame + int(start_time * fps)
-        end = start_frame + int(end_time * fps)
-        shutil.move(video_file, f"{output_base}s{start}_e{end}.{input_format}")
-        results_files.append(f"{output_base}s{start}_e{end}.{input_format}")
-
-    return results_files
-
-
-def read_segments_list_from_file(segments_list_file: str) -> list:
-    """
-    Reads a CSV file containing a list of segments and returns a list of tuples.
-
-    Args:
-        segments_list_file (str): The path to the CSV file containing the list of
-            segments. The CSV file should have columns named 'file', 'start', and 'end'.
-
-    Returns:
-        List[Tuple[str, float, float]]: A list of tuples, where each tuple represents a
-            segment. Each tuple contains the video file name, the start time of the
-            segment, and the end time of the segment.
-    """
-
-    # Read the CSV file into a pandas DataFrame
-    csv = pd.read_csv(segments_list_file, names=["file", "start", "end"])
-
-    # Convert the DataFrame to a list of tuples
-    return csv.values.tolist()
-
-
-def remove_last_segment_from_file(segments_list_file: str) -> None:
-    """
-    Removes the last segment from the given segments list file.
-
-    This function reads the segments list file into a pandas DataFrame, drops the last
-    row, and then writes the updated DataFrame back to the CSV file.
-
-    Args:
-        segments_list_file (str): The path to the CSV file containing the list of
-            segments.
-
-    Returns:
-        None
-    """
-    segments_df = pd.read_csv(segments_list_file)
-    segments_df.drop(index=segments_df.index[-1], inplace=True)
-    segments_df.to_csv(segments_list_file)
 
 
 def frames_to_video(
@@ -405,8 +244,8 @@ def render_subtitled_track_video(
     Render a single subtitled video for one transcription track.
 
     Encapsulates the per-track work shared by transcription detectors: it skips missing or empty
-    SRT files, resolves the frame folder from the video recipe (falling back to ``fallback_camera``,
-    then to a black background when no frames are available), and bakes the subtitles into the video
+    SRT files, resolves the frame folder from the video recipe for the track's own ``camera``
+    (or renders a black background when unavailable), and bakes the subtitles into the video
     via :func:`frames_to_video`. Callers only need to provide the per-track paths
     inside their own track loop.
 
@@ -418,8 +257,9 @@ def render_subtitled_track_video(
         default_start_frame (int, optional): Start frame used when no video recipe is given.
         video_recipe (optional): Video input recipe exposing ``root_path``, ``camera_names``,
             ``range_start`` and ``range_end``. When ``None`` a black background video is produced.
-        camera (Optional[str]): Preferred camera for this track; falls back to ``fallback_camera``
-            if missing or not present in the recipe.
+        camera (Optional[str]): Camera to overlay subtitles on. ``None`` or a name not present
+            in the recipe falls back to ``fallback_camera``; if that is also unavailable a black
+            background video is produced.
         fallback_camera (Optional[str]): Camera to use when ``camera`` is unavailable.
 
     Returns:
@@ -443,12 +283,13 @@ def render_subtitled_track_video(
     frame_limit = None
 
     if video_recipe:
-        camera_to_use = camera
-        if not camera_to_use or camera_to_use not in video_recipe.camera_names:
-            camera_to_use = fallback_camera
-
-        if camera_to_use and camera_to_use in video_recipe.camera_names:
-            frame_folder = os.path.join(video_recipe.root_path, camera_to_use, "frames")
+        chosen = None
+        if camera and camera in video_recipe.camera_names:
+            chosen = camera
+        elif fallback_camera and fallback_camera in video_recipe.camera_names:
+            chosen = fallback_camera
+        if chosen:
+            frame_folder = os.path.join(video_recipe.root_path, chosen, "frames")
         start_frame = video_recipe.range_start
         frame_limit = video_recipe.range_end - video_recipe.range_start
 
