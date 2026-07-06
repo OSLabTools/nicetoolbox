@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 from ..configs.schemas.detectors_instances_configs import BaseAlgorithmConfig
-from ..configs.video_runtime_config import SequenceRuntimeConfig
 from .data import SequenceData
 from .in_out import SequenceIO
+from .subsequence_context import SubsequenceContext
 
 
 class BaseDetector(ABC):
@@ -26,7 +26,7 @@ class BaseDetector(ABC):
     # Instance attributes set during initialization
     data: SequenceData
     io: SequenceIO
-    sequence_context: SequenceRuntimeConfig
+    subsequence_context: SubsequenceContext
     detector_config: BaseAlgorithmConfig
 
     # User-defined instance name from TOML key (set in __init__)
@@ -46,7 +46,7 @@ class BaseDetector(ABC):
         self,
         io: SequenceIO,
         data: SequenceData,
-        sequence_context: SequenceRuntimeConfig,
+        subsequence_context: SubsequenceContext,
         algorithm_instance: str,
     ) -> None:
         """
@@ -56,9 +56,9 @@ class BaseDetector(ABC):
         """
         self.io = io
         self.data = data
-        self.sequence_context = sequence_context
+        self.subsequence_context = subsequence_context
         self.algorithm_instance = algorithm_instance
-        self.detector_config = sequence_context.get_detector_config(algorithm_instance)
+        self.detector_config = subsequence_context.get_detector_config(algorithm_instance)
         self.visualize = getattr(self.detector_config, "visualize", False)
         # Allow detector configs (e.g. MMPose 2D) to declare components per-instance.
         # Falls back to the subclass's class-level `components` attribute.
@@ -77,7 +77,7 @@ class BaseDetector(ABC):
         if hasattr(self.detector_config, "camera_names") and not self.detector_config.camera_names:
             raise ValueError(
                 f"Detector '{self.algorithm_instance}': none of the requested cameras are available "
-                f"for this sequence. Available cameras: {self.sequence_context.all_camera_names}."
+                f"for this sequence. Available cameras: {self.subsequence_context.all_camera_names}."
             )
         if hasattr(self.detector_config, "track_names") and not self.detector_config.track_names:
             raise ValueError(
@@ -115,7 +115,7 @@ class BaseDetector(ABC):
     @property
     def predictions_mapping(self):
         """Access predictions mapping from runtime config."""
-        return self.sequence_context.predictions_mapping
+        return self.subsequence_context.predictions_mapping
 
     def compute_result_folders(self) -> Dict[str, str]:
         """Compute result folders for all components."""

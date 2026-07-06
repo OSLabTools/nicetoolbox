@@ -182,7 +182,7 @@ class SpigaConfig(BaseAlgorithmConfig):
     log_frame_idx_interval: int
     batch_size: int
     visualize: bool
-    dataset_name: str
+    spiga_dataset: str
 
     required_assets: Dict[str, str] = Field(default_factory=dict)
 

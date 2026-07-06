@@ -47,7 +47,7 @@ def test_direct_path_reused_from_cache(tmp_path, default_vid_patches):
 def test_missing_file_raises(tmp_path, default_vid_patches):
     tracks = {"cam_front": tmp_path / "does_not_exist.mp4"}
     ctx = make_sequence_context(tracks)
-    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
 
     with pytest.raises(FileNotFoundError, match="file not found"):
         handler.prepare()
@@ -66,7 +66,7 @@ def test_glob_resolves_single_match(tmp_path, default_vid_patches):
 
     tracks = {"Cam1": subfolder / "*.mp4"}
     ctx = make_sequence_context(tracks)
-    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
     handler.prepare()
 
     assert handler.camera_video_paths == {"Cam1": expected}
@@ -78,7 +78,7 @@ def test_glob_zero_matches_raises(tmp_path, default_vid_patches):
 
     tracks = {"Cam1": subfolder / "*.mp4"}
     ctx = make_sequence_context(tracks)
-    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
 
     with pytest.raises(ValueError, match="no files match"):
         handler.prepare()
@@ -92,7 +92,7 @@ def test_glob_multiple_matches_raises(tmp_path, default_vid_patches):
 
     tracks = {"Cam1": subfolder / "*.mp4"}
     ctx = make_sequence_context(tracks)
-    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
 
     with pytest.raises(ValueError, match="matches 2 files"):
         handler.prepare()

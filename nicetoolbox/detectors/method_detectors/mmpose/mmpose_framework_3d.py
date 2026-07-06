@@ -171,7 +171,7 @@ class MotionBERT(MMPose3D):
         runtime = super()._initialize_detector()
         cfg = self.detector_config
         src = next(e[1] for e in cfg.input_detector_names if len(e) == 2 and e[0] == "body_joints")
-        upstream = self.sequence_context.get_detector_config(src)
+        upstream = self.subsequence_context.get_detector_config(src)
         npz_path = self.io.get_detector_output_folder("body_joints", src, "result") / f"{src}.npz"
         if not npz_path.is_file():
             logging.warning(

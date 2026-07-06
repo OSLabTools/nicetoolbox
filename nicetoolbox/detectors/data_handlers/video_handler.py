@@ -16,11 +16,11 @@ import numpy as np
 from nicetoolbox_core.input_recipes import VideoInputRecipe
 
 from ...configs.models.video_timestamp import timestamp_to_frame_index
-from ...configs.video_runtime_config import SequenceRuntimeConfig
 from ...utils import video as vid
 from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
 from ..in_out import SequenceIO
+from ..subsequence_context import SubsequenceContext
 from .handler import BaseModalityHandler
 
 FILENAME_TEMPLATE = "{idx:09d}.png"
@@ -39,9 +39,9 @@ class VideoDataHandler(BaseModalityHandler):
     - Load camera calibration data
     """
 
-    def __init__(self, io: SequenceIO, sequence_context: SequenceRuntimeConfig):
+    def __init__(self, io: SequenceIO, subsequence_context: SubsequenceContext):
         # Shared fields
-        super().__init__(io, sequence_context)
+        super().__init__(io, subsequence_context)
 
         # Resolved during prepare()
         self.camera_video_paths: Optional[Dict[str, Path]] = None
@@ -62,7 +62,7 @@ class VideoDataHandler(BaseModalityHandler):
 
         # Probe all videos, check cross-camera consistency, then validate against config
         self.fps, self.length_frames = self._resolve_fps_and_length()
-        self.start_frame = timestamp_to_frame_index(self.sequence_context.video_start, self.fps)
+        self.start_frame = timestamp_to_frame_index(self.subsequence_context.video_start, self.fps)
 
         # Check and create input data if necessary
         self._input_data_creation()
@@ -137,7 +137,7 @@ class VideoDataHandler(BaseModalityHandler):
         logging.info(f"Auto-detected FPS: {fps}")
 
         # Resolve length
-        video_length_frame = timestamp_to_frame_index(self.sequence_context.video_length, fps)
+        video_length_frame = timestamp_to_frame_index(self.subsequence_context.video_length, fps)
         if video_length_frame > 0:
             return fps, video_length_frame
 
@@ -146,7 +146,7 @@ class VideoDataHandler(BaseModalityHandler):
         if total_frames is None:
             raise ValueError("Could not determine frame count from any camera video.")
 
-        start_frame = timestamp_to_frame_index(self.sequence_context.video_start, fps)
+        start_frame = timestamp_to_frame_index(self.subsequence_context.video_start, fps)
         available = total_frames - start_frame
         if available <= 0:
             raise ValueError(f"video_start ({start_frame}) is beyond the end of the video " f"({total_frames} frames).")

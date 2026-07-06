@@ -1,28 +1,24 @@
-"""
-Runtime configuration for processing a single video.
-Created by Configuration factory, discarded after video processing.
-"""
-
 from pathlib import Path
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from .models.video_timestamp import VideoTimestamp
-from .placeholders import resolve_placeholders
-from .schemas.dataset_properties import DatasetConfig
-from .schemas.detectors_config import DetectorsConfig
-from .schemas.detectors_run_file import DetectorsRunIO, LoggingLevelEnum, RunConfigVideo
-from .schemas.machine_specific_paths import MachineSpecificConfig
-from .schemas.predictions_mapping import PredictionsMappingConfig
+from ..configs.models.video_timestamp import VideoTimestamp
+from ..configs.placeholders import resolve_placeholders
+from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.detectors_config import DetectorsConfig
+from ..configs.schemas.detectors_run_file import DetectorsRunFile, DetectorsRunIO, LoggingLevelEnum, RunConfigVideo
+from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
+from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
 
 
-class SequenceRuntimeConfig(BaseModel):
+class SubsequenceContext(BaseModel):
     """
-    Immutable configuration context for processing a single video.
+    Immutable context for processing a single subsequence.
 
     Created by Configuration.iter_sequence_contexts(), holds all resolved
-    configuration needed for one video. Discarded after processing.
+    configuration needed for one subsequence (sequence with start/stop timestamps).
+    Discarded after processing.
 
     All placeholders (except <cur_component_name> and <cur_algorithm_name>
     in IO paths) are fully resolved at construction time.
@@ -33,30 +29,38 @@ class SequenceRuntimeConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    # -------------------------------------------------------------------------
-    # Core Configuration (all resolved)
-    # -------------------------------------------------------------------------
-    log_level: LoggingLevelEnum
-    log_file: Path
-
+    # subsequence specific info
     dataset_name: str
-
     video_config: RunConfigVideo
-    dataset_properties: DatasetConfig
-    io: DetectorsRunIO  # Resolved (except component/algorithm placeholders)
+
+    # configs resolved for this specific subsequence
     machine: MachineSpecificConfig
+    run: DetectorsRunFile
+    dataset_properties: DatasetConfig
     detectors_config: DetectorsConfig
     predictions_mapping: PredictionsMappingConfig
 
-    # Algorithm selection for this video
-    algorithms: List[str]
-
-    # Pre-referenced cameras required for current video (based on upstream dependencies too)
-    all_camera_names: List[str]
+    # injected from config handler
+    log_file: Path
 
     # -------------------------------------------------------------------------
     # Convenience Properties
     # -------------------------------------------------------------------------
+    @property
+    def all_camera_names(self) -> List[str]:
+        return list(self.dataset_properties.video.cameras.keys())
+
+    @property
+    def log_level(self) -> LoggingLevelEnum:
+        return self.run.log_level
+
+    @property
+    def algorithms(self) -> List[str]:
+        return self.run.algorithms
+
+    @property
+    def io(self) -> DetectorsRunIO:
+        return self.run.io
 
     @property
     def session_id(self) -> str:

@@ -15,7 +15,6 @@ from typing import final
 from nicetoolbox_core.entrypoint import SubprocessError, get_subprocess_error_path
 
 from ...configs.schemas.detectors_instances_configs import MethodDetectorRuntime
-from ...configs.video_runtime_config import SequenceRuntimeConfig
 from ...utils.base_detectors import flatten_inference_config
 from ...utils.config import save_config
 from ...utils.hf_token import effective_hf_hub_token
@@ -23,6 +22,7 @@ from ...utils.system import detect_os_type
 from ..base_detector import BaseDetector
 from ..data import SequenceData
 from ..in_out import SequenceIO
+from ..subsequence_context import SubsequenceContext
 
 
 class BaseMethod(BaseDetector):
@@ -57,14 +57,14 @@ class BaseMethod(BaseDetector):
         self,
         io: SequenceIO,
         data: SequenceData,
-        sequence_context: SequenceRuntimeConfig,
+        subsequence_context: SubsequenceContext,
         algorithm_instance: str,
     ) -> None:
         """
         Initialize base method detector with references.
         """
         # (1) Call BaseDetector __init__()
-        super().__init__(io, data, sequence_context, algorithm_instance)
+        super().__init__(io, data, subsequence_context, algorithm_instance)
 
         logging.info(
             f"Initializing method detector {self.__class__.__name__} with instance '{self.algorithm_instance}' "
@@ -123,8 +123,8 @@ class BaseMethod(BaseDetector):
             algorithm=self.algorithm_instance,
             visualize=self.visualize,
             subjects_descr=self.data.subjects_descr,
-            log_file=str(self.sequence_context.log_file),
-            log_level=self.sequence_context.log_level,
+            log_file=str(self.subsequence_context.log_file),
+            log_level=self.subsequence_context.log_level,
             calibration=self.data.calibration,
             cam_sees_subjects=self.data.cam_sees_subjects,
             input_recipes=self.data.get_input_recipes(),
@@ -158,7 +158,7 @@ class BaseMethod(BaseDetector):
     def _subprocess_env(self) -> dict:
         """Copy os.environ and set HF_TOKEN from machine_specific_paths.toml when configured."""
         env = os.environ.copy()
-        tok = effective_hf_hub_token(self.sequence_context.machine)
+        tok = effective_hf_hub_token(self.subsequence_context.machine)
         if tok:
             env["HF_TOKEN"] = tok
         return env

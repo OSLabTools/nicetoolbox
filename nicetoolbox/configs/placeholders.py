@@ -2,7 +2,7 @@ import re
 from pathlib import PurePath
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
 
 from .utils import keys_collision_dict, model_to_dict
 
@@ -147,13 +147,20 @@ def resolve_placeholders_dict_mut(
     Raises:
         ValueError: If unresolved placeholders remain that are not in unreachable
             (indicates typos or circular dependencies).
-        KeyError: If placeholders and input dicts have names collision (including
-            non-string fields names)
+        ValueError: If placeholders and input dicts have names collision (a local
+            field would silently shadow an outer-scope placeholder of the same name).
     """
     # check fields name collision
+    # a local field sharing a name with a placeholder from an outer scope would
+    # silently shadow the outer value - refuse to guess which one the user meant
     collision = keys_collision_dict(placeholders, input)
     if collision:
-        raise KeyError(f"Fields collision between local and " f"placeholders field names: {collision}")
+        hints = ", ".join(f"'{k}' (outer={placeholders[k]!r}, local={input[k]!r})" for k in sorted(collision))
+        raise ValueError(
+            f"Placeholder name collision: {hints}. "
+            "A local field shadows an outer-scope placeholder of the same name. "
+            "Rename one of them."
+        )
 
     # default values and copies
     if unreachable is None:
@@ -241,34 +248,12 @@ def resolve_placeholders(
     # TODO: support for sets and tuples?
 
     # CASE 3 - Pydantic BaseModel
-    # Note 1: BaseModel.__iter__() yields (field_name, field_value) tuples for all fields.
-    # This preserves nested BaseModel types in dicts (e.g., Dict[str, SpigaConfig]
-    # stays as Dict[str, SpigaConfig], not Dict[str, dict]).
-    # Note 2: We must handle field aliases.
-    # We use model_fields to look up the alias for each field.
+    # Dump to primitive dict (via model_to_dict: mode="json", by_alias=True) so
+    # sibling scoping is handled by case 1 (dict), then reconstruct the model.
     if isinstance(input, BaseModel):
-        # RootModel wraps a single 'root' field (We have this in DatasetProperties, it wraps a single dict)
-        # For this special case, the below loop over field_name and field_value won't work,
-        # so we handle it separately here.
-        if isinstance(input, RootModel):
-            resolved_root = resolve_placeholders(input.root, placeholders, unreachable)
-            return type(input).model_validate(resolved_root)
-
-        resolved_fields = {}
-        model_fields = type(input).model_fields
-        for field_name, field_value in input:
-            resolved_value = resolve_placeholders(field_value, placeholders, unreachable)
-
-            # Use alias if defined, otherwise use the field name
-            field_info = model_fields.get(field_name)
-            if field_info and field_info.alias:
-                key = field_info.alias
-            else:
-                key = field_name
-
-            resolved_fields[key] = resolved_value
-
-        return type(input).model_validate(resolved_fields)
+        input_dict = model_to_dict(input)
+        resolved_dict = resolve_placeholders(input_dict, placeholders, unreachable)
+        return type(input).model_validate(resolved_dict)
 
     # CASE 4 - PATH
     # Path objects contain string paths that may have placeholders.

@@ -106,7 +106,7 @@ def make_flat_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
         tracks[cam] = p
     ctx = make_sequence_context(tracks, **ctx_kwargs)
     io = make_io(tmp_path)
-    return VideoDataHandler(io=io, sequence_context=ctx), ctx, io
+    return VideoDataHandler(io=io, subsequence_context=ctx), ctx, io
 
 
 # ---------------------------------------------------------------------------
