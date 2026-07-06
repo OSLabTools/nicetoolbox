@@ -8,10 +8,10 @@ from typing import Any, Dict, Optional
 from nicetoolbox_core.input_recipes import AudioInputRecipe, InputRecipes, VideoInputRecipe
 
 from ..configs.models.video_timestamp import timestamp_to_ms
-from ..configs.video_runtime_config import SequenceRuntimeConfig
 from .data_handlers.audio_handler import AudioDataHandler
 from .data_handlers.video_handler import VideoDataHandler
 from .in_out import SequenceIO
+from .subsequence_context import SubsequenceContext
 
 
 class SequenceData:
@@ -39,34 +39,34 @@ class SequenceData:
     video_length_frames: int
     fps: int
 
-    def __init__(self, sequence_context: SequenceRuntimeConfig, io: SequenceIO) -> None:
+    def __init__(self, subsequence_context: SubsequenceContext, io: SequenceIO) -> None:
         """
         Initialize data facade and orchestrate data handling.
         """
         logging.info("Start DATA PREPARATION.")
 
         self.io: SequenceIO = io
-        self.sequence_context = sequence_context
+        self.sequence_context = subsequence_context
 
         # --- START: Config Parameters / Meta data used by detectors ---
-        self.dataset_name = sequence_context.dataset_name
-        self.subjects_descr = sequence_context.subjects_descr
-        self.all_camera_names = sequence_context.all_camera_names
+        self.dataset_name = subsequence_context.dataset_name
+        self.subjects_descr = subsequence_context.subjects_descr
+        self.all_camera_names = subsequence_context.all_camera_names
 
-        video_config = sequence_context.video_config
+        video_config = subsequence_context.video_config
         self.session_ID = video_config.session_ID
         self.sequence_ID = video_config.sequence_ID
 
         self.video_skip_frames = None  # Hardcoded - No access via config yet
         self.annotation_interval = 2.0  # Keep? Hardcoded - No access via config yet
 
-        dataset_properties = sequence_context.dataset_properties
+        dataset_properties = subsequence_context.dataset_properties
         cameras = dataset_properties.video.cameras
         # TODO: remove cam_sees_subjects?
         self.cam_sees_subjects = {name: t.sees_subjects for name, t in cameras.items()}
         # --- END: Config Parameters / Meta data used by detectors ---
         # (1) Always prepare video data (main source)
-        self._video_handler = VideoDataHandler(io, sequence_context)
+        self._video_handler = VideoDataHandler(io, subsequence_context)
         self._video_handler.prepare()
 
         # Expose resolved values for detectors and audio handler
@@ -74,8 +74,8 @@ class SequenceData:
         self.fps = self._video_handler.fps
         self.video_start_frame_index = self._video_handler.start_frame
         self.video_length_frames = self._video_handler.length_frames
-        self.video_start_ms = timestamp_to_ms(sequence_context.video_start, self.fps)
-        self.video_length_ms = timestamp_to_ms(sequence_context.video_length, self.fps)
+        self.video_start_ms = timestamp_to_ms(subsequence_context.video_start, self.fps)
+        self.video_length_ms = timestamp_to_ms(subsequence_context.video_length, self.fps)
 
         # if need full video - take resolved video length in frames
         if self.video_length_ms < 0:
@@ -87,7 +87,7 @@ class SequenceData:
         tracks_cfg = dataset_properties.audio.tracks
         if tracks_cfg:
             self._audio_handler = AudioDataHandler(
-                io, sequence_context, self.video_start_ms, self.video_length_ms, tracks_cfg
+                io, subsequence_context, self.video_start_ms, self.video_length_ms, tracks_cfg
             )
             self._audio_handler.prepare()
             if not self._audio_handler.is_available:

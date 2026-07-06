@@ -49,7 +49,7 @@ class BodyDistance(BaseFeature):
         self.input_file = self.get_input_file(joints_component, joints_algorithm)
 
         # 2. Get upstream detector config to extract keypoint_mapping and camera_names
-        upstream_config = self.sequence_context.get_detector_config(joints_algorithm)
+        upstream_config = self.subsequence_context.get_detector_config(joints_algorithm)
         keypoint_mapping_name = upstream_config.keypoint_mapping  # e.g., "coco_wholebody"
         self.camera_names = upstream_config.camera_names  # Cameras used by pose detector
 

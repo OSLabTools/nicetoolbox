@@ -1,6 +1,6 @@
 import copy
 from pathlib import Path
-from typing import Any, Generator, List
+from typing import Any, Generator
 
 from ..configs.project_config_handler import ProjectConfigHandler
 from ..configs.schemas.dataset_properties import DatasetConfig, DatasetProperties
@@ -15,9 +15,9 @@ from ..configs.schemas.experiment_config import CodeConfig, DetectorsExperimentC
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
 from ..configs.utils import model_to_dict, resolve_filter
-from ..configs.video_runtime_config import SequenceRuntimeConfig
 from ..utils.config import save_config
 from .data import SequenceData
+from .subsequence_context import SubsequenceContext
 
 
 def flatten_list(input_list) -> list[Any]:
@@ -93,7 +93,7 @@ class Configuration(ProjectConfigHandler):
     # Factory Method for Video Runtime Configurations
     # -------------------------------------------------------------------------
 
-    def iter_sequence_contexts(self) -> Generator[SequenceRuntimeConfig, None, None]:
+    def iter_sequence_contexts(self) -> Generator[SubsequenceContext, None, None]:
         """
         Iterate over all videos and yield frozen runtime configurations.
 
@@ -112,7 +112,6 @@ class Configuration(ProjectConfigHandler):
                     dataset_name=dataset_name,
                     video=video,
                     dataset_config=dataset_config,
-                    algorithms=self.run_config.algorithms,
                 )
 
     def _create_video_runtime_config(
@@ -120,8 +119,7 @@ class Configuration(ProjectConfigHandler):
         dataset_name: str,
         video: RunConfigVideo,
         dataset_config: DatasetConfig,
-        algorithms: List[str],
-    ) -> SequenceRuntimeConfig:
+    ) -> SubsequenceContext:
         """
         Create a fully resolved, frozen SequenceRuntimeConfig.
 
@@ -144,18 +142,15 @@ class Configuration(ProjectConfigHandler):
                 algo.track_names = resolve_filter(algo.track_names, all_track_names)
 
         # Construct frozen model with all resolved values
-        runtime_config = SequenceRuntimeConfig(
-            log_level=self.log_level,
-            log_file=self.log_file,
+        runtime_config = SubsequenceContext(
             dataset_name=dataset_name,
             video_config=video,
-            dataset_properties=dataset_config,
-            io=self.run_config.io,
+            log_file=self.log_file,
             machine=self.machine_specific_config,
+            run=self.run_config,
+            dataset_properties=dataset_config,
             detectors_config=resolved_detectors,
             predictions_mapping=self.predictions_mapping,
-            algorithms=algorithms,
-            all_camera_names=all_camera_names,
         )
         # Build runtime context for this video
         runtime_ctx = {
@@ -166,7 +161,15 @@ class Configuration(ProjectConfigHandler):
             "cur_video_length": video.video_length,
         }
         # Resolve placeholders (rebuilds every nested model via model_validate)
-        return self.cfg_loader.resolve(runtime_config, runtime_ctx, ignore_auto_and_global=True)
+        try:
+            res_runtime = self.cfg_loader.resolve(runtime_config, runtime_ctx, ignore_auto_and_global=True)
+        except (ValueError, KeyError) as e:
+            raise type(e)(
+                "Failed to resolve runtime config SequenceRuntimeConfig for "
+                f"dataset='{dataset_name}', sequence='{video.sequence_ID}':\n{e}"
+            ) from e
+
+        return res_runtime
 
     # -------------------------------------------------------------------------
     # Static Queries (don't depend on runtime context)
@@ -192,7 +195,7 @@ class Configuration(ProjectConfigHandler):
         save_config(model_to_dict(config), output_folder / f"config_{code_config.time}.toml")
 
     @staticmethod
-    def save_subsequence_meta(sequence_context: SequenceRuntimeConfig, data: SequenceData) -> None:
+    def save_subsequence_meta(sequence_context: SubsequenceContext, data: SequenceData) -> None:
         """
         Build and persist per-sequence resolved facts to `subsequence_meta.toml`
         in the sequence's output sub-folder.

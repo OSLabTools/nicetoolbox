@@ -69,7 +69,7 @@ def test_empty_session_id_calibration_key(tmp_path, default_vid_patches):
     np.savez(calib_path, **{"seq_01": calib_data})
     io.get_calibration_file.return_value = str(calib_path)
 
-    handler = VideoDataHandler(io=io, sequence_context=ctx)
+    handler = VideoDataHandler(io=io, subsequence_context=ctx)
     handler.prepare()
 
     assert_handler_output(handler, cameras, calibration_keys={"cam_front"})

@@ -129,10 +129,10 @@ def test_resolve_placeholder_dict_errors():
         )
 
     # Key collision between input and placeholders (string and non-string fields)
-    with pytest.raises(KeyError, match="Fields collision"):
+    with pytest.raises(ValueError, match="Placeholder name collision"):
         resolve_placeholders_dict_mut({"name": "value"}, {"name": "other"})
 
-    with pytest.raises(KeyError, match="Fields collision"):
+    with pytest.raises(ValueError, match="Placeholder name collision"):
         resolve_placeholders_dict_mut({"port": 8080}, {"port": "8000"})
 
 

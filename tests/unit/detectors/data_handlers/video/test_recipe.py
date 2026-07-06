@@ -32,7 +32,7 @@ def test_recipe_unsorted_cameras_are_sorted(tmp_path, default_vid_patches):
 
 def test_recipe_before_prepare_raises(tmp_path):
     ctx = make_sequence_context({"cam_front": tmp_path / "cam_front.mp4"})
-    handler = VideoDataHandler(io=make_io(tmp_path), sequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
 
     with pytest.raises((AttributeError, TypeError)):
         handler.get_recipe()

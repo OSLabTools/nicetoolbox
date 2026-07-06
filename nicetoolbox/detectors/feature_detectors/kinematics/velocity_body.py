@@ -39,7 +39,7 @@ class VelocityBody(BaseFeature):
         self.input_file = self.get_input_file(*input_key)
 
         # 2. Get upstream detector config
-        upstream_config = self.sequence_context.get_detector_config(input_key[1])
+        upstream_config = self.subsequence_context.get_detector_config(input_key[1])
         keypoints_mapping_name = upstream_config.keypoint_mapping  # e.g. coco_wholebody
         self.camera_names = upstream_config.camera_names  # Same cameras used by pose algorithm
 

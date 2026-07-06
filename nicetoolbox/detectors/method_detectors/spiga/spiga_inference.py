@@ -81,10 +81,10 @@ def spiga_inference(config: dict) -> None:
     face_detector = FaceAnalysis(name="buffalo_l", providers=providers)
     face_detector.prepare(ctx_id=0)
 
-    spiga_config = ModelConfig(config["dataset_name"], load_model_url=False)
+    spiga_config = ModelConfig(config["spiga_dataset"], load_model_url=False)
 
     # Spiga asks for the folder where to look for weights, not model weights file
-    # The filename should match dataset_name
+    # The filename should match spiga_dataset
     model_weights_file = Path(config["required_assets"]["model_weights_path"])
     model_weights_folder = model_weights_file.parent
     spiga_config.model_weights_path = model_weights_folder

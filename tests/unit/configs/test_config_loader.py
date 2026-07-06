@@ -10,6 +10,7 @@ from nicetoolbox.configs.schemas.detectors_run_file import DetectorsRunFile
 from nicetoolbox.configs.schemas.machine_specific_paths import MachineSpecificConfig
 from nicetoolbox.configs.schemas.project_config import ProjectConfig
 from nicetoolbox.configs.utils import default_runtime_placeholders, dict_to_model
+from nicetoolbox.detectors.config_handler import Configuration
 
 PROJECT_FOLDER = Path(".")
 
@@ -62,6 +63,29 @@ def test_load_detectors_config():
         res_dataset = cfg_loader.resolve(dataset, ctx)
         example_field = res_dataset["communication_multiview"].data_input_folder
         assert sequence_ID in str(example_field)
+
+
+def test_runtime_sequence_context_composition():
+    """
+    Exercise the full runtime composition path.
+
+    Load all configs via `Configuration`, then iterate `iter_sequence_contexts()`
+    which builds `SequenceRuntimeConfig` and resolves it via case 3 (BaseModel).
+    Catches cross-schema field-name collisions and other issues that only surface
+    on the composed model — invisible to per-schema unit tests and per-file TOML
+    load tests.
+    """
+    config = Configuration(
+        project_folder=PROJECT_FOLDER,
+        machine_specifics_file=Path("machine_specific_paths.toml"),
+        run_config_file=Path("configs/detectors_run_file.toml"),
+    )
+    contexts = list(config.iter_sequence_contexts())
+    assert len(contexts) >= 1
+    for ctx in contexts:
+        # Only later-injected runtime placeholders (cur_algorithm_name,
+        # cur_component_name, ...) may remain unresolved at this stage.
+        assert get_placeholders(ctx) <= runtime_mock
 
 
 def test_load_config_default_placeholder_not_resolved():

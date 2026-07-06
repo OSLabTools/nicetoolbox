@@ -8,8 +8,8 @@ Each handler is responsible for preparing data of a specific modality
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ...configs.video_runtime_config import SequenceRuntimeConfig
 from ..in_out import SequenceIO
+from ..subsequence_context import SubsequenceContext
 
 
 class BaseModalityHandler(ABC):
@@ -22,17 +22,17 @@ class BaseModalityHandler(ABC):
     - Providing a recipe for downstream loaders
     """
 
-    def __init__(self, io: SequenceIO, sequence_context: SequenceRuntimeConfig):
+    def __init__(self, io: SequenceIO, subsequence_context: SubsequenceContext):
         self.io = io
-        self.sequence_context = sequence_context
+        self.subsequence_context = subsequence_context
 
         # References for child classes:
         self.nice_input_folder = self.io.nice_input_folder
-        self.session_id = self.sequence_context.session_id
-        self.sequence_id = self.sequence_context.sequence_id
-        self.subjects_descr = self.sequence_context.subjects_descr
-        self.all_camera_names = self.sequence_context.all_camera_names
-        self.dataset_properties = self.sequence_context.dataset_properties
+        self.session_id = self.subsequence_context.session_id
+        self.sequence_id = self.subsequence_context.sequence_id
+        self.subjects_descr = self.subsequence_context.subjects_descr
+        self.all_camera_names = self.subsequence_context.all_camera_names
+        self.dataset_properties = self.subsequence_context.dataset_properties
 
         self._available = False
 

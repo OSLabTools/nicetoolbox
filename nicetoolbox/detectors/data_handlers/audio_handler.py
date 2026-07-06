@@ -21,10 +21,10 @@ from typing import Any, Dict, List, Optional
 from nicetoolbox_core.input_recipes import AudioInputRecipe, AudioStreamRecipe
 
 from ...configs.schemas.dataset_properties import AudioTrackConfig
-from ...configs.video_runtime_config import SequenceRuntimeConfig
 from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
 from ..in_out import SequenceIO
+from ..subsequence_context import SubsequenceContext
 from .handler import BaseModalityHandler
 
 
@@ -40,12 +40,12 @@ class AudioDataHandler(BaseModalityHandler):
         self,
         # Shared fields (passed to base)
         io: SequenceIO,
-        sequence_context: SequenceRuntimeConfig,
+        subsequence_context: SubsequenceContext,
         audio_start_ms: float,
         audio_length_ms: float,
         tracks_config: dict[str, AudioTrackConfig],
     ):
-        super().__init__(io, sequence_context)
+        super().__init__(io, subsequence_context)
         self.audio_start_ms = audio_start_ms
         self.audio_length_ms = audio_length_ms
         self.audio_end_ms = audio_start_ms + audio_length_ms

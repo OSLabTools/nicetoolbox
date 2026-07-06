@@ -236,6 +236,25 @@ def test_resolve_placeholders_pydantic_basic():
     assert config.name == "<app_name>"
 
 
+def test_resolve_placeholders_pydantic_sibling():
+    """Model fields resolve against each other, same as dict siblings."""
+
+    class Cfg(BaseModel):
+        session_name: str
+        recording_name: str
+        folder: str
+
+    config = Cfg(
+        session_name="S1",
+        recording_name="Seq1",
+        folder="/data/<session_name>/<recording_name>",
+    )
+    result = resolve_placeholders(config, {})
+
+    assert isinstance(result, Cfg)
+    assert result.folder == "/data/S1/Seq1"
+
+
 def test_resolve_placeholders_pydantic_complex():
     """Test complex nested Pydantic with collections, mixed types, and deep nesting."""
 
@@ -484,12 +503,12 @@ def test_resolve_placeholders_pydantic_alias_numeric_prefix():
             "input_data_format": "<format>",
             "camera_names": ["<cam1>", "<cam2>"],
             "3d_results": True,
-            "device": "<device>",
+            "device": "<gpu>",
         }
     )
     result = resolve_placeholders(
         config,
-        {"format": "RGB", "cam1": "front", "cam2": "top", "device": "cuda:0"},
+        {"format": "RGB", "cam1": "front", "cam2": "top", "gpu": "cuda:0"},
     )
 
     assert isinstance(result, FrameworkConfig)
