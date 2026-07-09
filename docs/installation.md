@@ -124,7 +124,7 @@ Nice Toolbox uses Makefiles for simple installation process. Follow these steps 
 After copying the files, you must **restart Git Bash** for the changes to take effect.
 
 
-### On Windows: Enable long path support
+### On Windows: Disable path length limit
 
 We always recommend to enable long path support. If you did not click **"Disable path length limit"** during Python installation, you can enable long path support manually via **PowerShell** command line:
 
@@ -173,12 +173,6 @@ Available commands include:
 - `make install` - Install all dependencies.
 - `make download_assets` - Check and download assets.
 - `make download_dataset` - Check and download the example dataset.
-
-```{note}
-Conda is required for installing the OpenMMLab environment (human pose estimation framework).
-If you need to use different versions of Python or CUDA, you can adjust the relevant lines in the `Makefile` accordingly.
-The order of specific make commands listed above is essential due to iterated dependencies.
-```
 
 In case of errors during the installation, you can run `make install` again. It will remove all existing virtual environments and reinstall them. You can also manually reinstall specific detectors with `make install_eth_xgaze` or `make install_whisperx`.
 

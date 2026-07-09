@@ -4,6 +4,11 @@
 :depth: 2
 ```
 
+## 0. Install NICE Toolbox
+
+Follow the [installation instructions](installation.md) to set up the environment, download model weights and example dataset. Once installation is complete, come back here to configure your first experiment.
+
+
 ## 1. Machine-specific and project configs
 
 Configuration is split across two files: one machine-specific and one project-specific.
@@ -43,19 +48,19 @@ Ensure that `./configs/dataset_properties.toml` contains the following dictionar
 
 ```toml
 [communication_multiview]
-session_IDs = [""] 
-sequence_IDs = ["sequence_xyz"]
-cam_front = "view_center"                         
-cam_top = "view_top" 
-cam_face1 = "view_left" 
-cam_face2 = "view_right"         
-subjects_descr = ["person_left", "person_right"]   
-cam_sees_subjects = {view_center = [0, 1], view_top = [0, 1], view_left = [0], view_right = [1]} 
+sequences = [{sequence_id = "sequence_xyz"}]
 
-path_to_calibrations = "<datasets_folder_path>/communication_multiview/calibrations.npz" 
-data_input_folder = "<datasets_folder_path>/communication_multiview/<cur_sequence_ID>" 
-start_frame_index = 0 
-fps = 30 
+[communication_multiview.template]
+dataset_root = "<datasets_folder_path>/communication_multiview"
+data_input_folder = "<dataset_root>/<sequence_id>"
+path_to_calibrations = "<dataset_root>/calibrations.npz"
+subjects_descr = ["person_left", "person_right"]
+
+[communication_multiview.template.video.cameras]
+view_center = {path = "<data_input_folder>/view_center.mp4", sees_subjects = [0, 1]}
+view_top    = {path = "<data_input_folder>/view_top.mp4",    sees_subjects = [0, 1]}
+view_left   = {path = "<data_input_folder>/view_left.mp4",   sees_subjects = [0]}
+view_right  = {path = "<data_input_folder>/view_right.mp4",  sees_subjects = [1]}
 ```
 
 A detailed description of this file can be found in the wiki page on config files under [dataset properties](wikis/wiki_config_files.md#dataset-properties).
@@ -69,10 +74,9 @@ algorithms = ["hrnetw48", "vitpose_huge", "velocity_body"]
 
 [run]
 [run.communication_multiview]
-videos = [
-   {session_ID = "session_xyz", sequence_ID='', video_start = 0, video_length = 99},
+sequences = [
+   {sequence_id = "sequence_xyz", video_start = 0, video_length = 99},
 ]
-
 ```
 
 More details can be found in the wiki page on config files under [run file](wikis/wiki_config_files.md#run-file).
@@ -108,8 +112,8 @@ To do so, open `./configs/visualizer_config.toml` and update the entries `io.exp
 [io]
 dataset_folder = "<datasets_folder_path>" 
 dataset_name = 'communication_multiview' 
-video_name = 'communication_multiview__sequence_xyz_s0_l-1'
-nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>"
+video_name = 'communication_multiview_sequence_xyz_s0_l-1'
+nice_tool_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_sequence_id>"
 nice_tool_output_folder = "<output_folder_path>/experiments"
 experiment_folder = "<output_folder_path>/experiments/<yyyymmdd>"
 experiment_video_folder = "<experiment_folder>/<video_name>"

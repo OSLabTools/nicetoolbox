@@ -198,7 +198,7 @@ def frames_to_video(
         cmd.extend(["-ss", str(start_frame_ts_sec)])
         if frame_limit:
             end_frame_ts_sec = timestamp_to_ms(frame_limit, fps) / 1000
-            cmd.extend(["-to", str(end_frame_ts_sec)])
+            cmd.extend(["-t", str(end_frame_ts_sec)])
         cmd.extend(["-i", audio_path])
 
     vf_filters = []

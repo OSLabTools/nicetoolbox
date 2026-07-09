@@ -49,7 +49,6 @@ class ExperimentInput(BaseInputBlock):
     algorithm: str | list[str] = "*"
 
     dataset: str | list[str] = "*"
-    session: str | list[str] = "*"
     sequence: str | list[str] = "*"
     subsequence: str | int | list[int] = "*"
 
@@ -62,7 +61,6 @@ class AnnotationInput(BaseInputBlock):
 
     component: str | list[str]
     dataset: str | list[str] = "*"
-    session: str | list[str] = "*"
     sequence: str | list[str] = "*"
 
 

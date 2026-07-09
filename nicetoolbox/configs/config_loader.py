@@ -30,6 +30,30 @@ class ConfigLoader:
         self.runtime_placeholders = runtime
         self.global_placeholders = {}
 
+    def _build_ctx(
+        self,
+        runtime_ctx: Optional[dict[str, PLACEHOLDERS_TYPE]] = None,
+        ignore_auto_and_global: bool = False,
+    ) -> tuple[dict[str, PLACEHOLDERS_TYPE], set[str]]:
+        """
+        Compose the placeholder context and unreachable set from the loader's
+        auto/global/runtime contexts, honoring `ignore_auto_and_global`.
+
+        Returns:
+            (ctx, unreachable) — ctx is the merged placeholders dict; unreachable
+            is the set of runtime placeholder names that are still deferred (i.e.
+            those not provided in runtime_ctx).
+        """
+        ctx: dict[str, PLACEHOLDERS_TYPE] = {}
+        unreachable = self.runtime_placeholders
+        if not ignore_auto_and_global:
+            ctx = merge_dicts(self.auto_placeholders, self.global_placeholders)
+        if runtime_ctx:
+            ctx = merge_dicts(ctx, runtime_ctx)
+            # if provided some runtime ctx - it should be reachable now
+            unreachable = self.runtime_placeholders - set(runtime_ctx)
+        return ctx, unreachable
+
     def load_config(self, path: Path, schema: type[ModelT], ignore_auto_and_global=False) -> ModelT:
         """
         Loads a TOML configuration file, resolves all placeholders using available
@@ -58,8 +82,20 @@ class ConfigLoader:
             ConfigValidationError: If the resolved configuration fails
                 schema validation).
         """
+        # load raw toml file
         cfg_raw = load_raw_config(path)
+
+        # if the schema defines a pre_placeholder_resolve classmethod
+        # it is invoked on the raw parsed TOML before placeholder resolution runs
+        pre_resolve = getattr(schema, "pre_placeholder_resolve", None)
+        if callable(pre_resolve):
+            ctx, _ = self._build_ctx(ignore_auto_and_global=ignore_auto_and_global)
+            cfg_raw = pre_resolve(cfg_raw, ctx)
+
+        # resolve placeholders
         cfg_raw_resolved = self.resolve(cfg_raw, None, ignore_auto_and_global)
+
+        # convert resolved dict to pydantic model
         cfg = dict_to_model(cfg_raw_resolved, schema)
         return cfg
 
@@ -113,14 +149,7 @@ class ConfigLoader:
                 placeholder names.
         """
         # prepare external context (auto, global and runtime)
-        ctx = {}
-        unreachable = self.runtime_placeholders
-        if not ignore_auto_and_global:
-            ctx = merge_dicts(self.auto_placeholders, self.global_placeholders)
-        if runtime_ctx:
-            ctx = merge_dicts(ctx, runtime_ctx)
-            # if provided some runtime ctx - it should be reachable now
-            unreachable = self.runtime_placeholders - set(runtime_ctx)
+        ctx, unreachable = self._build_ctx(runtime_ctx, ignore_auto_and_global)
 
         # resolve all placeholders with provided context
         config_res = resolve_placeholders(config, ctx, unreachable)

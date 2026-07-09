@@ -21,10 +21,9 @@ _DUMMY_PATH = Path("dummy.npz")
 _DUMMY_KEY = "k"
 
 
-def _exp(dataset="ds1", session="s01", sequence="seq01", component="body") -> ExperimentMeta:
+def _exp(dataset="ds1", sequence="seq01", component="body") -> ExperimentMeta:
     return ExperimentMeta(
         dataset=dataset,
-        session=session,
         sequence=sequence,
         component=component,
         algorithm="algo",
@@ -34,10 +33,9 @@ def _exp(dataset="ds1", session="s01", sequence="seq01", component="body") -> Ex
     )
 
 
-def _ann(dataset="ds1", session="s01", sequence="seq01", component="body") -> AnnotationMeta:
+def _ann(dataset="ds1", sequence="seq01", component="body") -> AnnotationMeta:
     return AnnotationMeta(
         dataset=dataset,
-        session=session,
         sequence=sequence,
         component=component,
         npz_path=_DUMMY_PATH,
@@ -96,7 +94,6 @@ class TestBasicPairing:
         pred_a = make_loaded_array(
             ExperimentMeta(
                 dataset="ds1",
-                session="s01",
                 sequence="seq01",
                 component="body",
                 algorithm="algo_a",
@@ -108,7 +105,6 @@ class TestBasicPairing:
         pred_b = make_loaded_array(
             ExperimentMeta(
                 dataset="ds1",
-                session="s01",
                 sequence="seq01",
                 component="body",
                 algorithm="algo_b",
@@ -157,9 +153,9 @@ class TestBasicPairing:
         assert align_arrays([], []) == []
 
     def test_partial_key_mismatch_produces_no_pairs(self, caplog):
-        """All four key fields must match — same dataset but different session is not a pair."""
-        pred = make_loaded_array(_exp(dataset="ds1", session="s01"))
-        gt = make_loaded_array(_ann(dataset="ds1", session="s02"))
+        """All key fields must match — same dataset but different sequence is not a pair."""
+        pred = make_loaded_array(_exp(dataset="ds1", sequence="seq01"))
+        gt = make_loaded_array(_ann(dataset="ds1", sequence="seq02"))
 
         with caplog.at_level(logging.WARNING):
             result = align_arrays([pred], [gt])

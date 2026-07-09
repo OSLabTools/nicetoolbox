@@ -97,7 +97,7 @@ class VideoDataHandler(BaseModalityHandler):
         Paths may contain a `*` wildcard; zero or multiple matches raise.
         """
         result: Dict[str, Path] = {}
-        cameras = self.dataset_properties.video.cameras
+        cameras = self.sequence_properties.video.cameras
         for cam in self.all_camera_names:
             track = cameras[cam]
             result[cam] = resolve_single_file(Path(track.path), label=f"Video track '{cam}'")
@@ -228,14 +228,12 @@ class VideoDataHandler(BaseModalityHandler):
             logging.warning("Calibration file not found, skipping calibration.")
             return None
 
-        calib_details = "__".join([word for word in [self.session_id, self.sequence_id] if word])
+        calib_details = self.sequence_id
         try:
             loaded_calib = np.load(calib_path, allow_pickle=True)[calib_details].item()
         except KeyError as err:
             logging.exception(
-                f"Calibration for session '{self.session_id}' and sequence "
-                f"'{self.sequence_id}' not found for calibration file at "
-                f"'{calib_path}'."
+                f"Calibration for sequence '{self.sequence_id}' not found for calibration file at '{calib_path}'."
             )
             raise err
         try:
@@ -243,5 +241,15 @@ class VideoDataHandler(BaseModalityHandler):
         except Exception as err:
             logging.exception(f"An error occurred while creating calibration dictionary: {err}")
             raise err
+
+        missing = set(self.all_camera_names) - set(calib.keys())
+        if missing:
+            raise KeyError(
+                f"Calibration file '{calib_path}' (sequence '{self.sequence_id}') is missing "
+                f"entries for cameras {sorted(missing)}. Available calibration keys: "
+                f"{sorted(loaded_calib.keys())}. Configured camera names: "
+                f"{sorted(self.all_camera_names)}. Rename the keys in the calibration file "
+                f"(or the camera names in the dataset config) so they match."
+            )
 
         return calib

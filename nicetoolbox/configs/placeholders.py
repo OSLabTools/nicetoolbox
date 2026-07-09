@@ -184,7 +184,7 @@ def resolve_placeholders_dict_mut(
             unexpected = unresolved - unreachable
             if unexpected:
                 raise ValueError(
-                    f"Could not resolve placeholders: {unexpected}. " f"Check for typos or circular dependencies."
+                    f"Could not resolve placeholders: {unexpected}. Check for typos or circular dependencies."
                 )
             return new_result
 
@@ -197,6 +197,20 @@ def resolve_placeholders_dict_mut(
         f"Couldn't resolve placeholders after {max_iterations} iterations. "
         f"Unexpected placeholders: {unresolved - unreachable}"
     )
+
+
+def resolve_placeholders_dict(
+    input: dict[str, PLACEHOLDERS_TYPE],
+    placeholders: dict[str, PLACEHOLDERS_TYPE],
+    unreachable: Optional[set[str]] = None,
+    max_iterations: int = 5,
+) -> dict[str, Any]:
+    """Non-mutating variant of `resolve_placeholders_dict_mut`.
+
+    See `resolve_placeholders_dict_mut`. Copies the placeholders dict so the
+    caller's context isn't extended with local fields.
+    """
+    return resolve_placeholders_dict_mut(input, dict(placeholders), unreachable, max_iterations)
 
 
 def resolve_placeholders(

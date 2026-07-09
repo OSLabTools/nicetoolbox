@@ -35,102 +35,96 @@ The NICE Toolbox supports datasets with video or image input data, multiple came
 
 ### Folder structure
 
-The code expects the data folder to have a pre-defined folder structure:
-`dataset_name/session_name/sequence_name(optional)/camera_name(optional)`
-Supported data formats are `.mp4`, `.avi`, `.png`, `.jpg`, `.jpeg`. Examples for valid folder structures are:
+The NICE Toolbox does not require a specific folder layout — every path in the dataset config is user-defined and can use placeholders. In practice most datasets group each recording into its own folder identified by a unique `sequence_id`.
+
+A typical layout looks like:
 
 ```
 dataset_name/
-├── session_name/
-│   ├── sequence_name/
-│   │   ├── camera_name/
-│   │   │   ├── image1.png
-│   │   │   ├── image2.png
+├── sequence_1/
+│   ├── view_1.mp4
+├── sequence_2/
+│   ├── view_1.mp4
 ...
+└── calibrations.npz
 ```
 
-```
-dataset_name/
-├── session_name/
-│   ├── camera_name.mp4
-...
-```
+If your dataset has an extra nesting level (session/sequence) or one video file per camera per sequence, you can compose the paths in the template accordingly (see the example below).
 
 ```{note}
-The `calibration_file` (which also belongs to the dataset) does not have a specific location, as its filepath is defined in `./configs/dataset_properties.toml`, see below.
+The `calibrations.npz` file does not have to sit in a specific location; its path is declared in `dataset_properties.toml` via `path_to_calibrations`.
 ```
 
 
 ### Dataset properties
 
-To add the new dataset to the toolbox, edit the file `./configs/dataset_properties.toml` by creating a new dictionary within:
+Add the new dataset to `./configs/dataset_properties.toml` as its own top-level block. The block has three parts:
+
+- `sequences = [...]` — the flat list of recordings, each with at least a unique `sequence_id`.
+- `[dataset.template]` — optional shared block whose values are merged into every sequence. Put anything the sequences have in common here (subject list, calibrations path, camera set, ...).
+- `discover_sequences = "..."` — optional pattern that auto-enumerates sequence folders from disk. Handy for large datasets.
+
+Minimal skeleton:
 
 ```toml
 [dataset_name]
-session_IDs = ['']        # identifiers for each session (list of str)
-sequence_IDs = ['']       # identifiers for individual sequences (list of str)
-cam_front = ''            # name of the camera with the most frontal view (str)
-cam_top = ''              # camera name of a frontal view from top (str, optional)
-cam_face1 = ''            # camera name of a view of one subject's face (str, optional)
-cam_face2 = ''            # caemra name of a view of a second subject's face (str, optional)
-subjects_descr = []       # define an identifier for the subjects in each video or frame (list of str)
-cam_sees_subjects = {}    # define which camera view records which subject (dict: (cam_name, list of int))
-path_to_calibrations = "" # file path with placeholders for the calibration files (str, optional)
-data_input_folder = ""    # folder path with placeholders to the video or image files (str)
-start_frame_index = 0     # how does the dataset index its data? usually, starting with 0 or 1 (int)
-fps = 30                  # frame-rate of video data (int, optional)
+sequences = [{sequence_id = "recording_a"}]                # one entry per recording, or use `discover_sequences`
+
+[dataset_name.template]
+dataset_root = "<datasets_folder_path>/dataset_name"       # user-defined placeholder used below
+data_input_folder = "<dataset_root>/<sequence_id>"         # composed per-sequence via `<sequence_id>`
+path_to_calibrations = "<dataset_root>/calibrations.npz"   # optional; set to "" if you have no calibration
+subjects_descr = ["personL", "personR"]                    # people visible, ordered left to right
+
+[dataset_name.template.video.cameras]                      # named camera tracks
+view_1 = {path = "<data_input_folder>/view_1.mp4", sees_subjects = [0, 1]}
 ```
 
 A few details:
-- `cam_front` should contain the name of the camera view that observes the scene from the front. Best, it faces the subjects at about eye-height.
-- `cam_top`, `cam_face1`, and `cam_face2` are only used for multi-view datasets. These can be left as an empty string.
-- `subjects_descr` The length of this list reflects the number of people visible in the data. For each person visible, add an identifier.
-- `cam_sees_subjects` is a dictionary and its keys are the camera_names from above. For each camera, define the subjects it observes from left to right. Hereby, each subject is represented by its index in subjects_descr, where indexing starts with 0. See the example below.
-- `path_to_calibrations` and `data_input_folder` may (or in most cases must) contain placeholders. Placeholders can be the strings `<cur_session_ID>`, `<cur_sequence_ID>`, or `<datasets_folder_path>`.
+- `sequence_id` must be unique within a dataset. Later, the run file references sequences by this id.
+- Every key inside the template block that is *not* a schema field (`dataset_root`, `data_input_folder`, ...) becomes a placeholder that can be referenced by other strings in the same sequence. This lets you compose paths without repeating the root every time.
+- `<sequence_id>` inside a template string resolves to *that* sequence's id when the config is loaded.
+- Camera and audio tracks live under `template.video.cameras` and `template.audio.tracks`. Each track carries a `sees_subjects` / `hears_subjects` list of subject indices into `subjects_descr` (0-based).
+- Detectors reference cameras and tracks by name (via their `camera_names` / `track_names` field) — pick short, stable names.
 
-A comprehensive and detailed description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](../wikis/wiki_config_files.md#dataset-properties).
+A comprehensive description of the dataset properties file can also be found on the wiki page on config files under [dataset properties](../wikis/wiki_config_files.md#dataset-properties).
 
 
 ### Example
 
-Assume we have a dataset called "test_dataset" that contains video sequences from 2 capture sessions and 3 video sequences per session. The setup of the data is as follows: a single camera records two people sitting next to each other and talking. The camera captures at a framerate of 30 frames per second and the dataset provides frames that are indexed starting from 0.
-Further suppose that the dataset directory the following folder structure:
+Assume we have a dataset called "test_dataset" with three video sequences. A single camera records two people sitting next to each other and talking.
+
+Folder structure:
 
 ```
 test_dataset/
-├── session_1/
-│   ├── sequence_1/
-│   │   └── view_1/
-│   ├── sequence_2/
-│   │   └── view_1/
-│   └── sequence_3/
-│       └── view_1/
-├── session_2/
-│   ├── sequence_1/
-│   │   └── view_1/
-│   ├── sequence_2/
-│   │   └── view_1/
-│   └── sequence_3/
-│       └── view_1/
-└── calibration.npz
+├── sequence_1/
+│   └── view_1.mp4
+├── sequence_2/
+│   └── view_1.mp4
+├── sequence_3/
+│   └── view_1.mp4
+└── calibrations.npz
 ```
 
-To add this dataset to the NICE Toolbox, we need to add the following lines to `./configs/dataset_properties.toml`:
+Add to `./configs/dataset_properties.toml`:
 
 ```toml
-[test_dataset]                                             # folder name of the dataset
-session_IDs = ["session_1", "session_2"]                   # folder name of the sessions
-sequence_IDs = ['sequence_1', 'sequence_2', 'sequence_3']  # folder name of the sequences
-cam_front = 'view_1'                                       # a single camera recording from the front
-cam_top = ''                                               # no other cameras, leave empty strings
-cam_face1 = ''
-cam_face2 = ''
-subjects_descr = ["personL", "personR"]                    # there are 2 people visible in the video
-cam_sees_subjects = {view_1 = [0, 1]}                      # one camera ("view_1") and the order of the subjects named in 'subjects_descr'
-path_to_calibrations = "<datasets_folder_path>/test_dataset/calibration.npz"           # where to find the calibration file (reflects the folder structure above)
-data_input_folder = "<datasets_folder_path>/test_dataset/<cur_session_ID>/<cur_sequence_ID>/"  # where to find the video/frames data (reflects the folder structure above)
-start_frame_index = 0                                      # the dataset provides frames that are indexed starting from 0
-fps = 30                                                   # the camera captures at a framerate of 30 frames per second
+[test_dataset]
+sequences = [
+    {sequence_id = "sequence_1"},
+    {sequence_id = "sequence_2"},
+    {sequence_id = "sequence_3"},
+]
+
+[test_dataset.template]
+dataset_root = "<datasets_folder_path>/test_dataset"
+data_input_folder = "<dataset_root>/<sequence_id>"
+path_to_calibrations = "<dataset_root>/calibrations.npz"
+subjects_descr = ["personL", "personR"]
+
+[test_dataset.template.video.cameras]
+view_1 = {path = "<data_input_folder>/view_1.mp4", sees_subjects = [0, 1]}
 ```
 
 ## 3. Create a calibration file
@@ -140,10 +134,10 @@ The NICE Toolbox expects a `calibration.npz` file containing the calibration det
 
 ### Calibration toml file
 
-Create a `single_view_calibration.toml` file that contains the following dictionary for each of your session_IDs and sequence_IDs:
+Create a `single_view_calibration.toml` file that contains the following dictionary for each of your `sequence_id`s:
 ```toml
-[<cur_session_ID>__<cur_sequence_ID>.<cur_camera_name>]   # enter your session_ID, sequence_ID, and camera_name
-camera_name = "<cur_camera_name>"                 # enter the camera_name
+[sequence_id.camera_name]                         # enter your sequence_id and camera_name
+camera_name = "camera_name"                       # enter the camera_name
 image_size = [ <width>, <height> ]            # provide the image resolution (width and height) in pixels
 mtx = [ [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0] ]
 dist = [ 0.0, 0.0, 0.0, 0.0, 0.0 ]
@@ -197,12 +191,11 @@ visualize = false               # save image/video visualizations of detectors
 algorithms = ["hrnetw48", "eth_xgaze", "gaze_fusion", "gaze_distance", "velocity_body", "body_distance"]
 
 [run.dataset_name]              # change 'dataset_name' to your dataset
-videos = [
-    {                           # define which data to run on
-    session_ID = "",            # select the session_ID (str)
-    sequence_ID="",             # select the sequence_ID (str, may be empty)
-    video_start = 0,            # start of the video from beginning (int frame index or timestamp)
-    video_length = 100,         # defines the length of the video (int number of frames or timestamp)
+sequences = [
+    {                                    # define which sequence to run on
+    sequence_id = "sequence_1",          # match one of the sequence_ids from dataset_properties.toml (supports `*` wildcards)
+    video_start = 0,                     # start of the segment (int frame index or timestamp)
+    video_length = 100,                  # length of the segment (int frames or timestamp; -1 = full video)
     },
     ...
 ]
@@ -215,7 +208,7 @@ out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define wher
 
 Some notes:
 - `visualize` enables saving of intermediate results per detector. Disable for a faster run time, enable for test runs of smaller data subsets and debugging.
-- `run.dataset_name.videos` contains the information of the video that should be processed. Enter the details for your dataset's video here. You can extend the list with more dictionaries to run multiple videos.
+- `run.dataset_name.sequences` lists the sequences (and time-segments) to process. Extend the list to run multiple sequences; use `sequence_id = "*"` (or a prefix pattern like `"S1_*"`) to match every sequence declared in dataset properties without hand-listing them.
 - `io.experiment_name` defaults to the current date (in format YYYYMMDD).
 - `io.out_folder` is the experiment output directory. It supports placeholders such as `<output_folder_path>` and `<experiment_name>` that get filled automaticaclly when running the code.
 - `video_start` and `video_length` define the video segment to process, accepting either frame numbers (e.g., `0`, `150`) or timestamps (e.g., `00:01:30`, `00:00:45.500`).

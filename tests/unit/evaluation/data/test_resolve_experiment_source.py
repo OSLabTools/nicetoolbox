@@ -64,10 +64,9 @@ class TestHappyPath:
         datasets = {
             "ds1": {
                 "fps": 60,
-                "videos": [
+                "sequences": [
                     {
-                        "session_ID": "s01",
-                        "sequence_ID": "seq01",
+                        "sequence_id": "seq01",
                         "video_start": "00:01:00",
                         "video_length": "00:00:30",
                     },
@@ -109,15 +108,15 @@ class TestFiltering:
         assert len(result) == 1
         assert result[0].algorithm == "algo_b"
 
-    def test_filter_by_session(self, tmp_path):
+    def test_filter_by_sequence(self, tmp_path):
         mapping = {"algo_a": ["body_joints"]}
         cfg = make_experiment_config(tmp_path, MULTI_DATASET, mapping)
-        block = ExperimentInput(component="body_joints", npz_key="landmarks", session="s01")
+        block = ExperimentInput(component="body_joints", npz_key="landmarks", sequence="seq01")
 
         result = _resolve_experiment_source(block, cfg)
 
         assert len(result) == 1
-        assert result[0].session == "s01"
+        assert result[0].sequence == "seq01"
 
     def test_filter_by_subsequence_index(self, tmp_path):
         mapping = {"algo_a": ["body_joints"]}
@@ -156,25 +155,25 @@ class TestFiltering:
         assert len(result) == 2
         assert {m.algorithm for m in result} == {"algo_a", "algo_c"}
 
-    def test_filter_by_session_list(self, tmp_path):
+    def test_filter_by_sequence_list(self, tmp_path):
         mapping = {"algo_a": ["body_joints"]}
         cfg = make_experiment_config(tmp_path, THREE_DATASETS, mapping)
-        block = ExperimentInput(component="body_joints", npz_key="landmarks", session=["s01", "s02"])
+        block = ExperimentInput(component="body_joints", npz_key="landmarks", sequence=["seq01", "seq02"])
 
         result = _resolve_experiment_source(block, cfg)
 
         assert len(result) == 2
-        assert {m.session for m in result} == {"s01", "s02"}
+        assert {m.sequence for m in result} == {"seq01", "seq02"}
 
     def test_filter_by_subsequence_list(self, tmp_path):
         mapping = {"algo_a": ["body_joints"]}
         three_videos = {
             "ds1": {
                 "fps": 30,
-                "videos": [
-                    {"session_ID": "s01", "sequence_ID": "seq01", "video_start": 0, "video_length": 100},
-                    {"session_ID": "s01", "sequence_ID": "seq01", "video_start": 100, "video_length": 100},
-                    {"session_ID": "s01", "sequence_ID": "seq01", "video_start": 200, "video_length": 100},
+                "sequences": [
+                    {"sequence_id": "seq01_a", "video_start": 0, "video_length": 100},
+                    {"sequence_id": "seq01_b", "video_start": 100, "video_length": 100},
+                    {"sequence_id": "seq01_c", "video_start": 200, "video_length": 100},
                 ],
             },
         }
@@ -215,7 +214,7 @@ class TestErrors:
         mapping = {"algo_a": ["body_joints"]}
         cfg = make_experiment_config(tmp_path, SINGLE_DATASET, mapping)
         # Delete the npz file that was created by the factory
-        npz = tmp_path / "ds1" / "s01" / "seq01" / "body_joints" / "algo_a.npz"
+        npz = tmp_path / "ds1" / "seq01" / "body_joints" / "algo_a.npz"
         npz.unlink()
 
         block = ExperimentInput(component="body_joints", npz_key="landmarks")

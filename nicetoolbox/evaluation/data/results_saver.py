@@ -91,9 +91,9 @@ def _build_output_path(meta: NpzMeta) -> Path:
     """Build relative output path from meta fields."""
     if isinstance(meta, (ExperimentMeta)):
         subsequence = f"{meta.sequence}_{meta.subsequence.subsequence_index}"
-        return Path(meta.dataset) / meta.session / subsequence / meta.component / f"{meta.algorithm}.npz"
+        return Path(meta.dataset) / subsequence / meta.component / f"{meta.algorithm}.npz"
     if isinstance(meta, AnnotationMeta):
-        return Path(meta.dataset) / meta.session / meta.sequence / f"{meta.component}.npz"
+        return Path(meta.dataset) / meta.sequence / f"{meta.component}.npz"
     if isinstance(meta, PathMeta):
         return Path(meta.npz_path.stem + ".npz")
     raise ValueError(f"Unknown meta structure: {meta}")

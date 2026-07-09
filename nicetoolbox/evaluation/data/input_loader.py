@@ -7,8 +7,8 @@ from typing import Any
 
 import numpy as np
 
-from ...configs.placeholders import resolve_placeholders
-from ...configs.schemas.detectors_run_file import ResolvedSubsequenceMeta
+from ...configs.placeholders import get_placeholders_str, resolve_placeholders
+from ...configs.schemas.detectors_run_file import ResolvedSubsequenceConfig
 from ...configs.schemas.evaluation_input_block import (
     AnnotationInput,
     BaseInputBlock,
@@ -65,7 +65,6 @@ class NpzMeta(ABC):
 @dataclass
 class ExperimentMeta(NpzMeta):
     dataset: str
-    session: str
     sequence: str
     component: str
     algorithm: str
@@ -80,12 +79,11 @@ class ExperimentMeta(NpzMeta):
         return "algorithm"
 
     def align_key(self) -> tuple:
-        return (self.dataset, self.session, self.sequence, self.component)
+        return (self.dataset, self.sequence, self.component)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "dataset": self.dataset,
-            "session": self.session,
             "sequence": self.sequence,
             "subsequence": self.subsequence.subsequence_index,
             "subsequence_start": self.subsequence.video_start,
@@ -99,7 +97,6 @@ class ExperimentMeta(NpzMeta):
 @dataclass
 class AnnotationMeta(NpzMeta):
     dataset: str
-    session: str
     sequence: str
     component: str
 
@@ -112,12 +109,11 @@ class AnnotationMeta(NpzMeta):
         return None
 
     def align_key(self) -> tuple:
-        return (self.dataset, self.session, self.sequence, self.component)
+        return (self.dataset, self.sequence, self.component)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "dataset": self.dataset,
-            "session": self.session,
             "sequence": self.sequence,
             "component": self.component,
             "npz_key": self.npz_key,
@@ -243,11 +239,8 @@ def _resolve_experiment_source(
             raise KeyError(f"Dataset {dataset_name} is presented in detectors_run_file, but not in dataset_properties")
 
         # "components" in run_ds is the list of enabled components for this dataset.
-        for subsequence_idx, video in enumerate(run_ds.videos):
-            # Filter sessions and sequences
-            if not matches_filter(video.session_ID, input_block.session):
-                continue
-            if not matches_filter(video.sequence_ID, input_block.sequence):
+        for subsequence_idx, run_seq in enumerate(run_ds.sequences):
+            if not matches_filter(run_seq.sequence_id, input_block.sequence):
                 continue
             if not matches_filter(subsequence_idx, input_block.subsequence):
                 continue
@@ -264,13 +257,12 @@ def _resolve_experiment_source(
                     # TODO: move this logic to detectors somehow?
                     # We need to resolve where experiment saved this subsequence data
                     # Resolve detector result folder for one concrete
-                    # (dataset, session, sequence, component, algorithm)
+                    # (dataset, sequence, component, algorithm)
                     ctx = {
                         "cur_dataset_name": dataset_name,
-                        "cur_session_ID": video.session_ID,
-                        "cur_sequence_ID": video.sequence_ID,
-                        "cur_video_start": str(video.video_start),
-                        "cur_video_length": str(video.video_length),
+                        "cur_sequence_id": run_seq.sequence_id,
+                        "cur_video_start": str(run_seq.video_start),
+                        "cur_video_length": str(run_seq.video_length),
                         "cur_component_name": component_name,
                         "cur_algorithm_name": algorithm_name,
                     }
@@ -280,11 +272,11 @@ def _resolve_experiment_source(
                     meta_path = out_sub_folder / "subsequence_meta.toml"
                     if not meta_path.exists():
                         raise FileNotFoundError(
-                            f"Missing subsequence_meta.toml for dataset={dataset_name}, session={video.session_ID}, "
-                            f"sequence={video.sequence_ID} at '{meta_path}'. "
+                            f"Missing subsequence_meta.toml for dataset={dataset_name}, "
+                            f"sequence={run_seq.sequence_id} at '{meta_path}'. "
                             "Re-run the detectors pipeline to produce it."
                         )
-                    subsequence_meta = dict_to_model(load_raw_config(meta_path), ResolvedSubsequenceMeta)
+                    subsequence_meta = dict_to_model(load_raw_config(meta_path), ResolvedSubsequenceConfig)
 
                     # get npz path with detectors results
                     result_folder: Path = resolve_placeholders(run_file.io.detector_final_result_folder, ctx)
@@ -292,8 +284,8 @@ def _resolve_experiment_source(
                     if not npz_path.exists():
                         raise FileNotFoundError(
                             "Expected NPZ output is missing for configured detector: "
-                            f"dataset={dataset_name}, session={video.session_ID}, sequence={video.sequence_ID}, "
-                            f"video_start={video.video_start}, video_length={video.video_length}, "
+                            f"dataset={dataset_name}, sequence={run_seq.sequence_id}, "
+                            f"video_start={run_seq.video_start}, video_length={run_seq.video_length}, "
                             f"component={component_name}, algorithm={algorithm_name}, path={npz_path}"
                         )
 
@@ -304,8 +296,7 @@ def _resolve_experiment_source(
                     )
                     meta = ExperimentMeta(
                         dataset=dataset_name,
-                        session=video.session_ID,
-                        sequence=video.sequence_ID,
+                        sequence=run_seq.sequence_id,
                         component=component_name,
                         algorithm=algorithm_name,
                         subsequence=subseq,
@@ -331,37 +322,32 @@ def _resolve_annotation_source(
             raise KeyError(f"Dataset {dataset_name} is presented in detectors_run_file, but not in dataset_properties")
         ds_cfg = exp_cfg.dataset_config[dataset_name]
 
-        # Filter component and algorithms
-        # TODO: we get all possible session / sequence from dataset
-        # should we filter them further based on what we have in run_detectors?
-        sessions = [ses for ses in ds_cfg.session_IDs if matches_filter(ses, input_block.session)]
-        sequences = [seq for seq in ds_cfg.sequence_IDs if matches_filter(seq, input_block.sequence)]
-
-        for session_id in sessions:
-            for sequence_id in sequences:
-                for comp_name, comp_cfg in ds_cfg.annotation.components.items():
-                    if not matches_filter(comp_name, input_block.component):
-                        continue
-                    # Reconstruct annotation path from ctx
-                    ctx = {
-                        "cur_dataset_name": dataset_name,
-                        "cur_session_ID": session_id,
-                        "cur_sequence_ID": sequence_id,
-                        "cur_component_name": comp_name,
-                    }
-                    annotation_path = Path(resolve_placeholders(comp_cfg.path, ctx))
-                    if not annotation_path.exists():
-                        continue
-
-                    meta = AnnotationMeta(
-                        dataset=dataset_name,
-                        session=session_id,
-                        sequence=sequence_id,
-                        component=comp_name,
-                        npz_path=annotation_path,
-                        npz_key=input_block.npz_key,
+        for seq_cfg in ds_cfg.sequences:
+            if not matches_filter(seq_cfg.sequence_id, input_block.sequence):
+                continue
+            for comp_name, comp_cfg in seq_cfg.annotation.components.items():
+                if not matches_filter(comp_name, input_block.component):
+                    continue
+                annotation_path = comp_cfg.path
+                unresolved = get_placeholders_str(str(annotation_path))
+                if unresolved:
+                    raise ValueError(
+                        f"Annotation path for dataset='{dataset_name}', sequence='{seq_cfg.sequence_id}', "
+                        f"component='{comp_name}' has unresolved placeholders {sorted(unresolved)}: "
+                        f"'{annotation_path}'. Use sibling references (e.g. <sequence_id>) inside "
+                        "dataset_properties, not runtime placeholders (e.g. <cur_sequence_id>)."
                     )
-                    out.append(meta)
+                if not annotation_path.exists():
+                    continue
+
+                meta = AnnotationMeta(
+                    dataset=dataset_name,
+                    sequence=seq_cfg.sequence_id,
+                    component=comp_name,
+                    npz_path=annotation_path,
+                    npz_key=input_block.npz_key,
+                )
+                out.append(meta)
 
     return sorted(out, key=lambda x: str(x.npz_path))
 

@@ -1,15 +1,16 @@
 import copy
+import fnmatch
 from pathlib import Path
 from typing import Any, Generator
 
 from ..configs.project_config_handler import ProjectConfigHandler
-from ..configs.schemas.dataset_properties import DatasetConfig, DatasetProperties
+from ..configs.schemas.dataset_properties import DatasetProperties, SequenceConfig
 from ..configs.schemas.detectors_config import DetectorsConfig
 from ..configs.schemas.detectors_run_file import (
     DetectorsRunFile,
     LoggingLevelEnum,
-    ResolvedSubsequenceMeta,
-    RunConfigVideo,
+    ResolvedSubsequenceConfig,
+    SubsequenceConfig,
 )
 from ..configs.schemas.experiment_config import CodeConfig, DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
@@ -89,47 +90,97 @@ class Configuration(ProjectConfigHandler):
         predictions_mapping_file = self.run_config.io.predictions_mapping
         self.predictions_mapping = self.cfg_loader.load_config(predictions_mapping_file, PredictionsMappingConfig)
 
+        # Expand wildcard sequence_ids in run config against known dataset sequences.
+        # Mutates self.run_config.run in place, so downstream iteration and the saved
+        # experiment config both see the fully-expanded sequence list.
+        self._expand_sequence_wildcards()
+
+    def _expand_sequence_wildcards(self) -> None:
+        """
+        Expand any sequence entries in the run config whose `sequence_id` contains a
+        glob wildcard (e.g. `*` for all sequences, `S1_*` for sequences starting with
+        `S1_`) against the sequences declared in dataset properties.
+
+        Non-wildcard entries pass through unchanged. Duplicates (from overlapping
+        patterns or explicit entries) are deduplicated, keeping the first occurrence.
+        Raises if a pattern matches no sequences or references an unknown dataset.
+        """
+        for dataset_name, run_ds in self.run_config.run.items():
+            if dataset_name not in self.dataset_properties:
+                raise ValueError(
+                    f"Run config dataset '{dataset_name}' not found in dataset properties. "
+                    f"Available: {list(self.dataset_properties.keys())}"
+                )
+            all_ids = [seq.sequence_id for seq in self.dataset_properties[dataset_name].sequences]
+
+            expanded: list[SubsequenceConfig] = []
+            seen_ids: set[str] = set()
+            for entry in run_ds.sequences:
+                if any(ch in entry.sequence_id for ch in "*?["):
+                    matched = [sid for sid in all_ids if fnmatch.fnmatchcase(sid, entry.sequence_id)]
+                    if not matched:
+                        raise ValueError(
+                            f"Wildcard sequence_id '{entry.sequence_id}' in dataset "
+                            f"'{dataset_name}' matched no sequences. Available: {all_ids}"
+                        )
+                    for sid in matched:
+                        if sid in seen_ids:
+                            continue
+                        seen_ids.add(sid)
+                        expanded.append(entry.model_copy(update={"sequence_id": sid}))
+                else:
+                    if entry.sequence_id in seen_ids:
+                        continue
+                    seen_ids.add(entry.sequence_id)
+                    expanded.append(entry)
+
+            run_ds.sequences = expanded
+
     # -------------------------------------------------------------------------
     # Factory Method for Video Runtime Configurations
     # -------------------------------------------------------------------------
 
     def iter_sequence_contexts(self) -> Generator[SubsequenceContext, None, None]:
         """
-        Iterate over all videos and yield frozen runtime configurations.
+        Iterate over all configured sequences and yield frozen runtime configurations.
 
-        Each yielded SequenceRuntimeConfig is fully resolved and immutable.
-        It should be discarded after the video is processed.
+        Each yielded SubsequenceContext is fully resolved and immutable.
+        It should be discarded after the sequence is processed.
 
         Yields:
-            SequenceRuntimeConfig for each video defined in the run configuration
+            SubsequenceContext for each sequence resolved from the run configuration
         """
-        for dataset_name, videos_run_config in self.run_config.run.items():
-            # Get dataset properties
-            dataset_config = self.dataset_properties[dataset_name]
+        for dataset_name, run_ds in self.run_config.run.items():
+            sequences_by_id = {seq.sequence_id: seq for seq in self.dataset_properties[dataset_name].sequences}
 
-            for video in videos_run_config.videos:
+            for run_seq in run_ds.sequences:
+                if run_seq.sequence_id not in sequences_by_id:
+                    raise ValueError(
+                        f"Run config sequence_id '{run_seq.sequence_id}' in dataset "
+                        f"'{dataset_name}' not found. Available: {list(sequences_by_id)}"
+                    )
                 yield self._create_video_runtime_config(
                     dataset_name=dataset_name,
-                    video=video,
-                    dataset_config=dataset_config,
+                    run_sequence=run_seq,
+                    sequence_properties=sequences_by_id[run_seq.sequence_id],
                 )
 
     def _create_video_runtime_config(
         self,
         dataset_name: str,
-        video: RunConfigVideo,
-        dataset_config: DatasetConfig,
+        run_sequence: SubsequenceConfig,
+        sequence_properties: SequenceConfig,
     ) -> SubsequenceContext:
         """
-        Create a fully resolved, frozen SequenceRuntimeConfig.
+        Create a fully resolved, frozen SubsequenceContext.
 
         All placeholders are resolved before constructing the frozen model.
         """
-        # Collect all camera names from the dataset's video tracks
+        # Collect all camera names from the sequence's video tracks
         # We process all cameras all the time, no matter if any detector actually use them
         # This important for data consistency for visualizer and audio detectors
-        all_camera_names = list(dataset_config.video.cameras.keys())
-        all_track_names = list(dataset_config.audio.tracks.keys())
+        all_camera_names = list(sequence_properties.video.cameras.keys())
+        all_track_names = list(sequence_properties.audio.tracks.keys())
 
         # TODO: move it to some more general system for handling optional input block deps
         # for now it's hardcoded to specific attributes names
@@ -144,29 +195,28 @@ class Configuration(ProjectConfigHandler):
         # Construct frozen model with all resolved values
         runtime_config = SubsequenceContext(
             dataset_name=dataset_name,
-            video_config=video,
+            run_sequence=run_sequence,
+            sequence_properties=sequence_properties,
             log_file=self.log_file,
             machine=self.machine_specific_config,
             run=self.run_config,
-            dataset_properties=dataset_config,
             detectors_config=resolved_detectors,
             predictions_mapping=self.predictions_mapping,
         )
-        # Build runtime context for this video
+        # Build runtime context for this sequence
         runtime_ctx = {
             "cur_dataset_name": dataset_name,
-            "cur_session_ID": video.session_ID,
-            "cur_sequence_ID": video.sequence_ID,
-            "cur_video_start": video.video_start,
-            "cur_video_length": video.video_length,
+            "cur_sequence_id": run_sequence.sequence_id,
+            "cur_video_start": run_sequence.video_start,
+            "cur_video_length": run_sequence.video_length,
         }
         # Resolve placeholders (rebuilds every nested model via model_validate)
         try:
             res_runtime = self.cfg_loader.resolve(runtime_config, runtime_ctx, ignore_auto_and_global=True)
         except (ValueError, KeyError) as e:
             raise type(e)(
-                "Failed to resolve runtime config SequenceRuntimeConfig for "
-                f"dataset='{dataset_name}', sequence='{video.sequence_ID}':\n{e}"
+                "Failed to resolve runtime config SubsequenceContext for "
+                f"dataset='{dataset_name}', sequence='{run_sequence.sequence_id}':\n{e}"
             ) from e
 
         return res_runtime
@@ -203,10 +253,9 @@ class Configuration(ProjectConfigHandler):
         Uses identifiers from the user-declared video config plus frame-resolved
         values measured by the video handler during data prep.
         """
-        declared = sequence_context.video_config
-        subsequence_meta = ResolvedSubsequenceMeta(
-            session_ID=declared.session_ID,
-            sequence_ID=declared.sequence_ID,
+        declared = sequence_context.run_sequence
+        subsequence_meta = ResolvedSubsequenceConfig(
+            sequence_id=declared.sequence_id,
             video_start=data.video_start_frame_index,
             video_length=data.video_length_frames,
             fps=data.fps,

@@ -57,12 +57,16 @@ def test_load_detectors_config():
     assert get_placeholders(detectors) <= runtime_mock
     assert get_placeholders(dataset) <= runtime_mock
 
-    # simulate runtime resolution
-    for sequence_ID in ["sequence_1", "sequence_2"]:
-        ctx = {"cur_sequence_ID": sequence_ID}
-        res_dataset = cfg_loader.resolve(dataset, ctx)
-        example_field = res_dataset["communication_multiview"].data_input_folder
-        assert sequence_ID in str(example_field)
+    # Sequence-level fields should be fully resolved at load time — no runtime
+    # placeholders survive because `<sequence_id>` is resolved via each sequence's
+    # own local siblings.
+    dataset_block = dataset["communication_multiview"]
+    assert len(dataset_block.sequences) >= 1
+    for seq in dataset_block.sequences:
+        # sequence_id is composed into camera paths via `<data_input_folder>` / `<sequence_id>`
+        # placeholders — any camera path is a reasonable observable for full resolution.
+        any_camera_path = next(iter(seq.video.cameras.values())).path
+        assert seq.sequence_id in str(any_camera_path)
 
 
 def test_runtime_sequence_context_composition():

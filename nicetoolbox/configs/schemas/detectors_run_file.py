@@ -46,25 +46,21 @@ class DetectorsRunIO(BaseModel):
     detector_final_result_folder: Path
 
 
-class RunConfigVideo(BaseModel):
-    """
-    Video configuration in detectors pipeline.
-    """
+class SubsequenceConfig(BaseModel):
+    """Sequence selection entry in the detectors pipeline."""
 
-    session_ID: str
-    sequence_ID: str
+    sequence_id: str
     video_start: NonNegativeInt | VideoTimestamp  # can be frame index or timestamp
     video_length: int | VideoTimestamp  # frame index, timestamp or -1 for full length
 
 
-class ResolvedSubsequenceMeta(BaseModel):
+class ResolvedSubsequenceConfig(BaseModel):
     """
-    Resolved video configuration, containing actual video fps, start and length frame indexes.
+    Resolved subsequence configuration, containing actual video fps, start and length frame indexes.
     Used downstream for visualizer and evaluation.
     """
 
-    session_ID: str
-    sequence_ID: str
+    sequence_id: str
     video_start: NonNegativeInt  # resolved to frame index
     video_length: PositiveInt  # resolved to frame count
     fps: PositiveInt
@@ -73,10 +69,10 @@ class ResolvedSubsequenceMeta(BaseModel):
 class DetectorsRunConfig(BaseModel):
     """
     Single dataset config in detectors pipeline.
-    Contains settings for videos to run.
+    Contains settings for sequences to run.
     """
 
-    videos: List[RunConfigVideo]
+    sequences: List[SubsequenceConfig]
 
     # Runtime fields
     _dataset_name: str = PrivateAttr()

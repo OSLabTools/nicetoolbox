@@ -8,16 +8,7 @@ import numpy as np
 def load_calibration(calibration_file, video_input_config, camera_names="all"):
     calib = None
 
-    calib_details = "__".join(
-        [
-            word
-            for word in [
-                video_input_config["session_ID"],
-                video_input_config["sequence_ID"],
-            ]
-            if word
-        ]
-    )
+    calib_details = video_input_config["sequence_id"]
     loaded_calib = np.load(calibration_file, allow_pickle=True)[calib_details].item()
     if camera_names == "all":
         calib = dict((key, value) for key, value in loaded_calib.items())

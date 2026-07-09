@@ -114,8 +114,8 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
     # ==========================
     for sequence_context in config.iter_sequence_contexts():  # for each sequence
         # get sequence meta information for logging
-        sequence_str = str(sequence_context.video_config)
-        log_ut.log_banner(f"RUNNING {sequence_str}")
+        sequence_str = str(sequence_context.run_sequence)
+        log_ut.log_banner(f"RUNNING: dataset='{sequence_context.dataset_name}' {sequence_str}")
         with manage_error_scope(error_level, ErrorLevel.SEQUENCE, sequence_str):
             # Create IO paths specific for the sequence
             io = SequenceIO(sequence_context)

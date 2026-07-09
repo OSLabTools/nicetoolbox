@@ -9,7 +9,7 @@ This tutorial shows how to import human-annotated gaze data from [ELAN](https://
 
 ## 1. What is ELAN?
 
-[ELAN](https://archive.mpi.nl/tla/elan) (EUDICO Linguistic Annotator) is a free annotation tool developed at the Max Planck Institute for Psycholinguistics. It is widely used in linguistics, psychology, and behavioral research for frame-accurate annotation of audio and video recordings. Download it for Linux, macOS, or Windows at [https://archive.mpi.nl/tla/elan/download](https://archive.mpi.nl/tla/elan/download) — no license required.
+[ELAN](https://archive.mpi.nl/tla/elan) (EUDICO Linguistic Annotator) is a free annotation tool developed at the Max Planck Institute for Psycholinguistics. It is widely used in linguistics, psychology, and behavioral research for frame-accurate annotation of audio and video recordings. Download it for Linux, macOS, or Windows at [https://archive.mpi.nl/tla/elan/download](https://archive.mpi.nl/tla/elan/download).
 
 ELAN organizes annotations into **tiers** — named tracks that run along a shared video timeline. Each tier holds a sequence of **intervals**, where each interval has a start time, an end time, and a text label. Multiple tiers run in parallel, so each subject and behavior gets its own track.
 

@@ -1,9 +1,11 @@
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, NonNegativeInt, PrivateAttr, model_validator
+from pydantic import BaseModel, Field, NonNegativeInt, PrivateAttr, ValidationError, model_validator
 
 from ..models.dict_model import DictModel
+from ..named_wildcards import discover_sequences_for_dataset
+from ..placeholders import PLACEHOLDERS_TYPE, get_placeholders_str, resolve_placeholders_dict, resolve_placeholders_str
 
 
 class VideoTrackConfig(BaseModel):
@@ -19,7 +21,7 @@ class VideoTrackConfig(BaseModel):
     sees_subjects: List[int] = Field(min_length=1)
 
 
-class DatasetVideo(BaseModel):
+class SequenceVideo(BaseModel):
     """
     Configuration for dataset video modality.
     """
@@ -74,7 +76,7 @@ class AudioTrackConfig(BaseModel):
         return self.path is not None
 
 
-class DatasetAudio(BaseModel):
+class SequenceAudio(BaseModel):
     """
     Configuration for dataset audio modality.
     """
@@ -90,7 +92,7 @@ class AnnotationComponentConfig(BaseModel):
     path: Path
 
 
-class DatasetAnnotation(BaseModel):
+class SequenceAnnotation(BaseModel):
     """
     Optional per-component annotation paths used by evaluation input blocks.
     """
@@ -98,26 +100,52 @@ class DatasetAnnotation(BaseModel):
     components: Dict[str, AnnotationComponentConfig] = Field(default_factory=dict)
 
 
+class SequenceConfig(BaseModel):
+    """
+    Configuration schema for a single sequence inside a dataset.
+
+    Each sequence is fully self-describing: it owns its own cameras, audio
+    tracks, subject list, and paths. Sequences within the same dataset need
+    not share any structure.
+
+    Arbitrary extra fields (e.g. `session_name`, `recording_name`) are
+    allowed and used as placeholder variables inside this sequence's own
+    string fields.
+    """
+
+    sequence_id: str
+
+    subjects_descr: List[str]
+    path_to_calibrations: Optional[Path] = None
+
+    annotation: SequenceAnnotation = Field(default_factory=SequenceAnnotation)
+    video: SequenceVideo = Field(default_factory=SequenceVideo)
+    audio: SequenceAudio = Field(default_factory=SequenceAudio)
+
+
 class DatasetConfig(BaseModel):
     """
     Configuration schema for a single dataset.
-    Contains metadata and paths required for processing and evaluation.
+
+    A dataset is a flat list of sequences plus an optional shared template
+    (whose fields are merged into every sequence at load time) and an
+    optional filesystem discovery pattern.
     """
 
-    session_IDs: List[str]
-    sequence_IDs: List[str]
-
-    subjects_descr: List[str]
-
-    data_input_folder: Path
-    path_to_calibrations: Optional[Path] = None
-
-    annotation: DatasetAnnotation = Field(default_factory=DatasetAnnotation)
-    video: DatasetVideo = Field(default_factory=DatasetVideo)
-    audio: DatasetAudio = Field(default_factory=DatasetAudio)
+    discover_sequences: Optional[str] = None
+    sequences: List[SequenceConfig]
 
     # Runtime fields
     _dataset_name: str = PrivateAttr()
+
+    @model_validator(mode="after")
+    def _check_unique_sequence_ids(self):
+        seen: set[str] = set()
+        for seq in self.sequences:
+            if seq.sequence_id in seen:
+                raise ValueError(f"Duplicate sequence_id '{seq.sequence_id}' in dataset.")
+            seen.add(seq.sequence_id)
+        return self
 
 
 # Top-level config in dataset_properties.toml
@@ -131,3 +159,84 @@ class DatasetProperties(DictModel[str, DatasetConfig]):
         # injecting key into each DatasetConfig
         for name, ds in self.root.items():
             ds._dataset_name = name
+
+    @classmethod
+    def pre_placeholder_resolve(cls, raw: Dict[str, Any], placeholders: Dict[str, PLACEHOLDERS_TYPE]) -> Dict[str, Any]:
+        # TODO: overall, this part is overcomplicated and smell, but I don't better way to do it
+        # Dataset properties is unique, so we need to do couple of extra steps:
+        # 1. Resolve placeholders at the dataset root (shallow) so discovery pattern is usable
+        # 2. "Manually" validate template, discover_sequences and sequences fields
+        # 3. Run filesystem sequence discovery and compose sequence_id from template when needed
+        # 4. Merge explicit sequences on top of discovered ones (matched by sequence_id)
+        # 5. Inject template values into every sequence (sequence keys override template)
+        # In the end return config copy and continue standard stuff (final resolution + pydantic validation)
+
+        # Because this function runs before pydantic, we need to validate types manually
+        # Yes, this is inline pydantic check
+        class _DatasetPreValidate(BaseModel):
+            template: Optional[Dict[str, Any]] = None
+            sequences: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+            discover_sequences: Optional[str] = None
+
+        out: Dict[str, Any] = {}
+        for name, dataset_raw in raw.items():
+            # TODO: this will raise if there is runtime placeholder in dataset root
+            # 1 - Resolve placeholders for this dataset (shallow, root only level, need for discovery)
+            dataset_ret = resolve_placeholders_dict(dataset_raw, placeholders)
+            # 2 - Validate selected fields that we need
+            try:
+                dataset = _DatasetPreValidate.model_validate(dataset_ret)
+            except ValidationError as e:
+                raise ValueError(f"Dataset '{name}': {e}") from e
+
+            # 3 - Run sequence discovery
+            template = dataset.template or {}
+            discovered: List[Dict[str, Any]] = []
+            if dataset.discover_sequences:
+                discovered = discover_sequences_for_dataset(dataset.discover_sequences)
+                # Compose sequence_id for each discovered entry using template's sequence_id
+                # so explicit entries can override discovered ones by matching id.
+                template_seq_id = template.get("sequence_id")
+                if isinstance(template_seq_id, str):
+                    for disc in discovered:
+                        # If discovery already captured `sequence_id` directly (pattern used
+                        # `[sequence_id]`), keep the capture — don't overwrite with template.
+                        if "sequence_id" in disc:
+                            continue
+                        # Only compose if discovery captured every placeholder the template needs.
+                        candidate = resolve_placeholders_str(template_seq_id, disc)
+                        if get_placeholders_str(candidate):
+                            continue
+                        disc["sequence_id"] = candidate
+
+            # 4 - Merge explicit sequences on top of discovered by sequence_id, then append the rest
+            discovered_by_id = {d["sequence_id"]: d for d in discovered if "sequence_id" in d}
+            merged: List[Dict[str, Any]] = list(discovered)
+            for expl in dataset.sequences:
+                expl_id = expl.get("sequence_id")
+                if expl_id and expl_id in discovered_by_id:
+                    discovered_by_id[expl_id].update(expl)
+                else:
+                    merged.append(expl)
+
+            # 5 - Inject template values in each sequence (sequence keys override template)
+            def _templ_resolve(template, seq):
+                merged: Dict[str, Any] = {}
+                for k, v in template.items():
+                    merged[k] = v
+                for k, v in seq.items():
+                    merged[k] = v
+                return merged
+
+            full_sequences = [_templ_resolve(template, seq) for seq in merged]
+
+            # Patch dataset raw with full list of sequences
+            dataset_ret["sequences"] = full_sequences
+
+            # Drop template, as upfront declared plaeholders will raise resolve error
+            # TODO: keep it for logging? Some flag ignore resolution for specific field?
+            dataset_ret.pop("template", None)
+
+            out[name] = dataset_ret
+
+        return out

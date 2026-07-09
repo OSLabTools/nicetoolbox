@@ -1,17 +1,23 @@
 # ======== Dataset definition ========
 [communication_multiview]
-session_IDs = [""]                                 # identifiers for each session (list of str)
-sequence_IDs = ["sequence_xyz"]                    # identifiers for individual sequences (list of str)
-subjects_descr = ["person_left", "person_right"]   # define an identifier for the subjects in each video or frame (list of str)
 
-path_to_calibrations = "<datasets_folder_path>/communication_multiview/calibrations.npz"  # Path to camera calibration file, set to "" if you don't have calibration parameters.
-data_input_folder = "<datasets_folder_path>/communication_multiview/<cur_sequence_ID>"    # folder path with placeholders to the video or image files (str)
+# ========== Sequences list ==========
+# One entry per recording. Template below is merged in first; keys below override per-key.
+sequences = [ {sequence_id = "sequence_xyz"} ]  # sequence_id need to be unique
+
+# ========== Sequence Template ==========
+# Shared template merged into every sequence entry above. Sequence-level values
+# override template values on a per-key basis.
+[communication_multiview.template]
+dataset_root = "<datasets_folder_path>/communication_multiview"  # Optional root folder of the dataset (usually a subfolder of datasets path)
+data_input_folder = "<dataset_root>/<sequence_id>"               # Folder where to look for specific sequences data (containing audio, video, etc.)
+path_to_calibrations = "<dataset_root>/calibrations.npz"         # Path to camera calibration file, set to "" if you don't have calibration parameters
+subjects_descr = ["person_left", "person_right"]                 # Define an identifier for the subjects in each video or frame (list of str)
 
 # ======== Video configuration ========
-# Define video tracks (cameras) available in each sequence of the dataset.
-# Each track has a user-defined name, a path to its video file, and declares
-# which subjects it sees. 
-[communication_multiview.video.cameras]
+# Define available video tracks (cameras). Each track has a user-defined name,
+# a path to its video file, and declares which subjects it sees. 
+[communication_multiview.template.video.cameras]
 view_center = {path = "<data_input_folder>/view_center.mp4", sees_subjects = [0, 1]}
 view_top    = {path = "<data_input_folder>/view_top.mp4",    sees_subjects = [0, 1]}
 view_left   = {path = "<data_input_folder>/view_left.mp4",   sees_subjects = [0]}
@@ -20,23 +26,21 @@ view_right  = {path = "<data_input_folder>/view_right.mp4",  sees_subjects = [1]
 # camera_0 = {path = "<data_input_folder>/camera_0/*.avi",  sees_subjects = [1]}
 # Will find something like "<data_input_folder>/camera_0/2022_03_04_test_recording.avi"
 
-
 # ======== Audio configuration ========
-# You can define audio tracks, presented in each sequence of the dataset
-# Audio tracks can be extracted from video files (i.e. mp4, avi) or from separate audio files (i.e. wav, mp3)
-[communication_multiview.audio.tracks]
-room = {path = "<data_input_folder>/audio_combined.wav", hears_subjects = [0, 1]}   # wav file placed inside each sequence folder (contains session or sequence ids placeholders)
-left_mic = {camera = "view_left", hears_subjects = [0]}                             # audio extracted from the left camera video, only left subject can be heard
-right_mic = {camera = "view_right", hears_subjects = [1]}                           # audio extracted from the right camera video, only right subject can be heard
+# Define available audio tracks. Audio tracks can be extracted from video files (i.e. mp4, avi)
+# or from separate audio files (i.e. wav, mp3)
+[communication_multiview.template.audio.tracks]
+room      = {path = "<data_input_folder>/audio_combined.wav", hears_subjects = [0, 1]}  # wav file placed inside each sequence folder (contains session or sequence ids placeholders)
+left_mic  = {camera = "view_left",  hears_subjects = [0]}                               # audio extracted from the left camera video, only left subject can be heard
+right_mic = {camera = "view_right", hears_subjects = [1]}                               # audio extracted from the right camera video, only right subject can be heard
 # You can also specify which stream or channel index to extract:
 # left_track = {camera = "view_center", stream = 1, hears_subjects = [0]}  # view_center has three tracks: mixed, left and right tracks
 # right_channel = {path = "<data_input_folder>/audio_combined_stereo.wav", channel = 1, hears_subjects = [1]}  # in stereo audio 0 is left, 1 is right channel
 
-
 # ======== Evaluation configuration ========
-[communication_multiview.annotation]
-annotations_folder = "<datasets_folder_path>/communication_multiview/annotations"
+[communication_multiview.template.annotation]
+annotations_folder = "<dataset_root>/annotations"
 # labels for different components
-[communication_multiview.annotation.components]
-gaze_interaction = {path = "<annotations_folder>/<cur_sequence_ID>_gaze.npz"}
-body_joints = {path = "<annotations_folder>/<cur_sequence_ID>_body_joints.npz"}
+[communication_multiview.template.annotation.components]
+gaze_interaction = {path = "<annotations_folder>/<sequence_id>_gaze.npz"}
+body_joints      = {path = "<annotations_folder>/<sequence_id>_body_joints.npz"}

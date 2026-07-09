@@ -86,42 +86,42 @@ def make_npz(
 SINGLE_DATASET = {
     "ds1": {
         "fps": 30,
-        "videos": [{"session_ID": "s01", "sequence_ID": "seq01"}],
+        "sequences": [{"sequence_id": "seq01"}],
     },
 }
 
 MULTI_DATASET = {
     "ds1": {
         "fps": 30,
-        "videos": [{"session_ID": "s01", "sequence_ID": "seq01"}],
+        "sequences": [{"sequence_id": "seq01"}],
     },
     "ds2": {
         "fps": 60,
-        "videos": [{"session_ID": "s02", "sequence_ID": "seq02"}],
+        "sequences": [{"sequence_id": "seq02"}],
     },
 }
 
 THREE_DATASETS = {
     "ds1": {
         "fps": 30,
-        "videos": [{"session_ID": "s01", "sequence_ID": "seq01"}],
+        "sequences": [{"sequence_id": "seq01"}],
     },
     "ds2": {
         "fps": 60,
-        "videos": [{"session_ID": "s02", "sequence_ID": "seq02"}],
+        "sequences": [{"sequence_id": "seq02"}],
     },
     "ds3": {
         "fps": 25,
-        "videos": [{"session_ID": "s03", "sequence_ID": "seq03"}],
+        "sequences": [{"sequence_id": "seq03"}],
     },
 }
 
 MULTI_VIDEO = {
     "ds1": {
         "fps": 30,
-        "videos": [
-            {"session_ID": "s01", "sequence_ID": "seq01", "video_start": 0, "video_length": 100},
-            {"session_ID": "s01", "sequence_ID": "seq01", "video_start": 100, "video_length": 100},
+        "sequences": [
+            {"sequence_id": "seq01_a", "video_start": 0, "video_length": 100},
+            {"sequence_id": "seq01_b", "video_start": 100, "video_length": 100},
         ],
     },
 }
@@ -137,16 +137,15 @@ THREE_ALGORITHMS = {"algo_a": ["body_joints"], "algo_b": ["body_joints"], "algo_
 
 
 @dataclass
-class FakeVideo:
-    session_ID: str
-    sequence_ID: str
+class FakeRunSequence:
+    sequence_id: str
     video_start: int | str = 0
     video_length: int | str = 100
 
 
 @dataclass
 class FakeRunDataset:
-    videos: list[FakeVideo]
+    sequences: list[FakeRunSequence]
 
 
 @dataclass
@@ -160,10 +159,14 @@ class FakeAnnotation:
 
 
 @dataclass
-class FakeDatasetConfig:
-    session_IDs: list[str] = field(default_factory=list)
-    sequence_IDs: list[str] = field(default_factory=list)
+class FakeSequenceConfig:
+    sequence_id: str
     annotation: FakeAnnotation = field(default_factory=FakeAnnotation)
+
+
+@dataclass
+class FakeDatasetConfig:
+    sequences: list[FakeSequenceConfig] = field(default_factory=list)
 
 
 class FakeRunIO(BaseModel):
@@ -190,68 +193,72 @@ class FakeRunFile(BaseModel):
 def make_experiment_config(tmp_path: Path, datasets: dict, algo_component_mapping: dict[str, list[str]]) -> MagicMock:
     """Build a mock DetectorsExperimentConfig for resolver tests.
 
-    Args:
-        algo_component_mapping: maps algorithm_name → list of component names it belongs to.
-
     Each dataset entry supports:
-    - ``fps``, ``videos`` — for experiment source
-    - ``annotation_components`` — optional dict of ``{comp_name: path_with_placeholders}``
-      for annotation source. Paths may contain ``<cur_dataset_name>``,
-      ``<cur_session_ID>``, ``<cur_sequence_ID>`` placeholders.
+    - ``fps``, ``sequences`` — for experiment source
+    - ``annotation_components`` — optional dict of ``{comp_name: path_template}``
+      for annotation source. Templates may use ``<cur_dataset_name>``,
+      ``<cur_sequence_id>``, ``<cur_component_name>`` as a fixture-internal
+      shorthand for building per-sequence paths — the helper resolves them
+      before assigning to each ``FakeSequenceConfig``, so the paths handed to
+      evaluation are already concrete (matching the real dataset loader's
+      sibling-scope resolution).
     """
-    placeholder_path = Path("<cur_dataset_name>") / "<cur_session_ID>" / "<cur_sequence_ID>" / "<cur_component_name>"
+    placeholder_path = Path("<cur_dataset_name>") / "<cur_sequence_id>" / "<cur_component_name>"
     result_template = tmp_path / placeholder_path
-    sub_folder_template = tmp_path / "<cur_dataset_name>" / "<cur_session_ID>" / "<cur_sequence_ID>"
+    sub_folder_template = tmp_path / "<cur_dataset_name>" / "<cur_sequence_id>"
 
     run_datasets: dict[str, FakeRunDataset] = {}
     dataset_configs: dict[str, FakeDatasetConfig] = {}
 
     for ds_name, ds_spec in datasets.items():
-        videos = [FakeVideo(**v) for v in ds_spec["videos"]]
-        run_datasets[ds_name] = FakeRunDataset(videos=videos)
+        run_sequences = [FakeRunSequence(**s) for s in ds_spec["sequences"]]
+        run_datasets[ds_name] = FakeRunDataset(sequences=run_sequences)
 
-        # Build annotation components
-        annotation_components: dict[str, FakeAnnotationComponent] = {}
-        for comp_name, ann_path in ds_spec.get("annotation_components", {}).items():
-            annotation_components[comp_name] = FakeAnnotationComponent(path=ann_path)
-            # Create annotation files on disk for each video
-            for video in videos:
+        # Build annotation components per-sequence with paths pre-resolved,
+        # matching the real dataset loader's sibling-scope resolution.
+        raw_components = ds_spec.get("annotation_components", {})
+        per_sequence_components: dict[str, dict[str, FakeAnnotationComponent]] = {}
+        for run_seq in run_sequences:
+            components: dict[str, FakeAnnotationComponent] = {}
+            for comp_name, ann_path in raw_components.items():
                 ctx = {
                     "cur_dataset_name": ds_name,
-                    "cur_session_ID": video.session_ID,
-                    "cur_sequence_ID": video.sequence_ID,
+                    "cur_sequence_id": run_seq.sequence_id,
+                    "cur_component_name": comp_name,
                 }
                 resolved = Path(resolve_placeholders(ann_path, ctx))
                 resolved.parent.mkdir(parents=True, exist_ok=True)
                 resolved.touch()
+                components[comp_name] = FakeAnnotationComponent(path=resolved)
+            per_sequence_components[run_seq.sequence_id] = components
 
         dataset_configs[ds_name] = FakeDatasetConfig(
-            session_IDs=list({v["session_ID"] for v in ds_spec["videos"]}),
-            sequence_IDs=list({v["sequence_ID"] for v in ds_spec["videos"]}),
-            annotation=FakeAnnotation(components=annotation_components),
+            sequences=[
+                FakeSequenceConfig(
+                    sequence_id=run_seq.sequence_id,
+                    annotation=FakeAnnotation(components=per_sequence_components[run_seq.sequence_id]),
+                )
+                for run_seq in run_sequences
+            ],
         )
 
         # Create experiment .npz files and per-sequence subsequence_meta.toml on disk
         ds_fps = ds_spec.get("fps", 30)
-        for video in videos:
+        for run_seq in run_sequences:
             for algo, components in algo_component_mapping.items():
                 for comp in components:
-                    npz_dir = tmp_path / ds_name / video.session_ID / video.sequence_ID / comp
+                    npz_dir = tmp_path / ds_name / run_seq.sequence_id / comp
                     npz_dir.mkdir(parents=True, exist_ok=True)
                     (npz_dir / f"{algo}.npz").touch()
 
-            sub_folder = tmp_path / ds_name / video.session_ID / video.sequence_ID
+            sub_folder = tmp_path / ds_name / run_seq.sequence_id
             sub_folder.mkdir(parents=True, exist_ok=True)
 
-            # ResolvedSequenceMeta as detectors would write post-prep. Only integer
-            # frame values are valid here; declared timestamps on FakeVideo are
-            # ignored (production would resolve them to frames before writing).
-            resolved_start = video.video_start if isinstance(video.video_start, int) else 0
-            resolved_length = video.video_length if isinstance(video.video_length, int) else 100
+            resolved_start = run_seq.video_start if isinstance(run_seq.video_start, int) else 0
+            resolved_length = run_seq.video_length if isinstance(run_seq.video_length, int) else 100
             save_config(
                 {
-                    "session_ID": video.session_ID,
-                    "sequence_ID": video.sequence_ID,
+                    "sequence_id": run_seq.sequence_id,
                     "video_start": resolved_start,
                     "video_length": resolved_length,
                     "fps": ds_fps,
@@ -294,16 +301,15 @@ def expected_experiment_metas(
     """Build the expected ExperimentMeta list matching make_experiment_config output."""
     out: list[ExperimentMeta] = []
     for ds_name, ds_spec in datasets.items():
-        for subseq_idx, v in enumerate(ds_spec["videos"]):
-            video_start = v.get("video_start", 0)
-            video_length = v.get("video_length", 100)
+        for subseq_idx, s in enumerate(ds_spec["sequences"]):
+            video_start = s.get("video_start", 0)
+            video_length = s.get("video_length", 100)
             for algo, components in algo_component_mapping.items():
                 for comp in components:
                     out.append(
                         ExperimentMeta(
                             dataset=ds_name,
-                            session=v["session_ID"],
-                            sequence=v["sequence_ID"],
+                            sequence=s["sequence_id"],
                             component=comp,
                             algorithm=algo,
                             subsequence=SubsequenceInfo(
@@ -311,7 +317,7 @@ def expected_experiment_metas(
                                 video_start=video_start,
                                 video_length=video_length,
                             ),
-                            npz_path=tmp_path / ds_name / v["session_ID"] / v["sequence_ID"] / comp / f"{algo}.npz",
+                            npz_path=tmp_path / ds_name / s["sequence_id"] / comp / f"{algo}.npz",
                             npz_key=npz_key,
                         )
                     )
@@ -325,19 +331,17 @@ def expected_annotation_metas(
     """Build the expected AnnotationMeta list matching make_experiment_config output."""
     out: list[AnnotationMeta] = []
     for ds_name, ds_spec in datasets.items():
-        for v in ds_spec["videos"]:
+        for s in ds_spec["sequences"]:
             ctx = {
                 "cur_dataset_name": ds_name,
-                "cur_session_ID": v["session_ID"],
-                "cur_sequence_ID": v["sequence_ID"],
+                "cur_sequence_id": s["sequence_id"],
             }
             for comp_name, ann_path in ds_spec.get("annotation_components", {}).items():
                 resolved = Path(resolve_placeholders(ann_path, ctx))
                 out.append(
                     AnnotationMeta(
                         dataset=ds_name,
-                        session=v["session_ID"],
-                        sequence=v["sequence_ID"],
+                        sequence=s["sequence_id"],
                         component=comp_name,
                         npz_path=resolved,
                         npz_key=npz_key,
