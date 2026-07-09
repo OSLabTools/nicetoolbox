@@ -28,21 +28,22 @@ algorithms = [
 ]
 
 # define which data to run on
+# use sequence_id = "*" to run all sequences
 [run]
 [run.communication_multiview]
-videos = [
-   {session_ID = "", sequence_ID="sequence_xyz", video_start = 0, video_length = -1}  # Note: -1 for full video length
+sequences = [
+   {sequence_id = "sequence_xyz", video_start = 0, video_length = -1}  # Note: -1 for full video length
 ]
 
 [io]
 experiment_name = "<yyyymmdd>"                                     # define the name of the experiment (str), default: date as "<yyyymmdd>"
 out_folder = "<output_folder_path>/experiments/<experiment_name>"  # define where to save the experiment output (str)
-# Output folders based on the video (with video level placeholders)
-out_sub_folder_name = "<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>_s<cur_video_start>_l<cur_video_length>"
+# Output folders based on the sequence (with sequence-level placeholders)
+out_sub_folder_name = "<cur_dataset_name>_<cur_sequence_id>_s<cur_video_start>_l<cur_video_length>"
 out_sub_folder = "<out_folder>/<out_sub_folder_name>"
 csv_out_folder = "<out_sub_folder>/_csv_files"
 # Preprocessed data input folder for Nicetoolbox format
-nicetoolbox_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_session_ID>_<cur_sequence_ID>"
+nicetoolbox_input_folder = "<output_folder_path>/nicetoolbox_input/<cur_dataset_name>_<cur_sequence_id>"
 # Code, assets and config file paths
 code_folder = "<pwd>"
 assets = "<code_folder>/nicetoolbox/detectors/assets"

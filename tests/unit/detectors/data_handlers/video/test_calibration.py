@@ -33,7 +33,7 @@ def test_valid_calibration_filters_to_active_cameras(tmp_path, default_vid_patch
         "cam_top": {"intrinsics": np.eye(3)},
         "cam_unknown": {"intrinsics": np.eye(3)},
     }
-    np.savez(calib_path, **{"session_01__seq_01": calib_data})
+    np.savez(calib_path, **{"seq_01": calib_data})
     io.get_calibration_file.return_value = str(calib_path)
 
     handler.prepare()
@@ -54,13 +54,13 @@ def test_missing_calibration_key_raises(tmp_path, default_vid_patches):
         handler.prepare()
 
 
-def test_empty_session_id_calibration_key(tmp_path, default_vid_patches):
-    # session_id='' → key is just 'seq_01' (empty part filtered out)
+def test_sequence_id_only_calibration_key(tmp_path, default_vid_patches):
+    # Calibration is keyed purely by sequence_id.
     cameras = ["cam_front"]
     video_path = tmp_path / "cam_front.mp4"
     video_path.touch()
 
-    ctx = make_sequence_context({"cam_front": video_path}, session_id="", sequence_id="seq_01")
+    ctx = make_sequence_context({"cam_front": video_path}, sequence_id="seq_01")
     io = make_io(tmp_path)
     make_frames_cache(io, ctx)
 

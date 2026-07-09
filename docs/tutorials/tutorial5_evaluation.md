@@ -75,20 +75,18 @@ To get a breakdown per joint, change `group_by` to `["label"]`. To get the most 
 Accuracy metrics require a ground-truth NPZ file. The `source = "annotation"` field tells the pipeline to look for the ground truth inside the `dataset_properties.toml` config.
 
 ```toml
-# dataset_properties.toml 
+# dataset_properties.toml
 [communication_multiview]
-session_IDs = [""]
-sequence_IDs = ["sequence_xyz"]      
-...
+sequences = [{sequence_id = "sequence_xyz"}]
+# ... template with dataset_root, video.cameras, etc. (see wiki) ...
 
-# ======== Evaluation configuration ======== 
-[communication_multiview.annotation]
-annotations_folder = "<datasets_folder_path>/communication_multiview/annotations"
-# labels for different components
-[communication_multiview.annotation.components]
-gaze_interaction = {path = "<annotations_folder>/<cur_sequence_ID>_gaze.npz"}
-body_joints = {path = "<annotations_folder>/<cur_sequence_ID>_body_joints.npz"}
-
+# ======== Evaluation configuration ========
+[communication_multiview.template.annotation]
+annotations_folder = "<dataset_root>/annotations"
+# labels for different components — <sequence_id> resolves per-sequence
+[communication_multiview.template.annotation.components]
+gaze_interaction = {path = "<annotations_folder>/<sequence_id>_gaze.npz"}
+body_joints      = {path = "<annotations_folder>/<sequence_id>_body_joints.npz"}
 ```
 
 Now we can specify PCK metric to use the `body_joints` annotation as the ground truth for the algorithm:

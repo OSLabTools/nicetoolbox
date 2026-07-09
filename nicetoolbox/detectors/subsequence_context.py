@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict
 
 from ..configs.models.video_timestamp import VideoTimestamp
 from ..configs.placeholders import resolve_placeholders
-from ..configs.schemas.dataset_properties import DatasetConfig
+from ..configs.schemas.dataset_properties import SequenceConfig
 from ..configs.schemas.detectors_config import DetectorsConfig
-from ..configs.schemas.detectors_run_file import DetectorsRunFile, DetectorsRunIO, LoggingLevelEnum, RunConfigVideo
+from ..configs.schemas.detectors_run_file import DetectorsRunFile, DetectorsRunIO, LoggingLevelEnum, SubsequenceConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
 
@@ -31,12 +31,12 @@ class SubsequenceContext(BaseModel):
 
     # subsequence specific info
     dataset_name: str
-    video_config: RunConfigVideo
+    run_sequence: SubsequenceConfig
+    sequence_properties: SequenceConfig
 
     # configs resolved for this specific subsequence
     machine: MachineSpecificConfig
     run: DetectorsRunFile
-    dataset_properties: DatasetConfig
     detectors_config: DetectorsConfig
     predictions_mapping: PredictionsMappingConfig
 
@@ -48,7 +48,7 @@ class SubsequenceContext(BaseModel):
     # -------------------------------------------------------------------------
     @property
     def all_camera_names(self) -> List[str]:
-        return list(self.dataset_properties.video.cameras.keys())
+        return list(self.sequence_properties.video.cameras.keys())
 
     @property
     def log_level(self) -> LoggingLevelEnum:
@@ -63,28 +63,24 @@ class SubsequenceContext(BaseModel):
         return self.run.io
 
     @property
-    def session_id(self) -> str:
-        return self.video_config.session_ID
-
-    @property
     def sequence_id(self) -> str:
-        return self.video_config.sequence_ID
+        return self.run_sequence.sequence_id
 
     @property
     def video_start(self) -> int | VideoTimestamp:
-        return self.video_config.video_start
+        return self.run_sequence.video_start
 
     @property
     def video_length(self) -> int | VideoTimestamp:
-        return self.video_config.video_length
+        return self.run_sequence.video_length
 
     @property
     def subjects_descr(self) -> List[str]:
-        return self.dataset_properties.subjects_descr
+        return self.sequence_properties.subjects_descr
 
     @property
     def calibration_path(self) -> Optional[Path]:
-        path = self.dataset_properties.path_to_calibrations
+        path = self.sequence_properties.path_to_calibrations
         return Path(path) if path else None
 
     # -------------------------------------------------------------------------

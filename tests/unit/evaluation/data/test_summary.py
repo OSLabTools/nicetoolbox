@@ -22,7 +22,6 @@ _DUMMY_KEY = "k"
 def _exp(algorithm: str = "algo_a") -> ExperimentMeta:
     return ExperimentMeta(
         dataset="ds1",
-        session="s01",
         sequence="seq01",
         component="body_joints",
         algorithm=algorithm,
@@ -35,7 +34,6 @@ def _exp(algorithm: str = "algo_a") -> ExperimentMeta:
 def _ann() -> AnnotationMeta:
     return AnnotationMeta(
         dataset="ds1",
-        session="s01",
         sequence="seq01",
         component="body_joints",
         npz_path=_DUMMY_PATH,
@@ -121,7 +119,6 @@ class TestMultiIndexStructure:
 
         expected_names = [
             "dataset",
-            "session",
             "sequence",
             "subsequence",
             "subsequence_start",
@@ -143,7 +140,6 @@ class TestMultiIndexStructure:
 
         expected_names = [
             "dataset",
-            "session",
             "sequence",
             "component",
             "npz_key",

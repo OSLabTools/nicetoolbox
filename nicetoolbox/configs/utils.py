@@ -133,9 +133,8 @@ def default_runtime_placeholders():
     return {
         "cur_video_length",
         "cur_video_start",
-        "cur_sequence_ID",
+        "cur_sequence_id",
         "cur_dataset_name",
-        "cur_session_ID",
         "cur_algorithm_name",
         "cur_component_name",
         "cur_camera_name",

@@ -53,15 +53,13 @@ class SequenceData:
         self.subjects_descr = subsequence_context.subjects_descr
         self.all_camera_names = subsequence_context.all_camera_names
 
-        video_config = subsequence_context.video_config
-        self.session_ID = video_config.session_ID
-        self.sequence_ID = video_config.sequence_ID
+        self.sequence_id = subsequence_context.run_sequence.sequence_id
 
         self.video_skip_frames = None  # Hardcoded - No access via config yet
         self.annotation_interval = 2.0  # Keep? Hardcoded - No access via config yet
 
-        dataset_properties = subsequence_context.dataset_properties
-        cameras = dataset_properties.video.cameras
+        sequence_properties = subsequence_context.sequence_properties
+        cameras = sequence_properties.video.cameras
         # TODO: remove cam_sees_subjects?
         self.cam_sees_subjects = {name: t.sees_subjects for name, t in cameras.items()}
         # --- END: Config Parameters / Meta data used by detectors ---
@@ -84,7 +82,7 @@ class SequenceData:
 
         # (2) Prepare audio if available
         self._audio_handler: AudioDataHandler | None = None
-        tracks_cfg = dataset_properties.audio.tracks
+        tracks_cfg = sequence_properties.audio.tracks
         if tracks_cfg:
             self._audio_handler = AudioDataHandler(
                 io, subsequence_context, self.video_start_ms, self.video_length_ms, tracks_cfg

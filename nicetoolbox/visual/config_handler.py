@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from ..configs.project_config_handler import ProjectConfigHandler
-from ..configs.schemas.detectors_run_file import ResolvedSubsequenceMeta
+from ..configs.schemas.detectors_run_file import ResolvedSubsequenceConfig
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.visualizer_config import VisualizerConfig
@@ -110,7 +110,7 @@ class Configuration(ProjectConfigHandler):
         # load per-sequence resolved facts (frame-resolved inputs + measured fps)
         loaded_subsequence_meta = self.cfg_loader.load_config(
             Path(subsequence_meta_file),
-            ResolvedSubsequenceMeta,
+            ResolvedSubsequenceConfig,
             ignore_auto_and_global=True,
         )
         # TODO: rest of the codebase except the configs as dict
@@ -137,7 +137,20 @@ class Configuration(ProjectConfigHandler):
 
         # update visualizer config - which will be given to components
         self.visualizer_config["video"] = loaded_video_config
-        self.visualizer_config["dataset_properties"] = self.dataset_properties[self.dataset_name]
+        # Select the concrete sequence-properties block matching the current sequence_id
+        # TODO: ugly hack replace scan with DatasetConfig.get_sequence() once configs stay as Pydantic models here.
+        current_sequence_id = loaded_video_config["sequence_id"]
+        dataset_block = self.dataset_properties[self.dataset_name]
+        sequence_props = next(
+            (seq for seq in dataset_block["sequences"] if seq["sequence_id"] == current_sequence_id),
+            None,
+        )
+        if sequence_props is None:
+            raise KeyError(
+                f"Sequence '{current_sequence_id}' not found under dataset '{self.dataset_name}' "
+                f"in the saved experiment config."
+            )
+        self.visualizer_config["dataset_properties"] = sequence_props
 
         algorithms_list = list(set(self.experiment_run_config["algorithms"]))
         self.visualizer_config["algorithms_properties"] = {

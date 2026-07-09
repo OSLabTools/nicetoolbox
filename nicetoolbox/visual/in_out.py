@@ -28,8 +28,7 @@ class IO:
     def get_component_nice_tool_input_folder(self, video_details, dataset_name):
         folder_path = copy.deepcopy(self.nice_tool_input_folder)
         folder_path = folder_path.replace("<cur_dataset_name>", dataset_name)
-        folder_path = folder_path.replace("<cur_session_ID>", video_details["session_ID"])
-        folder_path = folder_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])
+        folder_path = folder_path.replace("<cur_sequence_id>", video_details["sequence_id"])
         return folder_path
 
     def get_experiment_video_folder(self):
@@ -49,6 +48,5 @@ class IO:
         if not calib_path or calib_path == ".":
             return ""
 
-        calib_path = calib_path.replace("<cur_session_ID>", video_details["session_ID"])
-        calib_path = calib_path.replace("<cur_sequence_ID>", video_details["sequence_ID"])
+        calib_path = calib_path.replace("<cur_sequence_id>", video_details["sequence_id"])
         return calib_path

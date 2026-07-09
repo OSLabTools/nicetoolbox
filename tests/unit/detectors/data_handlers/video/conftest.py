@@ -61,18 +61,16 @@ def make_sequence_context(
     tracks: dict[str, Path],
     video_start: int | str = CONFIG_START,
     video_length: int | str = CONFIG_STOP,
-    session_id: str = "session_01",
     sequence_id: str = "seq_01",
 ):
     ctx = MagicMock()
     ctx.video_start = video_start
     ctx.video_length = video_length
     ctx.all_camera_names = list(tracks.keys())
-    ctx.session_id = session_id
     ctx.sequence_id = sequence_id
     ctx.subjects_descr = ["subject_1"]
-    ctx.dataset_properties = MagicMock()
-    ctx.dataset_properties.video.cameras = {
+    ctx.sequence_properties = MagicMock()
+    ctx.sequence_properties.video.cameras = {
         name: VideoTrackConfig(path=path, sees_subjects=[0]) for name, path in tracks.items()
     }
     return ctx

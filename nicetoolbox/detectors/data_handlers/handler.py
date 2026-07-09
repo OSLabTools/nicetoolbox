@@ -28,11 +28,10 @@ class BaseModalityHandler(ABC):
 
         # References for child classes:
         self.nice_input_folder = self.io.nice_input_folder
-        self.session_id = self.subsequence_context.session_id
         self.sequence_id = self.subsequence_context.sequence_id
         self.subjects_descr = self.subsequence_context.subjects_descr
         self.all_camera_names = self.subsequence_context.all_camera_names
-        self.dataset_properties = self.subsequence_context.dataset_properties
+        self.sequence_properties = self.subsequence_context.sequence_properties
 
         self._available = False
 

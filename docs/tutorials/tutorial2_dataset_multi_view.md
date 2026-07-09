@@ -28,22 +28,21 @@ A few details to pay attention to arise when creating the dataset properties dic
 
 ### Update the dataset properties
 
-Overall, the dataset's dictionary defined in the config file `./configs/dataset_properties.toml` has the same keys as described in the previous tutorial in [dataset properties](./tutorial1_dataset_single_view.md#dataset-properties). Some considerations for the multi-view case:
+The multi-view case uses the same dataset config shape as the single-view case (see [dataset properties](./tutorial1_dataset_single_view.md#dataset-properties)) — you just declare more cameras under `template.video.cameras`. A few things to keep in mind:
 
-- Map your dataset's cameras and their views of the scene best possible to the descriptions `cam_front`, `cam_top`, `cam_face1`, and `cam_face2`. As some algorithms assume a certain camera view of the scene, this is necessary to find the best cameras to use for each algorithm. Currently, these 4 camera view options are supported.
-- `cam_sees_subjects` should now have as many keys as the number of cameras and camera_names that you entered in `cam_front`, `cam_top`, `cam_face1`, and `cam_face2` (at most 4).
-- In case your dataset's folder structure includes any folders named like the cameras, e.g., ".../path/to/camera_1/...", use the placeholder `<cur_camera_name>` in the value of your `data_input_folder`.
-In case the camera's names are in the filenames, e.g., ".../camera_1.mp4", you do not need the placeholder for the `data_input_folder` as the camera names are not part of the folder path.
-- The toolbox expects all cameras to capture at a shared framerate, which is given under key `fps`.
+- Each camera has a **user-chosen name** (e.g. `view_front`, `view_bob`). That name is what detectors reference in their `camera_names` field, and what the visualizer uses as a canvas id.
+- `sees_subjects` per camera lists the subjects that camera observes, as indices into `subjects_descr` (0-based). A camera that sees only one subject gets a one-element list.
+- Detectors can bind to a subset of cameras by name (`camera_names = ["view_bob", "view_alice"]`), or bind to all available cameras via `camera_names = "*"`.
+- The toolbox assumes all cameras of a sequence share one framerate, resolved from the video files themselves.
 
 
 
 
 ### Example
 
-Assume we have a dataset called "test_mv_dataset" that contains video sequences from 2 capture sessions, no sequences per session, and 3 calibrated cameras. In the scene, two people talk to each other while remaining relatively static (not exchanging places). One camera observes the full scene frontal while each of the other two cameras focuses on one person's face. All cameras capture at a framerate of 25 frames per second and the dataset consists of mp4 video files.
+Assume we have a dataset called "test_mv_dataset" containing recordings from 2 capture days with 3 calibrated cameras each. Two people talk to each other; one camera observes the full scene frontally while the other two focus on one person's face each. All cameras capture at 25 fps.
 
-Now suppose the dataset is stored in this folder structure:
+Folder structure:
 ```
 test_mv_dataset/
 ├── day_1/
@@ -54,26 +53,31 @@ test_mv_dataset/
 │   ├── view_alice.mp4
 │   ├── view_bob.mp4
 │   └── view_front.mp4
-└── calibration.npz
+└── calibrations.npz
 ```
 
-To add this dataset to the NICE Toolbox, we need to add the following lines to `./configs/dataset_properties.toml`:
+Add to `./configs/dataset_properties.toml`:
 
 ```toml
-[test_mv_dataset]                                          # folder name of the dataset
-session_IDs = ["day_1", "day_2"]                           # folder names of the sessions
-sequence_IDs = []                                          # no sequences
-cam_front = 'view_front'                                   # camera with frontal view
-cam_top = ''
-cam_face1 = 'view_bob'                                     # a camera seeing Bob
-cam_face2 = 'view_alice'                                   # a camera seeing Alice
-subjects_descr = ["Bob", "Alice"]                          # Alice and Bob are visible in the scene
-cam_sees_subjects = {view_front=[0, 1], view_bob=[0], view_alice=[1]}            # one camera sees both people, the others only one each
-path_to_calibrations = "<datasets_folder_path>/test_mv_dataset/calibration.npz"  # file path of the calibration file
-data_input_folder = "<datasets_folder_path>/test_mv_dataset/<cur_session_ID>"        # file path of the video files
-start_frame_index = 0                                      # given video files, enter the default 0
-fps = 25                                                   # all cameras capture 25 frames per second
+[test_mv_dataset]
+sequences = [
+    {sequence_id = "day_1"},
+    {sequence_id = "day_2"},
+]
+
+[test_mv_dataset.template]
+dataset_root = "<datasets_folder_path>/test_mv_dataset"
+data_input_folder = "<dataset_root>/<sequence_id>"
+path_to_calibrations = "<dataset_root>/calibrations.npz"
+subjects_descr = ["Bob", "Alice"]
+
+[test_mv_dataset.template.video.cameras]
+view_front = {path = "<data_input_folder>/view_front.mp4", sees_subjects = [0, 1]}
+view_bob   = {path = "<data_input_folder>/view_bob.mp4",   sees_subjects = [0]}
+view_alice = {path = "<data_input_folder>/view_alice.mp4", sees_subjects = [1]}
 ```
+
+Each folder inside `test_mv_dataset/` is treated as one sequence; the template composes the path to each camera file via `<data_input_folder>` and `<sequence_id>`.
 
 
 

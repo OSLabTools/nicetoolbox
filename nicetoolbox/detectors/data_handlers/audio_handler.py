@@ -178,7 +178,7 @@ class AudioDataHandler(BaseModalityHandler):
 
     def _find_video_for_camera(self, camera_name: str) -> Path:
         """Look up the video file for a specific camera from the dataset's video tracks."""
-        tracks = self.dataset_properties.video.cameras
+        tracks = self.sequence_properties.video.cameras
         if camera_name not in tracks:
             raise ValueError(
                 f"Embedded audio references camera '{camera_name}', which is not declared "
