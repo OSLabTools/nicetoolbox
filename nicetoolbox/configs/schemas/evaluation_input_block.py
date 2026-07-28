@@ -1,21 +1,12 @@
 from abc import ABC
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, BeforeValidator, Field
 
+from nicetoolbox_core.data.loaded_array import NpzAxisFilters
+
 from ..models.no_wildcard_str import NoWildcardStr
-
-
-@dataclass
-class NpzAxis:
-    """Detached axis filters extracted from InputBlock."""
-
-    subject: str | list[str]
-    camera: str | list[str]
-    label: str | list[str]
-    data: str | list[str]
 
 
 class BaseInputBlock(ABC, BaseModel):
@@ -29,9 +20,9 @@ class BaseInputBlock(ABC, BaseModel):
     label: str | list[str] = "*"  # axis3
     data: str | list[str] = "*"  # axis4
 
-    def axis_filters(self) -> NpzAxis:
+    def axis_filters(self) -> NpzAxisFilters:
         """Return detached axis filters used by array loading."""
-        return NpzAxis(
+        return NpzAxisFilters(
             subject=self.subject,
             camera=self.camera,
             label=self.label,

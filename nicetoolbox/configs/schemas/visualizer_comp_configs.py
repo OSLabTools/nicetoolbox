@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, List
 
 from pydantic import BaseModel
 
@@ -44,4 +44,3 @@ visualizer_comp_config = COMP_REGISTRY.register
 class KinematicsConfig(BaseModel):
     algorithms: List[str]
     canvas: dict[str, List[str]]
-    joints: Dict[str, List[str]]

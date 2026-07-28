@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
+
 from ...configs.schemas.evaluation_group_by import GroupBySpec
-from .input_loader import LoadedArray
 
 _NO_SPLIT = GroupBySpec(dims=[])
 _TAB10 = plt.cm.tab10.colors
@@ -195,7 +196,7 @@ def plot_score_heatmap(
 
 
 def plot_frame_line(
-    arrays: list[LoadedArray],
+    arrays: list[NpzArrayWithMeta],
     base_title: str,
     y_label: str,
     series_col: str | None = None,
@@ -266,7 +267,7 @@ def _plot_frame_line_single(
 
 
 def plot_candle_per_group(
-    arrays: list[LoadedArray],
+    arrays: list[NpzArrayWithMeta],
     x_col: str,
     base_title: str,
     y_label: str,

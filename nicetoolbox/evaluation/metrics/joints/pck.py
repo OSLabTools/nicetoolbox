@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL, AnyOf
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
+
 from ....configs.schemas.evaluation_aggr import AggSpec
 from ....configs.schemas.evaluation_metrics_config import PCKConfig
-from ...data.input_loader import ArrayAxes, LoadedArray, align_arrays, get_meta_type, load_input
+from ...data.input_loader import align_arrays, get_meta_type, load_input
 from ...data.plots import plot_frame_line, plot_score, plot_score_heatmap
 from ...data.summary import aggregate_summary, split_aligned_arrays, summarize_with_group_by
 from ..base_metric import BaseMetric
@@ -22,15 +25,16 @@ class PCKMetric(BaseMetric):
     """
 
     metric_config: PCKConfig
+    input_schema = AnyOf(VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL)
 
     def compute(self) -> MetricResult:
-        preds = load_input(self.metric_config.predictions)
-        gt = load_input(self.metric_config.ground_truth)
+        preds = load_input(self.metric_config.predictions, schema=self.input_schema)
+        gt = load_input(self.metric_config.ground_truth, schema=self.input_schema)
         pairs = align_arrays(preds, gt, self.metric_config.broadcast_single)
         if not pairs:
             raise ValueError("Failed to compute PCK: no aligned prediction/GT pairs found!")
 
-        pck_arrays: list[LoadedArray] = []
+        pck_arrays: list[NpzArrayWithMeta] = []
         for pred, gt_arr in pairs:
             pck_arrays.append(self._compute_pck(pred, gt_arr))
 
@@ -88,10 +92,10 @@ class PCKMetric(BaseMetric):
             summary=SummaryResult({"pck_score": score, "summary": summary}),
         )
 
-    def _compute_pck(self, pred: LoadedArray, gt: LoadedArray) -> LoadedArray:
+    def _compute_pck(self, pred: NpzArrayWithMeta, gt: NpzArrayWithMeta) -> NpzArrayWithMeta:
         """Compute per-frame, per-joint PCK correctness.
 
-        Returns LoadedArray with shape (subjects, cameras, frames, joints)
+        Returns MetaNpzArray with shape (subjects, cameras, frames, joints)
         containing 1.0 (correct) or 0.0 (incorrect) per joint per frame.
         """
         # drop confidence — last coord axis
@@ -103,13 +107,6 @@ class PCKMetric(BaseMetric):
 
         correct = (dist <= self.metric_config.threshold).astype(np.float32)
 
-        return LoadedArray(
-            meta=pred.meta,
-            data=correct,
-            axes=ArrayAxes(
-                subjects=pred.axes.subjects,
-                cameras=pred.axes.cameras,
-                frames=pred.axes.frames,
-                labels=pred.axes.labels,
-            ),
-        )
+        # correct collapses the coordinate axis, so drop axis4 (data) labels.
+        result_axes = pred.axes.make_4d()
+        return pred.replace(data=correct, axes=result_axes)

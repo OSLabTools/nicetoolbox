@@ -1,157 +1,22 @@
 import glob
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import BaseArraySchema
+from nicetoolbox_core.data.loaded_array import NpzArrayAxes, NpzArrayWithMeta, load_and_filter_array
+from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, NpzMeta, PathMeta, SubsequenceInfo
+
 from ...configs.placeholders import get_placeholders_str, resolve_placeholders
 from ...configs.schemas.detectors_run_file import ResolvedSubsequenceConfig
-from ...configs.schemas.evaluation_input_block import (
-    AnnotationInput,
-    BaseInputBlock,
-    ExperimentInput,
-    NpzAxis,
-    PathInput,
-)
+from ...configs.schemas.evaluation_input_block import AnnotationInput, BaseInputBlock, ExperimentInput, PathInput
 from ...configs.schemas.experiment_config import DetectorsExperimentConfig
 from ...configs.utils import dict_to_model, get_latest_experiment_config_path, load_raw_config
 from ...detectors.main import get_algo_components
 from ...utils.logging_utils import abbrev_list
-
-# =============================================================================
-# Data classes
-# =============================================================================
-
-
-@dataclass
-class SubsequenceInfo:
-    subsequence_index: int
-    video_start: int  # resolved frame index
-    video_length: int  # resolved frame count
-
-
-@dataclass
-class NpzMeta(ABC):
-    """Abstract base for all NPZ metadata types."""
-
-    npz_path: Path
-    npz_key: str
-
-    @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
-        """Return user-facing metadata fields as a flat dict."""
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def always_iterate() -> frozenset[str]:
-        """Return columns that must always get their own row in summaries (never pooled)."""
-        ...
-
-    @staticmethod
-    @abstractmethod
-    def comparable_dim() -> str | None:
-        """Return the dimension used to compare results side-by-side (e.g. as series/color in charts)."""
-        ...
-
-    def align_key(self) -> tuple | None:
-        """Return the key used to pair this array with its counterpart during alignment."""
-        return None
-
-
-@dataclass
-class ExperimentMeta(NpzMeta):
-    dataset: str
-    sequence: str
-    component: str
-    algorithm: str
-    subsequence: SubsequenceInfo
-
-    @classmethod
-    def always_iterate(cls) -> frozenset[str]:
-        return frozenset({"component", "algorithm", "npz_key"})
-
-    @staticmethod
-    def comparable_dim() -> str | None:
-        return "algorithm"
-
-    def align_key(self) -> tuple:
-        return (self.dataset, self.sequence, self.component)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "dataset": self.dataset,
-            "sequence": self.sequence,
-            "subsequence": self.subsequence.subsequence_index,
-            "subsequence_start": self.subsequence.video_start,
-            "subsequence_length": self.subsequence.video_length,
-            "component": self.component,
-            "algorithm": self.algorithm,
-            "npz_key": self.npz_key,
-        }
-
-
-@dataclass
-class AnnotationMeta(NpzMeta):
-    dataset: str
-    sequence: str
-    component: str
-
-    @classmethod
-    def always_iterate(cls) -> frozenset[str]:
-        return frozenset({"component", "npz_key"})
-
-    @staticmethod
-    def comparable_dim() -> str | None:
-        return None
-
-    def align_key(self) -> tuple:
-        return (self.dataset, self.sequence, self.component)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "dataset": self.dataset,
-            "sequence": self.sequence,
-            "component": self.component,
-            "npz_key": self.npz_key,
-        }
-
-
-@dataclass
-class PathMeta(NpzMeta):
-    @classmethod
-    def always_iterate(cls) -> frozenset[str]:
-        return frozenset({"npz_file_name", "npz_key"})
-
-    @staticmethod
-    def comparable_dim() -> str | None:
-        return "npz_file_name"
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "npz_file_name": self.npz_path.stem,
-            "npz_key": self.npz_key,
-        }
-
-
-@dataclass
-class ArrayAxes:
-    subjects: list[str]
-    cameras: list[str]
-    frames: list[str]
-    labels: list[str]
-    data: list[str] = field(default_factory=list)
-
-
-@dataclass
-class LoadedArray:
-    meta: NpzMeta
-    data: np.ndarray
-    axes: ArrayAxes
-
 
 # =============================================================================
 # Helpers and utils
@@ -371,138 +236,6 @@ def _resolve_path_source(input_block: PathInput) -> list[PathMeta]:
 
 
 # =============================================================================
-# NPZ loading: meta -> LoadedArray
-# =============================================================================
-
-
-def load_array(meta: NpzMeta, filters: NpzAxis) -> LoadedArray | None:
-    """Load one NPZ entry, read axis labels from data_description, and apply filters.
-
-    Args:
-        meta: Metadata describing the NPZ file path and key to load.
-        filters: Axis filter spec (subjects, cameras, labels, data) to apply after loading.
-
-    Returns:
-        LoadedArray with filtered data and axis labels, or None if any filtered
-        axis has no overlap with the available labels.
-
-    Raises:
-        KeyError: If data_description is missing from the NPZ file or the requested
-            key is absent from data_description.
-        ValueError: If the data array shape does not match data_description axis lengths.
-    """
-    npz_path = meta.npz_path
-    npz_key = meta.npz_key
-
-    with np.load(npz_path, allow_pickle=True) as f:
-        # check data description and find desired npz_key
-        if "data_description" not in f.files:
-            raise KeyError(f"Key data_description not found in '{npz_path}'. Available: {f.files}")
-        descr = f["data_description"].item()
-        if npz_key not in descr:
-            logging.warning(f"Key '{npz_key}' not in data_description of '{npz_path}'. Available: {list(descr.keys())}")
-            return None
-        descr = descr[npz_key]
-        # find relevant data by npz_key
-        if npz_key not in f.files:
-            raise KeyError(
-                f"Key '{npz_key}' not found in '{npz_path}', but present in data_description. Available: {f.files}"
-            )
-        data = f[npz_key]
-
-    # Validate data description matches numpy shape
-    _validate_shape(data, descr, npz_key, npz_path)
-
-    # Apply filters from input recipe.
-    data, subjects = _apply_filter(data, descr["axis0"], filters.subject, axis=0, npz_path=npz_path)
-    data, cameras = _apply_filter(data, descr["axis1"], filters.camera, axis=1, npz_path=npz_path)
-    frames = list(descr["axis2"])  # ! frames doesn't support filtering, getting them as is
-    data, labels = _apply_filter(data, descr["axis3"], filters.label, axis=3, npz_path=npz_path)
-
-    axis_to_validate = [subjects, cameras, labels]
-    # axis4 (data) is optional — some components store scalar values per label.
-    if "axis4" in descr:
-        data, data_axis = _apply_filter(data, descr["axis4"], filters.data, axis=4, npz_path=npz_path)
-        axis_to_validate.append(data_axis)
-    else:
-        data_axis = []
-
-    # If any filtered axis is empty, this NPZ has no usable data for the request.
-    # For example, we filtered out all subjects or camera names
-    # So we discard it completely
-    if any(not lst for lst in axis_to_validate):
-        return None
-
-    return LoadedArray(meta, data, ArrayAxes(subjects, cameras, frames, labels, data_axis))
-
-
-def _validate_shape(data: np.ndarray, descr: dict, npz_key: str, npz_path: Path) -> None:
-    """Validate that data array shape matches axis labels in data_description.
-
-    These are written independently by the detector — a mismatch means a bug
-    in the writer, and we want a clear error rather than a silent wrong result
-    or a raw numpy IndexError later.
-    """
-    required_axes = ["axis0", "axis1", "axis2", "axis3"]
-    if data.ndim < len(required_axes):
-        raise ValueError(
-            f"Data array for key '{npz_key}' in '{npz_path}' has {data.ndim} dimensions, "
-            f"expected at least {len(required_axes)}."
-        )
-    for dim, axis_key in enumerate(required_axes):
-        if axis_key not in descr:
-            raise KeyError(f"'{axis_key}' missing from data_description['{npz_key}'] in '{npz_path}'.")
-        n_labels = len(descr[axis_key])
-        if data.shape[dim] != n_labels:
-            raise ValueError(
-                f"Shape mismatch on {axis_key} for key '{npz_key}' in '{npz_path}': "
-                f"data.shape[{dim}]={data.shape[dim]} but data_description has {n_labels} labels: "
-                f"{list(descr[axis_key])}."
-            )
-    if "axis4" in descr:
-        if data.ndim < 5:
-            raise ValueError(
-                f"data_description has axis4 for key '{npz_key}' in '{npz_path}' "
-                f"but data only has {data.ndim} dimensions."
-            )
-        n_labels = len(descr["axis4"])
-        if data.shape[4] != n_labels:
-            raise ValueError(
-                f"Shape mismatch on axis4 for key '{npz_key}' in '{npz_path}': "
-                f"data.shape[4]={data.shape[4]} but data_description has {n_labels} labels: "
-                f"{list(descr['axis4'])}."
-            )
-
-
-def _apply_filter(
-    data: np.ndarray, labels: list, filter_value: str | list[str], axis: int, npz_path: Path
-) -> tuple[np.ndarray, list[str]]:
-    """Filter one axis by label names. Wildcard '*' keeps everything.
-    Missing labels are logged and skipped (intersection kept)."""
-    labels = [str(v) for v in labels]
-
-    if filter_value == "*":
-        return data, labels
-
-    wanted = [filter_value] if isinstance(filter_value, str) else list(filter_value)
-    label_to_idx = {name: i for i, name in enumerate(labels)}
-
-    missing = [name for name in wanted if name not in label_to_idx]
-    if missing:
-        logging.warning(
-            f"Requested labels not found on axis {axis} in '{npz_path}': {missing}. "
-            f"Available: {labels}. Keeping intersection only."
-        )
-
-    matched = [name for name in wanted if name in label_to_idx]
-    if not matched:
-        return data, []
-
-    idx = [label_to_idx[name] for name in matched]
-    return np.take(data, indices=idx, axis=axis), matched
-
-
-# =============================================================================
 # Alignment: predictions <-> ground truth
 # =============================================================================
 
@@ -529,10 +262,10 @@ def _intersect_axis(
 
 
 def align_arrays(
-    predictions: list[LoadedArray],
-    ground_truth: list[LoadedArray],
+    predictions: list[NpzArrayWithMeta],
+    ground_truth: list[NpzArrayWithMeta],
     broadcast_single: bool = False,
-) -> list[tuple[LoadedArray, LoadedArray]]:
+) -> list[tuple[NpzArrayWithMeta, NpzArrayWithMeta]]:
     """Pair predictions with ground truth arrays and align their axes.
 
     Matches pairs by shared meta fields (dataset, session, sequence, component).
@@ -569,13 +302,13 @@ def align_arrays(
     wildcard_gt = path_gts[0] if path_gts else None
 
     # Index ground truth by alignment key
-    gt_by_key: dict[tuple, LoadedArray] = {}
+    gt_by_key: dict[tuple, NpzArrayWithMeta] = {}
     for gt in ground_truth:
         key = gt.meta.align_key()
         if key is not None:
             gt_by_key[key] = gt
 
-    out: list[tuple[LoadedArray, LoadedArray]] = []
+    out: list[tuple[NpzArrayWithMeta, NpzArrayWithMeta]] = []
     for pred in predictions:
         key = pred.meta.align_key()
         gt = (gt_by_key.get(key) if key is not None else None) or wildcard_gt
@@ -621,9 +354,9 @@ def align_arrays(
                 )
             continue
 
-        aligned_axes = ArrayAxes(**aligned)
-        aligned_pred = LoadedArray(meta=pred.meta, data=pred_data, axes=aligned_axes)
-        aligned_gt = LoadedArray(meta=gt.meta, data=gt_data, axes=aligned_axes)
+        aligned_axes = NpzArrayAxes(**aligned)
+        aligned_pred = NpzArrayWithMeta.create(meta=pred.meta, data=pred_data, axes=aligned_axes)
+        aligned_gt = NpzArrayWithMeta.create(meta=gt.meta, data=gt_data, axes=aligned_axes)
         out.append((aligned_pred, aligned_gt))
 
     return out
@@ -634,11 +367,11 @@ def align_arrays(
 # =============================================================================
 
 
-def get_meta_type(arrays: list[LoadedArray]) -> type[NpzMeta]:
+def get_meta_type(arrays: list[NpzArrayWithMeta]) -> type[NpzMeta]:
     """Extract the shared NpzMeta type from a list of arrays.
 
     Args:
-        arrays: Non-empty list of LoadedArray instances all sharing the same meta type.
+        arrays: Non-empty list of MetaNpzArray instances all sharing the same meta type.
 
     Returns:
         The common NpzMeta subclass used by all arrays in the list.
@@ -654,7 +387,7 @@ def get_meta_type(arrays: list[LoadedArray]) -> type[NpzMeta]:
     return types.pop()
 
 
-def load_input(input_block: BaseInputBlock) -> list[LoadedArray]:
+def load_input(input_block: BaseInputBlock, schema: BaseArraySchema | None = None) -> list[NpzArrayWithMeta]:
     """Load and prepare all arrays for a given input block.
 
     Resolves the relevant NPZ files based on the input block's source type
@@ -663,6 +396,8 @@ def load_input(input_block: BaseInputBlock) -> list[LoadedArray]:
 
     Args:
         input_block: Configuration describing what data to load and how to filter it.
+        schema: Optional array schema. When provided, every loaded array is validated
+            against it and a mismatch raises, so metrics fail fast on unexpected data.
 
     Returns:
         List of loaded arrays ready for metric iteration, sorted by source NPZ file.
@@ -670,6 +405,7 @@ def load_input(input_block: BaseInputBlock) -> list[LoadedArray]:
     Raises:
         RuntimeError: If all resolved NPZ files are filtered out or no data is found.
         FileNotFoundError: If a resolved NPZ path does not exist on disk.
+        ValueError: If a loaded array does not satisfy the given schema.
     """
     # First step is to figure out what npz paths we need to load
     # Given the current input block source type and configuration
@@ -679,17 +415,24 @@ def load_input(input_block: BaseInputBlock) -> list[LoadedArray]:
 
     # Next, we will load founded npz files one by one
     # and filter the data further by axis filter
-    arrays: list[LoadedArray] = []
+    arrays: list[NpzArrayWithMeta] = []
     for meta in npz_paths:
-        loaded = load_array(meta, input_block.axis_filters())
+        loaded = load_and_filter_array(meta, input_block.axis_filters())
         # did this npz was completely filtered out?
-        if loaded is not None:
-            arrays.append(loaded)
+        if loaded is None:
+            continue
+        # does this array aligned with schema?
+        if schema is not None:
+            errors = schema.validate(loaded.array)
+            if errors:
+                details = "\n".join(errors)
+                raise ValueError(f"Array from {meta} failed schema validation:\n{details}")
+        arrays.append(loaded)
     if not arrays:
         raise RuntimeError(f"Input block {input_block} is to strict or data is missing!")
 
     # By this point we have all data loaded
     # It's divided by different npz sources (dataset/session/sequence/path)
     # And filtered out inside by axis (subjects, cameras, etc.)
-    # Now detector can naturally iterate over all arrays
+    # Now metric can naturally iterate over all arrays
     return arrays

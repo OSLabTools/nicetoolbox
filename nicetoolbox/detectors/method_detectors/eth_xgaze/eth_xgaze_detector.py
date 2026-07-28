@@ -1,209 +1,181 @@
-"""
-XGaze3cams method detector class.
-
-This code is by XuCong taken from
-/ps/project/pis/GazeInterpersonalSynchrony/code_from_XuCong
-"""
-
 import logging
 import os
-from typing import Dict, List
+import warnings
 
 import cv2
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
+from nicetoolbox_core.data.loaded_array import NpzArray
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
+from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ..base_method import BaseMethod
 from ..filters import SGFilter
+
+# Raw native pack written by eth_xgaze_inference.py (kept in sync manually; importing the
+# inference module here would pull its eth_xgaze-venv-only deps into the main toolbox env).
+RAW_INFERENCE_NPZ_NAME = "eth_xgaze_inference_raw.npz"
+LANDMARK_NAMES = ["right_eye_0", "right_eye_1", "left_eye_0", "left_eye_1", "mouth_0", "mouth_1"]
 
 
 class EthXgaze(BaseMethod):
     """
-    The XGaze3cams class is a method detector that computes the gaze_individual
+    The ETH XGaze class is a method detector that computes the gaze_individual
     component.
 
     The method detector computes the gaze of individuals in the scene using multiple
     cameras.It provides the necessary preparations and post-inference visualizations to
-    integrate the XGaze3cams algorithm into our pipeline.
-
-    Component: gaze_individual
-
-    Attributes:
-        components (list): A list containing the name of the component: gaze_individual.
-        algorithm (str): The name of the algorithm used to compute the gaze_individual
-            component.
-        camera_names (list): A list of camera names used to capture the original input
-            data.
+    integrate the ETH XGaze algorithm into our pipeline.
     """
 
     components = ["gaze_individual"]
     algorithm_type = "eth_xgaze"
+
+    # Outputs
+    def resolve_outputs(self) -> list:
+        """Add the filtered world/2D gaze outputs only when temporal filtering is enabled."""
+        outputs = [
+            NpzDetectorOutput("gaze_individual", "gaze_3d_camera_space", schema=VECTOR_3D_CONF),
+            NpzDetectorOutput("gaze_individual", "gaze_3d", schema=VECTOR_3D_CONF),
+            NpzDetectorOutput("gaze_individual", "gaze_2d", schema=VECTOR_2D_CONF),
+            NpzDetectorOutput("gaze_individual", "landmarks_2d", schema=VECTOR_2D_CONF_PER_LABEL),
+            NpzDetectorOutput("gaze_individual", "gaze_origin_2d", schema=VECTOR_2D_CONF),
+        ]
+        if self.detector_config.filtered:
+            outputs.append(NpzDetectorOutput("gaze_individual", "gaze_3d_filtered", schema=VECTOR_3D_CONF))
+            outputs.append(NpzDetectorOutput("gaze_individual", "gaze_2d_filtered", schema=VECTOR_2D_CONF))
+        return outputs
 
     def _initialize_detector(self) -> MethodDetectorRuntime:
         """
         Initialize the XGaze method detector.
         """
         # (1) Convenience reference
+        self.subjects = self.data.subjects_descr
+        self.cameras = self.detector_config.camera_names
         self.video_start = self.data.video_start_frame_index
-        self.calibration = self.data.calibration
-        self.subjects_descr = self.data.subjects_descr
         self.cam_sees_subjects = self.data.cam_sees_subjects
         self.results_folder = self.result_folders[self.components[0]]
-        self.camera_names = self.detector_config.camera_names
         self.filtered = self.detector_config.filtered
         if self.filtered:
             self.filter_window_length = self.detector_config.window_length
             self.filter_polyorder = self.detector_config.polyorder
 
-        # (2) Initialise data loader
         self.dataloader = ImagePathsByFrameIndexLoader(
-            config=self.data.get_input_recipes(), expected_cameras=self.camera_names
+            config=self.data.get_input_recipes(), expected_cameras=self.cameras
+        )
+        # TODO: need to read it from somewhere else. subsequence context?
+        self.frame_names = [
+            f"{idx:09d}" for idx in range(self.dataloader.start, self.dataloader.end, self.dataloader.step)
+        ]
+
+        # Sanity checks
+        # ETH-XGaze needs per-camera calibration: intrinsics for the head-pose/normalization at inference
+        self.calibration = self.data.calibration
+        if not self.calibration:
+            raise ValueError(
+                f"ETH-XGaze '{self.algorithm_instance}' requires camera calibration, but none is available "
+                f"for this sequence."
+            )
+        # SVG window cannot exceed the number of frames to smooth.
+        if self.filtered and self.filter_window_length > len(self.frame_names):
+            raise ValueError(
+                f"ETH-XGaze '{self.algorithm_instance}': filter window_length "
+                f"({self.filter_window_length}) exceeds the {len(self.frame_names)} frames available; "
+                f"reduce window_length or disable filtering."
+            )
+
+        return super()._initialize_detector()
+
+    def post_inference(self) -> DetectorOutput:
+        """
+        Structure the raw ETH-XGaze pack into the toolbox's dense component arrays.
+
+        Returns the produced DetectorOutput; BaseMethod.run() validates + saves it (and passes
+        it to visualization()).
+        """
+        raw_path = os.path.join(self.out_folders[self.components[0]], RAW_INFERENCE_NPZ_NAME)
+        raw = np.load(raw_path, allow_pickle=True)
+
+        # dense camera-local gaze + landmarks (typed with axes), faces assigned to slots.
+        gaze_cam, landmarks_2d = self._assign_subjects(raw)
+
+        # TODO: get to the eth xgaze guts, extract real camera space 3d head pos
+        # Face origin per (subject, camera, frame): mean of the 6 face landmarks.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            gaze_origin_2d_data = np.nanmean(landmarks_2d.data, axis=3)  # (S, C, F, 3) = (x, y, conf)
+        gaze_origin_2d = NpzArray(
+            gaze_origin_2d_data, VECTOR_2D_CONF.make_axes(self.subjects, self.cameras, self.frame_names)
         )
 
-        return super()._initialize_detector()  # No extras needed -> just call parents function to get common runtime
+        # world-lift the raw camera gaze, and reproject it back to each camera as 2D.
+        gaze_3d = self._world_lift(gaze_cam)
+        gaze_2d = self._project_to_2d(gaze_3d)
 
-    def post_inference(self):
-        """
-        Post-processing after inference.
-
-        This method is called after the inference step and is used for any
-        post-processing tasks that need to be performed.
-        """
-        prediction_file = os.path.join(self.results_folder, f"{self.algorithm_instance}.npz")
-        try:
-            prediction = np.load(prediction_file, allow_pickle=True)
-            predictions_dict = {key: prediction[key] for key in prediction.files}
-            data_description = predictions_dict["data_description"].item()
-        except FileNotFoundError:
-            logging.error("Prediction file is not found, skipping the visualization of output")
-            return 2
-
-        assert self.camera_names == data_description["landmarks_2d"]["axis1"]
-
-        # Project each 3d prediction to their original npz
-        results_3d = prediction["3d"]
-        results_2d = self._project_gaze_to_camera_views(results_3d)
-        data_description_2d = dict(
-            axis0=data_description["3d"]["axis0"],
-            axis1=self.camera_names,
-            axis2=data_description["3d"]["axis2"],
-            axis3=["coordinate_u", "coordinate_v"],
-        )
-        data_description["2d_projected_from_3d"] = data_description_2d
-        predictions_dict["2d_projected_from_3d"] = results_2d
-
-        # Filter the 3d results for less flickering estimates
+        # filtered variants (only when temporal filtering is enabled). Smooth the camera
+        # gaze first (coherent single-view tracks), then lift and reproject.
+        gaze_3d_filtered = gaze_2d_filtered = None
         if self.filtered:
-            logging.info("APPLYING filtering to Gaze Individual data...")
-            filter = SGFilter(self.filter_window_length, self.filter_polyorder)
-            results_3d_filtered = filter.apply(results_3d, is_3d=True)
-            data_description["3d_filtered"] = data_description["3d"]
-            predictions_dict["3d_filtered"] = results_3d_filtered
+            smoothed = SGFilter(self.filter_window_length, self.filter_polyorder).apply(gaze_cam.data, is_3d=True)
+            gaze_3d_filtered = self._world_lift(NpzArray(smoothed, gaze_cam.axes))
+            gaze_2d_filtered = self._project_to_2d(gaze_3d_filtered)
 
-            # Now project filtered data
-            results_2d_filtered = self._project_gaze_to_camera_views(results_3d_filtered)
-            data_description["2d_projected_from_3d_filtered"] = data_description_2d
-            predictions_dict["2d_projected_from_3d_filtered"] = results_2d_filtered
+        # Collect all produced arrays (filtered pair only present when filtering is enabled).
+        out = DetectorOutput()
+        out.add_array("gaze_individual", "landmarks_2d", landmarks_2d)
+        out.add_array("gaze_individual", "gaze_origin_2d", gaze_origin_2d)
+        out.add_array("gaze_individual", "gaze_3d_camera_space", gaze_cam)
+        out.add_array("gaze_individual", "gaze_3d", gaze_3d)
+        out.add_array("gaze_individual", "gaze_2d", gaze_2d)
+        if self.filtered:
+            out.add_array("gaze_individual", "gaze_3d_filtered", gaze_3d_filtered)
+            out.add_array("gaze_individual", "gaze_2d_filtered", gaze_2d_filtered)
 
-        np.savez_compressed(prediction_file, **predictions_dict)
-        return 0
+        return out
 
-    def _project_gaze_to_camera_views(self, data) -> List[Dict[str, np.ndarray]]:
+    def visualization(self, out: DetectorOutput):
         """
-        Projects the 3D gaze data to the 2D camera views.
+        Draw each subject's 2D gaze arrow on the source frames and stitch a video per camera.
 
-        This method takes the 3D gaze data and projects it onto the 2D camera views for
-        each algorithm in the algorithm list. It iterates over all cameras and computes
-        the projected gaze data for each camera view. The projection is done using the
-        camera parameters such as the camera matrix, distortion coefficients, rotation
-        vectors, and extrinsic parameters. The method handles the transformation of 3D
-        points to 2D points using these camera parameters.
-
-        Returns:
-            List[Dict]: The projected gaze data for the camera views.
+        The arrow starts at the subject's mean face-landmark position and points along the
+        reprojected 2D gaze (gaze_2d, or gaze_2d_filtered when filtering is on). Frames are
+        written to <viz>/<camera>/ and combined into <viz>/<camera>.mp4. `out` is the
+        DetectorOutput produced by post_inference (passed through run()).
         """
-        n_subjects, _, n_frames, _ = data.shape
-        projected_data = np.full((n_subjects, len(self.camera_names), n_frames, 2), np.nan)
+        n_subjects = len(self.subjects)
 
-        # Iterate over all cameras
-        for cam_name in self.camera_names:
-            cam_idx = self.camera_names.index(cam_name)
-            _, _, cam_R, _ = vis_ut.get_cam_para_studio(self.calibration, cam_name)
-
-            image_width = self.calibration[cam_name]["image_size"][0]
-
-            for subject_idx, _subject_name in enumerate(self.subjects_descr):
-                if subject_idx in self.cam_sees_subjects[cam_name]:
-                    # Extract all frames at once
-                    gaze_vectors = data[subject_idx, cam_idx, :, :]
-                    dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, gaze_vectors, image_width)
-                    projected_data[subject_idx, cam_idx, :, 0] = -dx
-                    projected_data[subject_idx, cam_idx, :, 1] = -dy
-
-        return projected_data
-
-    def visualization(self, data):  # noqa: ARG002
-        """
-        Visualizes the processed frames of the xgaze3cams algorithm as a video for all
-        cameras.
-
-        This function reads the processed frames from each camera, checks if all
-        frames are present, and verifies that the number of frames per camera is
-        consistent. It then creates a video for each camera using the processed frames.
-
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If no frames are found for at least one camera or if the
-            number of frames per camera is not consistent.
-        """
-        n_subj = len(self.subjects_descr)
-
-        prediction_file = os.path.join(self.results_folder, f"{self.algorithm_instance}.npz")
-        try:
-            predictions = np.load(prediction_file, allow_pickle=True)
-        except FileNotFoundError:
-            logging.error("Prediction file is not found, skipping the visualization.")
-            success = False
-            return success
-
-        gaze_data = (
-            predictions["2d_projected_from_3d_filtered"] if self.filtered else predictions["2d_projected_from_3d"]
-        )
-        landmarks_2d = predictions["landmarks_2d"][..., :2]  # drop conf scores
-        mean_face = np.nanmean(landmarks_2d, axis=3)
+        gaze_key = "gaze_2d_filtered" if self.filtered else "gaze_2d"
+        gaze_2d = out.get("gaze_individual", gaze_key).data[..., :2]  # drop conf -> (S, C, F, 2) arrow
+        mean_face = out.get("gaze_individual", "gaze_origin_2d").data[..., :2]  # (S, C, F, 2)
 
         # per camera and frame, visualize each subject's gaze
         success = True
-        for cam_idx, camera_name in enumerate(self.camera_names):
+        for cam_idx, camera_name in enumerate(self.cameras):
             os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
 
             for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(self.dataloader):
-                image_file = frame_paths_per_camera[camera_name]
+                image = cv2.imread(frame_paths_per_camera[camera_name])
 
-                image = cv2.imread(image_file)
-
-                for subject_idx in range(n_subj):
+                for subject_idx in range(n_subjects):
                     if subject_idx not in self.cam_sees_subjects[camera_name]:
                         continue
 
                     # the predicted gaze vector + the mid point of all face landmarks
-                    gaze_vector = gaze_data[subject_idx, cam_idx, frame_idx]
+                    gaze_vector = gaze_2d[subject_idx, cam_idx, frame_idx]
                     subject_eyes_mid = mean_face[subject_idx, cam_idx, frame_idx]
                     # in case no face was detected, draw the arrow in the middle
-                    if (subject_eyes_mid != subject_eyes_mid).any():
+                    if np.isnan(subject_eyes_mid).any():
                         h, w = image.shape[:2]
-                        subject_eyes_mid = np.array([w / n_subj * (0.5 + subject_idx), h / 2])
+                        subject_eyes_mid = np.array([w / n_subjects * (0.5 + subject_idx), h / 2])
                     gaze_direction = subject_eyes_mid + gaze_vector
-                    if (gaze_direction != gaze_direction).any():
+                    if np.isnan(gaze_direction).any():
                         continue
 
-                    # draw the gaze arrow onto the image
                     image = cv2.arrowedLine(
                         image,
                         np.round(subject_eyes_mid).astype(np.int32),
@@ -214,14 +186,7 @@ class EthXgaze(BaseMethod):
                         tipLength=0.2,
                     )
 
-                cv2.imwrite(
-                    os.path.join(
-                        self.viz_folder,
-                        camera_name,
-                        f"{real_frame_idx:09d}.jpg",
-                    ),
-                    image,
-                )
+                cv2.imwrite(os.path.join(self.viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"), image)
 
             # create and save video
             success *= vd.frames_to_video(
@@ -231,5 +196,107 @@ class EthXgaze(BaseMethod):
                 start_frame=int(self.video_start),
             )
 
-        logging.info(f"Detector {self.components}: visualization finished with code " f"{success}.")
+        logging.info(f"Detector {self.components}: visualization finished with code {success}.")
         return success
+
+    def _world_lift(self, gaze_cam: NpzArray) -> NpzArray:
+        """Rotate each camera's local gaze direction into the shared world frame.
+
+        gaze is a direction, so only the camera rotation applies (no translation): for each camera
+        gaze_world = inv(R) @ gaze_cam, renormalized to a unit vector. The confidence channel
+        (axis3 index 3) is carried through unchanged.
+        """
+        data = gaze_cam.data.copy()
+        for cam_idx, cam_name in enumerate(self.cameras):
+            cam_rotation = np.asarray(self.calibration[cam_name]["rotation_matrix"], dtype=float)
+            r_inv = np.linalg.inv(cam_rotation)
+
+            vectors = data[:, cam_idx, :, :3]  # (subjects, frames, 3)
+            world = vectors @ r_inv.T  # apply inv(R) to each xyz vector
+            norms = np.linalg.norm(world, axis=-1, keepdims=True)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                world = world / norms
+            data[:, cam_idx, :, :3] = world
+
+        return NpzArray(data, gaze_cam.axes)
+
+    def _project_to_2d(self, gaze_world: NpzArray) -> NpzArray:
+        """Reproject a world-space gaze direction back into each camera as a 2D pixel arrow.
+
+        Projecting into camera C re-applies that camera's rotation, undoing the world-lift, so the
+        result equals projecting the original camera-local gaze — a (dx, dy) image-plane arrow. The
+        confidence channel (axis3 index 3) is carried through unchanged onto the 2D output.
+        """
+        n_subjects, n_cams, n_frames, _ = gaze_world.data.shape
+        projected = np.full((n_subjects, n_cams, n_frames, 3), np.nan, dtype=float)
+
+        for cam_idx, cam_name in enumerate(self.cameras):
+            _, _, cam_rotation, _ = vis_ut.get_cam_para_studio(self.calibration, cam_name)
+            image_width = self.calibration[cam_name]["image_size"][0]
+
+            for subject_idx in range(n_subjects):
+                vectors = gaze_world.data[subject_idx, cam_idx, :, :3]  # (frames, 3)
+                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_rotation, vectors, image_width)
+                projected[subject_idx, cam_idx, :, 0] = -dx
+                projected[subject_idx, cam_idx, :, 1] = -dy
+                projected[subject_idx, cam_idx, :, 2] = gaze_world.data[subject_idx, cam_idx, :, 3]  # confidence
+
+        axes = VECTOR_2D_CONF.make_axes(self.subjects, self.cameras, self.frame_names)
+        return NpzArray(projected, axes)
+
+    def _assign_subjects(self, raw):
+        """Assign the raw pack's ragged per-camera detections to dense subject-indexed arrays.
+
+          - Too many faces for a camera: keep the N highest mean-confidence faces (N = subjects
+            this camera sees), then restore their left-to-right order.
+          - Too few faces: cannot tell which subject is missing, so mark all of this camera's
+            subjects missing (NaN) for that frame.
+          - Otherwise: assign faces left-to-right onto the subject slots this camera sees.
+
+        Returns:
+            gaze_cam (NpzArray): camera-local gaze, (subjects, cameras, frames, x/y/z/conf).
+            landmarks_2d (NpzArray): face landmarks, (subjects, cameras, frames, 6, x/y/conf).
+        """
+        per_frame_outputs = raw["per_frame_outputs"]
+        n_subjects = len(self.subjects)
+        n_cams = len(self.cameras)
+        n_frames = len(per_frame_outputs)
+
+        # gaze_cam axis3 = (x, y, z, confidence). ETH-XGaze has no native gaze confidence, so we
+        # use the mean of the 6 face-landmark detection scores as a proxy quality signal.
+        gaze_cam = np.full((n_subjects, n_cams, n_frames, 4), np.nan, dtype=float)
+        landmarks_2d = np.full((n_subjects, n_cams, n_frames, 6, 3), np.nan, dtype=float)
+
+        for frame_idx, frame_bundle in enumerate(per_frame_outputs):
+            for cam_idx, cam_name in enumerate(self.cameras):
+                detections = frame_bundle.get(cam_name, []) if frame_bundle else []
+                subjects_by_cam = self.cam_sees_subjects[cam_name]
+                n_seen = len(subjects_by_cam)
+
+                if len(detections) < n_seen:
+                    # Missing a face: cannot know which subject, so leave all NaN for this frame.
+                    if detections:
+                        logging.debug(
+                            f"ETH-XGaze: camera '{cam_name}' frame {frame_idx} detected "
+                            f"{len(detections)} face(s) < {n_seen} expected; marking all missing."
+                        )
+                    continue
+
+                if len(detections) > n_seen:
+                    # Too many faces: keep the N highest mean-confidence, restore left-to-right order.
+                    mean_scores = [float(np.nanmean(det["landmark_scores"])) for det in detections]
+                    keep = sorted(np.argsort(mean_scores)[-n_seen:])
+                    detections = [detections[i] for i in keep]
+
+                # Assign left-to-right onto the subject slots this camera sees.
+                for subject_index, det in zip(subjects_by_cam, detections):
+                    gaze_cam[subject_index, cam_idx, frame_idx, :3] = det["gaze_cam"]
+                    gaze_cam[subject_index, cam_idx, frame_idx, 3] = float(np.nanmean(det["landmark_scores"]))
+                    landmarks_2d[subject_index, cam_idx, frame_idx, :, :2] = det["landmarks_2d"]
+                    landmarks_2d[subject_index, cam_idx, frame_idx, :, 2] = det["landmark_scores"]
+
+        gaze_axes = VECTOR_3D_CONF.make_axes(self.subjects, self.cameras, self.frame_names)
+        landmarks_axes = VECTOR_2D_CONF_PER_LABEL.make_axes(
+            self.subjects, self.cameras, self.frame_names, LANDMARK_NAMES
+        )
+        return NpzArray(gaze_cam, gaze_axes), NpzArray(landmarks_2d, landmarks_axes)

@@ -35,6 +35,9 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
     video_name = os.path.basename(os.path.dirname(os.path.dirname(npz_path)))
 
     data = fh.read_npz_file(npz_path)
+    if "data_description" not in data:
+        logger.debug("Skipping CSV for %s: no data_description (raw detector output?)", npz_path)
+        return
     data_desc = data["data_description"]
     data_desc_root = data_desc.item()
     if not isinstance(data_desc_root, dict):

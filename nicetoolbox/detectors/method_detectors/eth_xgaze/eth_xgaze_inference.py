@@ -15,225 +15,147 @@ from multiview_eth_xgaze.xgaze_utils import draw_gaze, get_cam_para_studio
 from nicetoolbox_core.entrypoint import run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
+# Filename of the raw, native inference pack (distinct from the structured {algorithm}.npz
+# that post_inference will produce). Kept as a module constant so the detector can import it.
+RAW_INFERENCE_NPZ_NAME = "eth_xgaze_inference_raw.npz"
+
+# The 6 face landmarks the detector returns, in order (eye + mouth corners).
+LANDMARK_NAMES = ["right_eye_0", "right_eye_1", "left_eye_0", "left_eye_1", "mouth_0", "mouth_1"]
+
+
+def _bundle_calib_for_npz(calibration, camera_names):
+    """Copy the per-camera calibration needed for the later world-lift / reprojection.
+
+    Kept minimal and self-contained so the raw pack can be structured without re-reading
+    the sequence config.
+    """
+    if not calibration:
+        return {}
+    out = {}
+    for cam in camera_names:
+        if cam not in calibration:
+            continue
+        cam_calib = calibration[cam]
+        entry = {}
+        for key in ("intrinsic_matrix", "distortions", "rotation_matrix", "translation", "image_size"):
+            if key in cam_calib and cam_calib[key] is not None:
+                entry[key] = np.asarray(cam_calib[key], dtype=np.float64)
+        if entry:
+            out[cam] = entry
+    return out
+
+
+def _visualize_frame(config, camera_names, images, frame_bundle, real_frame_idx, debug):
+    """Draw each detection's camera-local gaze arrow on its camera image (debug only).
+
+    Kept self-contained in the inference script; the camera-local gaze is projected to a 2D
+    pitch/yaw arrow via the same camera rotation used elsewhere.
+    """
+    for camera_name in camera_names:
+        if camera_name not in images:
+            continue
+        image = images[camera_name].copy()
+
+        for detection in frame_bundle.get(camera_name, []):
+            landmarks = detection["landmarks_2d"]
+            gaze_cam = detection["gaze_cam"]
+            if np.isnan(landmarks).all() or np.isnan(gaze_cam).any():
+                continue
+
+            # gaze_cam is already in the camera frame; pitch/yaw give the 2D arrow direction.
+            gaze_2d_direction = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
+            face_center = np.nanmean(landmarks, axis=0)
+            draw_gaze(image, gaze_2d_direction, thickness=2, color=(0, 255, 0), position=face_center.astype(int))
+
+        if debug:
+            cv2.imshow("img_show", image)
+            cv2.waitKey(0)
+
+        # Match the method-detector convention: detector_output/images/<camera_name>/.
+        out_dir = os.path.join(config["out_folder"], "images", camera_name)
+        os.makedirs(out_dir, exist_ok=True)
+        cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), image)
+
 
 @run_inference_entrypoint
 def eth_xgaze_inference(config, debug=False):
-    """
-    Run eth-xgaze gaze detection on the provided data.
-    code Code
-
-    The function uses the 'eth-xgaze gaze' library to estimate gaze vectors
-    for each camera. The estimated gaze vectors are converted to pitch and yaw angles
-    using a simple linear transformation. The resulting angles are saved in a .npz
-    file with the following structure:
-        - 3d: Numpy array of shape (n_frames, n_subjects, 3)
-        - data_description: A dictionary containing the description of the data.
-
-    Args:
-        config (dict): The configuration dictionary containing parameters for gaze
-            detection.
-        debug (bool, optional): A flag indicating whether to print debug information.
-            Defaults to False.
-    """
-
-    logging.info("RUNNING gaze detection 'ETH-Xgaze'!")
+    """Run ETH-XGaze and save the raw, native per-detection pack (see module docstring)."""
+    logging.info("RUNNING gaze detection 'ETH-XGaze' (raw native save)!")
 
     # (1) Access config parameters
     camera_names = config["camera_names"]
-    subjects_descr = config["subjects_descr"]
-    cam_sees_subjects = config["cam_sees_subjects"]
     calibration = config["calibration"]
 
     # (2) Prepare data loader
     dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
-    n_frames = len(dataloader)
-    n_subjects = len(subjects_descr)
-    n_cams = len(camera_names)
 
     # (3) Initialize gaze estimator and face detector
     logging.info("Load gaze estimator and start detection.")
-
-    # Extract the absolute path to the assets directory directly from the config root
     req_assets = config["required_assets"]
-
-    # Initialize the models directly from the dictionary
     gaze_estimator = GazeEstimator(req_assets["face_model_filename"], req_assets["pretrained_model_filename"])
-
     face_detector = lm.get_face_detector(req_assets["shape_predictor_filename"], req_assets["face_detector_filename"])
 
-    # (4) Prepare to store results
-    results_per_camera = np.full((n_subjects, n_cams, n_frames, 3), np.nan)  # raw
-    landmarks_2d = np.full((n_frames, n_cams, n_subjects, 6, 3), np.nan)  # with scores
+    # (4) Inference loop — accumulate ragged per-detection records (no dense toolbox arrays).
+    per_frame_outputs = []
 
-    # (5) Inference loop
-    frame_indices = []
-    for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(dataloader):
-        # Store frame indices for saving later
-        frame_indices.append(f"{real_frame_idx:09d}")
+    for real_frame_idx, frame_paths_per_camera in dataloader:
+        images = {}  # {camera_name: image}, cached for gaze estimation + viz
 
-        images = {}  # Cache loaded images per camera: {camera_name: image}
-
-        # (A) Face and Landmark Detection per camera
-        for cam_idx, camera_name in enumerate(camera_names):
-            if camera_name not in frame_paths_per_camera:
-                logging.error(f"Camera '{camera_name}' not found in frame paths for frame " f"index {real_frame_idx}.")
-                continue
-
-            subjects_by_cam = cam_sees_subjects[camera_name]
-
-            frame_file = frame_paths_per_camera[camera_name]
-            image = cv2.imread(frame_file)
+        # (A) Face + landmark detection per camera
+        # {camera_name: (landmarks (n_faces, 6, 2), scores (n_faces, 6))}
+        landmarks_by_cam = {}
+        for camera_name, frame_path in frame_paths_per_camera.items():
+            image = cv2.imread(frame_path)
             images[camera_name] = image
 
             landmark_predictions, score = lm.get_landmarks(image, face_detector, debug)
+            if landmark_predictions is None:
+                continue
+            landmarks_by_cam[camera_name] = (landmark_predictions, score)
 
-            if landmark_predictions is not None:
-                if landmark_predictions.shape[0] > len(subjects_by_cam):
-                    # Too many faces detected, select the ones with highest scores
-                    scores = score.mean(axis=1)
-                    max_value_indices = sorted(scores.argsort()[-len(subjects_by_cam) :])
-                    landmark_predictions = landmark_predictions[max_value_indices]
-                    # Filter scores to match the selected faces
-                    score = score[max_value_indices]
+        # (B) Gaze estimation per (camera, detected face).
+        frame_bundle = {}
+        for camera_name, (landmark_predictions, scores) in landmarks_by_cam.items():
+            image = images[camera_name]
+            cam_matrix, cam_distor, _, _ = get_cam_para_studio(calibration, camera_name, image)
 
-                elif landmark_predictions.shape[0] < len(subjects_by_cam):
-                    logging.error(
-                        f"Gaze landmark detection: Detected "
-                        f"{landmark_predictions.shape[0]} subjects instead of "
-                        f"{len(subjects_by_cam)} in frame file {frame_file}."
-                    )
-                    # When the landmark detection is missing for one subject.
-                    # We assign missing for all subjects,
-                    # bec. not possible to know which subject is missing
-                    landmark_predictions = np.full(
-                        (
-                            len(subjects_by_cam),
-                            landmark_predictions.shape[1],
-                            landmark_predictions.shape[2],
-                        ),
-                        np.nan,
-                    )
-                    # Also pad scores
-                    score = np.full((len(subjects_by_cam), 6), np.nan)
-
-                # Add confidence scores to the landmarks
-                # 1. Expand scores: (N, 6) -> (N, 6, 1)
-                scores_expanded = score[:, :, np.newaxis]
-                # 2. Concatenate: (N, 6, 2) + (N, 6, 1) -> (N, 6, 3)
-                landmarks_and_scores = np.concatenate((landmark_predictions, scores_expanded), axis=2)
-
-                # Store landmarks with scores for the subjects seen by this camera
-                landmarks_2d[frame_idx, cam_idx, subjects_by_cam] = landmarks_and_scores
-
-        # (B) OK, now let's do gaze estimation - per subject
-        for sub_id in range(n_subjects):
-            # loop over the cameras and predict the gaze for each in 2d
-            for camera_idx, camera_name in enumerate(camera_names):
-                # Camera image loaded?
-                if camera_name not in images:
-                    continue
-
-                # Subject visible in the camera?
-                subjects_by_cam = cam_sees_subjects[camera_name]
-                if sub_id not in subjects_by_cam:
-                    continue
-
-                landmarks = landmarks_2d[frame_idx, camera_idx, sub_id, :, :2]
-                # TODO: Use confidence scores? Check if low confidence -> skip
-
-                # Landmarks predicted?
+            detections = []
+            for face_index in range(landmark_predictions.shape[0]):
+                landmarks = landmark_predictions[face_index, :, :2]
                 if np.isnan(landmarks).all():
                     continue
 
-                # get camera parameters given the calibration
-                image = images[camera_name]
-                cam_matrix, cam_distor, cam_rotation, _ = get_cam_para_studio(calibration, camera_name, image)
-
-                # Predict gaze dir in the camera coordinate system (Run Neural Net)
+                # Gaze in the original camera coordinate frame (before any world rotation).
                 pred_gaze = gaze_estimator.gaze_estimation(image, landmarks, cam_matrix, cam_distor)
+                if not isinstance(pred_gaze, np.ndarray):
+                    continue
+                gaze_cam = np.asarray(pred_gaze, dtype=np.float32).reshape(3)
 
-                # Convert the gaze direction to the world coordinate system
-                if pred_gaze != "":
-                    pred_gaze_world = np.dot(np.linalg.inv(cam_rotation), pred_gaze).reshape((1, 3))
-                    pred_gaze_world = pred_gaze_world / np.linalg.norm(pred_gaze_world)
-                    # SAVE per camera results (RAW)
-                    results_per_camera[sub_id, camera_idx, frame_idx] = pred_gaze_world
+                detections.append(
+                    {
+                        "face_index": face_index,
+                        "gaze_cam": gaze_cam,
+                        "landmarks_2d": np.asarray(landmarks, dtype=np.float32),
+                        "landmark_scores": np.asarray(scores[face_index], dtype=np.float32),
+                    }
+                )
+            frame_bundle[camera_name] = detections
 
-        # (C) Visualization
-        if config["visualize"]:
-            # create camera folders
-            for camera_name in camera_names:
-                image = images[camera_name].copy()
-                camera_idx = camera_names.index(camera_name)
+        per_frame_outputs.append(frame_bundle)
 
-                out_dir = os.path.join(config["out_folder"], camera_name)
-                os.makedirs(out_dir, exist_ok=True)
+        # (C) Optional inference-time debug visualization (camera-local gaze projected to 2D).
+        # Gated by `visualize_native` so the toolbox-side viz can run without the extra image writes.
+        if config.get("visualize_native", False):
+            _visualize_frame(config, camera_names, images, frame_bundle, real_frame_idx, debug)
 
-                _, _, cam_rotation, _ = get_cam_para_studio(calibration, camera_name, image)
-
-                for sub_id in range(n_subjects):
-                    if sub_id not in cam_sees_subjects[camera_name]:
-                        continue
-
-                    landmarks = landmarks_2d[frame_idx, camera_idx, sub_id, :, :2]
-                    gaze_result = results_per_camera[sub_id, camera_idx, frame_idx]
-
-                    if not np.isnan(landmarks).all() and not np.isnan(gaze_result).all():
-                        # project 3D gaze to 2D
-                        gaze_cam = np.dot(cam_rotation, gaze_result.T)
-                        gaze_2d_direction = vector_to_pitchyaw(gaze_cam[None]).reshape(-1)
-                        face_center = np.nanmean(landmarks, axis=0)
-                        draw_gaze(
-                            image,
-                            gaze_2d_direction,
-                            thickness=2,
-                            color=(0, 255, 0),
-                            position=face_center.astype(int),
-                        )
-
-                if debug:
-                    cv2.imshow("img_show", image)
-                    cv2.waitKey(0)
-
-                # Save the image with gaze direction
-                save_file_name = os.path.join(out_dir, f"{real_frame_idx:09d}.jpg")
-                cv2.imwrite(save_file_name, image)
-
-        if frame_idx % config["log_frame_idx_interval"] == 0:
-            logging.info(f"Finished frame {frame_idx} / {n_frames}.")
-
-    if not config["visualize"]:
-        logging.info("Visualization of images turned off.")
-
-    #  save as npz file
+    # (5) Save the raw native pack. Object-array pickle is fine within the eth_xgaze env.
     out_dict = {
-        "3d": results_per_camera,
-        "landmarks_2d": np.array(landmarks_2d, dtype=float).transpose(2, 1, 0, 3, 4),
-        "data_description": {
-            "3d": dict(
-                axis0=config["subjects_descr"],  # Subjects
-                axis1=camera_names,  # Cameras
-                axis2=frame_indices,  # Frames
-                axis3=["coordinate_x", "coordinate_y", "coordinate_z"],  # Data
-            ),
-            "landmarks_2d": dict(
-                axis0=config["subjects_descr"],
-                axis1=camera_names,
-                axis2=frame_indices,
-                axis3=[
-                    "right_eye_0",
-                    "right_eye_1",
-                    "left_eye_0",
-                    "left_eye_1",
-                    "mouth_0",
-                    "mouth_1",
-                ],
-                axis4=["coordinate_u", "coordinate_v", "confidence_score"],
-            ),
-        },
+        "per_frame_outputs": np.asarray(per_frame_outputs, dtype=object),
+        "camera_names_order": np.asarray([str(c) for c in camera_names], dtype=object),
+        "landmark_names": np.asarray(LANDMARK_NAMES, dtype=object),
+        "camera_params_bundle": np.asarray(_bundle_calib_for_npz(calibration, camera_names), dtype=object),
     }
 
-    save_file_name = os.path.join(config["result_folders"]["gaze_individual"], f"{config['algorithm']}.npz")
+    save_file_name = os.path.join(config["out_folders"]["gaze_individual"], RAW_INFERENCE_NPZ_NAME)
     np.savez_compressed(save_file_name, **out_dict)
-
-    logging.info("Gaze detection 'ETH-XGaze' COMPLETED!\n")
+    logging.info(f"Gaze detection 'ETH-XGaze' raw pack COMPLETED! Wrote '{save_file_name}'.\n")

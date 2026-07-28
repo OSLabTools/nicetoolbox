@@ -3,6 +3,8 @@ import logging
 import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
+from nicetoolbox_core.data.array_schema import BOOLEAN_NAN
+
 from ....configs.schemas.evaluation_metrics_config import ConfusionMatrixConfig
 from ...data.input_loader import align_arrays, get_meta_type, load_input
 from ...data.plots import plot_confusion_matrix_grid
@@ -26,8 +28,8 @@ class ConfusionMatrixMetric(BaseMetric):
 
     def compute(self) -> MetricResult:
         # load gt and labels and align them frame by frame
-        preds = load_input(self.metric_config.predictions)
-        gt = load_input(self.metric_config.ground_truth)
+        preds = load_input(self.metric_config.predictions, schema=BOOLEAN_NAN)
+        gt = load_input(self.metric_config.ground_truth, schema=BOOLEAN_NAN)
         pairs = align_arrays(preds, gt, self.metric_config.broadcast_single)
         if not pairs:
             raise ValueError(

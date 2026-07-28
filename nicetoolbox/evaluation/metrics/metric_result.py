@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from ..data.input_loader import LoadedArray
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
 
 
 @dataclass
@@ -24,10 +24,10 @@ class FrameResult:
     Arrays at the same index across all keys belong to the same NPZ file.
 
     Attributes:
-        arrays: Maps NPZ key name to a list of LoadedArrays (one per sequence/algorithm).
+        arrays: Maps NPZ key name to a list of MetaNpzArrays (one per sequence/algorithm).
     """
 
-    arrays: dict[str, list[LoadedArray]] = field(default_factory=dict)
+    arrays: dict[str, list[NpzArrayWithMeta]] = field(default_factory=dict)
 
 
 @dataclass

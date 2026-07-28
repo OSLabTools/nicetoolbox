@@ -22,12 +22,18 @@ def sort_detectors_order(
         KeyError: On missing dependencies (only when strict mode).
         ValueError: On circular dependencies.
     """
-    # get the dependencies for each selected detector
+    # get the dependencies for each selected detector.
+    # Edges come from both the legacy `input_detector_names` (component/algorithm pairs)
+    # and the new `inputs` table (DetectorInputConfig), so migration can be incremental:
+    # non-migrated detectors keep working while migrated ones declare inputs via `inputs`.
     graph = {}
     for algo_name in selected_algorithms:
         config = detectors_config.algorithms[algo_name]
         input_deps = getattr(config, "input_detector_names", None) or []
-        graph[algo_name] = [pair[1] for pair in input_deps]
+        # TODO: deprecate input_detector_names
+        edges = [pair[1] for pair in input_deps]
+        edges += [inp.algorithm for inp in getattr(config, "inputs", {}).values()]
+        graph[algo_name] = edges
 
     missing = []
     try:

@@ -1,25 +1,28 @@
 import pandas as pd
 
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
+from nicetoolbox_core.data.npz_meta import NpzMeta
+
 from ...configs.schemas.evaluation_aggr import AggSpec
 from ...configs.schemas.evaluation_group_by import GroupBySpec
-from .input_loader import LoadedArray, NpzMeta, get_meta_type
+from .input_loader import get_meta_type
 
 _AXIS_LEVELS = {"subject", "camera", "frame", "label", "data"}
 
 
-def split_aligned_arrays(*pairs: tuple[LoadedArray, ...]) -> list[list[LoadedArray]]:
-    """Split N-tuples of LoadedArrays into N separate lists, mirroring zip semantics."""
+def split_aligned_arrays(*pairs: tuple[NpzArrayWithMeta, ...]) -> list[list[NpzArrayWithMeta]]:
+    """Split N-tuples of MetaNpzArrays into N separate lists, mirroring zip semantics."""
     return [list(group) for group in zip(*pairs)]
 
 
 def pair_arrays_to_df(
-    pairs: list[tuple[LoadedArray, LoadedArray]],
+    pairs: list[tuple[NpzArrayWithMeta, NpzArrayWithMeta]],
     value_names: tuple[str, str] = ("pred", "gt"),
 ) -> pd.DataFrame:
     """Join paired prediction/ground-truth arrays into a single long-format DataFrame.
 
     Args:
-        pairs (list): List of (prediction, ground_truth) LoadedArray pairs as returned by
+        pairs (list): List of (prediction, ground_truth) MetaNpzArray pairs as returned by
             align_arrays.
         value_names: Column names for the prediction and ground truth values respectively.
 
@@ -52,14 +55,14 @@ def pair_arrays_to_df(
     return pd.concat(parts)
 
 
-def arrays_to_dataframe(arrays: list[LoadedArray]) -> pd.DataFrame:
-    """Convert a list of LoadedArrays into a single long-format DataFrame.
+def arrays_to_dataframe(arrays: list[NpzArrayWithMeta]) -> pd.DataFrame:
+    """Convert a list of MetaNpzArrays into a single long-format DataFrame.
 
     Each row represents one scalar value at a specific (meta..., subject,
     camera, frame, label) coordinate.
 
     Args:
-        arrays: LoadedArray instances to convert. All arrays must share the same
+        arrays: MetaNpzArray instances to convert. All arrays must share the same
             meta key structure.
 
     Returns:
@@ -156,7 +159,7 @@ def resolve_group_levels(
 
 
 def summarize_with_group_by(
-    arrays: list[LoadedArray],
+    arrays: list[NpzArrayWithMeta],
     group_by: GroupBySpec,
     agg: AggSpec,
 ) -> pd.DataFrame:
@@ -166,7 +169,7 @@ def summarize_with_group_by(
     when listed in group_by.
 
     Args:
-        arrays: Frame-level LoadedArray instances to summarize.
+        arrays: Frame-level MetaNpzArray instances to summarize.
         group_by: User-specified grouping dimensions applied on top of mandatory
             always-iterate fields.
         agg: Aggregation specification mapping output column names to functions.

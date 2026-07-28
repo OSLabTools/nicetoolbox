@@ -70,10 +70,12 @@ pose_checkpoint = "<assets>/mmpose/configs/rtmpose-l_simcc-aic-coco_pt-aic-coco_
 detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
 detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 
+# very relaxed threshold for rtmppse
 [algorithms.rtmpose_l_aic_low_conf]
 template = "rtmpose_l_aic_template"
 min_detection_confidence = 0.1
 
+# strict threshold for rtmpose
 [algorithms.rtmpose_l_aic_high_conf]
 template = "rtmpose_l_aic_template"
 min_detection_confidence = 0.5
@@ -134,24 +136,6 @@ input_detector_names = [["body_joints", "vitpose_huge"]]
 
 # TODO: add motionbert support for other detectors
 
-
-# ======================================================================
-#                          Body Feature Detectors
-# ======================================================================
-
-# kinematics
-[algorithms.velocity_body]
-algorithm_type = "velocity_body"
-input_detector_names = [["body_joints", "hrnetw48"]]
-visualize = true
-
-# proximity
-[algorithms.body_distance]
-algorithm_type = "body_distance"
-used_keypoints = ["nose"]  # if the list is more than one keypoint, the midpoint
-input_detector_names = [["body_joints", "hrnetw48"]]
-visualize = true
-
 # ======================================================================
 #                             SAM 3D Body
 # ======================================================================
@@ -197,6 +181,59 @@ sam2_model = "<assets>/sam_3d_body/models--facebook--sam2-hiera-large"
 moge2_model = "<assets>/sam_3d_body/models--Ruicheng--moge-2-vitl-normal"
 
 # ======================================================================
+#                          Kinematics (Body Velocity)
+# ======================================================================
+
+# calculate subjects body joints velocity in pixels (inaccurate and non-normalized)
+[algorithms.velocity_body_2d]
+algorithm_type = "velocity_body_2d"
+visualize = true
+[algorithms.velocity_body_2d.inputs]
+pose_2d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "2d_filtered" }
+
+# calculate subjects body joints velocity in world units (usually meters per second)
+[algorithms.velocity_body_3d]
+algorithm_type = "velocity_body_3d"
+visualize = true
+[algorithms.velocity_body_3d.inputs]
+pose_3d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "3d" }
+
+# calculate subjects body joints velocity from motionbert uplifted body joints
+# data is too noisy for practical usage (unstable global position)
+[algorithms.velocity_body_motiobert_local]
+algorithm_type = "velocity_body_3d"
+visualize = true
+[algorithms.velocity_body_motiobert_local.inputs]
+pose_3d = { component = "body_joints_local", algorithm = "motionbert", npz_key = "3d" }
+
+# sam3d can directly predict 3d body joints from single camera view
+[algorithms.velocity_body_sam3d_local]
+algorithm_type = "velocity_body_3d"
+visualize = true
+[algorithms.velocity_body_sam3d_local.inputs]
+pose_3d = { component = "body_joints_local", algorithm = "sam_3d_body", npz_key = "3d" }
+
+# ======================================================================
+#                          Proximity (Body Distance)
+# ======================================================================
+
+# distance between subjects in pixels
+[algorithms.body_distance_2d]
+algorithm_type = "body_distance_2d"
+used_keypoints = ["nose"]  # if the list is more than one keypoint, the midpoint
+visualize = true
+[algorithms.body_distance_2d.inputs]
+pose_2d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "2d_filtered" }
+
+# distance between subjects in world units (usually meters per second)
+[algorithms.body_distance_3d]
+algorithm_type = "body_distance_3d"
+used_keypoints = ["nose"]
+visualize = true
+[algorithms.body_distance_3d.inputs]
+pose_3d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+
+# ======================================================================
 #                               ETH XGaze 
 # ======================================================================
 
@@ -205,38 +242,103 @@ moge2_model = "<assets>/sam_3d_body/models--Ruicheng--moge-2-vitl-normal"
 algorithm_type = "eth_xgaze"
 camera_names = "*"
 env_name = "venv:eth_xgaze"
-log_frame_idx_interval = 200
 filtered = true
 window_length = 11
 polyorder = 2
 visualize = true
+visualize_native = false  # if true, inference subprocess also writes per-frame debug overlays
 [algorithms.eth_xgaze.required_assets]
 shape_predictor_filename = "<assets>/eth_xgaze/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<assets>/eth_xgaze/face_model.txt"
 pretrained_model_filename = "<assets>/eth_xgaze/epoch_24_ckpt.pth.tar"
 face_detector_filename = "<assets>/eth_xgaze/mmod_human_face_detector.dat"
 
-# average multiple 3d gaze vectors across cameras
-[algorithms.gaze_fusion]
+
+# ======================================================================
+#                               Gaze Fusion
+# ======================================================================
+
+# transform individual view-by-view gaze predictions into one vector per subject
+[templates.gaze_fusion]
 algorithm_type = "gaze_fusion"
-input_detector_names = [["gaze_individual", "eth_xgaze"]]
-fusion_method = "weighted_average"  # options: "average", "weighted_average"
-filtered = true
+visualize = true
 window_length = 11
 polyorder = 2
-ensemble_enabled = true
-# ensemble_weights = [0.5, 0.5]  # TODO should we add this?
-visualize = true
+[templates.gaze_fusion.inputs]
+gaze_per_camera_3d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_3d" }
+gaze_per_camera_2d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_2d" }
+gaze_origin_2d     = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_origin_2d" }
 
-# gaze_interaction
-[algorithms.gaze_distance]
-algorithm_type = "gaze_distance"
-input_detector_names = [["gaze_multiview", "gaze_fusion"],  ["face_landmarks", "hrnetw48"]]
-keypoint_mapping = "coco_wholebody"
-threshold_look_at = 0.4
-visualize = true
+# average multiple 3d gaze vectors across cameras (weighted by confidence)
+# do additional filtering after it
+[algorithms.gaze_fusion_weighted]
+template = "gaze_fusion"
+fusion_method = "weighted_average"
+filtered = true
 
-# TODO: add gaze_distance support for other raw gaze_individual
+# select individual camera based predictions, discard others
+[algorithms.gaze_fusion_per_subject]
+template = "gaze_fusion"
+fusion_method = "select_view"
+subject_view_map = {person_left = "view_left", person_right = "view_right"}
+filtered = false
+
+# take only central view, both subjects visible, discard others
+[algorithms.gaze_fusion_only_center]
+template = "gaze_fusion"
+fusion_method = "select_view"
+subject_view_map = {person_left = "view_center", person_right = "view_center"}
+filtered = false
+
+# ======================================================================
+#                           Gaze Interaction
+# ======================================================================
+
+# detect that subject gaze is towards another subject in 2d
+[algorithms.gaze_distance_2d]
+algorithm_type = "gaze_distance_2d"
+used_keypoints = ["left_eye","right_eye"]  # mean of these body joints
+threshold_look_at = 130  # in pixels
+visualize = true
+[algorithms.gaze_distance_2d.inputs]
+pose_2d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "2d_filtered" }
+gaze_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_2d_filtered" }
+
+# same, but do it using scene 3d
+[algorithms.gaze_distance_3d]
+algorithm_type = "gaze_distance_3d"
+used_keypoints = ["nose"]   # mean of these body joints
+threshold_look_at = 0.4  # in absolute units (meters)
+visualize = true
+[algorithms.gaze_distance_3d.inputs]
+pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_3d_filtered" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_2d_filtered" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_origin_2d" }
+
+# in scene 3d, but use gaze_fusion_per_subject
+[algorithms.gaze_distance_3d_per_subject]
+algorithm_type = "gaze_distance_3d"
+used_keypoints = ["nose"]   # mean of these body joints
+threshold_look_at = 0.4  # in absolute units (meters)
+visualize = true
+[algorithms.gaze_distance_3d_per_subject.inputs]
+pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_3d" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_2d" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_origin_2d" }
+
+# in scene 3d, but use gaze_fusion_per_subject
+[algorithms.gaze_distance_3d_only_center]
+algorithm_type = "gaze_distance_3d"
+used_keypoints = ["nose"]   # mean of these body joints
+threshold_look_at = 0.4  # in absolute units (meters)
+visualize = true
+[algorithms.gaze_distance_3d_only_center.inputs]
+pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_3d" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_2d" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_origin_2d" }
 
 # ======================================================================
 #                                SPIGA

@@ -3,245 +3,183 @@ Velocity Body feature detector class for kinematics of the body.
 """
 
 import logging
-import os
+import warnings
 
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL, ArraySchema
+
 from ....utils import check_and_exception as check
+from ...detector_inputs import NpzDetectorInput
+from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ..base_feature import BaseFeature
 from . import utils as kinematics_utils
+
+# Velocity output axis4: scalar motion magnitude per frame plus the propagated confidence.
+VELOCITY_CONFIDENCE = ArraySchema(data_columns=("velocity", "confidence_score"))
 
 
 class VelocityBody(BaseFeature):
     """
-    The VelocityBody class is a feature detector that computes the kinematics component.
+    Abstract base for the body-velocity kinematics feature detector.
 
-    The VelocityBody feature detector accepts the human_pose component (body_joints) as
-    its primary input, which is computed using the human_pose method detector. The
-    kinematics component of this feature detector calculates the Euclidean distance
-    between adjacent frames, essentially determining the velocity of body movement from
-    one frame to the next.
+    Computes per-keypoint displacement and velocity between adjacent frames from a
+    body_joints pose input. Concrete subclasses define the working dimension (2D or 3D)
+    and declare their static inputs/outputs accordingly.
     """
 
-    components = ["kinematics"]
-    algorithm_type = "velocity_body"
+    components = ["kinematics"]  # TODO: delete me
+
+    # working dimension ("2d"/"3d"), set by subclasses
+    dim: str
 
     def _initialize_detector(self) -> None:
-        # 1. Find the body_joints input from input_map (using tuple keys)
-        input_key = None
-        for comp, alg in self.input_map:
-            if comp == "body_joints":
-                input_key = (comp, alg)
-                break
-        if input_key is None:
-            raise ValueError("No body_joints input found in input_detector_names")
-
-        self.input_file = self.get_input_file(*input_key)
-
-        # 2. Get upstream detector config
-        upstream_config = self.subsequence_context.get_detector_config(input_key[1])
+        # Upstream pose config carries the keypoint mapping and cameras.
+        upstream_config = self.loaded_inputs[f"pose_{self.dim}"].upstream_config
         keypoints_mapping_name = upstream_config.keypoint_mapping  # e.g. coco_wholebody
-        self.camera_names = upstream_config.camera_names  # Same cameras used by pose algorithm
 
-        # 3. Get predictions mapping from runtime_config (already loaded and validated)
+        # Predictions mapping from runtime_config (already loaded and validated)
         self.keypoints_mapping = getattr(self.predictions_mapping.human_pose, keypoints_mapping_name)
         self.bodyparts_list = list(self.keypoints_mapping.bodypart_index.model_dump().keys())
 
-        # 4. Store other convenience references
         self.fps = self.data.fps
 
-    def compute(self):
+    def compute(self) -> DetectorOutput:
         """
-        Computes the kinematics component.
-
-        This method calculates the Euclidean distance between adjacent frames for each
-        keypoint. It handles both 2D and 3D data. The method starts by loading the
-        joint data from the input files. It then computes the differences between
-        adjacent frames for each keypoint. A zero-filled frame is added at the
-        beginning to match the original number of frames. Finally, the Euclidean
-        distance for each keypoint between adjacent frames is computed. The computed
-        differences are stored in a dictionary and saved to a compressed .npz file with
-        the following structure:
-
-        - displacement_vector_body_2d: A numpy array containing the computed differences
-            for 2D data.
-        - velocity_body_2d: A numpy array containing the computed velocity for 2D data.
-        - displacement_vector_body_3d: A numpy array containing the computed differences
-            for 3D data.
-        - velocity_body_3d: A numpy array containing the computed velocity for 3D data.
-        - data_description: A dictionary containing the data description for all of the
-            above output numpy arrays. See the documentation of the output for more
-            details.
-
-        Returns:
-            out_dict (dict): A dictionary containing the above mentioned parts of the
-                kinematics component.
+        Computes the kinematics component (displacement + velocity per keypoint).
         """
-        joint_data = np.load(self.input_file, allow_pickle=True)
-        dimensions = ["2d"]
-        if "3d" in joint_data["data_description"].item():
-            dimensions.append("3d")
+        pose = self.loaded_inputs[f"pose_{self.dim}"]
+        pose, pose_axes = pose.data, pose.axes
 
-        out_dict = {"data_description": {}}
-        for dim in dimensions:
-            dim_data = "2d_filtered" if dim == "2d" else dim
-            data = joint_data[dim_data]
-            data_description = joint_data["data_description"].item()[dim]
+        # separate pos vector (2d/3d) and confidence (last dim)
+        keypoints = pose[..., :-1]
+        conf_score = pose[..., -1:]
 
-            # data.shape = (#persons, #cameras, #frames, #joints/keypoints, 3)
-            if dim == "2d":  # check if it is got from single camera)
-                # if data is 2d get only 2 values from last cell
-                keypoints = data[..., :2]
-                conf_score = data[..., 2, np.newaxis]
+        # differences[t] = keypoints[t] - keypoints[t-1]; first frame keeps NaN.
+        differences = np.full_like(keypoints, np.nan)
+        differences[:, :, 1:] = keypoints[:, :, 1:] - keypoints[:, :, :-1]
 
-            elif dim == "3d":
-                keypoints = data[..., :3]
-                conf_score = data[..., 3, np.newaxis]
+        # Confidence propagated as the minimum of the two consecutive frames.
+        min_confidence = np.full_like(conf_score, np.nan)
+        min_confidence[:, :, 1:] = np.minimum(conf_score[:, :, 1:], conf_score[:, :, :-1])
 
-            # Compute the differences for each keypoint between adjacent frames
-            # We first allocate tensor with difference for each frame
-            differences = np.full_like(keypoints, np.nan)
+        # Euclidean distance for each keypoint between adjacent frames, scaled to per-second.
+        motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)
+        motion_velocity = motion_magnitude * self.fps
 
-            # differences[t] gives the diff btw [t] and [t-1]
-            # first frame keeps nan (can't calculate velocity if no frame existed before)
-            differences[:, :, 1:] = keypoints[:, :, 1:] - keypoints[:, :, :-1]
+        # Displacement keeps the coordinate columns + confidence; velocity is a scalar + confidence.
+        displacement_axes = pose_axes  # x, y, z, conf
+        displacement = np.concatenate([differences, min_confidence], axis=-1)
 
-            # calculate confidence score, saves the minimum confidence between consecutive frames
-            # again, first frame keeps nan
-            min_confidence = np.full_like(conf_score, np.nan)
-            min_confidence[:, :, 1:] = np.minimum(conf_score[:, :, 1:], conf_score[:, :, :-1])
+        # Velocity is one scalar + confidence score
+        velocity_axes = pose_axes.replace(data=["velocity", "confidence_score"])
+        velocity = np.concatenate([motion_velocity, min_confidence], axis=-1)
 
-            # Compute the Euclidean distance for each keypoint between adjacent frames
-            motion_magnitude = np.linalg.norm(differences, axis=-1, keepdims=True)
-            motion_velocity = motion_magnitude * self.fps
+        # Mean velocity per body part (head, upper_body, ...), for downstream consumers
+        # and visualization. Bodypart labels come from the upstream keypoint mapping.
+        bodypart_axes = velocity_axes.replace(labels=list(self.bodyparts_list))
+        bodypart_motion = self._calculate_bodypart_motion(velocity)
 
-            # Add confidence score to results
-            differences = np.concatenate([differences, min_confidence], axis=-1)
-            motion_velocity = np.concatenate([motion_velocity, min_confidence], axis=-1)
-
-            # Standardized
-            # motion_magnitude_mean = np.nanmean(motion_magnitude, axis=0)
-            # motion_magnitude_std = np.nanstd(motion_magnitude, axis=0)
-            # standardized_magnitudes = (motion_magnitude - motion_magnitude_mean) /
-            # motion_magnitude_std
-
-            # save subjects information
-            subjects_list = data_description["axis0"]
-            # save results
-            del data_description["axis0"]
-            del data_description["axis4"]
-            out_dict.update(
-                {
-                    f"displacement_vector_body_{dim}": differences,
-                    f"velocity_body_{dim}": motion_velocity,
-                }
-            )
-            out_dict["data_description"].update(
-                {
-                    f"displacement_vector_body_{dim}": dict(
-                        **data_description,
-                        axis0=subjects_list,
-                        axis4=[
-                            "coordinate_x",
-                            "coordinate_y",
-                            "coordinate_z",
-                            "confidence_score",
-                        ]
-                        if dim == "3d"
-                        else ["coordinate_x", "coordinate_y", "confidence_score"],
-                    ),
-                    f"velocity_body_{dim}": dict(
-                        **data_description, axis0=subjects_list, axis4=["velocity", "confidence_score"]
-                    ),
-                }
-            )
-
-        save_file_path = os.path.join(self.result_folders["kinematics"], f"{self.algorithm_instance}.npz")
-        np.savez_compressed(save_file_path, **out_dict)
+        out = DetectorOutput()
+        out.add("kinematics", f"displacement_vector_body_{self.dim}", data=displacement, axes=displacement_axes)
+        out.add("kinematics", f"velocity_body_{self.dim}", data=velocity, axes=velocity_axes)
+        out.add("kinematics", f"velocity_bodypart_{self.dim}", data=bodypart_motion, axes=bodypart_axes)
 
         logging.info(f"Computation of feature detector for {self.components} completed.")
-        return out_dict
+        return out
 
-    def visualization(self, out_dict):
+    def visualization(self, out: DetectorOutput):
         """
         Creates visualizations for the computed kinematics component.
 
-        This method generates visualizations for the computed kinematics component. It
-        checks if the output dictionary contains the keys 'velocity_body_2d' and
-        'velocity_body_3d'. If these keys are present, their corresponding values are
-        used to create the visualizations.
-
-        The method calculates the sum of movement per body part using the post_compute
-        method. It then determines the global minimum and maximum values to define the
-        y-limits of the graphs. Finally, it calls the
-        visualize_mean_of_motion_magnitude_by_bodypart function from the
-        kinematics_utils module to generate the visualizations.
-
-        Parameters:
-            out_dict (dict): The output dictionary containing the computed kinematics
-                component. It should contain the keys 'velocity_body_2d' and/or
-                'velocity_body_3d'.
+        Sums movement per body part and plots the mean motion magnitude by body part
+        across frames, per camera.
         """
         logging.info(f"Visualizing the feature detector output {self.components}.")
 
-        data = {}
-        if "velocity_body_2d" in out_dict:
-            data["2d"] = out_dict["velocity_body_2d"]
-        if "velocity_body_3d" in out_dict:
-            data["3d"] = out_dict["velocity_body_3d"]
+        bodypart_motion = out.get("kinematics", f"velocity_bodypart_{self.dim}")
 
-        for dim, velocity_body in data.items():
-            # Calculate sum of movement per bodypart
-            motion_per_bodypart = self._calculate_bodypart_motion(velocity_body)
-
-            # Determine global_min and global_max - define y-lims of graphs
-            # global_min = np.nanmin(motion_per_bodypart) - 0.05
-            # global_max = np.nanmax(motion_per_bodypart) + 0.05
-            camera_names = self.camera_names if dim == "2d" else ["3d"]
-            kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
-                motion_per_bodypart,
-                self.bodyparts_list,
-                self.viz_folder,
-                self.subjects_descr,
-                camera_names,
-            )
-            # kinematics_utils.create_video_evolving_linegraphs(
-            #     self.frames_data_list, motion_per_bodypart, self.bodyparts_list,
-            # global_min, global_max, self.viz_folder)
+        # Camera names travel with the array (axis1); the upstream config may list fewer.
+        # Pass only the velocity column (axis4[0]); the util expects (S, C, F, n_bodyparts).
+        kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
+            bodypart_motion.data[..., 0],
+            self.bodyparts_list,
+            self.viz_folder,
+            self.subjects_descr,
+            bodypart_motion.axes.cameras,
+        )
 
         logging.info(f"Visualization of feature detector {self.components} completed.")
 
     def _calculate_bodypart_motion(self, motion_velocity):
         """
-        Calculates the sum of movement per body part.
+        Calculates the mean movement per body part with an aggregated confidence.
 
-        This method calculates the sum of movement per body part by averaging the
-        motion velocity over the joint indices corresponding to each body part. It
-        then concatenates the results for all body parts.
-
-        The method also checks for any [0,0,0] prediction using the check_zeros
-        function from the check module.
+        Averages the velocity across the joints of each body part; confidence is aggregated
+        as the min over the same joints (matching the min-propagation used across frames),
+        so a low-quality joint drags its bodypart's confidence down.
 
         Parameters:
             motion_velocity (numpy.ndarray): A 5D numpy array with shape
-                (#persons, #cameras, #frames, #joints/keypoints, 1/velocity)
+                (#persons, #cameras, #frames, #joints/keypoints, [velocity, confidence])
                 representing the motion velocity.
 
         Returns:
-            bodypart_motion (numpy.ndarray): A 4D numpy array with shape
-                (#persons, #cameras, #frames, #bodyparts) representing the
-                sum of movement per body part.
+            bodypart_motion (numpy.ndarray): A 5D numpy array with shape
+                (#persons, #cameras, #frames, #bodyparts, 2) where axis4 = [velocity, confidence].
         """
         bodypart_motion = []
         bodypart_index = self.keypoints_mapping.bodypart_index
 
-        for bodypart_name in self.bodyparts_list:
-            joint_indices = getattr(bodypart_index, bodypart_name)
-            bodypart_motion.append(np.nanmean(motion_velocity[:, :, :, joint_indices, :], axis=-2))
+        # Split axis4 into velocity (col 0) and confidence (col 1); aggregate each separately
+        # then re-concat on the last axis. Keep the joint-column axis for concatenate to stack.
+        velocity = motion_velocity[..., 0:1]
+        confidence = motion_velocity[..., 1:2]
 
-        bodypart_motion = np.concatenate(bodypart_motion, axis=-1)
+        # All-NaN joint slices are expected (frame 0 has no previous frame to diff, and a
+        # subject not seen by a camera is NaN across every frame); nanmean/nanmin correctly
+        # return NaN for them, so silence the cosmetic "Mean of empty slice" RuntimeWarning.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            for bodypart_name in self.bodyparts_list:
+                joint_indices = getattr(bodypart_index, bodypart_name)
+                mean_vel = np.nanmean(velocity[:, :, :, joint_indices, :], axis=-2)  # (S, C, F, 1)
+                min_conf = np.nanmin(confidence[:, :, :, joint_indices, :], axis=-2)  # (S, C, F, 1)
+                # Stack velocity + confidence on a new last axis, then a bodypart axis in front.
+                bodypart_motion.append(np.concatenate([mean_vel, min_conf], axis=-1)[..., np.newaxis, :])
+
+        # Concatenate on the bodypart axis -> (S, C, F, n_bodyparts, 2)
+        bodypart_motion = np.concatenate(bodypart_motion, axis=-2)
 
         # check for any [0,0,0] prediction
         check.check_zeros(bodypart_motion[:, :, 1:])
 
         return bodypart_motion
+
+
+class VelocityBody2D(VelocityBody):
+    """Body velocity computed on 2D pose keypoints (displacement in pixels)."""
+
+    algorithm_type = "velocity_body_2d"
+    dim = "2d"
+
+    inputs = [NpzDetectorInput("body_joints", "pose_2d", schema=VECTOR_2D_CONF_PER_LABEL)]
+    outputs = [
+        NpzDetectorOutput("kinematics", "displacement_vector_body_2d", schema=VECTOR_2D_CONF_PER_LABEL),
+        NpzDetectorOutput("kinematics", "velocity_body_2d", schema=VELOCITY_CONFIDENCE),
+        NpzDetectorOutput("kinematics", "velocity_bodypart_2d", schema=VELOCITY_CONFIDENCE),
+    ]
+
+
+class VelocityBody3D(VelocityBody):
+    """Body velocity computed on 3D pose keypoints (displacement in real-world units)."""
+
+    algorithm_type = "velocity_body_3d"
+    dim = "3d"
+
+    inputs = [NpzDetectorInput("body_joints", "pose_3d", schema=VECTOR_3D_CONF_PER_LABEL)]
+    outputs = [
+        NpzDetectorOutput("kinematics", "displacement_vector_body_3d", schema=VECTOR_3D_CONF_PER_LABEL),
+        NpzDetectorOutput("kinematics", "velocity_body_3d", schema=VELOCITY_CONFIDENCE),
+        NpzDetectorOutput("kinematics", "velocity_bodypart_3d", schema=VELOCITY_CONFIDENCE),
+    ]

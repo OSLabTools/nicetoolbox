@@ -21,6 +21,7 @@ from ...utils.hf_token import effective_hf_hub_token
 from ...utils.system import detect_os_type
 from ..base_detector import BaseDetector
 from ..data import SequenceData
+from ..detector_outputs import DetectorOutput
 from ..in_out import SequenceIO
 from ..subsequence_context import SubsequenceContext
 
@@ -75,7 +76,7 @@ class BaseMethod(BaseDetector):
         self._setup_subprocess_settings()
 
         # (3) Setup method detector (builds runtime, validates, saves config)
-        self.requires_out_folder = getattr(self.detector_config, "visualize", False)
+        self.requires_out_folder = True
         self.out_folders = self.compute_output_folders(self.requires_out_folder)
         self.result_folders = self.compute_result_folders()
         self.viz_folders = self.compute_viz_folders(self.visualize)
@@ -167,13 +168,19 @@ class BaseMethod(BaseDetector):
     # BaseDetector Interface Implementation
     # -------------------------------------------------------------------------
 
-    def run(self) -> None:
+    def run(self):
         """
         Execute method detector: run subprocess inference + post_inference.
 
-        Returns None - visualization uses external data.
+        post_inference may return a DetectorOutput (migrated detectors); if so, it is validated
+        against the declared outputs and saved here, then returned for visualization. Legacy
+        detectors return None/int and save themselves — that value is passed through untouched.
         """
-        self._run_inference()
+        result = self._run_inference()
+        if isinstance(result, DetectorOutput):
+            result.validate(self.declared_outputs)
+            result.save(self.io, self.algorithm_instance)
+        return result
 
     def _run_inference(self) -> None:
         """Run the inference subprocess."""
@@ -201,11 +208,11 @@ class BaseMethod(BaseDetector):
 
         if cmd_result.returncode == 0:
             logging.info(f"INFERENCE: {self.algorithm_instance} finished successfully (Exit 0).")
-            self.post_inference()
-            return
+            return self.post_inference()
 
         logging.error(f"INFERENCE: {self.algorithm_instance} subprocess failed (Exit 1).")
         self._handle_subprocess_error(cmd_result)
+        return None
 
     def _create_command(self) -> str:
         """Create the shell command to run inference."""

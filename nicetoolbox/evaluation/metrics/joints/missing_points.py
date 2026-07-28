@@ -1,9 +1,12 @@
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL, AnyOf
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
+
 from ....configs.schemas.evaluation_aggr import AggSpec
 from ....configs.schemas.evaluation_group_by import GroupBySpec
 from ....configs.schemas.evaluation_metrics_config import MissingPointsConfig
-from ...data.input_loader import ArrayAxes, LoadedArray, get_meta_type, load_input
+from ...data.input_loader import get_meta_type, load_input
 from ...data.plots import plot_candle_per_group, plot_score, plot_score_heatmap
 from ...data.summary import aggregate_summary, summarize_with_group_by
 from ..base_metric import BaseMetric
@@ -22,17 +25,18 @@ class MissingPointsMetric(BaseMetric):
     """
 
     metric_config: MissingPointsConfig
+    input_schema = AnyOf(VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL)
 
     def compute(self) -> MetricResult:
-        arrays = load_input(self.metric_config.predictions)
+        arrays = load_input(self.metric_config.predictions, schema=self.input_schema)
         meta = get_meta_type(arrays)
 
         # counting missing points in dataset
         # first we save npz_key for each point per frame
         # next we calculate percantage of missing points per frame (convenience)
-        missing_arrays: list[LoadedArray] = []
-        detected_pct_arrays: list[LoadedArray] = []
-        confidence_arrays: list[LoadedArray] = []
+        missing_arrays: list[NpzArrayWithMeta] = []
+        detected_pct_arrays: list[NpzArrayWithMeta] = []
+        confidence_arrays: list[NpzArrayWithMeta] = []
         for arr in arrays:
             missing = self._compute_missing(arr)
             missing_arrays.append(missing)
@@ -106,16 +110,13 @@ class MissingPointsMetric(BaseMetric):
             summary=SummaryResult({"detection_rate_score": score, "summary": summary}),
         )
 
-    def _compute_missing(self, arr: LoadedArray) -> LoadedArray:
+    def _compute_missing(self, arr: NpzArrayWithMeta) -> NpzArrayWithMeta:
         """Compute per-frame missing flag for each joint in a single loaded array.
 
-        Returns a LoadedArray with shape (subjects, cameras, frames, labels),
+        Returns a MetaNpzArray with shape (subjects, cameras, frames, labels),
         values are 1.0 where the point is missing and 0.0 where it is present.
         """
         data = arr.data  # (subjects, cameras, frames, labels, data)
-
-        if data.ndim != 5:
-            raise ValueError(f"Expected 5D array (with data axis) in {arr.meta}, got {data.ndim}D.")
 
         # missing if ANY coord of a joint is NaN
         # e.g. joint with coords [1.2, NaN, 0.5] -> missing = True
@@ -128,29 +129,16 @@ class MissingPointsMetric(BaseMetric):
             missing = missing | (conf < self.metric_config.min_confidence)
 
         result_data = missing.astype(np.float32)
-        result_axes = ArrayAxes(
-            subjects=arr.axes.subjects,
-            cameras=arr.axes.cameras,
-            frames=arr.axes.frames,
-            labels=arr.axes.labels,
-        )
-        return LoadedArray(meta=arr.meta, data=result_data, axes=result_axes)
+        # missing collapses the coordinate axis, so drop axis4 (data) labels.
+        result_axes = arr.axes.make_4d()
+        return arr.replace(data=result_data, axes=result_axes)
 
-    def _extract_confidence(self, arr: LoadedArray) -> LoadedArray:
+    def _extract_confidence(self, arr: NpzArrayWithMeta) -> NpzArrayWithMeta:
         """Extract the confidence coordinate (last coord) as a (S, C, F, fields) array."""
-        return LoadedArray(
-            meta=arr.meta,
-            data=arr.data[..., -1],
-            axes=arr.axes,
-        )
+        return arr.replace(data=arr.data[..., -1])
 
-    def _compute_detected_pct(self, missing: LoadedArray) -> LoadedArray:
+    def _compute_detected_pct(self, missing: NpzArrayWithMeta) -> NpzArrayWithMeta:
         """Compute per-frame fraction of detected (non-missing) joints from the binary missing array."""
         detected_data = 1.0 - missing.data.mean(axis=-1, keepdims=True)  # (S, C, F, 1)
-        pct_axes = ArrayAxes(
-            subjects=missing.axes.subjects,
-            cameras=missing.axes.cameras,
-            frames=missing.axes.frames,
-            labels=["detected_pct"],
-        )
-        return LoadedArray(meta=missing.meta, data=detected_data, axes=pct_axes)
+        pct_axes = missing.axes.replace(labels=["detected_pct"])
+        return missing.replace(data=detected_data, axes=pct_axes)

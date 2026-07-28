@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional
 
 from ..configs.schemas.detectors_instances_configs import BaseAlgorithmConfig
 from .data import SequenceData
+from .detector_inputs import BaseDetectorInput, ResolvedInput, load_detector_inputs
+from .detector_outputs import BaseDetectorOutput
 from .in_out import SequenceIO
 from .subsequence_context import SubsequenceContext
 
@@ -22,6 +24,8 @@ class BaseDetector(ABC):
 
     # Each detector should have an unique algorithm type
     algorithm_type: str
+    # User-defined instance name from TOML key
+    algorithm_instance: str
 
     # Instance attributes set during initialization
     data: SequenceData
@@ -29,15 +33,20 @@ class BaseDetector(ABC):
     subsequence_context: SubsequenceContext
     detector_config: BaseAlgorithmConfig
 
-    # User-defined instance name from TOML key (set in __init__)
-    algorithm_instance: str
-
     # Class attributes to be defined by subclasses
     inference_config: Any
+    # TODO: drop components, derive from outputs
     components: List[str]
-    # Class-level discriminator that matches an entry in ALL_DETECTORS and the
-    # registry key in DETECTORS_REGISTRY (e.g. "mmpose_2d", "gaze_distance").
-    algorithm_type: str
+
+    # Declarative upstream inputs
+    inputs: List[BaseDetectorInput] = []
+    # Loaded upstream inputs during init
+    loaded_inputs: Dict[str, ResolvedInput]
+
+    # Declarative outputs this detector produces
+    outputs: List[BaseDetectorOutput] = []
+    # Resolved outputs during init
+    declared_outputs: List[BaseDetectorOutput]
 
     # Additional attributes
     visualize: bool
@@ -65,7 +74,21 @@ class BaseDetector(ABC):
         config_components = getattr(self.detector_config, "components", None)
         if config_components:
             self.components = list(config_components)
+
+        # Input tracks validation
         self._check_declared_tracks_available()
+
+        # Resolve declared upstream other detectors inputs into loaded, validated arrays.
+        self.inputs = self.resolve_inputs()
+        self.loaded_inputs = load_detector_inputs(
+            declared=self.inputs,
+            inputs_cfg=self.detector_config.inputs,
+            io=self.io,
+            subsequence_context=self.subsequence_context,
+        )
+
+        # Resolve declared outputs (validated against what compute() produces, in run()).
+        self.declared_outputs = self.resolve_outputs()
 
     def _check_declared_tracks_available(self) -> None:
         """
@@ -84,6 +107,22 @@ class BaseDetector(ABC):
                 f"Detector '{self.algorithm_instance}': none of the requested audio tracks are "
                 f"available for this sequence."
             )
+
+    def resolve_inputs(self) -> List[BaseDetectorInput]:
+        """Return the inputs to resolve for this detector.
+
+        Defaults to the class-level `inputs`. Override to vary inputs by config
+        (e.g. add an optional input only when a flag is set).
+        """
+        return list(self.inputs)
+
+    def resolve_outputs(self) -> List[BaseDetectorOutput]:
+        """Return the outputs this detector declares it will produce.
+
+        Defaults to the class-level `outputs`. Override to vary outputs by config
+        (e.g. pick the npz_key/schema based on a per-instance dimension).
+        """
+        return list(self.outputs)
 
     @abstractmethod
     def run(self) -> Optional[Any]:

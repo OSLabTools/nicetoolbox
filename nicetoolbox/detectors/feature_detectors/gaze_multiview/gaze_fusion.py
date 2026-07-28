@@ -1,380 +1,284 @@
 """
-MultiviewFusion feature detector.
-Fuses raw per-camera gaze vectors into a single world-space vector.
+Fuses per-camera world gaze vectors into a single world-space direction.
 """
 
-import logging
 import os
-from typing import Any, Dict, List, Optional
 
 import cv2
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_3D_CONF
+from nicetoolbox_core.data.loaded_array import NpzArray
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
+from ...detector_inputs import NpzDetectorInput
+from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ...method_detectors.filters import SGFilter
 from ..base_feature import BaseFeature
 
 
 class GazeFusion(BaseFeature):
     """
-    Computes a single 3D gaze vector from multiple camera views and/or multiple
-    algorithms.
+    Fuse per-camera world gaze into a single world-space unit vector per (subject, frame),
+    optionally smoothed with a Savitzky-Golay filter, and reproject the fused direction back
+    to each camera as a 2D arrow for visualization.
 
-    Given the fused 3D gaze vectors, the user can optionally select to apply
-    a Savitzky-Golay filter for temporal smoothing. Finally, the fused 3D gaze
-    vectors are projected back to each camera view to obtain 2D gaze points
-    for visualization (If enabled).
-
-    Expected Input:
-        - Method detectors outputting '3d' array.
-        - Shape: (Subjects, Cameras, Frames, 3)
-        - Optional: 'confidence_scores' (Subjects, Cameras, Frames) for weighted fusion.
+    Inputs come already lifted to world space by the upstream method detector (e.g. eth_xgaze).
+    Confidence (mean landmark score) is combined across views with the same weights used to
+    fuse the vectors, and carried through onto both 3D and 2D outputs.
     """
 
     components = ["gaze_multiview"]
     algorithm_type = "gaze_fusion"
-    requires_out_folder: bool = True
+
+    inputs = [
+        NpzDetectorInput("gaze_individual", "gaze_per_camera_3d", schema=VECTOR_3D_CONF),  # gaze vec per view
+        NpzDetectorInput("gaze_individual", "gaze_origin_2d", schema=VECTOR_2D_CONF),  # visualization
+        NpzDetectorInput("gaze_individual", "gaze_per_camera_2d", schema=VECTOR_2D_CONF),  # visualization
+    ]
+
+    def resolve_outputs(self):
+        outputs = [
+            NpzDetectorOutput("gaze_multiview", "gaze_3d", schema=VECTOR_3D_CONF),
+            NpzDetectorOutput("gaze_multiview", "gaze_2d", schema=VECTOR_2D_CONF),
+            NpzDetectorOutput("gaze_multiview", "gaze_origin_2d", schema=VECTOR_2D_CONF),
+        ]
+        if self.detector_config.filtered:
+            outputs.append(NpzDetectorOutput("gaze_multiview", "gaze_3d_filtered", schema=VECTOR_3D_CONF))
+            outputs.append(NpzDetectorOutput("gaze_multiview", "gaze_2d_filtered", schema=VECTOR_2D_CONF))
+        return outputs
 
     def _initialize_detector(self) -> None:
-        # 1. Initialize metadata (populated by _load_inputs)
-        self.camera_names: List[str] = []
-        self.subjects: List[str] = []
-        self.frame_indices: List[int] = []
-
-        # 2. Data cache for raw inputs + load
-        self.raw_inputs: Dict[str, Any] = {}
-        self._load_inputs()
-
-        # 3. Store config parameters from static_config
         self.filtered = self.detector_config.filtered
         self.window = self.detector_config.window_length
         self.poly = self.detector_config.polyorder
         self.fusion_method = self.detector_config.fusion_method
-        self.ensemble_enabled = self.detector_config.ensemble_enabled
-
-        # 4. Store convenience references
+        self.subject_view_map = self.detector_config.subject_view_map
         self.calibration = self.data.calibration
 
-        # 5. Init DataLoader config for visualization if needed
-        self.dataloader_config = None
-        if self.detector_config.visualize and self.camera_names:
-            self.dataloader_config = self.data.get_input_recipes().copy()
+    def compute(self) -> DetectorOutput:
+        """Fuse per-camera world gaze into a single unit vector per (subject, frame), reproject
+        to each camera as 2D, and (optionally) produce a temporally-smoothed variant.
 
-    def _load_inputs(self) -> None:
+        Confidence is fused with the same weights that fused the vectors and carried through onto
+        every output (3D fused, 2D reprojection, and filtered pair). Returns a DetectorOutput;
+        BaseFeature.run() validates + saves it.
         """
-        Loads data from all input files defined in configuration.
-        Populates self.raw_inputs and metadata.
-        """
-        if not self.input_map:
-            logging.error("No input files found for MultiviewFusion.")
-            return
+        gaze = self.loaded_inputs["gaze_per_camera_3d"]  # (S, C, F, 4) = (x, y, z, conf)
+        gaze_origin = self.loaded_inputs["gaze_origin_2d"]  # (S, C, F, 3) = (x, y, conf)
 
-        # TODO: pleasse refactor me
-        (_comp, algo), file_path = list(self.input_map.items())[0]
-        try:
-            data = np.load(file_path, allow_pickle=True)
-            if "3d" not in data.files:
-                logging.warning(f"File {file_path} missing '3d'. Skipping.")
-                return
+        subjects = gaze.axes.subjects
+        cameras = gaze.axes.cameras
+        frames = gaze.axes.frames
 
-            # Extract Metadata from the first valid file
-            if not self.camera_names:
-                desc = data["data_description"].item()
-                self.camera_names = desc["3d"]["axis1"]
-                self.subjects = desc["3d"]["axis0"]
-                self.frame_indices = desc["3d"]["axis2"]
+        # separate confidence from the data
+        vectors = gaze.data[..., :3]  # (S, C, F, 3)
+        conf = gaze.data[..., 3]  # (S, C, F)
 
-            # Extract Confidence from Landmarks
-            # Landmarks shape: (S, C, F, 6, 3) -> [u, v, conf]
-            conf = None
-            landmarks = data.get("landmarks_2d")
+        # Fuse per-camera gaze into a single world unit vector + fused confidence.
+        fused_xyz, fused_conf = self._fuse_vectors(vectors, conf, subjects, cameras)  # (S, F, 3), (S, F)
 
-            if landmarks is not None and landmarks.shape[-1] == 3:
-                # Take the 3rd element (index 2) from the last axis
-                raw_conf = landmarks[..., 2]  # Result: (S, C, F, 6)
+        # Assemble the fused world gaze under the ["3d"] pseudo-camera slot with confidence.
+        gaze_3d = self._pack_gaze_3d(fused_xyz, fused_conf, subjects, frames)
+        # Reproject fused direction back to each real camera; conf broadcast across cameras.
+        gaze_2d = self._pack_gaze_2d(fused_xyz, fused_conf, subjects, cameras, frames)
 
-                # Reduce the 6 landmarks to 1 score per face (mean)
-                conf = np.nanmean(raw_conf, axis=-1)  # Result: (S, C, F)
+        out = DetectorOutput()
+        out.add_array("gaze_multiview", "gaze_3d", gaze_3d)
+        out.add_array("gaze_multiview", "gaze_2d", gaze_2d)
+        out.add_array("gaze_multiview", "gaze_origin_2d", gaze_origin.array)
 
-            input_entry = {
-                "name": algo,
-                "vectors": data["3d"],
-                "conf": conf,  # for weighted fusion
-                "landmarks": landmarks[..., :2],  # for viz arrow with face origin
-            }
-            self.raw_inputs = input_entry
-
-        except Exception as e:
-            logging.error(f"Failed to load input {file_path}: {e}")
-
-    def compute(self) -> Dict[str, Any] | None:
-        """
-        Run the fusion pipeline.
-
-        Returns:
-            A list of dictionaries containing fused results.
-        """
-        if not self.raw_inputs:
-            return None
-
-        base_algo_name = self.raw_inputs["name"]
-        vectors = self.raw_inputs["vectors"]
-        conf_scores = self.raw_inputs["conf"]
-
-        logging.info(f"Fusing results for {base_algo_name}...")
-
-        # Fuse -> Filter
-        fused_3d, fused_3d_filtered = self._process_single_input(vectors, conf_scores)
-
-        # Save and collect
-        filename = f"{self.algorithm_instance}"
-        out_dict = self._save_fused_result(fused_3d, fused_3d_filtered, filename)
-        return out_dict
-
-    def _process_single_input(
-        self, vectors: np.ndarray, confidence: Optional[np.ndarray]
-    ) -> tuple[np.ndarray, Optional[np.ndarray]]:
-        """
-        Runs the core feature detector logic: Fuse -> Filter.
-
-        Args:
-            vectors: (S, C, F, 3)
-            confidence: (S, C, F) or None
-
-        Returns:
-            fused_3d: (S, F, 3)
-        """
-        # 1. Fuse
-        fused = self._fuse_vectors(vectors, confidence)
-        fused_filtered = None
-
-        # 2. Filter
         if self.filtered:
-            # Reshape for SGFilter: (S, F, 3) -> (S, 1, F, 3) -> Add fake camera axis
-            # SGFilter usually expects (Subjects, Cameras, Frames, Dims)
-            fused_4d = fused[:, np.newaxis, :, :]
+            # Smooth the fused world vector (a coherent single-view track), not the per-camera gaze.
+            smoothed = SGFilter(self.window, self.poly).apply(fused_xyz[:, np.newaxis, :, :], is_3d=True)
+            filtered_xyz = smoothed[:, 0, :, :]
+            # Renormalize after smoothing so the direction stays a unit vector.
+            norms = np.linalg.norm(filtered_xyz, axis=-1, keepdims=True)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                filtered_xyz = filtered_xyz / norms
 
-            filter_obj = SGFilter(self.window, self.poly)
-            filtered_4d = filter_obj.apply(fused_4d, is_3d=True)
+            gaze_3d_filtered = self._pack_gaze_3d(filtered_xyz, fused_conf, subjects, frames)
+            gaze_2d_filtered = self._pack_gaze_2d(filtered_xyz, fused_conf, subjects, cameras, frames)
+            out.add_array("gaze_multiview", "gaze_3d_filtered", gaze_3d_filtered)
+            out.add_array("gaze_multiview", "gaze_2d_filtered", gaze_2d_filtered)
 
-            # Remove fake camera axis - Back to (S, F, 3)
-            fused_filtered = filtered_4d[:, 0, :, :]
+        return out
 
-        return fused, fused_filtered
+    def _fuse_vectors(
+        self, vectors: np.ndarray, conf: np.ndarray, subjects: list[str], cameras: list[str]
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Fuse per-camera unit gaze vectors across the cameras axis.
 
-    def _fuse_vectors(self, vectors: np.ndarray, weights: Optional[np.ndarray] = None) -> np.ndarray:
-        """
-        Fuses vectors using the configured method.
+        weighted_average uses conf as weights; NaN vectors are dropped from the sum. Confidence
+        is combined with the same weights (self-weighted mean = sum(w*w)/sum(w)) so a low-quality
+        view diluting the vector also dilutes the reported confidence.
 
-        Args:
-            vectors (np.ndarray): Shape (S, C_total, F, 3).
-            weights (Optional[np.ndarray]): Shape (S, C_total, F).
+        select_view adopts a specific camera's per-view estimate for each subject via subject_view_map
 
         Returns:
-            np.ndarray: Shape (S, F, 3).
+            fused_xyz: (S, F, 3) unit vectors (NaN where every camera is missing).
+            fused_conf: (S, F) fused confidence (NaN where every camera is missing).
         """
-        if self.fusion_method == "weighted_average" and weights is not None:
-            # Weighted Mean
-            # Expand weights to (S, C, F, 1) for broadcasting
-            # (We have one score per face detected after averaging landmarks scores)
-            w_expanded = weights[:, :, :, np.newaxis]
+        if self.fusion_method == "select_view":
+            try:
+                cam_indices = np.array([cameras.index(self.subject_view_map[s]) for s in subjects])
+            except KeyError as e:
+                raise ValueError(f"subject_view_map missing entry for subject {e}") from e
+            except ValueError as e:
+                raise ValueError(f"subject_view_map camera not in cameras {cameras}: {e}") from e
+            subj_indices = np.arange(len(subjects))
+            fused = vectors[subj_indices, cam_indices]  # (S, F, 3) — already unit
+            fused_conf = conf[subj_indices, cam_indices]  # (S, F)
+            return fused, fused_conf
 
-            # Replace NaN weights with 0 (to ignore them in sum)
-            w_safe = np.nan_to_num(w_expanded, nan=0.0)
+        # Mask out camera slots where the vector or its confidence is NaN.
+        valid = ~np.isnan(vectors).any(axis=-1) & ~np.isnan(conf)  # (S, C, F)
 
-            # Mask NaNs (Treat as 0 weight)
-            valid_mask = ~np.isnan(vectors).any(axis=-1, keepdims=True)
-            w_final = w_safe * valid_mask
-
-            # Replace NaN vectors with 0
+        if self.fusion_method == "weighted_average":
+            weights = np.where(valid, np.nan_to_num(conf, nan=0.0), 0.0)  # (S, C, F)
             vec_safe = np.nan_to_num(vectors, nan=0.0)
 
-            # Now compute the nominator and denominator of the weighted average
-            # across the camera axis (axis=1) to fuse the vectors from different views
-            weighted_sum = np.sum(vec_safe * w_final, axis=1)
-            total_weight = np.sum(w_final, axis=1)
+            w = weights[..., np.newaxis]  # (S, C, F, 1)
+            weighted_sum = np.sum(vec_safe * w, axis=1)  # (S, F, 3)
+            total_weight = np.sum(weights, axis=1)  # (S, F)
 
-            # Final division plus avoid div by zero
             with np.errstate(divide="ignore", invalid="ignore"):
-                avg_vector = weighted_sum / total_weight
-
+                avg_vector = weighted_sum / total_weight[..., np.newaxis]
+                fused_conf = np.sum(weights * weights, axis=1) / total_weight  # (S, F)
+            # Where no camera contributed, mark NaN.
+            no_support = total_weight == 0
+            avg_vector[no_support] = np.nan
+            fused_conf[no_support] = np.nan
         else:
-            # Simple Mean (default)
-            avg_vector = np.nanmean(vectors, axis=1)
+            avg_vector = np.nanmean(vectors, axis=1)  # (S, F, 3)
+            fused_conf = np.nanmean(np.where(valid, conf, np.nan), axis=1)  # (S, F)
 
-        # Re-normalize to Unit Vectors
+        # Re-normalize to a unit direction.
         norms = np.linalg.norm(avg_vector, axis=-1, keepdims=True)
         with np.errstate(invalid="ignore", divide="ignore"):
             fused = avg_vector / norms
 
-        return fused
+        return fused, fused_conf
 
-    def _save_fused_result(
-        self, fused_3d: np.ndarray, fused_3d_filtered: np.ndarray | None, filename: str
-    ) -> Dict[str, Any]:
-        """
-        Projects, packages, and saves a fused and optionally fused filtered results.
-        """
-        out_dict = {
-            "gaze_fused": fused_3d[:, np.newaxis, :, :].copy(),  # Add 3d camera axis
-            "data_description": {},
-        }
+    def _pack_gaze_3d(
+        self, fused_xyz: np.ndarray, fused_conf: np.ndarray, subjects: list[str], frames: list[str]
+    ) -> NpzArray:
+        """Pack (S, F, 3) fused direction + (S, F) conf into a (S, 1, F, 4) NpzArray on the ['3d'] slot."""
+        n_subjects, n_frames = fused_conf.shape
+        data = np.full((n_subjects, 1, n_frames, 4), np.nan, dtype=float)
+        data[:, 0, :, :3] = fused_xyz
+        data[:, 0, :, 3] = fused_conf
+        axes = VECTOR_3D_CONF.make_axes(subjects, ["3d"], frames)
+        return NpzArray(data, axes)
 
-        # 1. Project Raw Fused
-        proj_raw = self._project_to_cameras(fused_3d)
-        out_dict["gaze_2d"] = proj_raw
+    def _pack_gaze_2d(
+        self,
+        fused_xyz: np.ndarray,
+        fused_conf: np.ndarray,
+        subjects: list[str],
+        cameras: list[str],
+        frames: list[str],
+    ) -> NpzArray:
+        """Reproject fused world gaze into each camera as a 2D arrow; broadcast fused conf per camera."""
+        projected = self._project_to_cameras(fused_xyz, cameras)  # (S, C, F, 2)
+        conf_broadcast = np.broadcast_to(fused_conf[:, np.newaxis, :, np.newaxis], projected.shape[:-1] + (1,))
+        data = np.concatenate([projected, conf_broadcast], axis=-1)  # (S, C, F, 3)
+        axes = VECTOR_2D_CONF.make_axes(subjects, cameras, frames)
+        return NpzArray(data, axes)
 
-        # Metadata for Raw
-        out_dict["data_description"]["gaze_fused"] = {
-            "axis0": self.subjects,
-            "axis1": ["3d"],
-            "axis2": self.frame_indices,
-            "axis3": ["coordinate_x", "coordinate_y", "coordinate_z"],
-        }
-        out_dict["data_description"]["gaze_2d"] = {
-            "axis0": self.subjects,
-            "axis1": self.camera_names,
-            "axis2": self.frame_indices,
-            "axis3": ["coordinate_u", "coordinate_v"],
-        }
+    def _project_to_cameras(self, world_gaze: np.ndarray, cameras: list[str]) -> np.ndarray:
+        """Project a world direction (S, F, 3) into each camera's image plane as (dx, dy) arrows.
 
-        # 2. Handle Filtered
-        if fused_3d_filtered is not None:  # Add 3d camera axis (Common NICE format)
-            out_dict["gaze_fused_filtered"] = fused_3d_filtered[:, np.newaxis, :, :].copy()
-
-            # Project Filtered
-            proj_filtered = self._project_to_cameras(fused_3d_filtered)
-            out_dict["gaze_2d_filtered"] = proj_filtered
-
-            # Metadata for Filtered (Copy structure)
-            out_dict["data_description"]["gaze_fused_filtered"] = out_dict["data_description"]["gaze_fused"]
-            out_dict["data_description"]["gaze_2d_filtered"] = out_dict["data_description"]["gaze_2d"]
-
-        # Save
-        save_path = os.path.join(self.result_folders["gaze_multiview"], f"{filename}.npz")
-        np.savez_compressed(save_path, **out_dict)
-
-        return out_dict
-
-    def _project_to_cameras(self, world_gaze: np.ndarray) -> np.ndarray:
-        """
-        Projects world vectors back to camera planes.
-
-        Args:
-            world_gaze (np.ndarray): Fused vectors (S, F, 3).
-
-        Returns:
-            np.ndarray: Projected 2D points (S, C, F, 2).
+        NaN gaze frames propagate to NaN pixel arrows through the trig chain, so no explicit
+        masking is needed. Calibration is guaranteed present by the upstream eth_xgaze fail-fast.
         """
         n_subj, n_frames, _ = world_gaze.shape
-        n_cams = len(self.camera_names)
+        projected = np.full((n_subj, len(cameras), n_frames, 2), np.nan)
 
-        projected = np.full((n_subj, n_cams, n_frames, 2), np.nan)
-
-        for cam_idx, cam_name in enumerate(self.camera_names):
-            if not self.calibration or cam_name not in self.calibration:
-                logging.warning(
-                    f"Calibration missing or camera '{cam_name}' not found;" " skipping projection for this camera."
-                )
-                continue
-
-            calib = self.calibration[cam_name]
-
-            image_width = calib["image_size"][0]
+        for cam_idx, cam_name in enumerate(cameras):
             _, _, cam_R, _ = vis_ut.get_cam_para_studio(self.calibration, cam_name)
+            image_width = self.calibration[cam_name]["image_size"][0]
 
             for sub_id in range(n_subj):
-                vectors = world_gaze[sub_id]  # (F, 3)
-
-                # Vectorized Projection per subject
-                valid_mask = ~np.isnan(vectors).any(axis=1)
-                if not np.any(valid_mask):
-                    continue
-
-                valid_vectors = vectors[valid_mask]
-
-                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, valid_vectors, image_width)
-                projected[sub_id, cam_idx, valid_mask, 0] = -dx
-                projected[sub_id, cam_idx, valid_mask, 1] = -dy
+                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, world_gaze[sub_id], image_width)
+                projected[sub_id, cam_idx, :, 0] = -dx
+                projected[sub_id, cam_idx, :, 1] = -dy
 
         return projected
 
-    def visualization(self, result: Dict[str, Any]) -> None:
+    def visualization(self, out: DetectorOutput) -> None:
+        """Draw the fused 2D gaze arrow (red) plus every per-view arrow (yellow, thin, half-length)
+        on each source frame, then stitch a video per camera.
+
+        Reads gaze_2d_filtered when temporal filtering is enabled, else gaze_2d. Origins come
+        straight from the pass-through gaze_origin_2d. The per-view arrows all share the same
+        camera-X origin — divergence between yellow arrows shows which views pull the fusion.
         """
-        Generates visualization images with fused gaze overlays.
-        """
-        logging.info("Visualizing Fused Gaze...")
+        gaze_key = "gaze_2d_filtered" if self.filtered else "gaze_2d"
+        gaze_2d = out.get("gaze_multiview", gaze_key).data[..., :2]  # (S, C, F, 2)
+        origins = out.get("gaze_multiview", "gaze_origin_2d").data[..., :2]  # (S, C, F, 2)
+        per_view = self.loaded_inputs["gaze_per_camera_2d"].data[..., :2]  # (S, V, F, 2)
 
-        # We need landmarks for the origin point.
-        # We use the first input's landmarks as the reference.
-        # TODO: Different algorithms may have different landmark sets.
-        landmarks_2d = self.raw_inputs["landmarks"]  # (S, C, F, 6, 3)
+        cameras = out.get("gaze_multiview", gaze_key).axes.cameras
+        n_subjects, n_views = per_view.shape[0], per_view.shape[1]
 
-        if landmarks_2d is None:
-            logging.warning("No landmarks found in input. Cannot visualize gaze origin.")
-            return
-
-        landmarks_2d = landmarks_2d[..., :2]  # Use only (u, v)
-        face_centers = np.nanmean(landmarks_2d, axis=-2)  # (S, C, F, 2)
-        logging.info(f"Visualizing: {self.algorithm_instance}")
-
-        dataloader = ImagePathsByFrameIndexLoader(self.dataloader_config, expected_cameras=self.camera_names)
-
-        # Prefer to use filtered gaze if available
-        if "gaze_2d_filtered" in result:
-            gaze_2d = result["gaze_2d_filtered"]  # (S, C, F, 2)
-            logging.info("Visualizing FILTERED fused gaze.")
-        else:
-            gaze_2d = result["gaze_2d"]  # (S, C, F, 2)
-            logging.info("Visualizing RAW fused gaze.")
+        dataloader = ImagePathsByFrameIndexLoader(self.data.get_input_recipes(), expected_cameras=cameras)
 
         for frame_idx, (real_idx, files) in enumerate(dataloader):
             for cam_name, path in files.items():
-                if cam_name not in self.camera_names:
+                if cam_name not in cameras:
                     continue
-                cam_idx = self.camera_names.index(cam_name)
+                cam_idx = cameras.index(cam_name)
 
                 img = cv2.imread(str(path))
                 if img is None:
                     continue
 
-                for sub_id in range(gaze_2d.shape[0]):
-                    # Check Landmarks
-                    lms = landmarks_2d[sub_id, cam_idx, frame_idx]
-                    # lms shape is (6, 3) -> [u, v, score]
-                    if np.isnan(lms).all():
+                for sub_id in range(n_subjects):
+                    origin = origins[sub_id, cam_idx, frame_idx]
+                    if np.isnan(origin).any():
                         continue
+                    origin_i = np.round(origin).astype(np.int32)
 
-                    face_center = face_centers[sub_id, cam_idx, frame_idx]
+                    # Per-view arrows: thin yellow, half length, drawn first so the fused arrow
+                    # renders on top.
+                    for view_idx in range(n_views):
+                        view_vec = per_view[sub_id, view_idx, frame_idx]
+                        if np.isnan(view_vec).any():
+                            continue
+                        view_end = np.round(origin + 0.5 * view_vec).astype(np.int32)
+                        cv2.arrowedLine(
+                            img,
+                            origin_i,
+                            view_end,
+                            color=(0, 255, 255),  # yellow (BGR)
+                            thickness=1,
+                            line_type=cv2.LINE_AA,
+                            tipLength=0.2,
+                        )
 
+                    # Fused arrow: red, full length.
                     vec = gaze_2d[sub_id, cam_idx, frame_idx]
                     if np.isnan(vec).any():
                         continue
-
-                    # Draw Arrow (vec is dx, dy)
-                    end_point = np.round(face_center + vec).astype(np.int32)
-                    face_center = np.round(face_center).astype(np.int32)
-
+                    end_point = np.round(origin + vec).astype(np.int32)
                     cv2.arrowedLine(
                         img,
-                        face_center,
+                        origin_i,
                         end_point,
-                        color=(0, 0, 255),  # Red
+                        color=(0, 0, 255),
                         thickness=2,
                         line_type=cv2.LINE_AA,
                         tipLength=0.2,
                     )
 
-                # TODO: Different viz folders per result! (Also for MP4)
                 out_dir = os.path.join(self.viz_folder, cam_name)
                 os.makedirs(out_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(out_dir, f"{real_idx:09d}.jpg"), img)
 
-        # Generate MP4
-        for cam in self.camera_names:
+        for cam in cameras:
             vd.frames_to_video(
                 os.path.join(self.viz_folder, cam),
                 os.path.join(self.viz_folder, f"{cam}.mp4"),

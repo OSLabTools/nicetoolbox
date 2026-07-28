@@ -1,15 +1,9 @@
 import numpy as np
 import pytest
 
-from nicetoolbox.configs.schemas.evaluation_input_block import NpzAxis
-from nicetoolbox.evaluation.data.input_loader import LoadedArray, PathMeta, load_array
-from tests.unit.evaluation.data.conftest import make_npz
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-_WILDCARD = NpzAxis(subject="*", camera="*", label="*", data="*")
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta, NpzAxisFilters, load_and_filter_array, load_array
+from nicetoolbox_core.data.npz_meta import PathMeta
+from tests.unit.data.conftest import make_npz
 
 
 def _meta(path, key="landmarks") -> PathMeta:
@@ -24,20 +18,20 @@ def _meta(path, key="landmarks") -> PathMeta:
 class TestHappyPath:
     def test_returns_loaded_array(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
-        assert isinstance(result, LoadedArray)
+        assert isinstance(result, NpzArrayWithMeta)
 
     def test_meta_passed_through(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
         meta = _meta(npz)
-        result = load_array(meta, _WILDCARD)
+        result = load_array(meta)
 
         assert result.meta is meta
 
     def test_axes_populated(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
         assert result.axes.subjects == ["s1", "s2"]
         assert result.axes.cameras == ["cam1"]
@@ -47,27 +41,27 @@ class TestHappyPath:
 
     def test_data_shape(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
         assert result.data.shape == (2, 1, 3, 3)
 
     def test_data_values(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
         expected = np.arange(2 * 1 * 3 * 3, dtype=float).reshape(2, 1, 3, 3)
         np.testing.assert_array_equal(result.data, expected)
 
     def test_with_data_axis(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz", data=("u", "v"))
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
         assert result.axes.data == ["u", "v"]
         assert result.data.shape == (2, 1, 3, 3, 2)
 
     def test_without_data_axis(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        result = load_array(_meta(npz), _WILDCARD)
+        result = load_array(_meta(npz))
 
         assert result.axes.data == []
         assert result.data.ndim == 4
@@ -79,33 +73,35 @@ class TestHappyPath:
 
 
 class TestFiltering:
+    """load_and_filter_array = load_array + filter_array in one step."""
+
     def test_subject_filter(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        filters = NpzAxis(subject="s1", camera="*", label="*", data="*")
-        result = load_array(_meta(npz), filters)
+        filters = NpzAxisFilters(subject="s1", camera="*", label="*", data="*")
+        result = load_and_filter_array(_meta(npz), filters)
 
         assert result.axes.subjects == ["s1"]
         np.testing.assert_array_equal(result.data, result.data[0:1])
 
     def test_label_filter(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        filters = NpzAxis(subject="*", camera="*", label=["x", "z"], data="*")
-        result = load_array(_meta(npz), filters)
+        filters = NpzAxisFilters(subject="*", camera="*", label=["x", "z"], data="*")
+        result = load_and_filter_array(_meta(npz), filters)
 
         assert result.axes.labels == ["x", "z"]
         assert result.data.shape == (2, 1, 3, 2)
 
     def test_filter_empties_axis_returns_none(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz")
-        filters = NpzAxis(subject="nonexistent", camera="*", label="*", data="*")
-        result = load_array(_meta(npz), filters)
+        filters = NpzAxisFilters(subject="nonexistent", camera="*", label="*", data="*")
+        result = load_and_filter_array(_meta(npz), filters)
 
         assert result is None
 
     def test_data_filter(self, tmp_path):
         npz = make_npz(tmp_path / "result.npz", data=("u", "v", "w"))
-        filters = NpzAxis(subject="*", camera="*", label="*", data="v")
-        result = load_array(_meta(npz), filters)
+        filters = NpzAxisFilters(subject="*", camera="*", label="*", data="v")
+        result = load_and_filter_array(_meta(npz), filters)
 
         assert result.axes.data == ["v"]
         assert result.data.shape == (2, 1, 3, 3, 1)
@@ -122,7 +118,7 @@ class TestErrors:
         np.savez(npz, landmarks=np.zeros((2, 1, 3, 3)))
 
         with pytest.raises(KeyError, match="data_description"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     def test_npz_key_missing_from_data_description_returns_none(self, tmp_path, caplog):
         import logging
@@ -130,7 +126,7 @@ class TestErrors:
         npz = make_npz(tmp_path / "result.npz", key="landmarks")
 
         with caplog.at_level(logging.WARNING):
-            result = load_array(_meta(npz, key="wrong_key"), _WILDCARD)
+            result = load_array(_meta(npz, key="wrong_key"))
 
         assert result is None
         assert "wrong_key" in caplog.text
@@ -143,7 +139,7 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object))
 
         with pytest.raises(KeyError, match="landmarks"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     @pytest.mark.parametrize(
         "axis,descr_override,shape",
@@ -162,7 +158,7 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object), landmarks=np.zeros(shape))
 
         with pytest.raises(ValueError, match=axis):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     def test_too_few_dimensions_raises(self, tmp_path):
         """Data array with fewer than 4 dims is rejected before any filtering."""
@@ -171,7 +167,7 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object), landmarks=np.zeros((1, 1, 1)))
 
         with pytest.raises(ValueError, match="dimensions"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     def test_axis4_in_description_but_data_is_4d_raises(self, tmp_path):
         """axis4 declared in description but data only has 4 dimensions."""
@@ -180,7 +176,7 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object), landmarks=np.zeros((1, 1, 1, 1)))
 
         with pytest.raises(ValueError, match="axis4"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     def test_axis4_shape_mismatch_raises(self, tmp_path):
         """axis4 label count disagrees with data.shape[4]."""
@@ -192,7 +188,7 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object), landmarks=np.zeros((1, 1, 1, 1, 2)))
 
         with pytest.raises(ValueError, match="axis4"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))
 
     def test_required_axis_key_missing_from_description_raises(self, tmp_path):
         """axis2 omitted from data_description — required axes must all be present."""
@@ -201,4 +197,4 @@ class TestErrors:
         np.savez(npz, data_description=np.array(descr, dtype=object), landmarks=np.zeros((1, 1, 1, 1)))
 
         with pytest.raises(KeyError, match="axis2"):
-            load_array(_meta(npz), _WILDCARD)
+            load_array(_meta(npz))

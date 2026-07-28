@@ -52,10 +52,10 @@ def get_cam_para_studio(content, cam):
 
 
 def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):
-    # (h, w) = image_in.shape[:2]
+    # Pixel-space arrow displacement. Kept as float so NaN gaze flows through as NaN.
     length = image_width / length_ratio
-    dx = (-length * np.sin(pitchyaw[:, 1]) * np.cos(pitchyaw[:, 0])).astype(int)
-    dy = (-length * np.sin(pitchyaw[:, 0])).astype(int)
+    dx = -length * np.sin(pitchyaw[:, 1]) * np.cos(pitchyaw[:, 0])
+    dy = -length * np.sin(pitchyaw[:, 0])
     return dx, dy
 
 
