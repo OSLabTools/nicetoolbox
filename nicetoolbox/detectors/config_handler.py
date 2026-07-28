@@ -185,12 +185,13 @@ class Configuration(ProjectConfigHandler):
         # TODO: move it to some more general system for handling optional input block deps
         # for now it's hardcoded to specific attributes names
         # Resolve per-detector camera_names / track_names filters against the available tracks.
+        # ! Sort the canera names to force camera order be same
         resolved_detectors = copy.deepcopy(self.detectors_config)
         for algo in resolved_detectors.algorithms.values():
             if hasattr(algo, "camera_names"):
-                algo.camera_names = resolve_filter(algo.camera_names, all_camera_names)
+                algo.camera_names = sorted(resolve_filter(algo.camera_names, all_camera_names))
             if hasattr(algo, "track_names"):
-                algo.track_names = resolve_filter(algo.track_names, all_track_names)
+                algo.track_names = sorted(resolve_filter(algo.track_names, all_track_names))
 
         # Construct frozen model with all resolved values
         runtime_config = SubsequenceContext(

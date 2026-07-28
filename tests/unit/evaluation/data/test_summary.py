@@ -5,7 +5,6 @@ import pytest
 
 from nicetoolbox.configs.schemas.evaluation_aggr import AggSpec
 from nicetoolbox.configs.schemas.evaluation_group_by import GroupBySpec
-from nicetoolbox.evaluation.data.input_loader import AnnotationMeta, ExperimentMeta, PathMeta, SubsequenceInfo
 from nicetoolbox.evaluation.data.summary import (
     aggregate_summary,
     arrays_to_dataframe,
@@ -13,6 +12,7 @@ from nicetoolbox.evaluation.data.summary import (
     resolve_group_levels,
     summarize_with_group_by,
 )
+from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, PathMeta, SubsequenceInfo
 from tests.unit.evaluation.data.conftest import make_loaded_array
 
 _DUMMY_PATH = Path("dummy.npz")

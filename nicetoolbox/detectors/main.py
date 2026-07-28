@@ -21,10 +21,10 @@ from ..utils.error_handling import manage_error_scope
 from ..utils.system import system_capability_check
 from . import config_handler as confh
 from .data import SequenceData
-from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance
+from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance2D, GazeDistance3D
 from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
-from .feature_detectors.kinematics.velocity_body import VelocityBody
-from .feature_detectors.proximity.body_distance import BodyDistance
+from .feature_detectors.kinematics.velocity_body import VelocityBody2D, VelocityBody3D
+from .feature_detectors.proximity.body_distance import BodyDistance2D, BodyDistance3D
 from .in_out import SequenceIO
 from .method_detectors.crisper_whisper.crisper_whisper_detector import CrisperWhisper
 from .method_detectors.eth_xgaze.eth_xgaze_detector import EthXgaze
@@ -46,9 +46,12 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     WhisperX,
     CrisperWhisper,
     Sam3dBody,
-    VelocityBody,
-    BodyDistance,
-    GazeDistance,
+    VelocityBody2D,
+    VelocityBody3D,
+    BodyDistance2D,
+    BodyDistance3D,
+    GazeDistance2D,
+    GazeDistance3D,
     GazeFusion,
 }
 ALL_DETECTORS = {cls.algorithm_type: cls for cls in DETECTOR_CLASSES}

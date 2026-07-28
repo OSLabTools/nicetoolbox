@@ -16,7 +16,7 @@ from .components import (
     BodyJointsComponent,
     EmotionIndividualComponent,
     FaceLandmarksComponent,
-    GazeIndividualComponent,
+    GazeFusionComponent,
     GazeInteractionComponent,
     HandJointsComponent,
     HeadOrientationComponent,
@@ -111,21 +111,21 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         else None
     )
 
-    look_at_data_tuple = (
+    look_at_data_tuples = (
         gaze_interaction_component.get_lookat_data() if "gaze_interaction" in components else None
-    )  # returns (data, data_labels)
+    )  # returns list of (data, data_labels), one per gaze_distance instance
 
-    gaze_ind_component = (
-        GazeIndividualComponent(
+    gaze_fusion_component = (
+        GazeFusionComponent(
             visualizer_config,
             io,
             viewer,
-            "gaze_individual",
+            "gaze_multiview",
             calib,
             eyes_middle_3d_data,
-            look_at_data_tuple,
+            look_at_data_tuples,
         )
-        if "gaze_individual" in components
+        if "gaze_multiview" in components
         else None
     )
 
@@ -162,7 +162,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         body_joints_component,
         hand_joints_component,
         face_landmarks_component,
-        gaze_ind_component,
+        gaze_fusion_component,
         emotion_ind_component,
         proximity_component,
         kinematics_component,

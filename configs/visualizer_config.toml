@@ -12,7 +12,7 @@ experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # 
 
 [media]                                                    # each Media session shows one video results.
 [media.visualize]                                          # specify what will be visualized
-components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_individual", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
+components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
 start_frame = 0                                            # starting frame for the visualization
 end_frame = -1                                             # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                                     # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -35,29 +35,43 @@ visualize_interval = 1                                     # 1 means visualize e
 ### Configuring Apearance
 ## Under 'media.component.appearance', you can configure the color and radii (the size of the dots and lines).
 
-# Component: gaze individual
-[media.gaze_individual]
-algorithms = ['eth_xgaze']            # list of algorithms
+# Component: gaze fusion
+# Each algorithm below is a gaze_fusion instance; the visualizer draws one arrow overlay
+# per instance so different fusion strategies can be compared side-by-side. All arrays
+# (fused 3D, per-camera 2D reprojection, 2D face origin) are read from each fusion NPZ.
+# Look-at coloring (from gaze_interaction) only recolors the first algorithm's arrow.
+[media.gaze_multiview]
+algorithms = ['gaze_fusion_weighted']
 
-[media.gaze_individual.canvas]
-3d_filtered = ["3D_Canvas", "view_left", "view_right", "view_top", "view_center"] ## key options 3d, 3d_filtered ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
+[media.gaze_multiview.canvas]
+# Canvas list controls which canvases receive the overlay; keys are informational.
+# Both keys are declared because some fusion instances emit only gaze_3d (no _filtered).
+gaze_3d = ["3D_Canvas", "view_left", "view_right", "view_top", "view_center"]
+gaze_3d_filtered = ["3D_Canvas", "view_left", "view_right", "view_top", "view_center"]
 ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 
-[media.gaze_individual.appearance]
-colors = [[0,150, 90]]                  # define the color of individual gaze
-radii = {'3d'= 0.01, 'camera_view'= 4}  # define the size of gaze arrow in 3D_Canvas and camera views
+[media.gaze_multiview.appearance]
+colors = [[0, 150, 90], [200, 120, 40]]  # one color per algorithm above
+radii = {'3d'= 0.01, 'camera_view'= 4}
 
 # Component: gaze interaction
+# Algorithms are paired positionally with [media.gaze_fusion].algorithms:
+# gaze_distance_3d          <-> gaze_fusion_weighted
+# gaze_distance_3d_per_subject <-> gaze_fusion_per_subject
+# The two lists MUST have the same length; each pair recolors the corresponding fusion arrow.
 [media.gaze_interaction]
-algorithms = ['gaze_distance']
+algorithms = ['gaze_distance_3d']
 
 [media.gaze_interaction.canvas]
 gaze_look_at_3d = ["3D_Canvas", "view_left", "view_right"] ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
 #gaze_look_at_2d = ["view_center"]                            ## use data key gaze_look_at_2d if you don't have a multi-view setup.
 
 [media.gaze_interaction.appearance]
-colors = [[[0,221, 22], [247, 13, 26]]] # first one is bright green and used when the person is
-                                        # look other person's face. Second color (red) is use when the persopn does'n look other person's face
+# One [looking-at, not-looking-at] color pair per algorithm above.
+colors = [
+    [[0,255, 0], [255, 0, 0]],   # gaze_distance_3d: green / red
+    [[0,255, 0], [255, 0, 0]],   # gaze_distance_3d: green / red
+]
 radii = {}
 
 
@@ -122,25 +136,22 @@ colors =  [[[255,92,0], [85,170,47]]] #neon orange, dark olive green
 radii = {'3d'= 0.01, 'camera_view'= 4}
 
 # Component: kinematics
+# Reads per-bodypart velocity produced by velocity_body. Bodypart groupings are declared
+# by the upstream keypoint mapping (predictions_mapping.toml), not here.
 [media.kinematics]
-algorithms = ['velocity_body']
+algorithms = ['velocity_body_3d']  # or 'velocity_body_2d' for single-view setups
 
 [media.kinematics.canvas]
-velocity_body_3d = ["metric_velocity"] # if don't have multi-view, use velocity_body_2d
-#velocity_body_2d = ["metric_velocity"]
-
-[media.kinematics.joints] ## visualize the mean velocity for the given bodyparts.
-"head" = ["nose","left_eye","right_eye","left_ear","right_ear"]
-"upper_body" = ["left_shoulder","right_shoulder","left_elbow", "right_elbow", "left_wrist", "right_wrist"]  # Indices of keypoints belonging to the upper body
-"lower_body" = ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", "right_ankle"]
+velocity_bodypart_3d = ["metric_velocity"]
+velocity_bodypart_2d = ["metric_velocity"]
 
 
 # Component: proximity
 [media.proximity]
-algorithms = ['body_distance']
+algorithms = ['body_distance_2d']
 
 [media.proximity.canvas]
-body_distance_3d = [] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
+body_distance_3d = ["3D_Canvas"] ## value options: 3D_Canvas, [] -- Note: set as [] if you don't have a multi-view setup.
 body_distance_2d = ["view_top", "view_center"] ## value options: [camera nanes]
 
 [media.proximity.appearance]

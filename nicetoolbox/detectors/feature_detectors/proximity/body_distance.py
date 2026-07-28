@@ -3,59 +3,55 @@ Body Distance feature detector class for the proximity component.
 """
 
 import logging
-import os
+from typing import List
 
 import numpy as np
 
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL, ArraySchema
+
+from ....configs.schemas.detectors_instances_configs import BodyDistanceConfig
+from ...detector_inputs import NpzDetectorInput
+from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ..base_feature import BaseFeature
 from . import utils as pro_utils
+
+# Proximity output: axis3 = ["distance", "confidence_score"] (scalar + aggregated confidence).
+# Confidence is the min across the keypoints averaged into the distance and across subjects.
+DISTANCE = ArraySchema(labels_columns=("distance", "confidence_score"))
 
 
 class BodyDistance(BaseFeature):
     """
-    The BodyDistance class is a feature detector that computes the proximity component.
+    Abstract base for the body-distance proximity feature detector.
 
-    The BodyDistance feature detector calculates the Euclidean distance between
-    keypoints of different individuals in the scene, essentially determining the
-    proximity between individuals from one frame to the next.
+    Computes the Euclidean distance between selected keypoints of two individuals
+    in the scene, per frame. Concrete subclasses fix the working dimension (2D or
+    3D) and declare their static inputs/outputs/components accordingly.
     """
 
-    components = ["proximity"]
-    algorithm_type = "body_distance"
+    # internal fields
+    components = ["proximity"]  # TODO: delete me
+    detector_config: BodyDistanceConfig
+    used_keypoints: List[str]
+    keypoint_index: List[int]
+
+    # working dimension ("2d"/"3d"), set by subclasses; drives the input handle name
+    # and the output npz key (body_distance_{dim}).
+    dim: str
 
     def _initialize_detector(self) -> None:
-        """Initialize Movement class.
-        Setup the BodyDistance feature detector and extract gaze component from method
-        detector output.
+        """Setup the BodyDistance feature detector.
 
-        This method initializes the BodyDistance class by setting up the necessary
-        configurations, input/output handler, and data. It extracts the body_joints
-        component and prepares the used keypoints and keypoint indices given the
-        predictions mapping.
+        Extracts the keypoint indices to measure between, from the upstream pose
+        detector's keypoint mapping.
         """
-        if len(self.data.subjects_descr) != 2:
-            raise ValueError("Feature detector 'proximity' requires data of 2 persons.")
-
-        # 1. Find the body_joints input from input_map (using tuple keys)
-        joints_key = None
-        for comp, alg in self.input_map:
-            if comp == "body_joints":
-                joints_key = (comp, alg)
-                break
-        if joints_key is None:
-            raise ValueError("No body_joints input found in input_detector_names")
-        joints_component, joints_algorithm = joints_key
-
-        self.input_file = self.get_input_file(joints_component, joints_algorithm)
-
-        # 2. Get upstream detector config to extract keypoint_mapping and camera_names
-        upstream_config = self.subsequence_context.get_detector_config(joints_algorithm)
+        # Upstream pose config carries the keypoint mapping
+        upstream_config = self.loaded_inputs[f"pose_{self.dim}"].upstream_config
         keypoint_mapping_name = upstream_config.keypoint_mapping  # e.g., "coco_wholebody"
-        self.camera_names = upstream_config.camera_names  # Cameras used by pose detector
-
-        # 3. Get predictions_mapping from runtime_config (already loaded) for proximity index
+        # Get predictions_mapping from runtime_config for proximity index
         self.keypoint_mapping = getattr(self.predictions_mapping.human_pose, keypoint_mapping_name)
 
+        # Get indexes of keypoints from detectors config (i.e. [nose])
         self.used_keypoints = self.detector_config.used_keypoints
         keypoints_index = self.keypoint_mapping.keypoints_index.body
         for keypoint in self.used_keypoints:
@@ -72,105 +68,69 @@ class BodyDistance(BaseFeature):
         and personR. If the length of the keypoint index list is greater than 1, the
         midpoint of the keypoints will be used in the proximity measure.
 
-        The results are saved in a numpy .npz file with the following structure:
-        - body_distance_2d: A numpy array containing the proximity scores in 2D.
-        - body_distance_3d: A numpy array containing the proximity scores in 3D.
-        - data_description: A dictionary containing the data description for the above
-            output numpy arrays. See the documentation of the output for more details.
-
         Returns:
-            out_dict (dict): A dictionary containing the proximity scores
-            (2D and/or 3D).
-
+            DetectorOutput: carrying the proximity scores under this detector's npz_key
+            for the "proximity" component. Validation and saving are handled by
+            BaseFeature.run().
         """
+        pose = self.loaded_inputs[f"pose_{self.dim}"]
+        pose_data, pose_axes = pose.data, pose.axes
 
-        joint_data = np.load(self.input_file, allow_pickle=True)
-        dimensions = ["2d"]
-        if "3d" in joint_data["data_description"].item():
-            dimensions.append("3d")
+        # extract exactly 2 subjects
+        # TODO: extend it to support arbitrary amount of subjects
+        if len(pose_axes.subjects) != 2:
+            raise ValueError(
+                f"Proximity requires exactly 2 subjects, got {len(pose_axes.subjects)}: {pose_axes.subjects}."
+            )
+        personL, personR = pose_data
 
-        out_dict = {"data_description": {}}
-        for dim in dimensions:
-            dim_data = "2d_filtered" if dim == "2d" else dim
-            data = joint_data[dim_data]
-            data_description = joint_data["data_description"].item()[dim]
+        # Split coord vs conf on axis4 (last column). Keypoints axis is 2 (per subject slice).
+        coordsL = personL[:, :, self.keypoint_index, :-1]
+        coordsR = personR[:, :, self.keypoint_index, :-1]
+        confL = personL[:, :, self.keypoint_index, -1]
+        confR = personR[:, :, self.keypoint_index, -1]
 
-            if len(data) != 2:
-                logging.error(
-                    "The number of persons in the video is != 2. " "Proximity can not be calculated. Skipping."
-                )
-                return None
+        # Average coordinates over the selected keypoints, per frame.
+        average_coords_L = np.mean(coordsL, axis=2, keepdims=True)
+        average_coords_R = np.mean(coordsR, axis=2, keepdims=True)
 
-            personL, personR = data
+        # Euclidean distance between the two people's average coordinates, per frame. Shape (C, F, 1).
+        proximity_score = np.linalg.norm(average_coords_L - average_coords_R, axis=-1)
 
-            # Calculate the average coordinates for the selected keypoints in both
-            # objects for each frame
-            average_coords_L = np.mean(personL[:, :, self.keypoint_index, :], axis=2, keepdims=True)
-            average_coords_R = np.mean(personR[:, :, self.keypoint_index, :], axis=2, keepdims=True)
+        # Min confidence across the averaged keypoints for each subject, then across the pair.
+        # Matches velocity_body's min-propagation: a low-quality joint drags the pair's confidence down.
+        min_conf_L = np.nanmin(confL, axis=2, keepdims=True)  # (C, F, 1)
+        min_conf_R = np.nanmin(confR, axis=2, keepdims=True)  # (C, F, 1)
+        pair_conf = np.minimum(min_conf_L, min_conf_R)  # (C, F, 1)
 
-            # Calculate the Euclidean distance between the average coordinates for
-            # each frame
-            proximity_score = np.linalg.norm(average_coords_L - average_coords_R, axis=-1)
+        # Pack [distance, confidence] on axis3 (no axis4 for this scalar metric).
+        packed = np.concatenate([proximity_score, pair_conf], axis=-1)  # (C, F, 2)
+        # The score is symmetric; store it under both subject slots (axis0 = subjects = 2).
+        distance = np.stack((packed, packed), axis=0)  # (S, C, F, 2)
 
-            # update results dictionary
-            del data_description["axis3"], data_description["axis4"]
-            out_dict.update({f"body_distance_{dim}": np.stack((proximity_score, proximity_score), axis=0)})
-            out_dict["data_description"].update({f"body_distance_{dim}": dict(**data_description, axis3="distance")})
+        distance_axes = pose_axes.replace(labels=["distance", "confidence_score"], data=[])
+        return DetectorOutput().add("proximity", f"body_distance_{self.dim}", data=distance, axes=distance_axes)
 
-        # save results
-        save_file_path = os.path.join(self.result_folders["proximity"], f"{self.algorithm_instance}.npz")
-        np.savez_compressed(save_file_path, **out_dict)
+    def visualization(self, out: DetectorOutput):
+        distance = out.get("proximity", f"body_distance_{self.dim}")
+        pro_utils.visualize_proximity_score(distance, self.viz_folder, self.used_keypoints)
 
-        logging.info(f"Computation of feature detector for {self.components} completed.")
-        return out_dict
 
-    def visualization(self, out_dict):
-        """
-        Creates visualizations for the computed proximity component.
+class BodyDistance2D(BodyDistance):
+    """Body distance computed on 2D pose keypoints (distance in pixels)."""
 
-        The visualization includes a line graph of the proximity scores over time,
-        and the proximity scores are also displayed on top of the original video frames.
-        The video is saved as 'proximity_score_on_video.mp4' in the visualization
-        folder.
+    algorithm_type = "body_distance_2d"
+    dim = "2d"
 
-        Args:
-            out_dict (dict): A dictionary containing the proximity scores computed by
-                the feature detector. It should contain keys 'body_distance_2d' and/or
-            'body_distance_3d', each mapping to a numpy array containing the proximity
-                scores for the respective dimension.
-        """
-        if out_dict is not None:
-            logging.info(f"Visualizing the feature detector output {self.components}.")
+    inputs = [NpzDetectorInput("body_joints", "pose_2d", schema=VECTOR_2D_CONF_PER_LABEL)]
+    outputs = [NpzDetectorOutput("proximity", "body_distance_2d", schema=DISTANCE)]
 
-            data = {}
-            if "body_distance_2d" in out_dict:
-                data["2d"] = out_dict["body_distance_2d"]
-            if "body_distance_3d" in out_dict:
-                data["3d"] = out_dict["body_distance_3d"]
 
-            for dim, body_distance in data.items():
-                camera_names = self.camera_names if dim == "2d" else ["3d"]
-                pro_utils.visualize_proximity_score(body_distance, self.viz_folder, self.used_keypoints, camera_names)
-                # # Determine global_min and global_max - define y-lims of graphs
-                # global_min = data[0].min() + 0.5
-                # global_max = data[0].max() - 0.5
-                # # Get a sample image to determine video dimensions
-                # sample_frame = cv2.imread(self.frames_data_list[0])
-                # sample_combined_img = pro_utils.frame_with_linegraph(
-                #   sample_frame, data, 0, global_min, global_max)
-                # fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # for .mp4 format
-                # output_path = os.path.join(self.viz_folder,
-                #   'proximity_score_on_video.mp4')
-                # out = cv2.VideoWriter(output_path, fourcc, 30.0,
-                #   (sample_combined_img.shape[1], sample_combined_img.shape[0]))
-                #
-                # for i, frame_path in enumerate(self.frames_data_list):
-                #     frame = cv2.imread(frame_path)
-                #     if i % 100 == 0:
-                #         logging.info(f"Image ind: {i}")
-                #     else:
-                #         combined = pro_utils.frame_with_linegraph(
-                #   frame, data, i, global_min, global_max)
-                #         out.write(combined)
-                # out.release()
-            logging.info(f"Visualization of feature detector {self.components} completed.")
+class BodyDistance3D(BodyDistance):
+    """Body distance computed on 3D pose keypoints (distance in real-world units)."""
+
+    algorithm_type = "body_distance_3d"
+    dim = "3d"
+
+    inputs = [NpzDetectorInput("body_joints", "pose_3d", schema=VECTOR_3D_CONF_PER_LABEL)]
+    outputs = [NpzDetectorOutput("proximity", "body_distance_3d", schema=DISTANCE)]

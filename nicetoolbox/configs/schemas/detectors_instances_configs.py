@@ -3,7 +3,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 from nicetoolbox_core.input_recipes import InputRecipes
 
@@ -19,6 +19,16 @@ detector_config = DETECTORS_REGISTRY.register
 # =============================================================================
 
 
+class DetectorInputConfig(BaseModel):
+    """
+    Input dependency from another detector. Support both npz and non-npz based components.
+    """
+
+    component: str
+    algorithm: str
+    npz_key: Optional[str] = None  # None for non-npz component
+
+
 class BaseAlgorithmConfig(BaseModel):
     """
     Shared base for every algorithm config. The TOML key under [algorithms.*]
@@ -28,6 +38,8 @@ class BaseAlgorithmConfig(BaseModel):
 
     algorithm_type: str
     template: Optional[str] = None
+    inputs: Dict[str, DetectorInputConfig] = Field(default_factory=dict)
+
     _instance_name: str = PrivateAttr()
 
 
@@ -84,14 +96,10 @@ class MethodDetectorRuntime(BaseDetectorRuntime):
 
 
 class FeatureDetectorRuntime(BaseDetectorRuntime):
-    """
-    Runtime fields specific to feature detectors.
-    Extends BaseDetectorRuntime with input path requirements.
-    """
+    """Runtime fields specific to feature detectors."""
 
-    # Input paths (from upstream method detectors)
-    input_map: dict[str, str]  # {(component, algorithm): path}
-    # We can add common feature runtime fields later (if we need them (e.g. for audio pipeline))
+    # TODO: deprecate?
+    ...
 
 
 # ================================================
@@ -206,11 +214,11 @@ class PyFeatConfig(BaseAlgorithmConfig):
 class EthXGazeConfig(BaseAlgorithmConfig):
     camera_names: str | list[str]
     env_name: str
-    log_frame_idx_interval: int
     filtered: bool
     window_length: int
     polyorder: int
     visualize: bool
+    visualize_native: bool
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
@@ -298,43 +306,43 @@ class CrisperWhisperConfig(BaseAlgorithmConfig):
 # ================================================
 
 
-@detector_config("gaze_distance")
+@detector_config("gaze_distance_2d")
+@detector_config("gaze_distance_3d")
 class GazeDistanceConfig(BaseAlgorithmConfig):
-    input_detector_names: List[List[str]]
-    keypoint_mapping: str
+    used_keypoints: List[str]
     threshold_look_at: float
     visualize: bool
 
 
-@detector_config("velocity_body")
+@detector_config("velocity_body_2d")
+@detector_config("velocity_body_3d")
 class VelocityConfig(BaseAlgorithmConfig):
-    input_detector_names: List[List[str]]
     visualize: bool
 
 
-@detector_config("body_angle")
-class BodyAngleConfig(BaseAlgorithmConfig):
-    input_detector_names: List[List[str]]
-    used_keypoints: List[List[str]]
-    visualize: bool
-
-
-@detector_config("body_distance")
+@detector_config("body_distance_2d")
+@detector_config("body_distance_3d")
 class BodyDistanceConfig(BaseAlgorithmConfig):
-    input_detector_names: List[List[str]]
     used_keypoints: List[str]
     visualize: bool
 
 
 @detector_config("gaze_fusion")
 class GazeFusionConfig(BaseAlgorithmConfig):
-    input_detector_names: List[List[str]]
-    fusion_method: str
+    fusion_method: str  # "weighted_average" | "mean" | "select_view"
+    # Required when fusion_method == "select_view": maps each subject to the camera
+    # whose per-view gaze estimate should be adopted as that subject's world gaze.
+    subject_view_map: Dict[str, str] = Field(default_factory=dict)
     filtered: bool
     window_length: int
     polyorder: int
-    ensemble_enabled: bool
     visualize: bool
+
+    @model_validator(mode="after")
+    def _check_select_view(self):
+        if self.fusion_method == "select_view" and not self.subject_view_map:
+            raise ValueError("fusion_method='select_view' requires a non-empty subject_view_map (subject -> camera).")
+        return self
 
 
 # === Add Feature detectors HERE ===

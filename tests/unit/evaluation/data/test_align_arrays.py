@@ -4,13 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nicetoolbox.evaluation.data.input_loader import (
-    AnnotationMeta,
-    ExperimentMeta,
-    PathMeta,
-    SubsequenceInfo,
-    align_arrays,
-)
+from nicetoolbox.evaluation.data.input_loader import align_arrays
+from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, PathMeta, SubsequenceInfo
 from tests.unit.evaluation.data.conftest import make_loaded_array
 
 # ---------------------------------------------------------------------------

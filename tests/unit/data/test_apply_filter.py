@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from nicetoolbox.evaluation.data.input_loader import _apply_filter
+from nicetoolbox_core.data.loaded_array import _apply_filter
 
 # Dummy path — only used in warning messages, never accessed on disk.
 _PATH = Path("dummy.npz")

@@ -4,9 +4,11 @@ import numpy as np
 
 from nicetoolbox.configs.schemas.evaluation_aggr import AggSpec
 from nicetoolbox.configs.schemas.evaluation_group_by import GroupBySpec
+from nicetoolbox_core.data.array_schema import VECTOR_3D_CONF_PER_LABEL, VECTOR_3D_PER_LABEL, AnyOf
+from nicetoolbox_core.data.loaded_array import NpzArrayWithMeta
 
 from ....configs.schemas.evaluation_metrics_config import BoneLengthConfig
-from ...data.input_loader import ArrayAxes, LoadedArray, get_meta_type, load_input
+from ...data.input_loader import get_meta_type, load_input
 from ...data.plots import plot_candle_per_group, plot_score
 from ...data.summary import aggregate_summary, summarize_with_group_by
 from ..base_metric import BaseMetric
@@ -22,6 +24,7 @@ class BoneLengthMetric(BaseMetric):
 
     metric_config: BoneLengthConfig
     bones: dict[str, list[str]]
+    input_schema = AnyOf(VECTOR_3D_PER_LABEL, VECTOR_3D_CONF_PER_LABEL)
 
     def _init_metric(self) -> None:
         # this metrics config guarantees, that group_by will contain sequence, subject and label
@@ -33,11 +36,11 @@ class BoneLengthMetric(BaseMetric):
 
     def compute(self) -> MetricResult:
         # read input
-        arrays = load_input(self.metric_config.predictions)
+        arrays = load_input(self.metric_config.predictions, schema=self.input_schema)
         meta = get_meta_type(arrays)
 
         # calculate frame by frame bone distances
-        bone_length_arrays: list[LoadedArray] = []
+        bone_length_arrays: list[NpzArrayWithMeta] = []
         for arr in arrays:
             result = self._compute_bone_lengths(arr)
             if result is not None:
@@ -94,10 +97,10 @@ class BoneLengthMetric(BaseMetric):
             summary=SummaryResult({"coefficient_variation_score": score, "summary": summary}),
         )
 
-    def _compute_bone_lengths(self, arr: LoadedArray) -> LoadedArray | None:
+    def _compute_bone_lengths(self, arr: NpzArrayWithMeta) -> NpzArrayWithMeta | None:
         """Compute per-frame bone lengths for a single loaded array.
 
-        Returns a LoadedArray with shape (subjects, cameras, frames, n_bones)
+        Returns a MetaNpzArray with shape (subjects, cameras, frames, n_bones)
         where fields are bone names. Returns None if no valid bones found.
         """
         # Use spatial coordinates only (drop confidence if present)
@@ -129,10 +132,5 @@ class BoneLengthMetric(BaseMetric):
 
         # Stack into (subjects, cameras, frames, n_bones)
         result_data = np.stack(lengths, axis=-1)
-        result_axes = ArrayAxes(
-            subjects=arr.axes.subjects,
-            cameras=arr.axes.cameras,
-            frames=arr.axes.frames,
-            labels=processed_bones,
-        )
-        return LoadedArray(meta=arr.meta, data=result_data, axes=result_axes)
+        result_axes = arr.axes.replace(labels=processed_bones)
+        return arr.replace(data=result_data, axes=result_axes)

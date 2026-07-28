@@ -41,8 +41,15 @@ class Human36mConnections(BaseModel):
     face_landmarks: List
 
 
+class Human36mBodypartIndex(BaseModel):
+    head: List[int]
+    upper_body: List[int]
+    lower_body: List[int]
+
+
 class Human36m(BaseModel):
     keypoints_index: Human36mKeypointsIndex
+    bodypart_index: Human36mBodypartIndex
     connections: Human36mConnections
 
 
@@ -54,8 +61,15 @@ class MpiiConnections(BaseModel):
     body_joints: List[List[str]]
 
 
+class MpiiBodypartIndex(BaseModel):
+    head: List[int]
+    upper_body: List[int]
+    lower_body: List[int]
+
+
 class Mpii(BaseModel):
     keypoints_index: MpiiKeypointsIndex
+    bodypart_index: MpiiBodypartIndex
     connections: MpiiConnections
 
 

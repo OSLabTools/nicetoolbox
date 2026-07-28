@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, roc_curve
 
+from nicetoolbox_core.data.array_schema import BOOLEAN_NAN, FLOAT
+
 from ....configs.schemas.evaluation_metrics_config import RocAucConfig
 from ...data.input_loader import align_arrays, get_meta_type, load_input
 from ...data.plots import plot_roc_curves
@@ -24,8 +26,8 @@ class RocAucMetric(BaseMetric):
     metric_config: RocAucConfig
 
     def compute(self) -> MetricResult:
-        preds = load_input(self.metric_config.predictions)
-        gt = load_input(self.metric_config.ground_truth)
+        preds = load_input(self.metric_config.predictions, schema=FLOAT)
+        gt = load_input(self.metric_config.ground_truth, schema=BOOLEAN_NAN)
         pairs = align_arrays(preds, gt, self.metric_config.broadcast_single)
         if not pairs:
             raise ValueError(f"Failed to compute ROC AUC '{self.metric_name}': no aligned pred/GT pairs found.")

@@ -1,11 +1,11 @@
 import logging
 from pathlib import Path
 
-import numpy as np
+from nicetoolbox_core.data.loaded_array import NpzArray, save_arrays
+from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, NpzMeta, PathMeta
 
 from ...utils.to_csv import results_to_csv
 from ..metrics.metric_result import FrameResult, MetricResult, PlotResult, SummaryResult
-from .input_loader import AnnotationMeta, ExperimentMeta, NpzMeta, PathMeta
 
 
 def save_results(result: MetricResult, output_dir: Path) -> None:
@@ -69,22 +69,8 @@ def save_frame_arrays(frame_result: FrameResult, metric_dir: Path) -> None:
         out_path = metric_dir / "npz" / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        data_arrays: dict[str, np.ndarray] = {}
-        data_description: dict[str, dict] = {}
-        for key, arr in zip(keys, arrs):
-            data_arrays[key] = arr.data
-            descr = {
-                "axis0": arr.axes.subjects,
-                "axis1": arr.axes.cameras,
-                "axis2": arr.axes.frames,
-                "axis3": arr.axes.labels,
-            }
-            if arr.axes.data:
-                descr["axis4"] = arr.axes.data
-            data_description[key] = descr
-
-        np.savez_compressed(out_path, **data_arrays, data_description=data_description)
-        logging.info(f"Saved frame NPZ: {out_path}")
+        arrays = {key: NpzArray(data=arr.data, axes=arr.axes) for key, arr in zip(keys, arrs)}
+        save_arrays(arrays, out_path)
 
 
 def _build_output_path(meta: NpzMeta) -> Path:

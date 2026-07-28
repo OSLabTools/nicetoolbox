@@ -174,7 +174,7 @@ class Viewer:
             (component == "body_joints")
             | (component == "hand_joints")
             | (component == "face_landmarks")
-            | (component == "gaze_individual")
+            | (component == "gaze_multiview")
             | (component == "emotion_individual")
             | (component == "head_orientation")
         ):

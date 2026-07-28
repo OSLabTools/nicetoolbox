@@ -378,22 +378,25 @@ class FaceLandmarksComponent(BodyJointsComponent):
         super().__init__(visualizer_config, io, logger, component_name)
 
 
-class GazeIndividualComponent(Component):
+class GazeFusionComponent(Component):
     """
-    Class for visualizing individual gaze data.
+    Class for visualizing fused gaze.
+
+    Each configured algorithm is a `gaze_fusion` instance (e.g. gaze_fusion_weighted,
+    gaze_fusion_per_subject) — the component draws one overlay per instance so different
+    fusion strategies can be compared side-by-side. All data (fused 3D direction,
+    per-camera 2D reprojection, 2D face origin) is read from each fusion NPZ directly.
 
     Attributes:
         calib (dict): The calibration parameters.
         camera_names (List[str]): The camera names.
         subject_names (List[str]): The subject names.
-        landmarks_2d (np.ndarray): The 2D landmarks data.
-        eyes_middle_3d_data (np.ndarray): The 3D eyes middle data.
-        camera_view_subjects_middle_point_dict (Dict): The camera view subjects middle
-            point dictionary.
+        eyes_middle_3d_data (np.ndarray): The 3D eyes middle data (from body_joints).
         look_at_data (np.ndarray): The look at data.
         look_at_labels (List[str]): The look at labels.
-        projected_gaze_data_algs (List[Dict]): The projected gaze data for the
-            algorithms.
+        origins_per_alg (List[np.ndarray]): Per-camera 2D face origin per algorithm (S, C, F, 2).
+        fused_gaze_3d_per_alg (List[np.ndarray]): Fused 3D gaze per algorithm (S, 1, F, 4).
+        projected_gaze_2d_per_alg (List[np.ndarray]): Reprojected 2D gaze per algorithm (S, C, F, 3).
     """
 
     def __init__(
@@ -404,93 +407,57 @@ class GazeIndividualComponent(Component):
         component_name: str,
         calib: Dict,
         eyes_middle_3d_data: np.ndarray = None,
-        look_at_data_tuple: bool = None,
+        look_at_data_tuples: List[Tuple[np.ndarray, List[str]]] = None,
     ):
-        """
-        Initialize the GazeIndividualComponent.
-
-        Args:
-            visualizer_config (Dict): The visualizer configuration settings.
-            io: The input/output object.
-            logger (viewer.Viewer): The viewer rerun object.
-            component_name (str): The name of the component.
-            calib (Dict): The calibration parameters.
-            eyes_middle_3d_data (np.ndarray, optional): The 3D eyes middle data.
-                Defaults to None.
-            look_at_data_tuple (bool, optional): The look at data tuple.
-                Defaults to None.
-        """
         super().__init__(visualizer_config, io, logger, component_name)
         self.calib = calib
-        # the camera_names and subject_names results will be read from first algorithm
-        # we are getting camera names from landmarks_2d because 3d doesn't have any
-        # camera info
-        self.camera_names = self.algorithms_results[0]["data_description"].item()["landmarks_2d"][
-            "axis1"
-        ]  # axis1 gives camera info
-        self.subject_names = self.algorithms_results[0]["data_description"].item()["3d"][
-            "axis0"
-        ]  # axis0 gives subject info
-        self.landmarks_2d = self.algorithms_results[0]["landmarks_2d"]
 
-        # create subjects middle of face
-        # 3d
+        # All arrays live in the fusion NPZ (each algorithm in self.algorithms_results
+        # is one gaze_fusion instance). Cameras and subjects are stable across instances.
+        first = self.algorithms_results[0]
+        descr = first["data_description"].item()
+        self.camera_names = descr["gaze_2d"]["axis1"]
+        self.subject_names = descr["gaze_3d"]["axis0"]
+
         self.eyes_middle_3d_data = eyes_middle_3d_data
-        # camera view
-        # create the camera view -- middle of subjects' face point dictionary
-        mean_face = np.nanmean(self.landmarks_2d.astype(float)[:, :, :, :4, :], axis=3)
-        self.camera_view_subjects_middle_point_dict = {}
-        for cam_idx, cam_name in enumerate(self.camera_names):
-            subjects_middle_points = []
-            for subject_idx, _subject in enumerate(self.subject_names):
-                subjects_middle_points.append(mean_face[subject_idx, cam_idx, :])
-            self.camera_view_subjects_middle_point_dict[cam_name] = subjects_middle_points
 
-        self.look_at_data = None
-        self.look_at_labels = None
-        if look_at_data_tuple:
-            self.look_at_data = look_at_data_tuple[0]
-            self.look_at_labels = look_at_data_tuple[1]
+        # Per-algorithm look-at pair (aligned positionally with self.algorithm_list). Empty
+        # list means every algorithm falls back to static color.
+        self.look_at_per_alg: List[Tuple[np.ndarray, List[str]]] = []
+        if look_at_data_tuples:
+            if len(look_at_data_tuples) != len(self.algorithm_list):
+                raise ValueError(
+                    f"gaze_fusion has {len(self.algorithm_list)} algorithms but gaze_interaction "
+                    f"provided {len(look_at_data_tuples)} look-at entries. The two algorithms lists "
+                    f"must be the same length (each fusion paired with its own gaze_distance)."
+                )
+            self.look_at_per_alg = look_at_data_tuples
 
-        # retrieve 3d data projected to 2d camera views
-        key_2d = "2d_projected_from_3d_filtered" if "3d_filtered" in self.canvas_data else "2d_projected_from_3d"
-        self.projected_gaze_data_algs = []
-        for alg_idx, _alg in enumerate(self.algorithm_list):
-            proj = {}
-            for cam_name in [c for c in self.canvas_list if "3d" not in c.lower()]:
-                cam_idx = self.camera_names.index(cam_name)
-                proj[cam_name] = self.algorithms_results[alg_idx][key_2d][:, cam_idx]
-            self.projected_gaze_data_algs.append(proj)
+        # Cache per-algorithm arrays (each aligned to same subject/camera order via the
+        # base component NPZ layout). Prefer filtered variants when the fusion emits them.
+        self.origins_per_alg = []
+        self.fused_gaze_3d_per_alg = []
+        self.projected_gaze_2d_per_alg = []
+        for alg_result in self.algorithms_results:
+            files = set(alg_result.files)
+            key_3d = "gaze_3d_filtered" if "gaze_3d_filtered" in files else "gaze_3d"
+            key_2d = "gaze_2d_filtered" if "gaze_2d_filtered" in files else "gaze_2d"
+            self.origins_per_alg.append(alg_result["gaze_origin_2d"][..., :2].astype(float))
+            self.fused_gaze_3d_per_alg.append(alg_result[key_3d])
+            self.projected_gaze_2d_per_alg.append(alg_result[key_2d])
 
     def _get_algorithms_labels(self) -> List[List[str]]:
-        """
-        Get the labels for the algorithms.
-
-        Returns:
-            List[List[str]]: The labels for the algorithms.
-        """
-        # axis 3 gives labels information, this might be different for each algorithm
-        algorithm_labels = []
-        for i, _alg in enumerate(self.algorithm_list):
-            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()["3d"]["axis3"])
-        return algorithm_labels
+        """Labels for the fused gaze axis3 (per algorithm)."""
+        return [res["data_description"].item()["gaze_3d"]["axis3"] for res in self.algorithms_results]
 
     def _get_look_at_color(self, sub_idx: int, alg_idx: int, look_to_subject: str, frame_idx: int) -> List[int]:
         """
-        Get the look at color for the subject index, algorithm index, look to subject,
-        and frame index.
-
-        Args:
-            sub_idx (int): The subject index.
-            alg_idx (int): The algorithm index.
-            look_to_subject (str): The look to subject.
-            frame_idx (int): The frame index.
-
-        Returns:
-            List[int]: The look at color.
+        Get the look at color for the subject/frame from the paired gaze_distance instance
+        at position `alg_idx`.
         """
-        look_to_ind = self.look_at_labels.index(look_to_subject)
-        is_look_at = self.look_at_data[sub_idx, 0, frame_idx, look_to_ind]
+        look_at_data, look_at_labels = self.look_at_per_alg[alg_idx]
+        look_to_ind = look_at_labels.index(look_to_subject)
+        is_look_at = look_at_data[sub_idx, 0, frame_idx, look_to_ind]
         color_index = 0 if is_look_at else 1
         return self.visualizer_config["media"]["gaze_interaction"]["appearance"]["colors"][alg_idx][color_index]
 
@@ -540,23 +507,23 @@ class GazeIndividualComponent(Component):
 
     def visualize(self, frame_idx: int) -> None:
         """
-        Visualize the gaze individual component.
+        Visualize each configured gaze_fusion instance as its own overlay.
 
-        Combines the _log_data method to visualize the gaze individual component in
-        either 2D or 3D.
+        Every algorithm in self.algorithm_list produces a full set of arrows (one per subject)
+        drawn with that algorithm's color. Look-at coloring, when enabled, overrides the
+        static color only for alg_idx=0 (there is a single gaze_distance instance driving it).
 
         Args:
             frame_idx (int): The frame index.
         """
-        dataname = "3d_filtered" if "3d_filtered" in self.canvas_data else "3d"
         for canvas in self.canvas_list:
             if canvas == "3D_Canvas" and self.eyes_middle_3d_data is not None:
-                for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
-                    if frame_idx >= alg_data.shape[2]:  # number of frames
+                for alg_idx, alg_name in enumerate(self.algorithm_list):
+                    fused_gaze_3d = self.fused_gaze_3d_per_alg[alg_idx]
+                    if frame_idx >= fused_gaze_3d.shape[2]:
                         continue
-                    alg_name = self.algorithm_list[alg_idx]
                     for subject_idx, subject in enumerate(self.subject_names):
-                        subject_gaze_individual = -alg_data[subject_idx, 0, frame_idx]
+                        subject_gaze = -fused_gaze_3d[subject_idx, 0, frame_idx, :3]
                         subject_eyes_middle_3d_data = self.eyes_middle_3d_data[subject_idx, 0, frame_idx]
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,
@@ -564,62 +531,49 @@ class GazeIndividualComponent(Component):
                             alg_name=alg_name,
                             subject_name=subject,
                         )
-                        # gaze interaction defines color
-                        if self.look_at_data is not None:
-                            if subject_idx + 1 < len(self.subject_names) - 1:
-                                # look at subject either one forward or one backward in
-                                # index
-                                look_to_subject = self.subject_names[subject_idx + 1]
-                            else:
-                                look_to_subject = self.subject_names[subject_idx - 1]
-                            color = self._get_look_at_color(subject_idx, alg_idx, look_to_subject, frame_idx)
-                        else:
-                            color = self.visualizer_config["media"]["gaze_individual"]["appearance"]["colors"][alg_idx]
+                        color = self._pick_color(alg_idx, subject_idx, frame_idx)
                         self._log_data(
                             entity_path,
                             subject_eyes_middle_3d_data,
-                            subject_gaze_individual,
+                            subject_gaze,
                             color,
                             "3d",
                         )
             else:
                 cam_name = canvas
-                for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
-                    if frame_idx >= alg_data.shape[2]:  # number of frames
+                for alg_idx, alg_name in enumerate(self.algorithm_list):
+                    projected = self.projected_gaze_2d_per_alg[alg_idx]
+                    origins = self.origins_per_alg[alg_idx]
+                    if frame_idx >= projected.shape[2]:
                         continue
-                    alg_name = self.algorithm_list[alg_idx]
+                    cam_idx = self.camera_names.index(cam_name)
                     for subject_idx, subject in enumerate(self.subject_names):
                         cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
-                        subjs = cam["sees_subjects"]
-                        if subject_idx in subjs:
-                            camera_data = self.projected_gaze_data_algs[alg_idx][canvas]
-                            if frame_idx >= camera_data.shape[1]:  # number of frames
-                                continue
-                            frame_data = camera_data[subject_idx, frame_idx]
-                            subject_eyes_mid = self.camera_view_subjects_middle_point_dict[canvas][subject_idx][
-                                frame_idx
-                            ][:2]
-                            entity_path = self.logger.generate_component_entity_path(
-                                self.component_name,
-                                is_3d=False,
-                                alg_name=alg_name,
-                                subject_name=subject,
-                                cam_name=cam_name,
-                            )
-                            # gaze interaction defines color
-                            if self.look_at_data is not None:
-                                if subject_idx + 1 < len(self.subject_names) - 1:
-                                    # look at subject either one forward or one
-                                    # backward in index
-                                    look_to_subject = self.subject_names[subject_idx + 1]
-                                else:
-                                    look_to_subject = self.subject_names[subject_idx - 1]
-                                color = self._get_look_at_color(subject_idx, alg_idx, look_to_subject, frame_idx)
-                            else:
-                                color = self.visualizer_config["media"][self.component_name]["appearance"]["colors"][
-                                    alg_idx
-                                ]
-                            self._log_data(entity_path, subject_eyes_mid, frame_data, color, "2d")
+                        if subject_idx not in cam["sees_subjects"]:
+                            continue
+                        origin = origins[subject_idx, cam_idx, frame_idx, :2]
+                        # gaze_2d carries [x, y, conf]; drop conf.
+                        gaze_2d = projected[subject_idx, cam_idx, frame_idx, :2]
+                        entity_path = self.logger.generate_component_entity_path(
+                            self.component_name,
+                            is_3d=False,
+                            alg_name=alg_name,
+                            subject_name=subject,
+                            cam_name=cam_name,
+                        )
+                        color = self._pick_color(alg_idx, subject_idx, frame_idx)
+                        self._log_data(entity_path, origin, gaze_2d, color, "2d")
+
+    def _pick_color(self, alg_idx: int, subject_idx: int, frame_idx: int) -> List[int]:
+        """Look-at color if a paired gaze_distance instance exists for this alg_idx; otherwise
+        the algorithm's static color from this component's appearance block."""
+        if alg_idx < len(self.look_at_per_alg):
+            if subject_idx + 1 < len(self.subject_names) - 1:
+                look_to_subject = self.subject_names[subject_idx + 1]
+            else:
+                look_to_subject = self.subject_names[subject_idx - 1]
+            return self._get_look_at_color(subject_idx, alg_idx, look_to_subject, frame_idx)
+        return self.visualizer_config["media"][self.component_name]["appearance"]["colors"][alg_idx]
 
 
 class GazeInteractionComponent(Component):
@@ -643,21 +597,22 @@ class GazeInteractionComponent(Component):
         self.camera_names = self.algorithms_results[0]["data_description"].item()[keyname]["axis1"]
         self.subject_names = self.algorithms_results[0]["data_description"].item()[keyname]["axis0"]
 
-    def get_lookat_data(self) -> Tuple[np.ndarray, List[str]]:
+    def get_lookat_data(self) -> List[Tuple[np.ndarray, List[str]]]:
         """
-        Get the look at data.
+        Get the look at data for every configured gaze_distance instance, in list order.
+
+        Each entry corresponds positionally to `[media.gaze_interaction].algorithms[i]` and
+        is intended to be paired with `[media.gaze_fusion].algorithms[i]` for coloring.
 
         Returns:
-            Tuple[np.ndarray, List[str]]: The look at data and the look at labels.
+            List of (data, labels) tuples, one per algorithm.
         """
-        # read from first algorithm
         if "gaze_look_at_3d" in self.algorithms_results[0]["data_description"].item():
             data_name = "gaze_look_at_3d"
         else:
             data_name = "gaze_look_at_2d"
-        data_labels = self._get_algorithms_labels(data_name)[0]  # 0 first algorithm
-        data = self.canvas_data[data_name][0]  # 0 first alg
-        return (data, data_labels)
+        labels_per_alg = self._get_algorithms_labels(data_name)
+        return [(self.canvas_data[data_name][i], labels_per_alg[i]) for i in range(len(self.algorithm_list))]
 
     def _get_algorithms_labels(self, data_name: str) -> List[List[str]]:
         """
@@ -927,39 +882,36 @@ class ProximityComponent(Component):
                 The 2D eyes middle data. Defaults to None.
         """
         super().__init__(visualizer_config, io, logger, component_name)
-        self.camera_names = self.algorithms_results[0]["data_description"].item()["body_distance_2d"]["axis1"]
-        self.subject_names = self.algorithms_results[0]["data_description"].item()["body_distance_2d"]["axis0"]
 
-        # create subjects middle data
-        # 3d
+        descr = self.algorithms_results[0]["data_description"].item()
+        # Detect which dim this run carries; axes are the same across algorithms of same dim.
+        self.data_key = next(k for k in ("body_distance_2d", "body_distance_3d") if k in descr)
+        self.is_3d = self.data_key.endswith("_3d")
+        axes = descr[self.data_key]
+        self.camera_names = axes["axis1"]
+        self.subject_names = axes["axis0"]
+
+        # 3D midpoint between the two subjects' eyes (only needed if the 3D_Canvas will show it).
         self.eyes_middle_3d_data = eyes_middle_3d_data
         if self.eyes_middle_3d_data is not None:
             first_subject_eyes_middle_data = self.eyes_middle_3d_data[0, 0, :].mean(axis=0)
             second_subject_eyes_middle_data = self.eyes_middle_3d_data[1, 0, :].mean(axis=0)
             self.middle_point_3d = (first_subject_eyes_middle_data + second_subject_eyes_middle_data) / 2
-        # 2d - camera view
+
+        # 2D midpoint per camera view.
         self.eyes_middle_2d_data = eyes_middle_2d_data
-        # create camera view - middle point dictionary
         self.camera_view_middle_point_dict = {}
-        for cam in self.camera_names:
-            camera_idx = self.camera_names.index(cam)
-            first_subject_eyes_middle_data = self.eyes_middle_2d_data[0, camera_idx, :].mean(axis=0)
-            second_subject_eyes_middle_data = self.eyes_middle_2d_data[1, camera_idx, :].mean(axis=0)
-            middle_point = (first_subject_eyes_middle_data + second_subject_eyes_middle_data) / 2
-            self.camera_view_middle_point_dict[cam] = middle_point
+        if self.eyes_middle_2d_data is not None:
+            for cam in self.camera_names:
+                camera_idx = self.camera_names.index(cam)
+                first_subject_eyes_middle_data = self.eyes_middle_2d_data[0, camera_idx, :].mean(axis=0)
+                second_subject_eyes_middle_data = self.eyes_middle_2d_data[1, camera_idx, :].mean(axis=0)
+                middle_point = (first_subject_eyes_middle_data + second_subject_eyes_middle_data) / 2
+                self.camera_view_middle_point_dict[cam] = middle_point
 
     def _get_algorithms_labels(self) -> List[List[str]]:
-        """
-        Get the labels for the algorithms.
-
-        Returns:
-            List[List[str]]: The labels for the algorithms.
-        """
-        # axis 3 gives labels information, this might be different for each algorithm
-        algorithm_labels = []
-        for i, _alg in enumerate(self.algorithm_list):
-            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()["body_distance_2d"]["axis3"])
-        return algorithm_labels
+        """Distance labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.data_key]["axis3"] for res in self.algorithms_results]
 
     def _log_data(
         self,
@@ -1009,37 +961,29 @@ class ProximityComponent(Component):
 
     def visualize(self, frame_idx: int) -> None:
         """
-        Visualize the proximity component.
-
-        Uses the _log_data method to visualize the proximity component in either 2D or
-        3D.
-
-        Args:
-            frame_idx (int): The frame index.
+        Visualize the proximity component. 3D goes on the single ['3d'] slot; 2D uses per-camera slots.
         """
         for canvas in self.canvas_list:
             if canvas == "3D_Canvas":
-                for alg_idx, alg_data in enumerate(self.canvas_data["body_distance_3d"]):
+                if not self.is_3d:
+                    continue
+                for alg_idx, alg_data in enumerate(self.canvas_data[self.data_key]):
                     alg_name = self.algorithm_list[alg_idx]
-                    if frame_idx >= alg_data.shape[2]:  # number of frames
+                    if frame_idx >= alg_data.shape[2]:
                         continue
                     frame_proximity = alg_data[:, 0, frame_idx, 0][0]
                     entity_path = self.logger.generate_component_entity_path(
                         self.component_name, is_3d=True, alg_name=alg_name
                     )
-                    self._log_data(
-                        entity_path,
-                        frame_proximity,
-                        alg_idx,
-                        self.middle_point_3d,
-                        "3d",
-                    )
+                    self._log_data(entity_path, frame_proximity, alg_idx, self.middle_point_3d, "3d")
             else:
+                if self.is_3d:
+                    continue
                 cam_name = canvas
-                for alg_idx, alg_data in enumerate(self.canvas_data["body_distance_2d"]):
+                for alg_idx, alg_data in enumerate(self.canvas_data[self.data_key]):
                     alg_name = self.algorithm_list[alg_idx]
                     camera_idx = self.camera_names.index(canvas)
-                    if frame_idx >= alg_data.shape[2]:  # number of frames
+                    if frame_idx >= alg_data.shape[2]:
                         continue
                     frame_proximity = alg_data[:, camera_idx, frame_idx, 0][0]
                     entity_path = self.logger.generate_component_entity_path(
@@ -1061,56 +1005,24 @@ class KinematicsComponent(Component):
         """
         Initialize the KinematicsComponent.
 
-        Args:
-            visualizer_config (Dict): The visualizer configuration settings.
-            io: The input/output object.
-            logger (viewer.Viewer): The viewer rerun object.
-            component_name (str): The name of the component.
+        Reads the pre-aggregated `velocity_bodypart_{dim}` output produced by
+        velocity_body (one detector instance per dim). Axes3 = bodypart labels,
+        axis4 = [velocity, confidence].
         """
         super().__init__(visualizer_config, io, logger, component_name)
-        self.camera_names = self.algorithms_results[0]["data_description"].item()["velocity_body_2d"]["axis1"]
-        self.subject_names = self.algorithms_results[0]["data_description"].item()["velocity_body_2d"]["axis0"]
-        self.subject_names_2d = self.algorithms_results[0]["data_description"].item()["velocity_body_2d"]["axis0"]
-        if "velocity_body_3d" in self.canvas_data:
-            if "velocity_body_3d" in self.algorithms_results[0]["data_description"].item():
-                self.subject_names_3d = self.algorithms_results[0]["data_description"].item()["velocity_body_3d"][
-                    "axis0"
-                ]
-            else:
-                print("WARNING! velocity_body_3d cannot be found,will be skipped.")
-                del self.canvas_data["velocity_body_3d"]
+
+        descr = self.algorithms_results[0]["data_description"].item()
+        # Detect which dim this run carries; axes are the same across algorithms of the same dim.
+        self.data_key = next(k for k in ("velocity_bodypart_2d", "velocity_bodypart_3d") if k in descr)
+        self.is_3d = self.data_key.endswith("_3d")
+        axes = descr[self.data_key]
+        self.camera_names = axes["axis1"]
+        self.subject_names = axes["axis0"]
+        self.bodypart_labels = axes["axis3"]
 
     def _get_algorithms_labels(self) -> List[List[str]]:
-        """
-        Get the labels for the algorithms.
-
-        Returns:
-            List[List[str]]: The labels for the algorithms.
-        """
-        # axis 3 gives labels information, this might be different for each algorithm
-        algorithm_labels = []
-        for i, _alg in enumerate(self.algorithm_list):
-            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()["velocity_body_2d"]["axis3"])
-        return algorithm_labels
-
-    def _get_joints_movement_by_bodypart(self, alg_idx: int) -> np.ndarray:
-        """
-        Get the joints movement by body part for the algorithm index.
-
-        Args:
-            alg_idx (int): The algorithm index.
-        """
-        bodypart_motion = []
-        labels = self._get_algorithms_labels()[alg_idx]
-        for _bodypart, joints in self.visualizer_config["media"][self.component_name]["joints"].items():
-            data = self.algorithms_data[alg_idx]
-            joint_indices = [labels.index(joint) for joint in joints]
-            # THRESHOLD = 0.3
-            # data[..., :, 0][data[..., : , 0]< THRESHOLD] = 0
-            selected_data = data[:, :, :, joint_indices, 0:1]  # if use only 0, instead of 0:1, last dimension drops
-            bodypart_motion.append(np.nanmean(selected_data, axis=-2))
-        bodypart_motion = np.concatenate(bodypart_motion, axis=-1)
-        return bodypart_motion
+        """Bodypart labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.data_key]["axis3"] for res in self.algorithms_results]
 
     def _log_data(self, entity_path: str, data_points: np.ndarray) -> None:
         """
@@ -1124,49 +1036,37 @@ class KinematicsComponent(Component):
 
     def visualize(self, frame_idx: int) -> None:
         """
-        Visualize the kinematics component.
+        Visualize the kinematics component from the pre-aggregated per-bodypart velocity.
 
-        Uses the _log_data method to visualize the kinematics component.
-
-        Args:
-            frame_idx (int): The frame index.
+        3D data lives on the single ["3d"] pseudo-camera slot (one metric per subject/bodypart);
+        2D data has one metric per (subject, camera, bodypart).
         """
-        for data_name, data in self.canvas_data.items():
-            if data_name == "velocity_body_3d":
-                subject_names = self.subject_names_3d
-            else:
-                subject_names = self.subject_names_2d
-            for alg_idx, _alg_data in enumerate(data):
-                alg_name = self.algorithm_list[alg_idx]
-                for subject_idx, subject in enumerate(subject_names):
-                    joints_bodypart_motion = self._get_joints_movement_by_bodypart(alg_idx)
-                    for idx, bodypart in enumerate(
-                        self.visualizer_config["media"][self.component_name]["joints"].keys()
-                    ):
-                        if data_name == "velocity_body_3d":
-                            if frame_idx >= joints_bodypart_motion.shape[2]:  # number of frames
-                                continue
-                            frame_bodypart_data = joints_bodypart_motion[subject_idx, 0, frame_idx][idx]
+        for alg_idx, alg_data in enumerate(self.canvas_data[self.data_key]):
+            if frame_idx >= alg_data.shape[2]:
+                continue
+            alg_name = self.algorithm_list[alg_idx]
+            for subject_idx, subject in enumerate(self.subject_names):
+                for bp_idx, bodypart in enumerate(self.bodypart_labels):
+                    if self.is_3d:
+                        # axis1 length 1 for 3D; axis4[0] is velocity, axis4[1] is confidence.
+                        velocity = alg_data[subject_idx, 0, frame_idx, bp_idx, 0]
+                        entity_path = self.logger.generate_component_entity_path(
+                            self.component_name,
+                            is_3d=True,
+                            alg_name=alg_name,
+                            subject_name=subject,
+                            bodypart=bodypart,
+                        )
+                        self._log_data(entity_path, velocity)
+                    else:
+                        for camera_idx, camera in enumerate(self.camera_names):
+                            velocity = alg_data[subject_idx, camera_idx, frame_idx, bp_idx, 0]
                             entity_path = self.logger.generate_component_entity_path(
                                 self.component_name,
-                                is_3d=True,
+                                is_3d=False,
                                 alg_name=alg_name,
                                 subject_name=subject,
+                                cam_name=camera,
                                 bodypart=bodypart,
                             )
-                            self._log_data(entity_path, frame_bodypart_data)
-
-                        elif data_name == "velocity_body_2d":
-                            for camera_idx, camera in enumerate(self.camera_names):
-                                if frame_idx >= joints_bodypart_motion.shape[2]:  # number of frames
-                                    continue
-                                frame_kinematic_2d = joints_bodypart_motion[subject_idx, camera_idx, frame_idx][idx]
-                                entity_path = self.logger.generate_component_entity_path(
-                                    self.component_name,
-                                    is_3d=False,
-                                    alg_name=alg_name,
-                                    subject_name=subject,
-                                    cam_name=camera,
-                                    bodypart=bodypart,
-                                )
-                                self._log_data(entity_path, frame_kinematic_2d)
+                            self._log_data(entity_path, velocity)

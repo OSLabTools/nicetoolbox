@@ -7,7 +7,7 @@ import numpy as np
 from .logging_utils import assert_and_log
 
 
-def distance_line_point(line_point, line_direction, point):
+def distance_line_point(line_point, line_direction, point) -> np.ndarray:
     """
     Calculate the Euclidean distance from a point to a line in n-dimensional space.
 

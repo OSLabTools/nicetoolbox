@@ -73,6 +73,11 @@
 'hand_joints' = []
 'face_landmarks' = []
 
+[human_pose.human36m.bodypart_index]
+"head" = [9, 10]  # neck, head_top
+"upper_body" = [7, 8, 11, 12, 13, 14, 15, 16]  # spine, thorax, l/r shoulders/elbows/wrists
+"lower_body" = [0, 1, 2, 3, 4, 5, 6]  # pelvis, l/r hips/knees/ankles
+
 [human_pose.human36m.keypoints_index]
 foot = {}
 face = {}
@@ -156,6 +161,11 @@ lower_body = ["left_hip", "right_hip", "left_knee", "right_knee", "left_ankle", 
 "left_shoulder" = 13
 "left_elbow" = 14
 "left_wrist" = 15
+
+[human_pose.mpii.bodypart_index]
+"head" = [8, 9]  # upper_neck, head_top
+"upper_body" = [7, 10, 11, 12, 13, 14, 15]  # thorax, l/r shoulder/elbow/wrist
+"lower_body" = [0, 1, 2, 3, 4, 5, 6]  # pelvis, l/r hip/knee/ankle
 
 [human_pose.mpii.connections]
 'body_joints' = [
@@ -282,9 +292,12 @@ face_landmarks = []
 "neck" = 69
 
 [human_pose.sam_3d_body_mhr.bodypart_index]
-"head" = [0, 1, 2, 3, 4]
-"upper_body" = [5, 6, 7, 8, 62, 41]
-"lower_body" = [9, 10, 11, 12, 13, 14]
+# Indices are dense positions on the shipped body_joints axis3 (body + foot + extra,
+# in insertion order), NOT SAM3D's native MHR-70 catalog IDs. Wrists (catalog 41/62)
+# land at positions 15/16 after the earlier body joints (nose..ankle) fill 0-14.
+"head" = [0, 1, 2, 3, 4]                # nose, l/r eye, l/r ear
+"upper_body" = [5, 6, 7, 8, 15, 16]     # l/r shoulder, l/r elbow, l/r wrist
+"lower_body" = [9, 10, 11, 12, 13, 14]  # l/r hip, l/r knee, l/r ankle
 
 
 [head_orientation]

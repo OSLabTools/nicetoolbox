@@ -1,6 +1,8 @@
 import pytest
 
-from nicetoolbox.utils.dependency_sort import topological_sort
+from nicetoolbox.configs.schemas.detectors_config import DetectorsConfig
+from nicetoolbox.configs.schemas.detectors_instances_configs import BaseAlgorithmConfig, DetectorInputConfig
+from nicetoolbox.utils.dependency_sort import sort_detectors_order, topological_sort
 
 
 def test_no_dependencies():
@@ -91,3 +93,44 @@ def test_empty_graph():
 
 def test_single_node():
     assert topological_sort({"a": []}) == ["a"]
+
+
+# ---------------------------------------------------------------------------
+# sort_detectors_order: edges from `inputs` and legacy `input_detector_names`
+# ---------------------------------------------------------------------------
+
+
+def _config(**algorithms) -> DetectorsConfig:
+    return DetectorsConfig(algorithms=algorithms)
+
+
+def test_order_from_inputs_table():
+    """A detector declaring `inputs` is ordered after its upstream algorithm."""
+    cfg = _config(
+        hrnetw48=BaseAlgorithmConfig(algorithm_type="mmpose_2d"),
+        body_distance_2d=BaseAlgorithmConfig(
+            algorithm_type="body_distance_2d",
+            inputs={"pose": DetectorInputConfig(component="body_joints", algorithm="hrnetw48", npz_key="2d_filtered")},
+        ),
+    )
+    order = sort_detectors_order(cfg, ["body_distance_2d", "hrnetw48"])
+    assert order.index("hrnetw48") < order.index("body_distance_2d")
+
+
+def test_order_mixes_legacy_and_inputs():
+    """Legacy `input_detector_names` and new `inputs` edges resolve in the same graph."""
+
+    class LegacyConfig(BaseAlgorithmConfig):
+        input_detector_names: list = []
+
+    cfg = _config(
+        hrnetw48=BaseAlgorithmConfig(algorithm_type="mmpose_2d"),
+        velocity_body=LegacyConfig(algorithm_type="velocity_body", input_detector_names=[["body_joints", "hrnetw48"]]),
+        body_distance_2d=BaseAlgorithmConfig(
+            algorithm_type="body_distance_2d",
+            inputs={"pose": DetectorInputConfig(component="body_joints", algorithm="hrnetw48", npz_key="2d_filtered")},
+        ),
+    )
+    order = sort_detectors_order(cfg, ["velocity_body", "body_distance_2d", "hrnetw48"])
+    assert order.index("hrnetw48") < order.index("velocity_body")
+    assert order.index("hrnetw48") < order.index("body_distance_2d")

@@ -146,6 +146,14 @@ predictions = { component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 compute_group_by = "*"
 
+# 2d methods
+[metrics.confusion_matrix_gaze_look_at_2d]
+metric_type = "confusion_matrix"
+predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "gaze_look_at_2d" }
+ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
+broadcast_single = true
+compute_group_by = []
+
 # ================================= ROC AUC =====================================================
 # Computes ROC (Receiver Operating Characteristic) curve and Area Under Curve (AUC)
 # score by varying decision thresholds (TPR vs FPR).
@@ -162,6 +170,15 @@ ground_truth = { source = "annotation", component = "gaze_interaction", npz_key 
 negate_scores = true  # larger distance = not looking, inverting scores
 compute_group_by = []
 
+# 2d methods
+[metrics.roc_auc_gaze_look_at_2d]
+metric_type = "roc_auc"
+predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }
+ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
+broadcast_single = true
+negate_scores = true  # larger distance = not looking, inverting scores
+compute_group_by = []
+
 # ================================= PR Curve ====================================================
 # Computes Precision-Recall curve and Average Precision (AP) score by varying decision thresholds.
 # Also derives the optimal threshold by maximizing F1 across the curve.
@@ -175,4 +192,13 @@ metric_type = "pr_curve"
 predictions = { component = "gaze_interaction", npz_key = "distance_gaze_3d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 negate_scores = true  # larger distance = not looking, inverting scores
+compute_group_by = []
+
+# 2d methods
+[metrics.pr_curve_gaze_look_at_2d]
+metric_type = "pr_curve"
+predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }
+ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
+broadcast_single = true
+negate_scores = true
 compute_group_by = []

@@ -6,18 +6,12 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
 from nicetoolbox.configs.placeholders import resolve_placeholders
-from nicetoolbox.evaluation.data.input_loader import (
-    AnnotationMeta,
-    ArrayAxes,
-    ExperimentMeta,
-    LoadedArray,
-    NpzMeta,
-    SubsequenceInfo,
-)
 from nicetoolbox.utils.config import save_config
+from nicetoolbox_core.data.loaded_array import NpzArrayAxes, NpzArrayWithMeta
+from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, NpzMeta, SubsequenceInfo
 
 # ---------------------------------------------------------------------------
-# LoadedArray factory
+# MetaNpzArray factory
 # ---------------------------------------------------------------------------
 
 
@@ -28,8 +22,8 @@ def make_loaded_array(
     frames: tuple[str, ...] = ("f0",),
     labels: tuple[str, ...] = ("j1",),
     data: tuple[str, ...] = (),
-) -> LoadedArray:
-    """Build a LoadedArray with sequential integer data matching the given axis labels.
+) -> NpzArrayWithMeta:
+    """Build a MetaNpzArray with sequential integer data matching the given axis labels.
 
     Data values are sequential integers so tests can verify correct slices after intersection.
     """
@@ -37,45 +31,8 @@ def make_loaded_array(
     if data:
         shape += (len(data),)
     arr_data = np.arange(int(np.prod(shape)), dtype=float).reshape(shape)
-    axes = ArrayAxes(list(subjects), list(cameras), list(frames), list(labels), list(data))
-    return LoadedArray(meta=meta, data=arr_data, axes=axes)
-
-
-# ---------------------------------------------------------------------------
-# NPZ factory
-# ---------------------------------------------------------------------------
-
-
-def make_npz(
-    path: Path,
-    key: str = "landmarks",
-    subjects: tuple = ("s1", "s2"),
-    cameras: tuple = ("cam1",),
-    frames: tuple = ("f0", "f1", "f2"),
-    labels: tuple = ("x", "y", "z"),
-    data: tuple | None = None,
-) -> Path:
-    """Create a minimal well-formed npz file at *path* and return it.
-
-    Data values are sequential integers so tests can verify correct slices.
-    """
-    descr: dict = {
-        key: {
-            "axis0": list(subjects),
-            "axis1": list(cameras),
-            "axis2": list(frames),
-            "axis3": list(labels),
-        }
-    }
-    shape = (len(subjects), len(cameras), len(frames), len(labels))
-    if data is not None:
-        descr[key]["axis4"] = list(data)
-        shape = shape + (len(data),)
-
-    npz_data = np.arange(np.prod(shape), dtype=float).reshape(shape)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(path, data_description=np.array(descr, dtype=object), **{key: npz_data})
-    return path
+    axes = NpzArrayAxes(list(subjects), list(cameras), list(frames), list(labels), list(data))
+    return NpzArrayWithMeta.create(meta=meta, data=arr_data, axes=axes)
 
 
 # ---------------------------------------------------------------------------

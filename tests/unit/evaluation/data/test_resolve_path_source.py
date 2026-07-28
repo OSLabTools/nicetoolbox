@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 
 from nicetoolbox.configs.schemas.evaluation_input_block import PathInput
-from nicetoolbox.evaluation.data.input_loader import PathMeta, _resolve_path_source
+from nicetoolbox.evaluation.data.input_loader import _resolve_path_source
+from nicetoolbox_core.data.npz_meta import PathMeta
 
 # ---------------------------------------------------------------------------
 # Helpers

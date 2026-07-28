@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_curve
 
+from nicetoolbox_core.data.array_schema import BOOLEAN_NAN, FLOAT
+
 from ....configs.schemas.evaluation_metrics_config import PrCurveConfig
 from ...data.input_loader import align_arrays, get_meta_type, load_input
 from ...data.plots import plot_pr_curves
@@ -24,8 +26,8 @@ class PrCurveMetric(BaseMetric):
     metric_config: PrCurveConfig
 
     def compute(self) -> MetricResult:
-        preds = load_input(self.metric_config.predictions)
-        gt = load_input(self.metric_config.ground_truth)
+        preds = load_input(self.metric_config.predictions, schema=FLOAT)
+        gt = load_input(self.metric_config.ground_truth, schema=BOOLEAN_NAN)
         pairs = align_arrays(preds, gt, self.metric_config.broadcast_single)
         if not pairs:
             raise ValueError(f"Failed to compute PR curve '{self.metric_name}': no aligned pred/GT pairs found.")
