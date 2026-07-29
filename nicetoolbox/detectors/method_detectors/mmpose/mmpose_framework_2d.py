@@ -123,7 +123,8 @@ class MMPose2D(BaseMMPose):
                     )
                 }
             )
-            can_estimate_3d = len(self.camera_names) >= 2
+            triangulation = self.detector_config.triangulation
+            can_estimate_3d = triangulation.triangulate
             if can_estimate_3d and not self.calibration:
                 logging.warning(
                     "WARNING - Calibration file is not valid. "
@@ -160,25 +161,25 @@ class MMPose2D(BaseMMPose):
             else:
                 logging.info("COMPUTING 3d position of the joints...")
 
-                if len(self.camera_names) > 2:
-                    logging.warning(
-                        f"WARNING - The 2D positions of the joints have been estimated "
-                        "for more than two cameras. \n"
-                        f"The 3D positions will be computed using the first two "
-                        "cameras specified in the camera_names parameter in the "
-                        "detectors_config.toml file \n"
-                        f"{self.camera_names[0]} & {self.camera_names[1]}"
+                cam1_name, cam2_name = triangulation.triangulation_cameras
+                missing = [cam for cam in triangulation.triangulation_cameras if cam not in self.camera_names]
+                if missing:
+                    raise ValueError(
+                        f"triangulation.triangulation_cameras {missing} are not among the resolved cameras "
+                        f"{self.camera_names}."
                     )
+                cam1_idx = self.camera_names.index(cam1_name)
+                cam2_idx = self.camera_names.index(cam2_name)
 
                 # Interpolated_2d results are used instead of original 2d.
                 cam1_data, cam2_data = (
-                    results_2d_interpolated[:, 0],
-                    results_2d_interpolated[:, 1],
+                    results_2d_interpolated[:, cam1_idx],
+                    results_2d_interpolated[:, cam2_idx],
                 )
 
                 # Subject indices common in both camera views are found.
-                subjects_cam1 = set(self.cam_sees_subjects[self.camera_names[0]])
-                subjects_cam2 = set(self.cam_sees_subjects[self.camera_names[1]])
+                subjects_cam1 = set(self.cam_sees_subjects[cam1_name])
+                subjects_cam2 = set(self.cam_sees_subjects[cam2_name])
                 common_subjects_idx = list(subjects_cam1 & subjects_cam2)
 
                 person_data_list = []
@@ -211,22 +212,22 @@ class MMPose2D(BaseMMPose):
                     cam1_undistorted = np.squeeze(
                         tri.undistort_points_pinhole(
                             filtered_xy_points_cam1,
-                            np.array(self.calibration[self.camera_names[0]]["intrinsic_matrix"]),
-                            np.array(self.calibration[self.camera_names[0]]["distortions"]),
+                            np.array(self.calibration[cam1_name]["intrinsic_matrix"]),
+                            np.array(self.calibration[cam1_name]["distortions"]),
                         )
                     )
                     cam2_undistorted = np.squeeze(
                         tri.undistort_points_pinhole(
                             filtered_xy_points_cam2,
-                            np.array(self.calibration[self.camera_names[1]]["intrinsic_matrix"]),
-                            np.array(self.calibration[self.camera_names[1]]["distortions"]),
+                            np.array(self.calibration[cam2_name]["intrinsic_matrix"]),
+                            np.array(self.calibration[cam2_name]["distortions"]),
                         )
                     )
 
                     # Data is triangulated.
                     person_data_3d = tri.triangulate_stereo(
-                        np.array(self.calibration[self.camera_names[0]]["projection_matrix"]),
-                        np.array(self.calibration[self.camera_names[1]]["projection_matrix"]),
+                        np.array(self.calibration[cam1_name]["projection_matrix"]),
+                        np.array(self.calibration[cam2_name]["projection_matrix"]),
                         cam1_undistorted.T,
                         cam2_undistorted.T,
                     )

@@ -290,7 +290,8 @@ def _run_sam3d_post_process(
     video_start_frame_index: int,
     save_vertices: bool,
     write_body_joints_world: bool,
-    stereo_triangulation_body_joints: bool,
+    triangulate: bool,
+    triangulation_cameras: list[str],
     triangulation_min_detection_confidence: float,
 ) -> None:
     raw = np.load(raw_npz_path, allow_pickle=True)
@@ -393,14 +394,18 @@ def _run_sam3d_post_process(
             body_world,
             calibration=calibration,
             camera_names=camera_names,
+            triangulation_cameras=triangulation_cameras,
             mode=mode,
             cam_sees_subjects=cam_sees_subjects,
             video_start_frame_index=video_start_frame_index,
-            enabled=stereo_triangulation_body_joints,
+            enabled=triangulate,
             min_confidence=triangulation_min_detection_confidence,
         )
         if stereo_applied:
-            logging.info("SAM 3D Body: body_joints 3d from two-view triangulation (cameras 0–1).")
+            logging.info(
+                "SAM 3D Body: body_joints 3d from two-view triangulation (%s).",
+                " & ".join(triangulation_cameras),
+            )
         policy_world = {
             "npz_role": "body_joints",
             "filename_stem": SAM3D_BODY_OUTPUT_NPZ_STEM,
@@ -410,7 +415,7 @@ def _run_sam3d_post_process(
             "not_multi_view_triangulation": not stereo_applied,
         }
         if stereo_applied:
-            policy_world["triangulation_cameras"] = [camera_names[0], camera_names[1]]
+            policy_world["triangulation_cameras"] = list(triangulation_cameras)
         body_world = _attach_body_meta(
             body_world,
             mhr_mapping=mhr_mapping,
@@ -780,7 +785,8 @@ class Sam3dBody(BaseMethod):
             video_start_frame_index=int(self.data.video_start_frame_index),
             save_vertices=cfg.save_vertices,
             write_body_joints_world=calib_ok,
-            stereo_triangulation_body_joints=cfg.stereo_triangulation_body_joints,
+            triangulate=cfg.triangulation.triangulate,
+            triangulation_cameras=cfg.triangulation.triangulation_cameras,
             triangulation_min_detection_confidence=cfg.triangulation_min_detection_confidence,
         )
 

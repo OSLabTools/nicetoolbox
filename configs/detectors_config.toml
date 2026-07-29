@@ -14,7 +14,7 @@
 # detects 2d points => triangulates 3d points from multiple cameras => post-processing
 [templates.mmpose_2d_template]
 algorithm_type = "mmpose_2d"  # name of the detector
-camera_names = ["view_top", "view_center"]  # cameras used in inference
+camera_names = "*"  # cameras used in inference
 keypoint_mapping = "coco_wholebody"  # default body joitns mapping format
 env_name = "conda:openmmlab"
 device = "cuda:0"
@@ -27,6 +27,10 @@ min_detection_confidence = 0.5
 visualize = true
 save_detector_images = true
 save_detector_predictions = true
+# 3d triangulation
+[templates.mmpose_2d_template.triangulation]
+triangulate = true
+triangulation_cameras = ["view_top", "view_center"] 
 
 # HRNetW48 full body model
 [algorithms.hrnetw48]
@@ -171,9 +175,12 @@ smooth_window_length = 7
 smooth_polyorder = 2
 world_align_keypoints_3d = true
 cross_view_consistency = true
-stereo_triangulation_body_joints = true
 triangulation_min_detection_confidence = 0.6
 keypoint_mapping = "sam_3d_body_mhr"
+# 3d triangulation (back to world space)
+[algorithms.sam_3d_body.triangulation]
+triangulate = true
+triangulation_cameras = ["view_top", "view_center"]  # cameras that will be used for 3d triangulation
 
 [algorithms.sam_3d_body.required_assets]
 sam_3d_body_model = "<assets>/sam_3d_body/models--facebook--sam-3d-body-dinov3"
