@@ -342,6 +342,9 @@ def main(config: dict[str, Any]) -> None:
     bundle = np.load(npz_path, allow_pickle=True)
     kpts_all = bundle["2d"]
     bbox_all = bundle["bbox_2d"]
+    # The camera axis of the source arrays follows the upstream detector's own camera
+    # order, which is independent of this detector's camera_names.
+    source_camera_names = list(bundle["data_description"].item()["2d"]["axis1"])
 
     k_src = kpts_all.shape[-2]
     if max(coco_indices) >= k_src:
@@ -415,10 +418,15 @@ def main(config: dict[str, Any]) -> None:
         "kpt_thr": 0.3,
     }
 
-    for cam_idx, (camera_name, image_paths) in enumerate(camera_paths):
+    for camera_name, image_paths in camera_paths:
         logging.info("Camera - %s (3D lift from 2D NPZ)", camera_name)
-        if camera_name != config["camera_names"][cam_idx]:
-            logging.warning("Camera order mismatch: expected %s, got %s", config["camera_names"][cam_idx], camera_name)
+        if camera_name not in source_camera_names:
+            raise ValueError(
+                f"Camera {camera_name!r} is not present in the source 2D NPZ {npz_path!r}, which contains "
+                f"{source_camera_names}. Align camera_names between motionbert and its upstream "
+                "body_joints detector."
+            )
+        cam_idx = source_camera_names.index(camera_name)
         vis_cam_dir = ""
         cam_subjects = config["cam_sees_subjects"][camera_name]
         f_count = kpts_all.shape[2]

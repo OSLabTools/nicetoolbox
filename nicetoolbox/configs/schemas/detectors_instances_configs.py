@@ -102,6 +102,31 @@ class FeatureDetectorRuntime(BaseDetectorRuntime):
     ...
 
 
+class TriangulationConfig(BaseModel):
+    """Stereo triangulation settings for detectors that lift 3d from two views."""
+
+    triangulate: bool
+    triangulation_cameras: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_cameras(self):
+        if not self.triangulate:
+            return self
+        if "*" in self.triangulation_cameras:
+            raise ValueError("triangulation.triangulation_cameras must list explicit camera names; '*' is not allowed.")
+        if len(self.triangulation_cameras) != 2:
+            raise ValueError(
+                f"triangulation.triangulation_cameras must list exactly 2 cameras when triangulate is true, "
+                f"got {len(self.triangulation_cameras)}: {self.triangulation_cameras}."
+            )
+        if self.triangulation_cameras[0] == self.triangulation_cameras[1]:
+            raise ValueError(
+                f"triangulation.triangulation_cameras must be two distinct cameras, "
+                f"got {self.triangulation_cameras}."
+            )
+        return self
+
+
 # ================================================
 #                 METHOD DETECTORS
 # ================================================
@@ -118,6 +143,7 @@ class MMPoseAlgorithmConfig(BaseAlgorithmConfig):
     """
 
     camera_names: str | list[str]
+    triangulation: TriangulationConfig
     env_name: str
     save_detector_images: bool
     save_detector_predictions: bool
@@ -248,6 +274,7 @@ class Sam3dBodyConfig(BaseAlgorithmConfig):
     """SAM 3D Body (Hugging Face weights; set hugging_face_token in machine_specific_paths.toml)."""
 
     camera_names: str | list[str]
+    triangulation: TriangulationConfig
     env_name: str
     device: str
     visualize: bool
@@ -276,7 +303,6 @@ class Sam3dBodyConfig(BaseAlgorithmConfig):
     smooth_polyorder: int = 2
     world_align_keypoints_3d: bool = True
     cross_view_consistency: bool = True
-    stereo_triangulation_body_joints: bool = True
     triangulation_min_detection_confidence: float = 0.6
     keypoint_mapping: str = "sam_3d_body_mhr"
     required_assets: Dict[str, str] = Field(default_factory=dict)

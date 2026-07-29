@@ -10,11 +10,13 @@ from ....utils import triangulation as tri
 from ..mmpose import pose_utils
 
 
-def calibration_usable_for_stereo_triangulation(calibration: dict[str, Any] | None, camera_names: list[str]) -> bool:
-    """Intrinsics and projection for the first two cameras."""
-    if not calibration or len(camera_names) < 2:
+def calibration_usable_for_stereo_triangulation(
+    calibration: dict[str, Any] | None, triangulation_cameras: list[str]
+) -> bool:
+    """Intrinsics and projection for both cameras of the configured stereo pair."""
+    if not calibration or not triangulation_cameras:
         return False
-    for cam in camera_names[:2]:
+    for cam in triangulation_cameras:
         c = calibration.get(cam)
         if not c:
             return False
@@ -48,10 +50,18 @@ def triangulate_stereo_body_joints_from_two_cameras(
     *,
     calibration: dict[str, Any],
     camera_names: list[str],
+    triangulation_cameras: list[str],
     cam_sees_subjects: dict[str, list[int]],
 ) -> np.ndarray | None:
     """Stereo 3d column (n_sub, 1, n_frames, n_kp, 4); NaN when subject missing in either camera."""
-    c0, c1 = camera_names[0], camera_names[1]
+    c0, c1 = triangulation_cameras
+    missing = [cam for cam in triangulation_cameras if cam not in camera_names]
+    if missing:
+        raise ValueError(
+            f"triangulation.triangulation_cameras {missing} are not among the resolved cameras {camera_names}."
+        )
+    cam0_idx = camera_names.index(c0)
+    cam1_idx = camera_names.index(c1)
     common = sorted(set(cam_sees_subjects.get(c0, [])) & set(cam_sees_subjects.get(c1, [])))
     if not common:
         logging.info(
@@ -76,8 +86,8 @@ def triangulate_stereo_body_joints_from_two_cameras(
     out = np.full((n_sub, 1, n_frames, n_kp, 4), np.nan, dtype=np.float64)
 
     for subj in common:
-        person_cam1 = arr_2d_interpolated[subj, 0, :, :, :]
-        person_cam2 = arr_2d_interpolated[subj, 1, :, :, :]
+        person_cam1 = arr_2d_interpolated[subj, cam0_idx, :, :, :]
+        person_cam2 = arr_2d_interpolated[subj, cam1_idx, :, :, :]
 
         xy_points_cam1 = person_cam1[:, :, :2].reshape(-1, 1, 2)
         xy_points_cam2 = person_cam2[:, :, :2].reshape(-1, 1, 2)
@@ -120,6 +130,7 @@ def apply_stereo_triangulation_to_body_joints_payload(
     *,
     calibration: dict[str, Any] | None,
     camera_names: list[str],
+    triangulation_cameras: list[str],
     mode: str,
     cam_sees_subjects: dict[str, list[int]],
     video_start_frame_index: int,
@@ -127,7 +138,11 @@ def apply_stereo_triangulation_to_body_joints_payload(
     min_confidence: float,
 ) -> bool:
     """Replace primary 3d with stereo triangulation when enabled. Returns True if applied."""
-    if not enabled or mode != "multi" or not calibration_usable_for_stereo_triangulation(calibration, camera_names):
+    if (
+        not enabled
+        or mode != "multi"
+        or not calibration_usable_for_stereo_triangulation(calibration, triangulation_cameras)
+    ):
         return False
     assert calibration is not None
 
@@ -138,6 +153,7 @@ def apply_stereo_triangulation_to_body_joints_payload(
         work,
         calibration=calibration,
         camera_names=camera_names,
+        triangulation_cameras=triangulation_cameras,
         cam_sees_subjects=cam_sees_subjects,
     )
     if arr_3d is None:
@@ -158,8 +174,8 @@ def apply_stereo_triangulation_to_body_joints_payload(
         "axis4": ["coordinate_x", "coordinate_y", "coordinate_z", "confidence_score"],
         "space": "world_from_two_view_triangulation",
         "note": (
-            "First two camera_names undistorted and passed to cv2.triangulatePoints "
-            "(same convention as vitpose_huge). Rows NaN when subject not in both views."
+            f"triangulation_cameras {list(triangulation_cameras)} undistorted and passed to "
+            "cv2.triangulatePoints. Rows NaN when subject not in both views."
         ),
     }
 
