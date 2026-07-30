@@ -14,7 +14,7 @@
 # detects 2d points => triangulates 3d points from multiple cameras => post-processing
 [templates.mmpose_2d_template]
 algorithm_type = "mmpose_2d"  # name of the detector
-camera_names = "*"  # cameras used in inference
+camera_names = "*"  # cameras used in inference, "*" means all cameras
 keypoint_mapping = "coco_wholebody"  # default body joitns mapping format
 env_name = "conda:openmmlab"
 device = "cuda:0"
@@ -420,3 +420,47 @@ hf_weights_cache_dir = "<assets>/crisper_whisper"
 
 [algorithms.crisper_whisper.required_assets]
 crisper_whisper = "<assets>/crisper_whisper/models--nyrahealth--CrisperWhisper"
+
+# ======================================================================
+#                      Eye Closure Detection (2D)
+# ======================================================================
+
+# detects how much subject closed their eyes using 2d facial landmarks
+[algorithms.eye_closure_ear]
+algorithm_type = "eye_closure_ear"
+camera_names = ["view_left", "view_right"]  # use only face cameras
+visualize = true
+[algorithms.eye_closure_ear.inputs]
+landmarks_2d = { component = "head_orientation", algorithm = "spiga", npz_key = "face_landmark_2d" }
+
+# same, but using mmpose 2d landmarks
+[algorithms.eye_closure_ear_rtmpose]
+algorithm_type = "eye_closure_ear"
+camera_names = ["view_left", "view_right"]  # use only face cameras
+visualize = true
+[algorithms.eye_closure_ear_rtmpose.inputs]
+landmarks_2d = { component = "face_landmarks", algorithm = "rtmpose_l_wholebody", npz_key = "2d" }
+
+# define that eye closed if aspect ration is less than threshold
+[algorithms.eye_closed_ear]
+algorithm_type = "eye_closure_threshold"
+camera_names = ["view_right", "view_left"]
+visualize = true
+threshold = 0.22  # max ratio for closed eye
+[algorithms.eye_closed_ear.inputs]
+score = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "score" }
+eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "eye_landmarks_2d" }
+
+# calculate blinks
+[algorithms.eye_blinks_ear]
+algorithm_type = "eye_closure_threshold"
+camera_names = ["view_right", "view_left"]
+visualize = true
+threshold = 0.22
+# define min and max time for eye to be considered blinked
+min_duration = 0.05
+max_duration = 0.5
+[algorithms.eye_blinks_ear.inputs]
+score = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "score" }
+eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "eye_landmarks_2d" }
+

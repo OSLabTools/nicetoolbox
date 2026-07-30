@@ -20,12 +20,13 @@ algorithms = [
    "motionbert",                                      # lifted keypoints (single camera 2d => 3d)
    "velocity_body_2d", "velocity_body_3d",            # body velocity
    "body_distance_2d", "body_distance_3d",            # distance between subjects (per dimension)
-   "sam_3d_body",                                     # 3d body mesh 
+   "sam_3d_body",                                     # 3d body mesh
    "eth_xgaze", "gaze_fusion_weighted",               # gaze detection
    "gaze_distance_2d", "gaze_distance_3d",            # gaze interaction
    "spiga",                                           # head orientation
    "py_feat",                                         # emotions detection
-   "whisperx", "crisper_whisper"                      # audio transcription
+   "whisperx", "crisper_whisper",                     # audio transcription
+   "eye_closure_ear", "eye_closed_ear"                # closed eyes detection
 ]
 
 # define which data to run on

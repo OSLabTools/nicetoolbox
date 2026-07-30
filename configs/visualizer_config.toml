@@ -12,7 +12,7 @@ experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # 
 
 [media]                                                    # each Media session shows one video results.
 [media.visualize]                                          # specify what will be visualized
-components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "emotion_individual", "kinematics", "proximity"]
+components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "emotion_individual", "kinematics", "proximity", "eye_closure_score", "eye_closed_state"]
 start_frame = 0                                            # starting frame for the visualization
 end_frame = -1                                             # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                                     # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -144,6 +144,42 @@ algorithms = ['velocity_body_3d']  # or 'velocity_body_2d' for single-view setup
 [media.kinematics.canvas]
 velocity_bodypart_3d = ["metric_velocity"]
 velocity_bodypart_2d = ["metric_velocity"]
+
+
+# Component: eye closure (EAR)
+# Draws a contour around each eye. The eye points are read from the component NPZ, so the
+# canvas cameras must be a subset of the cameras the eye_closure_ear instance was run on
+# (see its camera_names in detectors_config).
+[media.eye_closure_score]
+algorithms = ['eye_closure_ear']
+
+[media.eye_closure_score.canvas]
+eye_landmarks_2d = ["view_left", "view_right"]  ## value options: [camera names]
+score = ["metric_eye_closure"]  ## EAR score plotted per tracked subject/camera; [] to disable
+
+[media.eye_closure_score.appearance]
+# Fallback colors, one per algorithm above. Used when eye_closed_state is not visualized.
+colors = [[0, 255, 255], [255, 0, 255]]
+radii = {'3d'= 0.01, 'camera_view'= 1}
+
+# Component: eye closed state
+# Algorithms are paired positionally with [media.eye_closure_score].algorithms:
+# eye_closed_ear  <-> eye_closure_ear
+# The two lists MUST have the same length; each pair recolors the corresponding eye contours
+# closed/open. Drop 'eye_closed_state' from media.visualize.components to fall back to the
+# static eye_closure_score colors.
+[media.eye_closed_state]
+algorithms = ['eye_closed_ear']
+
+[media.eye_closed_state.canvas]
+state = []
+
+[media.eye_closed_state.appearance]
+# One [closed, open] color pair per algorithm above.
+colors = [
+    [[255, 0, 0], [0, 255, 0]],   # eye_closed_ear: red when closed / green when open
+]
+radii = {}
 
 
 # Component: proximity

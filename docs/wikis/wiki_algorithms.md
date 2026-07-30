@@ -80,6 +80,14 @@ Two derived algorithms build on top of `gaze_individual` outputs to characterize
 
 [Prados-Torreblanca et al., 2022](https://arxiv.org/abs/2210.07233)
 
+## Eye Closure
+
+Two algorithms support tracking blink/closure states and dynamics from facial landmark outputs:
+
+- **`eye_closure_ear`** (`eye_closure_score` component): Computes the Eye Aspect Ratio (EAR) as the ratio of eye height to eye width, indicating closure degree. [Soukupová and Čech, 2016](https://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf)
+- **`eye_closure_threshold`** (`eye_closed_state` component): Categorizes the eye state (closed/open) via a threshold applied to the closure score, with optional duration-based temporal filtering.
+
+
 ## WhisperX (Audio Transcription & Speaker Diarization)
 
 ```{warning}

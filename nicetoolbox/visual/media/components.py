@@ -576,6 +576,332 @@ class GazeFusionComponent(Component):
         return self.visualizer_config["media"][self.component_name]["appearance"]["colors"][alg_idx]
 
 
+class EyeClosureComponent(Component):
+    """
+    Class for visualizing eye closure (EAR) data.
+
+    Draws a closed contour around each eye, mirroring the eye outlines the eye_closure_ear
+    detector draws on its own mp4.
+
+    Everything is read from the component NPZ: `eye_landmarks_2d` carries the eye points
+    already sliced out by the detector, labelled `left_eye_*` / `right_eye_*` on axis3, so
+    splitting the points by label prefix is enough — no keypoint mapping lookup needed.
+
+    When an eye_closed_state instance is paired in (via closed_state_tuples), each contour is
+    colored by that eye's closed/open state instead of the algorithm's static color.
+
+    The `score` array is additionally plotted as a scalar timeseries, one plot per tracked
+    (subject, camera) pair with a line per eye. Pairs the detector never tracked are all-NaN
+    and are dropped rather than plotted empty.
+
+    The contours are camera-view only; the detector produces no 3D eye data.
+
+    Attributes:
+        camera_names (List[str]): The camera names.
+        subject_names (List[str]): The subject names.
+        eye_indices_per_alg (List[Tuple[List[int], List[int]]]): Per algorithm, the
+            (left, right) positions within the axis3 landmark labels.
+        closed_state_per_alg (List[Tuple[np.ndarray, List[str]]]): Per-algorithm closed-state
+            pair (data, eye_labels). Empty when no state component is wired.
+        state_camera_names (List[str]): The closed-state camera axis, which may be a different
+            subset than this component's own. Empty when no state component is wired.
+    """
+
+    LANDMARKS_KEY = "eye_landmarks_2d"
+    SCORE_KEY = "score"
+
+    def __init__(
+        self,
+        visualizer_config: Dict,
+        io,
+        logger,
+        component_name: str,
+        closed_state_tuples: List[Tuple[np.ndarray, List[str]]] = None,
+        state_camera_names: List[str] = None,
+    ):
+        """
+        Initialize the EyeClosureComponent.
+
+        Args:
+            visualizer_config (Dict): The visualizer configuration settings.
+            io: The input/output object.
+            logger (viewer.Viewer): The viewer rerun object.
+            component_name (str): The name of the component.
+            closed_state_tuples (List[Tuple[np.ndarray, List[str]]], optional): Per-algorithm
+                (closed_state, eye_labels) from eye_closed_state, positionally aligned with
+                this component's algorithms. Defaults to None (static coloring).
+            state_camera_names (List[str], optional): The closed-state camera axis, used to
+                index the state arrays by camera name. Defaults to None.
+        """
+        super().__init__(visualizer_config, io, logger, component_name)
+
+        descr = self.algorithms_results[0]["data_description"].item()
+        self.camera_names = descr[self.LANDMARKS_KEY]["axis1"]
+        self.subject_names = descr[self.LANDMARKS_KEY]["axis0"]
+
+        # Per-algorithm closed-state pair (aligned positionally with self.algorithm_list). An
+        # empty list means every algorithm falls back to its static color.
+        self.closed_state_per_alg: List[Tuple[np.ndarray, List[str]]] = []
+        self.state_camera_names: List[str] = []
+        if closed_state_tuples:
+            if len(closed_state_tuples) != len(self.algorithm_list):
+                raise ValueError(
+                    f"eye_closure_score has {len(self.algorithm_list)} algorithms but "
+                    f"eye_closed_state provided {len(closed_state_tuples)} entries. The two "
+                    f"algorithms lists must be the same length (each score instance paired "
+                    f"with its own threshold instance)."
+                )
+            self.closed_state_per_alg = closed_state_tuples
+            self.state_camera_names = state_camera_names or []
+
+        # Per-algorithm EAR score, plotted as a timeseries alongside the contours. Skipped
+        # entirely when the score canvas is empty, and per-algorithm when a score producer
+        # emits only landmarks.
+        plot_scores = bool(self.visualizer_config["media"][self.component_name]["canvas"].get(self.SCORE_KEY))
+        self.score_per_alg: List[np.ndarray | None] = [
+            res[self.SCORE_KEY] if plot_scores and self.SCORE_KEY in res.files else None
+            for res in self.algorithms_results
+        ]
+        self.score_eye_labels_per_alg: List[List[str]] = [
+            res["data_description"].item()[self.SCORE_KEY]["axis3"] if self.score_per_alg[i] is not None else []
+            for i, res in enumerate(self.algorithms_results)
+        ]
+        # A (subject, camera) pair a detector never saw is all-NaN -- e.g. the left subject on
+        # the right-facing camera. Plotting it would add a permanently empty view, so the
+        # tracked pairs are resolved once here and the rest are skipped.
+        self.plotted_series_per_alg = [
+            self._resolve_plotted_series(alg_idx) for alg_idx in range(len(self.score_per_alg))
+        ]
+
+        # The landmark array is already sliced to the eye points, so the eyes are split by
+        # label prefix. Point order within each eye is the upstream landmark order, which walks
+        # the eyelid ring corner-to-corner (upper lid, then back along the lower lid) for every
+        # mapping currently shipped -- so connecting them in order closes the contour. A new
+        # mapping that numbers eye points differently would need an explicit ring order here.
+        self.eye_indices_per_alg = []
+        for labels in self._get_algorithms_labels():
+            left = [i for i, name in enumerate(labels) if name.startswith("left_eye")]
+            right = [i for i, name in enumerate(labels) if name.startswith("right_eye")]
+            self.eye_indices_per_alg.append((left, right))
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """Eye landmark labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.LANDMARKS_KEY]["axis3"] for res in self.algorithms_results]
+
+    def _resolve_plotted_series(self, alg_idx: int) -> List[Tuple[int, int]]:
+        """
+        Resolve which (subject_idx, camera_idx) score series are worth plotting.
+
+        A pair whose score is NaN for every frame means the detector never tracked that subject
+        on that camera -- e.g. the left-seated subject on the right-facing camera -- so it is
+        dropped rather than logged as a permanently empty plot.
+
+        Returns:
+            List of (subject_idx, camera_idx) pairs that carry at least one real score.
+        """
+        score = self.score_per_alg[alg_idx]
+        if score is None:
+            return []
+
+        # Any non-NaN across the frame and eye axes means the pair was tracked at some point.
+        tracked = ~np.isnan(score).all(axis=(2, 3))  # (subjects, cameras)
+        return [(int(s), int(c)) for s, c in zip(*np.nonzero(tracked))]
+
+    def _log_score(self, entity_path: str, score: float) -> None:
+        """
+        Log one eye's EAR score as a scalar timeseries point in rerun.
+
+        Args:
+            entity_path (str): The entity path.
+            score (float): The EAR score.
+        """
+        rr.log(entity_path, rr.Scalar(round(float(score), 3)))
+
+    def _pick_color(self, alg_idx: int, subject_idx: int, camera_idx: int, frame_idx: int, eye_name: str) -> List[int]:
+        """
+        Closed/open color if a paired eye_closed_state instance exists for this alg_idx;
+        otherwise the algorithm's static color from this component's appearance block.
+
+        The state array is float-backed so a missing upstream score reads as NaN — neither
+        closed nor open — and falls back to the static color rather than claiming "open".
+        """
+        if alg_idx >= len(self.closed_state_per_alg) or camera_idx < 0:
+            return self._parse_alg_color(alg_idx)
+
+        closed_state, eye_labels = self.closed_state_per_alg[alg_idx]
+        if eye_name not in eye_labels or frame_idx >= closed_state.shape[2]:
+            return self._parse_alg_color(alg_idx)
+
+        eye_idx = eye_labels.index(eye_name)
+        is_closed = closed_state[subject_idx, camera_idx, frame_idx, eye_idx]
+        if np.isnan(is_closed):
+            return self._parse_alg_color(alg_idx)
+
+        color_index = 0 if is_closed else 1
+        return self.visualizer_config["media"]["eye_closed_state"]["appearance"]["colors"][alg_idx][color_index]
+
+    def _log_data(self, entity_path: str, eye_points: np.ndarray, color: List[int]) -> None:
+        """
+        Log one eye contour as a closed 2D line strip in rerun.
+
+        Args:
+            entity_path (str): The entity path.
+            eye_points (np.ndarray): The eye's (n_points, 2) contour points.
+            color (List[int]): The color.
+        """
+        # Repeat the first point so the eyelid ring closes.
+        contour = np.vstack([eye_points, eye_points[:1]])
+        rr.log(
+            entity_path,
+            rr.LineStrips2D(
+                [contour],
+                colors=color,
+                radii=self._parse_radii("camera_view"),
+            ),
+        )
+
+    def visualize(self, frame_idx: int) -> None:
+        """
+        Visualize the eye closure component on each camera view.
+
+        Each eye is drawn as its own entity so the two contours stay independently
+        addressable in the viewer, and each tracked (subject, camera) EAR score is logged as
+        its own scalar timeseries.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        self._plot_scores(frame_idx)
+
+        for canvas in self.canvas_list:
+            if not canvas or canvas == "3D_Canvas":
+                continue
+            cam_name = canvas
+            if cam_name not in self.camera_names:
+                continue
+            camera_index = self.camera_names.index(cam_name)
+            # The threshold detector has its own camera_names, so its camera axis may be a
+            # different subset. Resolve the state's own index by name; -1 disables recoloring
+            # for this camera and falls back to the static color.
+            state_camera_index = self.state_camera_names.index(cam_name) if cam_name in self.state_camera_names else -1
+
+            for alg_idx, alg_result in enumerate(self.algorithms_results):
+                landmarks = alg_result[self.LANDMARKS_KEY]
+                if frame_idx >= landmarks.shape[2]:  # number of frames
+                    continue
+                alg_name = self.algorithm_list[alg_idx]
+                left_indices, right_indices = self.eye_indices_per_alg[alg_idx]
+
+                for subject_idx, subject in enumerate(self.subject_names):
+                    cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
+                    if subject_idx not in cam["sees_subjects"]:
+                        continue
+
+                    entity_path = self.logger.generate_component_entity_path(
+                        self.component_name,
+                        is_3d=False,
+                        alg_name=alg_name,
+                        subject_name=subject,
+                        cam_name=cam_name,
+                    )
+
+                    for eye_name, indices in (("left_eye", left_indices), ("right_eye", right_indices)):
+                        eye_points = landmarks[subject_idx, camera_index, frame_idx][indices, :2]
+                        # Drop missing points; a partially tracked eye still draws.
+                        eye_points = eye_points[~np.isnan(eye_points).any(axis=1)]
+                        if len(eye_points) < 2:
+                            continue
+
+                        color = self._pick_color(alg_idx, subject_idx, state_camera_index, frame_idx, eye_name)
+                        self._log_data(f"{entity_path}/{eye_name}", eye_points, color)
+
+    def _plot_scores(self, frame_idx: int) -> None:
+        """
+        Log the EAR score timeseries for every tracked (subject, camera) pair.
+
+        Independent of the canvas cameras -- a plot is a view of its own, not an overlay on a
+        camera image -- so this runs once per frame rather than once per canvas. Both eyes go
+        under the same entity prefix so they share one plot, one line each.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        for alg_idx, score in enumerate(self.score_per_alg):
+            if score is None or frame_idx >= score.shape[2]:
+                continue
+            alg_name = self.algorithm_list[alg_idx]
+            eye_labels = self.score_eye_labels_per_alg[alg_idx]
+
+            for subject_idx, camera_idx in self.plotted_series_per_alg[alg_idx]:
+                for eye_idx, eye_name in enumerate(eye_labels):
+                    value = score[subject_idx, camera_idx, frame_idx, eye_idx]
+                    # Gaps stay gaps: logging NaN would draw a line through untracked frames.
+                    if np.isnan(value):
+                        continue
+                    entity_path = self.logger.generate_metric_entity_path(
+                        alg_name=alg_name,
+                        subject_name=self.subject_names[subject_idx],
+                        cam_name=self.camera_names[camera_idx],
+                        metric=eye_name,
+                    )
+                    self._log_score(entity_path, value)
+
+
+class EyeClosedStateComponent(Component):
+    """
+    Class for reading eye closed/open state.
+
+    Carries no overlay of its own — like GazeInteractionComponent, it exists to hand its
+    per-eye binary state to EyeClosureComponent, which recolors the eye contours with it.
+
+    Attributes:
+        camera_names (List[str]): The camera names.
+        subject_names (List[str]): The subject names.
+    """
+
+    STATE_KEY = "state"
+
+    def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
+        """
+        Initialize the EyeClosedStateComponent.
+
+        Args:
+            visualizer_config (Dict): The visualizer configuration settings.
+            io: The input/output object.
+            logger (viewer.Viewer): The viewer rerun object.
+            component_name (str): The name of the component.
+        """
+        super().__init__(visualizer_config, io, logger, component_name)
+        descr = self.algorithms_results[0]["data_description"].item()
+        self.camera_names = descr[self.STATE_KEY]["axis1"]
+        self.subject_names = descr[self.STATE_KEY]["axis0"]
+
+    def get_closed_state_data(self) -> List[Tuple[np.ndarray, List[str]]]:
+        """
+        Get the closed-state data for every configured eye_closure_threshold instance, in
+        list order.
+
+        Each entry corresponds positionally to `[media.eye_closed_state].algorithms[i]` and is
+        intended to be paired with `[media.eye_closure_score].algorithms[i]` for coloring.
+
+        Returns:
+            List of (data, eye_labels) tuples, one per algorithm. Data is
+            (subjects, cameras, frames, eyes) with 1 = closed, 0 = open, NaN = missing.
+        """
+        labels_per_alg = self._get_algorithms_labels()
+        return [(res[self.STATE_KEY], labels_per_alg[i]) for i, res in enumerate(self.algorithms_results)]
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """Eye labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.STATE_KEY]["axis3"] for res in self.algorithms_results]
+
+    def _log_data(self):
+        pass
+
+    def visualize(self):
+        pass
+
+
 class GazeInteractionComponent(Component):
     """
     Class for visualizing gaze interaction data.
