@@ -177,6 +177,7 @@ class Viewer:
             | (component == "gaze_multiview")
             | (component == "emotion_individual")
             | (component == "head_orientation")
+            | (component == "eye_closure_score")
         ):
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
@@ -197,6 +198,24 @@ class Viewer:
             raise ValueError(f"ERROR in generate_component_entity_path(): Component {component} " "did not implemented")
 
         return entity_path
+
+    def generate_metric_entity_path(self, alg_name: str, subject_name: str, cam_name: str, metric: str) -> str:
+        """
+        Generates a top-level entity path for a scalar metric timeseries.
+
+        Scalar plots live outside the 3D/image roots so rerun gives them their own timeseries
+        view rather than nesting them inside a camera image, matching how kinematics logs
+        its per-bodypart velocities.
+
+        Args:
+            alg_name (str): The name of the algorithm.
+            subject_name (str): The name of the subject.
+            cam_name (str): The name of the camera.
+            metric (str): The name of the metric (the leaf, one line per name).
+        Returns:
+            str: The generated entity path.
+        """
+        return f"{alg_name}_{subject_name}_{cam_name}/{metric}"
 
     def log_camera(self, camera_calibration, entity_path, image_size) -> None:
         """

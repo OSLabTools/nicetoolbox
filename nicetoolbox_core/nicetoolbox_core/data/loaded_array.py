@@ -232,6 +232,52 @@ def _apply_filter(
     return np.take(data, indices=idx, axis=axis), matched
 
 
+def select_array(
+    array: NpzArray,
+    *,
+    subjects: list[str] | None = None,
+    cameras: list[str] | None = None,
+    frames: list[str] | None = None,
+    labels: list[str] | None = None,
+    data: list[str] | None = None,
+) -> NpzArray:
+    """Narrow an array to the named entries on one or more axes.
+
+    Each argument takes the labels to keep, in the given order (so this also reorders).
+    Omitted axes are kept whole; the input array is not modified.
+
+    Raises when a requested name is absent, so a detector asking for a camera its upstream
+    does not provide fails loudly.
+
+    Example:
+        select_array(landmarks, cameras=["view_left", "view_right"])
+
+    Raises:
+        ValueError: if any requested name is not present on its axis.
+    """
+    selections = {
+        "subjects": (subjects, 0),
+        "cameras": (cameras, 1),
+        "frames": (frames, 2),
+        "labels": (labels, 3),
+        "data": (data, 4),
+    }
+
+    new_data = array.data
+    changes: dict[str, list[str]] = {}
+    for axis_name, (wanted, axis) in selections.items():
+        if wanted is None:
+            continue
+        available = getattr(array.axes, axis_name)
+        missing = [name for name in wanted if name not in available]
+        if missing:
+            raise ValueError(f"Requested {axis_name} {missing} not present on axis{axis}. Available: {available}.")
+        new_data = np.take(new_data, [available.index(name) for name in wanted], axis=axis)
+        changes[axis_name] = list(wanted)
+
+    return NpzArray(new_data, array.axes.replace(**changes))
+
+
 def filter_array(array: NpzArray, filters: NpzAxisFilters, npz_path: Path | None = None) -> NpzArray | None:
     """Filter an array by label names on the subject/camera/label/data axes.
 

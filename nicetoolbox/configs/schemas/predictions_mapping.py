@@ -3,6 +3,13 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 
+class EyeLayout(BaseModel):
+    upper_eyelid: List[int]
+    lower_eyelid: List[int]
+    vertical_pairs: List[List[int]]
+    horizontal_pair: List[int]
+
+
 class CocoWholebodyKeypointsIndex(BaseModel):
     body: Dict[str, int]
     foot: Dict[str, int]
@@ -26,6 +33,7 @@ class CocoWholebody(BaseModel):
     keypoints_index: CocoWholebodyKeypointsIndex
     bodypart_index: CocoWholebodyBodypartIndex
     connections: CocoWholebodyConnections
+    eye_layout: EyeLayout
 
 
 class Human36mKeypointsIndex(BaseModel):
@@ -121,6 +129,7 @@ class SpigaKeypointsIndex(BaseModel):
 
 class Spiga(BaseModel):
     keypoints_index: SpigaKeypointsIndex
+    eye_layout: EyeLayout
 
 
 class HeadOrientation(BaseModel):

@@ -372,3 +372,18 @@ class GazeFusionConfig(BaseAlgorithmConfig):
 
 
 # === Add Feature detectors HERE ===
+
+
+@detector_config("eye_closure_ear")
+class EyeClosureEarConfig(BaseAlgorithmConfig):
+    visualize: bool
+    camera_names: str | list[str]
+
+
+@detector_config("eye_closure_threshold")
+class EyeClosureThresholdConfig(BaseAlgorithmConfig):
+    threshold: float
+    visualize: bool
+    camera_names: List[str]
+    min_duration: float = 0.0
+    max_duration: Optional[float] = None

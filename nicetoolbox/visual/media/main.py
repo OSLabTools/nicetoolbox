@@ -15,6 +15,8 @@ from ..in_out import IO
 from .components import (
     BodyJointsComponent,
     EmotionIndividualComponent,
+    EyeClosedStateComponent,
+    EyeClosureComponent,
     FaceLandmarksComponent,
     GazeFusionComponent,
     GazeInteractionComponent,
@@ -158,6 +160,31 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         KinematicsComponent(visualizer_config, io, viewer, "kinematics") if "kinematics" in components else None
     )
 
+    eye_closed_state_component = (
+        EyeClosedStateComponent(visualizer_config, io, viewer, "eye_closed_state")
+        if "eye_closed_state" in components
+        else None
+    )
+
+    # returns list of (closed_state, eye_labels), one per eye_closure_threshold instance
+    closed_state_tuples = (
+        eye_closed_state_component.get_closed_state_data() if eye_closed_state_component is not None else None
+    )
+    state_camera_names = eye_closed_state_component.camera_names if eye_closed_state_component is not None else None
+
+    eye_closure_component = (
+        EyeClosureComponent(
+            visualizer_config,
+            io,
+            viewer,
+            "eye_closure_score",
+            closed_state_tuples,
+            state_camera_names,
+        )
+        if "eye_closure_score" in components
+        else None
+    )
+
     instances = [
         body_joints_component,
         hand_joints_component,
@@ -167,6 +194,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         proximity_component,
         kinematics_component,
         head_orientation_component,
+        eye_closure_component,
     ]
 
     # VISUALIZATION

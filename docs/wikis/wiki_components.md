@@ -31,6 +31,8 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | kinematics | displacement_vector_body_2d, velocity_body_2d, displacement_vector_body_3d, velocity_body_3d |
 | proximity | body_distance_2d, body_distance_3d |
 | emotion_individual | faceboxes, aus, emotions, poses |
+| eye_closure_score | score |
+| eye_closed_state | state |
 
 All these numpy arrays share a common structure: the first 3 dimensions contain the subjects, cameras, and frames, the remaining dimensions vary with the respective entity.
 
@@ -93,6 +95,8 @@ The `data_description` dictionary details the entries of all numpy files within 
 | emotions | anger, disgust, fear, happiness, sadness, surprise, neutral | -- |
 | poses | Pitch, Roll, Yaw | -- |
 | head_orientation | start_x, start_y, end_x, end_y, confidence | -- |
+| score | left_eye, right_eye | -- |
+| state | left_eye, right_eye | -- |
 
 
 ### Python code
@@ -213,6 +217,17 @@ Results are stored in `.npz` files under `<output_folder>/emotion_individual/<al
 The **head_orientation** component uses the SPIGA algorithm to estimate the direction in which each subject's head is pointing, as seen from different camera views. For every visible subject in each frame and view, SPIGA outputs a 2D vector representing the head pose: it begins at the estimated center of the nose and points outward in the predicted direction of the face. These vectors are computed by applying a rotation matrix (derived from the model’s estimated rotation vector) to a fixed reference vector, which is then projected onto the image plane.
 
 The output is saved as a `head_orientation` array within the `<output_folder>/head_orientation/<algorithm_name>.npz` file. This array includes the image-plane coordinates of the nose base and nose tip for each subject, camera, and frame, along with a confidence score (currently fixed at 1.0). These estimates can be used for visualizations or further analysis of directional behavior, such as identifying shifts in attention or synchrony between individuals. Each frame is processed independently, and results are aligned with the rest of the NICE Toolbox outputs, making this component easily integrable with gaze, pose, and emotion data.
+
+## Eye Closure
+
+Monitors eye blink and closure dynamics. This is split into two components:
+- **`eye_closure_score`**: Represents the raw computed metric of how closed/open each eye is.
+- **`eye_closed_state`**: Represents the binarized state (1 = closed, 0 = open) based on a threshold applied to the eye closure score, with optional duration-based temporal filtering.
+
+### Eye Aspect Ratio (EAR)
+Calculated by comparing the vertical distance between the eyelid keypoints to their horizontal distance. A lower value indicates a more closed eye.  
+[Soukupová and Čech, 2016](https://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf)
+
 
 ## Audio Transcription
 
