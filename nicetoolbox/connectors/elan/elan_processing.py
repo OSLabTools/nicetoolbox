@@ -24,12 +24,15 @@ def validate_video_alignment(elan_data: ElanData, video_meta: VideoMeta) -> None
             f"ELAN header has non-zero offset ({header.offset} ms). Non-zero offsets are not supported."
         )
 
-    elan_fps = 1000.0 / header.ms_per_sample
-    if abs(elan_fps - video_meta.fps) > 0.01:
-        raise ValueError(
-            f"FPS mismatch: ELAN header says {elan_fps:.4f} fps, but ffprobe says {video_meta.fps:.4f} fps"
-        )
-    logging.info(f"FPS validated: ELAN={elan_fps:.4f}, ffprobe={video_meta.fps:.4f}")
+    if header.ms_per_sample is None:
+        logging.warning("ELAN header has no 'ms per sample' (audio-only media) — skipping FPS validation.")
+    else:
+        elan_fps = 1000.0 / header.ms_per_sample
+        if abs(elan_fps - video_meta.fps) > 0.01:
+            raise ValueError(
+                f"FPS mismatch: ELAN header says {elan_fps:.4f} fps, but ffprobe says {video_meta.fps:.4f} fps"
+            )
+        logging.info(f"FPS validated: ELAN={elan_fps:.4f}, ffprobe={video_meta.fps:.4f}")
 
     elan_duration_sec = header.duration_ms / 1000.0
     if abs(elan_duration_sec - video_meta.duration_sec) > 1.0:

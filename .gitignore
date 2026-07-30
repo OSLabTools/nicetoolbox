@@ -5,6 +5,7 @@
 .ruff_cache/
 **/__pycache__
 **.egg-info
+CLAUDE.md
 
 docs/_build/
 docs/_autosummary/

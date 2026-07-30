@@ -5,15 +5,17 @@ from dataclasses import dataclass
 
 @dataclass
 class ElanHeader:
-    ms_per_sample: float
+    # None when no media line carries "ms per sample" (audio-only media omit it).
+    ms_per_sample: float | None
     offset: int
     duration_ms: int
     media_files: list[str]
     data_start_line: int
 
     def __str__(self) -> str:
+        ms = "unknown" if self.ms_per_sample is None else f"{self.ms_per_sample:.4f}"
         return (
-            f"ElanHeader: ms_per_sample={self.ms_per_sample:.4f}, "
+            f"ElanHeader: ms_per_sample={ms}, "
             f"duration={self.duration_ms:.3f}ms, "
             f"offset={self.offset}, media files: {self.media_files}"
         )
