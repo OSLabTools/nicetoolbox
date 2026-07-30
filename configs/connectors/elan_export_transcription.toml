@@ -1,0 +1,20 @@
+# Export transcription detector output to ELAN tab-delimited txt for annotator correction.
+#
+# Workflow: run whisperX/crisper_whisper -> export here -> annotators correct in ELAN
+# -> export from ELAN as tab-delimited txt -> elan_import_transcription.toml.
+
+experiment     = "<output_folder_path>/experiments/20260623"
+elan_output    = "<output_folder_path>/connectors/elan_export"
+
+log_level = "INFO"
+log_file_path = "<elan_output>/elan_export_transcription.log"
+
+# Word/speaker tiers are opt-in. Enable them to also correct word timings and diarization turns;
+include_words = false
+include_speaker = false
+
+[run.sequence_xyz]
+input  = "<experiment>/communication_multiview__sequence_xyz_s0_l-1/audio_transcription/whisperx.json"
+output = "<elan_output>/sequence_xyz_audio_transcription.txt"
+start = 0
+end = -1
