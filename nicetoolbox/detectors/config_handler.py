@@ -101,8 +101,10 @@ class Configuration(ProjectConfigHandler):
         glob wildcard (e.g. `*` for all sequences, `S1_*` for sequences starting with
         `S1_`) against the sequences declared in dataset properties.
 
-        Non-wildcard entries pass through unchanged. Duplicates (from overlapping
-        patterns or explicit entries) are deduplicated, keeping the first occurrence.
+        Non-wildcard entries pass through unchanged. Duplicates are deduplicated on
+        the full (sequence_id, video_start, video_length) triple, keeping the first
+        occurrence -- the same sequence may appear more than once with different
+        windows, which yields one run per window.
         Raises if a pattern matches no sequences or references an unknown dataset.
         """
         for dataset_name, run_ds in self.run_config.run.items():
@@ -114,7 +116,7 @@ class Configuration(ProjectConfigHandler):
             all_ids = [seq.sequence_id for seq in self.dataset_properties[dataset_name].sequences]
 
             expanded: list[SubsequenceConfig] = []
-            seen_ids: set[str] = set()
+            seen: set[tuple[str, Any, Any]] = set()
             for entry in run_ds.sequences:
                 if any(ch in entry.sequence_id for ch in "*?["):
                     matched = [sid for sid in all_ids if fnmatch.fnmatchcase(sid, entry.sequence_id)]
@@ -123,16 +125,16 @@ class Configuration(ProjectConfigHandler):
                             f"Wildcard sequence_id '{entry.sequence_id}' in dataset "
                             f"'{dataset_name}' matched no sequences. Available: {all_ids}"
                         )
-                    for sid in matched:
-                        if sid in seen_ids:
-                            continue
-                        seen_ids.add(sid)
-                        expanded.append(entry.model_copy(update={"sequence_id": sid}))
+                    candidates = [entry.model_copy(update={"sequence_id": sid}) for sid in matched]
                 else:
-                    if entry.sequence_id in seen_ids:
+                    candidates = [entry]
+
+                for candidate in candidates:
+                    key = (candidate.sequence_id, candidate.video_start, candidate.video_length)
+                    if key in seen:
                         continue
-                    seen_ids.add(entry.sequence_id)
-                    expanded.append(entry)
+                    seen.add(key)
+                    expanded.append(candidate)
 
             run_ds.sequences = expanded
 
