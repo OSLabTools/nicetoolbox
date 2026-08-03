@@ -176,9 +176,15 @@ class BaseMethod(BaseDetector):
         against the declared outputs and saved here, then returned for visualization. Legacy
         detectors return None/int and save themselves — that value is passed through untouched.
         """
-        result = self._run_inference()
+        result: DetectorOutput = self._run_inference()
+        # TODO: after migration finished - unify with base_feature
         if isinstance(result, DetectorOutput):
+            # validate all outputs against defined outputs and schemas
             result.validate(self.declared_outputs)
+            # validate that all npz have valid axes
+            subjects, cameras, frames = self.data.canonical_axes
+            result.validate_canonical_axes(subjects, cameras, frames)
+            # dump results on drive
             result.save(self.io, self.algorithm_instance)
         return result
 

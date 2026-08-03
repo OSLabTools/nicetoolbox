@@ -23,7 +23,8 @@ from ..in_out import SequenceIO
 from ..subsequence_context import SubsequenceContext
 from .handler import BaseModalityHandler
 
-FILENAME_TEMPLATE = "{idx:09d}.png"
+FRAME_LABEL_TEMPLATE = "{idx:09d}"
+FILENAME_TEMPLATE = f"{FRAME_LABEL_TEMPLATE}.png"
 
 
 class VideoDataHandler(BaseModalityHandler):
@@ -64,6 +65,9 @@ class VideoDataHandler(BaseModalityHandler):
         self.fps, self.length_frames = self._resolve_fps_and_length()
         self.start_frame = timestamp_to_frame_index(self.subsequence_context.video_start, self.fps)
 
+        # Save all frames str names for data serialization
+        self.frame_labels = self._frame_labels(self.start_frame, self.length_frames)
+
         # Check and create input data if necessary
         self._input_data_creation()
 
@@ -89,6 +93,12 @@ class VideoDataHandler(BaseModalityHandler):
     # -------------------------------------------------------------------------
     # Helper methods
     # -------------------------------------------------------------------------
+
+    def _frame_labels(self, start_frame, length_frames) -> list[str]:
+        """Generate a list of all frame names."""
+        start = start_frame
+        end = start + length_frames
+        return [FRAME_LABEL_TEMPLATE.format(idx=idx) for idx in range(start, end)]
 
     def _resolve_video_paths(self) -> Dict[str, Path]:
         """
