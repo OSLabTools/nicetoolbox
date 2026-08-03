@@ -1,7 +1,6 @@
 from pathlib import Path
-from typing import Literal
 
-from pydantic import BaseModel, NonNegativeInt, model_validator
+from pydantic import BaseModel, Field, NonNegativeInt, model_validator
 
 from ...configs.models.video_timestamp import VideoTimestamp
 
@@ -49,44 +48,31 @@ class ElanTranscriptionSequence(BaseModel):
 
     input/output swap meaning per direction: export reads the transcription JSON and writes
     an ELAN txt; import reads the corrected ELAN txt and writes the transcription JSON.
+
+    The export has no time window: a component output already covers exactly one subsequence, so
+    it is exported whole. Windowing lives on the import (see ElanImportTranscriptionSequence).
     """
 
     input: Path
     output: Path
-    start: NonNegativeInt | VideoTimestamp = 0
-    end: int | VideoTimestamp = -1  # -1 means end of recording
+    tracks: list[str] = Field(min_length=1)
 
 
 class ElanExportTranscriptionConfig(BaseModel):
     log_level: str
     log_file_path: Path
 
-    # Word/speaker tiers are opt-in: segment-level text is the default deliverable.
-    include_words: bool = False
-    include_speaker: bool = False
-
-    # Per-speaker segment tiers (<track>__<speaker>) for multi-speaker tracks — easier to label.
-    include_speaker_segments: bool = False
-    # How to place a segment whose words span multiple speakers: "dominant" keeps it whole under the
-    # majority speaker; "split" breaks it into separate segments at speaker changes.
-    mixed_segment_strategy: Literal["dominant", "split"] = "dominant"
+    export_segments: bool
+    export_words: bool
 
     run: dict[str, ElanTranscriptionSequence]
 
     @model_validator(mode="after")
-    def _speaker_needs_words(self) -> "ElanExportTranscriptionConfig":
-        # Speaker labels are stored per word (word_segments[].speaker)
-        if self.include_speaker and not self.include_words:
+    def _at_least_one_family(self) -> "ElanExportTranscriptionConfig":
+        if not (self.export_segments or self.export_words):
             raise ValueError(
-                "include_speaker = true requires include_words = true: speaker labels are stored "
-                "per word. Standalone speaker turns belong to the audio_diarization component."
-            )
-        # The import rebuilds word_segments (with unchanged timings) from the word tier, so the
-        # per-speaker segment cycle needs the word tier present.
-        if self.include_speaker_segments and not self.include_words:
-            raise ValueError(
-                "include_speaker_segments = true requires include_words = true: the import rebuilds "
-                "word_segments from the word tier, keeping word timings unchanged."
+                "At least one of export_segments, export_words must be true, "
+                "otherwise the export writes an empty file."
             )
         return self
 
@@ -95,4 +81,19 @@ class ElanImportTranscriptionConfig(BaseModel):
     log_level: str
     log_file_path: Path
 
+    export_srt: bool
+    export_csv: bool
+
+    import_segments: bool
+    import_words: bool
+
     run: dict[str, ElanTranscriptionSequence]
+
+    @model_validator(mode="after")
+    def _at_least_one_family(self) -> "ElanImportTranscriptionConfig":
+        if not (self.import_segments or self.import_words):
+            raise ValueError(
+                "At least one of import_segments, import_words must be true, "
+                "otherwise the import writes an empty transcript."
+            )
+        return self

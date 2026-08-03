@@ -14,6 +14,10 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
 from nicetoolbox_core.entrypoint import run_inference_entrypoint
 
+# Raw pack read back by crisper_whisper_detector.post_inference (kept in sync manually; importing
+# the detector module here would pull main-env deps into the crisper_whisper-only venv).
+RAW_TRANSCRIPTION_JSON_NAME = "crisper_whisper_transcription_raw.json"
+
 
 def adjust_pauses_for_hf_pipeline_output(pipeline_output, split_threshold=0.12):
     """
@@ -57,19 +61,15 @@ def crisper_whisper_inference(config: dict) -> None:
     logging.info("Starting CrisperWhisper Inference Pipeline.")
 
     # (1) Unpack config fields
-    extra_detector_output_folder = config["out_folder"]  # additional detector results (raw per-track JSONs)
+    out_folder = config["out_folders"]["audio_transcription"]
 
     batch_size = config["batch_size"]
     chunk_length_s = config["chunk_length_s"]
     stride_length_s = config["stride_length_s"]
-    _ = config["vad_onset"]  # TODO: Does it exist in CrisperWhisper?
-    _ = config["vad_offset"]
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     compute_type = torch.float32 if device == "cuda:0" else torch.int8
 
-    cache_raw = config.get("hf_weights_cache_dir")
-    if not cache_raw:
-        raise ValueError("CrisperWhisper config must set hf_weights_cache_dir (see CrisperWhisperConfig).")
+    cache_raw = config["hf_weights_cache_dir"]
     assets_dir = str(Path(cache_raw).expanduser())
     os.makedirs(assets_dir, exist_ok=True)
 
@@ -112,6 +112,7 @@ def crisper_whisper_inference(config: dict) -> None:
     )
 
     # (4) Process each track
+    out_transcription = {}
     for track_name, path, offset, duration in audio_loader:
         logging.info(f"Processing track: {track_name}")
 
@@ -123,11 +124,12 @@ def crisper_whisper_inference(config: dict) -> None:
         pipeline_results = pipe(audio)
 
         # (4.3) Adjust crisper whisper timesteps
-        results = adjust_pauses_for_hf_pipeline_output(pipeline_results)
+        out_transcription[track_name] = adjust_pauses_for_hf_pipeline_output(pipeline_results)
 
-        # (4.4) Save raw per-track output; post_inference() transforms this to the standardized format
-        os.makedirs(extra_detector_output_folder, exist_ok=True)
-        with open(os.path.join(extra_detector_output_folder, f"{track_name}.json"), "w") as f:
-            json.dump(results, f, indent=4)
+    # (5) Save the raw intermediate; post_inference converts it to its schema model and the
+    # framework saves the component's final json.
+    os.makedirs(out_folder, exist_ok=True)
+    with open(os.path.join(out_folder, RAW_TRANSCRIPTION_JSON_NAME), "w") as f:
+        json.dump(out_transcription, f, indent=4)
 
     logging.info("CrisperWhisper processing complete.")

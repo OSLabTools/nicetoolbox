@@ -413,8 +413,6 @@ env_name = "venv:crisper_whisper"
 batch_size = 1
 chunk_length_s = 30
 stride_length_s = 5
-vad_onset = 0.9
-vad_offset = 0.9
 visualize = true
 hf_weights_cache_dir = "<assets>/crisper_whisper"
 

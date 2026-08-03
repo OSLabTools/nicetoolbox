@@ -57,7 +57,7 @@ Per component, the `<algorithm_name>.json` file contains the output of the audio
             },
             // next segment ...
         ],
-        "word_segments": [
+        "words": [
             {
                 "word": "word_text",
                 "start": "word_start_time",
@@ -233,7 +233,7 @@ Calculated by comparing the vertical distance between the eyelid keypoints to th
 
 Extracts transcribed text from audio sources. The **audio_transcription** component converts spoken language in the audio tracks into written text. Depending on the underlying methodology, it may apply techniques like Voice Activity Detection (VAD) and forced alignment to generate highly accurate word-level or segment-level transcriptions. The intermediate outputs are saved in `<output_folder>/audio_transcription/<algorithm_name>.json`.
 
-Available algorithms are *WhisperX* and *CrisperWhisper*. Both write their results in the same unified format. Per track, the JSON holds a `segments` list (segment text with start/end times) and a `word_segments` list (individual words with start/end times). *WhisperX* obtains word-level timestamps via forced phoneme alignment, while *CrisperWhisper* produces a verbatim transcription — keeping disfluencies and fillers — with timestamps tuned to localize word boundaries around pauses.
+Available algorithms are *WhisperX* and *CrisperWhisper*. Both write their results in the same unified format. Per track, the JSON holds a `segments` list (segment text with start/end times) and a `words` list (individual words with start/end times). *WhisperX* obtains word-level timestamps via forced phoneme alignment, while *CrisperWhisper* produces a verbatim transcription — keeping disfluencies and fillers — with timestamps tuned to localize word boundaries around pauses.
 
 Both algorithms also emit per-track subtitle `.srt` files (with word-level highlighting) into the detector output directory, which are used to bake subtitle overlays into video files during visualization.
 

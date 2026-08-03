@@ -1,29 +1,59 @@
-"""Conversion between NICE transcription JSON and ELAN tiers (both directions).
-
-Tier naming follows the transcription JSON's own track keys, joined by a "__" delimiter so track
-names and speaker labels (both of which contain single underscores) stay unambiguous:
-
-- "<track>"                 segment tier — the sentence-level text (the WER reference)
-- "<track>__words"          word tier — one interval per word (opt-in)
-- "<track>__speaker"        turn tier — contiguous same-speaker words merged into turns (opt-in)
-- "<track>__<speakerlabel>" per-speaker segment tier — one per speaker on a multi-speaker track,
-                            holding just that speaker's segments (opt-in). On import these become
-                            the authority for segment timings/text (see tiers_to_transcript).
-"""
-
 import logging
-from collections import Counter, defaultdict
+from collections import defaultdict
+
+from nicetoolbox_core.data.json_schema import (
+    AlignedSegment,
+    AlignedTranscription,
+    AlignedWord,
+    AudioTranscription,
+    AudioTranscriptionSegment,
+    AudioTranscriptionTotal,
+    AudioTranscriptionWord,
+    JsonMeta,
+    SpeakerAlignedTranscription,
+    TrackTranscription,
+)
 
 from .elan_data import Interval, Tier
 
-DELIM = "__"
-WORDS_ROLE = "words"
-SPEAKER_ROLE = "speaker"
+# The two transcription components this connector handles. Both share the {meta, tracks} envelope
+# and differ only in whether words and segments carry a speaker.
+TranscriptionModel = AudioTranscription | SpeakerAlignedTranscription
+TrackModel = TrackTranscription | AlignedTranscription
+SegmentModel = AudioTranscriptionSegment | AlignedSegment
+WordModel = AudioTranscriptionWord | AlignedWord
 
-_SEGMENTS = "segments"
-_WORDS = "words"
-_SPEAKER = "speaker"
-_SPEAKER_SEGMENTS = "speaker_segments"
+# meta.component value identifying the speaker-aligned variant, whose words and segments carry
+# speaker labels; the plain variant is the other. Which model a file is validated against is
+# decided by this name, so it must be one of these two — see parse_transcription.
+SPEAKER_ALIGNED_COMPONENT = "speaker_aligned_transcription"
+AUDIO_TRANSCRIPTION_COMPONENT = "audio_transcription"
+
+COMPONENT_MODELS = {
+    AUDIO_TRANSCRIPTION_COMPONENT: AudioTranscription,
+    SPEAKER_ALIGNED_COMPONENT: SpeakerAlignedTranscription,
+}
+
+DELIM = "__"
+SEGMENTS_ROLE = "segments"
+WORDS_ROLE = "words"
+
+# Tier label for items diarization left unlabeled. Also catches every item of a plain
+# audio_transcription, whose words and segments carry no speaker field at all — an expected
+# outcome for that component, not a problem, so landing here is not warned about.
+UNASSIGNED_SPEAKER = "unassigned"
+
+# Recorded as meta.algorithm on import: the result is hand-corrected ELAN data, not the output of
+# the detector the txt was originally exported from.
+ELAN_ALGORITHM = "elan"
+
+# speaker_confidence given to every imported segment. On detector output the score measures how far
+# diarization and transcription disagree — two independent estimates. An imported segment has no
+# such second opinion: its speaker comes from the tier name an annotator chose, which is by
+# definition authoritative. Recomputing it from the word tiers would not measure that, since ELAN
+# does not tie words to segments — an annotator may retime either freely, and words falling outside
+# a segment's span would read as disagreement rather than as an unrelated edit.
+ELAN_SPEAKER_CONFIDENCE = 1.0
 
 
 # =============================================================================
@@ -31,111 +61,125 @@ _SPEAKER_SEGMENTS = "speaker_segments"
 # =============================================================================
 
 
-def _merge_speaker_turns(words: list[dict]) -> list[Interval]:
-    """Collapse runs of consecutive words sharing a speaker into one turn interval."""
-    turns: list[Interval] = []
-    previous: str | None = None
+def parse_transcription(raw: dict) -> TranscriptionModel:
+    """Validate a raw component file into the model its `meta.component` names.
 
-    for word in words:
-        speaker = word.get("speaker")
-        if speaker is None:
-            previous = None  # a gap ends the current run
-            continue
-        if turns and previous == speaker:
-            turns[-1] = Interval(turns[-1].start_sec, word["end"], speaker)
-        else:
-            turns.append(Interval(word["start"], word["end"], speaker))
-        previous = speaker
-
-    return turns
-
-
-def _segment_words(segment: dict, words: list[dict]) -> list[dict]:
-    """Words belonging to a segment: those whose midpoint falls inside it (an exact partition)."""
-    return [w for w in words if segment["start"] <= (w["start"] + w["end"]) / 2 <= segment["end"] and w.get("speaker")]
-
-
-def _contiguous_speaker_runs(words: list[dict]) -> list[list[dict]]:
-    """Split a word list into maximal runs of consecutive words sharing a speaker."""
-    runs: list[list[dict]] = []
-    for word in words:
-        if runs and runs[-1][-1]["speaker"] == word["speaker"]:
-            runs[-1].append(word)
-        else:
-            runs.append([word])
-    return runs
-
-
-def _speaker_segment_tiers(track: str, segments: list[dict], words: list[dict], strategy: str) -> list[Tier]:
-    """Build per-speaker segment tiers for a multi-speaker track (empty for single-speaker tracks).
-
-    `dominant` keeps each segment whole under the speaker owning most of its words; `split`
-    breaks a segment at speaker changes into separate segments (text rebuilt from the words).
+    Raises:
+        ValueError: When `meta` is absent, carries no `component`, or names a component this
+            connector does not handle.
     """
-    speakers = {w["speaker"] for w in words if w.get("speaker")}
-    if len(speakers) <= 1:
-        return []
+    meta = raw.get("meta")
+    if not isinstance(meta, dict):
+        raise ValueError(
+            "Transcription file has no 'meta' block, so the component it holds cannot be "
+            "determined. Expected a component output of the form {'meta': ..., 'tracks': ...}."
+        )
 
+    component = meta.get("component")
+    if not component:
+        raise ValueError(
+            f"Transcription file's meta has no 'component', so it cannot be validated. "
+            f"Expected one of: {sorted(COMPONENT_MODELS)}."
+        )
+
+    if component not in COMPONENT_MODELS:
+        raise ValueError(
+            f"Transcription file names component '{component}', which this connector does not "
+            f"handle. Expected one of: {sorted(COMPONENT_MODELS)}."
+        )
+
+    return COMPONENT_MODELS[component].model_validate(raw)
+
+
+def select_tracks(transcript: TranscriptionModel, tracks: list[str]) -> TranscriptionModel:
+    """Narrow a component output to the named tracks, keeping their order in the file.
+
+    The selection must name at least one track — there is no "all tracks" shortcut, so a run never
+    silently widens to tracks the config did not ask for. A requested name the file does not carry
+    is an error too: quietly handling fewer tracks than asked for would look like the detector had
+    missed them.
+    """
+    if not tracks:
+        raise ValueError(
+            f"No tracks selected. Name the tracks to handle explicitly; "
+            f"this component output carries: {sorted(transcript.tracks)}."
+        )
+
+    missing = [name for name in tracks if name not in transcript.tracks]
+    if missing:
+        raise ValueError(
+            f"Requested track(s) {missing} not found in this component output. "
+            f"Available tracks: {sorted(transcript.tracks)}."
+        )
+
+    kept = {name: payload for name, payload in transcript.tracks.items() if name in set(tracks)}
+    return transcript.model_copy(update={"tracks": kept})
+
+
+def _per_speaker_tiers(track: str, role: str, items: list, text_of) -> list[Tier]:
+    """Split items into one tier per speaker: `<track>__<role>__<speaker>`"""
     per_speaker: dict[str, list[Interval]] = defaultdict(list)
-    for seg in segments:
-        seg_words = _segment_words(seg, words)
-        span = f"[{seg['start']:.3f}s, {seg['end']:.3f}s]"
-        if not seg_words:
-            logging.warning(
-                f"Track '{track}': segment {span} has no speaker-labeled words, skipped in per-speaker tiers."
-            )
-            continue
-
-        if strategy == "dominant":
-            dominant = Counter(w["speaker"] for w in seg_words).most_common(1)[0][0]
-            if len({w["speaker"] for w in seg_words}) > 1:
-                logging.warning(
-                    f"Track '{track}': segment {span} mixes speakers; assigned whole to dominant '{dominant}'."
-                )
-            per_speaker[dominant].append(Interval(seg["start"], seg["end"], str(seg.get("text", "")).strip()))
-        else:  # split
-            for run in _contiguous_speaker_runs(seg_words):
-                per_speaker[run[0]["speaker"]].append(
-                    Interval(run[0]["start"], run[-1]["end"], " ".join(w["word"] for w in run))
-                )
+    for item in items:
+        # None (diarization left it unlabelled) and no speaker field at all (the plain component)
+        # both land in the same bucket, so `or` rather than getattr's default.
+        speaker = getattr(item, "speaker", None) or UNASSIGNED_SPEAKER
+        per_speaker[speaker].append(Interval(item.start, item.end, text_of(item)))
 
     return [
-        Tier(f"{track}{DELIM}{speaker}", sorted(ivs, key=lambda iv: iv.start_sec))
+        Tier(f"{track}{DELIM}{role}{DELIM}{speaker}", sorted(ivs, key=lambda iv: iv.start_sec))
         for speaker, ivs in sorted(per_speaker.items())
     ]
 
 
+def _shift(tiers: list[Tier], offset: float) -> list[Tier]:
+    """Move every interval by offset seconds."""
+    return [
+        Tier(
+            tier.tier_name,
+            [Interval(iv.start_sec + offset, iv.end_sec + offset, iv.annotation) for iv in tier.intervals],
+        )
+        for tier in tiers
+    ]
+
+
+def _is_timed(item: SegmentModel | WordModel) -> bool:
+    """True when an item carries both timings, so it can anchor an ELAN interval."""
+    return item.start is not None and item.end is not None
+
+
 def transcript_to_tiers(
-    transcript: dict,
-    include_words: bool = False,
-    include_speaker: bool = False,
-    include_speaker_segments: bool = False,
-    mixed_segment_strategy: str = "dominant",
+    transcript: TranscriptionModel,
+    export_segments: bool = True,
+    export_words: bool = False,
 ) -> list[Tier]:
-    """Build ELAN tiers from a transcription JSON payload keyed by track name."""
+    """Build ELAN tiers from a transcription component output."""
     tiers: list[Tier] = []
 
-    for track, payload in transcript.items():
-        if not isinstance(payload, dict):
-            logging.warning(f"Track '{track}' payload is not an object, skipping.")
-            continue
+    for track, payload in transcript.tracks.items():
+        # Timings are Optional in the schema (alignment can fail to place an item), but an ELAN
+        # interval needs both ends. Untimed items are dropped rather than crashing the export.
+        segments = [s for s in payload.segments if _is_timed(s)]
+        words = [w for w in payload.words if _is_timed(w)]
 
-        segments = payload.get("segments") or []
-        tiers.append(Tier(track, [Interval(s["start"], s["end"], str(s.get("text", "")).strip()) for s in segments]))
-
-        words = payload.get("word_segments") or []
-        if include_words and words:
-            tiers.append(
-                Tier(f"{track}{DELIM}{WORDS_ROLE}", [Interval(w["start"], w["end"], w["word"]) for w in words])
+        untimed_segments = len(payload.segments) - len(segments)
+        if untimed_segments:
+            logging.warning(
+                f"Track '{track}': {untimed_segments} segment(s) without timings, omitted from the ELAN tiers."
             )
-        if include_speaker and words:
-            turns = _merge_speaker_turns(words)
-            if turns:
-                tiers.append(Tier(f"{track}{DELIM}{SPEAKER_ROLE}", turns))
-            else:
-                logging.warning(f"Track '{track}': no speaker labels on words, no speaker tier written.")
-        if include_speaker_segments and words:
-            tiers.extend(_speaker_segment_tiers(track, segments, words, mixed_segment_strategy))
+        untimed_words = len(payload.words) - len(words)
+        if untimed_words:
+            logging.warning(f"Track '{track}': {untimed_words} word(s) without timings, omitted from the ELAN tiers.")
+
+        if export_segments:
+            tiers.extend(_per_speaker_tiers(track, SEGMENTS_ROLE, segments, lambda s: s.text.strip()))
+        if export_words:
+            tiers.extend(_per_speaker_tiers(track, WORDS_ROLE, words, lambda w: w.word))
+
+    # Applied once to the finished tiers rather than at each Interval construction above, so every
+    # tier kind (segments, words) is guaranteed the same shift.
+    offset = transcript.meta.subsequence_start
+    logging.info(f"Shifting tiers by subsequence_start = {offset:.3f}s onto the recording timeline.")
+    tiers = _shift(tiers, offset)
 
     return tiers
 
@@ -145,179 +189,181 @@ def transcript_to_tiers(
 # =============================================================================
 
 
-def _split_tier_name(tier_name: str) -> tuple[str, str, str | None]:
-    """Map a tier name back to its (track, role, speaker_label).
+def _split_tier_name(tier_name: str) -> tuple[str, str, str]:
+    """Map a tier name back to its (track, role, speaker).
 
-    speaker_label is set only for per-speaker segment tiers; None otherwise.
+    Tier names are `<track>__<role>__<speaker>`, and the track itself may contain the delimiter,
+    so the role and speaker are taken from the right.
     """
-    if DELIM not in tier_name:
-        return tier_name, _SEGMENTS, None
-    track, suffix = tier_name.rsplit(DELIM, 1)
-    if suffix == WORDS_ROLE:
-        return track, _WORDS, None
-    if suffix == SPEAKER_ROLE:
-        return track, _SPEAKER, None
-    return track, _SPEAKER_SEGMENTS, suffix
+    parts = tier_name.rsplit(DELIM, 2)
+    if len(parts) != 3 or parts[1] not in (SEGMENTS_ROLE, WORDS_ROLE):
+        raise ValueError(
+            f"Tier '{tier_name}' does not follow the '<track>{DELIM}<role>{DELIM}<speaker>' naming, "
+            f"where role is '{SEGMENTS_ROLE}' or '{WORDS_ROLE}'. It cannot be imported."
+        )
+    return parts[0], parts[1], parts[2]
 
 
-def _collapse_ws(text: str) -> str:
-    return " ".join(text.split())
+def _group_tiers(tiers: list[Tier], roles_wanted: set[str]) -> dict[str, dict[str, list[tuple[Interval, str]]]]:
+    """Group intervals per track and role, tagging each with the speaker from its tier name.
 
-
-def _words_of_segment(segment: Interval, words: list[Interval]) -> list[Interval]:
-    """Words belonging to a segment: those whose midpoint falls inside it (an exact partition)."""
-    return [w for w in words if segment.start_sec <= (w.start_sec + w.end_sec) / 2 <= segment.end_sec]
-
-
-def _check_segment_word_consistency(track: str, segments: list[Interval], words: list[Interval]) -> None:
-    """Fail when a segment's text disagrees with its underlying word tier.
-
-    Both tiers are annotator-editable, so a mismatch means one of them was corrected and the other
-    was not — silently trusting either would corrupt the reference text or the word timings.
+    Per-speaker tiers of the same role are merged back into one time-ordered list, since the split
+    exists only to make labelling in ELAN easier — the payload keeps a single list per role. Roles
+    outside `roles_wanted` are dropped here, so everything downstream sees one consistent view.
     """
-    for segment in segments:
-        expected = _collapse_ws(segment.annotation)
-        joined = _collapse_ws(" ".join(w.annotation for w in _words_of_segment(segment, words)))
-        if joined != expected:
-            raise ValueError(
-                f"Track '{track}': segment [{segment.start_sec:.3f}s, {segment.end_sec:.3f}s] text does not "
-                f"match its words.\n  segment text: {expected!r}\n  joined words: {joined!r}\n"
-                "Correct both tiers consistently in ELAN, or export without the word tier."
-            )
-
-
-def _speaker_for(word: Interval, turns: list[Interval]) -> str | None:
-    """Speaker of the turn overlapping this word the most, or None if no turn overlaps."""
-    best: str | None = None
-    best_overlap = 0.0
-    for turn in turns:
-        overlap = min(word.end_sec, turn.end_sec) - max(word.start_sec, turn.start_sec)
-        if overlap > best_overlap:
-            best_overlap = overlap
-            best = turn.annotation
-    return best
-
-
-def _build_total(segments: list[Interval]) -> dict:
-    texts = [s.annotation.strip() for s in segments if s.annotation.strip()]
-    return {
-        "text": " ".join(texts),
-        "start": min((s.start_sec for s in segments), default=None),
-        "end": max((s.end_sec for s in segments), default=None),
-    }
-
-
-def _word_segments_from(words: list[Interval], speaker_source: list[Interval], track: str) -> list[dict]:
-    """Rebuild word_segments with unchanged timings, tagging each word with its overlapping speaker."""
-    out: list[dict] = []
-    uncovered = 0
-    for word in words:
-        entry = {"word": word.annotation, "start": word.start_sec, "end": word.end_sec}
-        if speaker_source:
-            speaker = _speaker_for(word, speaker_source)
-            if speaker is None:
-                uncovered += 1
-            else:
-                entry["speaker"] = speaker
-        out.append(entry)
-    if uncovered:
-        logging.warning(f"Track '{track}': {uncovered} word(s) not covered by any speaker interval.")
-    return out
-
-
-def _group_tiers(tiers: list[Tier]) -> dict[str, dict]:
-    """Group tiers per track into their roles, collecting per-speaker segment tiers by label."""
-    grouped: dict[str, dict] = defaultdict(lambda: {_SPEAKER_SEGMENTS: {}})
+    grouped: dict[str, dict[str, list[tuple[Interval, str]]]] = defaultdict(lambda: {SEGMENTS_ROLE: [], WORDS_ROLE: []})
     for tier in tiers:
         track, role, speaker = _split_tier_name(tier.tier_name)
-        if role == _SPEAKER_SEGMENTS:
-            if speaker in grouped[track][_SPEAKER_SEGMENTS]:
-                raise ValueError(f"Track '{track}' has more than one per-speaker tier for '{speaker}'.")
-            grouped[track][_SPEAKER_SEGMENTS][speaker] = tier
-        else:
-            if role in grouped[track]:
-                raise ValueError(f"Track '{track}' has more than one '{role}' tier ('{tier.tier_name}').")
-            grouped[track][role] = tier
+        if role not in roles_wanted:
+            continue
+        grouped[track][role].extend((interval, speaker) for interval in tier.intervals)
+
+    for roles in grouped.values():
+        for items in roles.values():
+            items.sort(key=lambda pair: pair[0].start_sec)
     return grouped
 
 
-def _transcript_from_speaker_segments(track: str, roles: dict) -> dict:
-    """Authority path: per-speaker segment tiers drive segments; word timings stay untouched.
+def _speaker_or_none(speaker: str) -> str | None:
+    """The tier's speaker label, or None for the bucket holding unlabelled items."""
+    return None if speaker == UNASSIGNED_SPEAKER else speaker
 
-    Annotators corrected only the per-speaker segment tiers, so those define segment timings/text.
-    The plain segment tier and turn tier are ignored, and no segment<->word consistency is enforced
-    (segments were edited independently of the words).
+
+def _segment_index_of(word: Interval, segments: list[tuple[Interval, str]]) -> int | None:
+    """Position of the segment a word belongs to, or None when no segment covers it.
+
+    ELAN tiers are flat and independently editable, so the grouping the detector recorded is not
+    carried by the file and has to be rebuilt. A word belongs to the segment containing its
+    midpoint: that is an exact partition, so a word straddling a boundary lands in one segment
+    rather than both. A word in a gap between segments belongs to none — hence the None, which is
+    a real outcome here rather than an error.
     """
-    if _WORDS not in roles:
-        raise ValueError(
-            f"Track '{track}' has per-speaker segment tiers but no word tier '{track}{DELIM}{WORDS_ROLE}'. "
-            "Word timings are carried by the word tier and must be present to rebuild word_segments. "
-            "Re-export from ELAN with the word tier included."
-        )
-
-    # Each per-speaker interval is one segment (annotation = its text). The speaker label lives in
-    # the tier name, so build a parallel speaker-tagged interval list to re-derive word speakers.
-    segments: list[Interval] = []
-    speaker_source: list[Interval] = []
-    for speaker_label, tier in roles[_SPEAKER_SEGMENTS].items():
-        for iv in tier.intervals:
-            segments.append(iv)
-            speaker_source.append(Interval(iv.start_sec, iv.end_sec, speaker_label))
-    segments.sort(key=lambda iv: iv.start_sec)
-    speaker_source.sort(key=lambda iv: iv.start_sec)
-
-    words = sorted(roles[_WORDS].intervals, key=lambda iv: iv.start_sec)
-
-    return {
-        "total": _build_total(segments),
-        "segments": [{"start": s.start_sec, "end": s.end_sec, "text": s.annotation} for s in segments],
-        "word_segments": _word_segments_from(words, speaker_source, track),
-    }
+    midpoint = (word.start_sec + word.end_sec) / 2
+    for index, (segment, _) in enumerate(segments):
+        if segment.start_sec <= midpoint <= segment.end_sec:
+            return index
+    return None
 
 
-def _transcript_from_plain_segments(track: str, roles: dict) -> dict:
-    """Default path: the plain <track> segment tier is authoritative, checked against the words."""
-    if _SEGMENTS not in roles:
-        raise ValueError(
-            f"Track '{track}' has {sorted(k for k in roles if k != _SPEAKER_SEGMENTS)} tier(s) but no segment "
-            f"tier named '{track}'. The segment tier carries the reference text and is required."
-        )
-
-    segments = sorted(roles[_SEGMENTS].intervals, key=lambda iv: iv.start_sec)
-    payload: dict = {
-        "total": _build_total(segments),
-        # Text is stored verbatim: normalization (casing, punctuation, disfluencies) is the
-        # evaluation metric's decision, not the connector's.
-        "segments": [{"start": s.start_sec, "end": s.end_sec, "text": s.annotation} for s in segments],
-    }
-
-    turns = sorted(roles[_SPEAKER].intervals, key=lambda iv: iv.start_sec) if _SPEAKER in roles else []
-    if turns and _WORDS not in roles:
-        # Speaker labels ride on word_segments, so without a word tier there is nowhere to put
-        # them and the annotator's turn corrections would be silently dropped.
-        raise ValueError(
-            f"Track '{track}' has a speaker tier but no word tier '{track}{DELIM}{WORDS_ROLE}'. "
-            "Speaker labels are stored per word, so a word tier is required to carry them. "
-            "Re-export with include_words = true, or drop the speaker tier."
-        )
-
-    if _WORDS in roles:
-        words = sorted(roles[_WORDS].intervals, key=lambda iv: iv.start_sec)
-        _check_segment_word_consistency(track, segments, words)
-        payload["word_segments"] = _word_segments_from(words, turns, track)
-
-    return payload
+def _build_total(segments: list[tuple[Interval, str]]) -> AudioTranscriptionTotal:
+    texts = [iv.annotation.strip() for iv, _ in segments if iv.annotation.strip()]
+    return AudioTranscriptionTotal(
+        text=" ".join(texts),
+        # The model requires both bounds; an empty tier has none, so it collapses to an empty span.
+        start=min((iv.start_sec for iv, _ in segments), default=0.0),
+        end=max((iv.end_sec for iv, _ in segments), default=0.0),
+    )
 
 
-def tiers_to_transcript(tiers: list[Tier]) -> dict:
-    """Rebuild a transcription JSON payload from annotator-corrected ELAN tiers."""
-    grouped = _group_tiers(tiers)
+def _track_from_tiers(roles: dict[str, list[tuple[Interval, str]]], aligned: bool) -> TrackModel:
+    """Rebuild one track's payload from its grouped segment and word intervals.
 
-    out: dict = {}
+    Text and timings are taken verbatim: normalization (casing, punctuation, disfluencies) is the
+    evaluation metric's decision, not the connector's. A role with no tiers becomes an empty list,
+    since the schema requires both fields.
+    """
+    if aligned:
+        words = [
+            AlignedWord(
+                word=iv.annotation,
+                segment_index=_segment_index_of(iv, roles[SEGMENTS_ROLE]),
+                start=iv.start_sec,
+                end=iv.end_sec,
+                speaker=_speaker_or_none(speaker),
+            )
+            for iv, speaker in roles[WORDS_ROLE]
+        ]
+        segments = [
+            AlignedSegment(
+                text=iv.annotation,
+                start=iv.start_sec,
+                end=iv.end_sec,
+                speaker=_speaker_or_none(speaker),
+                speaker_confidence=ELAN_SPEAKER_CONFIDENCE,
+            )
+            for iv, speaker in roles[SEGMENTS_ROLE]
+        ]
+        return AlignedTranscription(total=_build_total(roles[SEGMENTS_ROLE]), segments=segments, words=words)
+
+    return TrackTranscription(
+        total=_build_total(roles[SEGMENTS_ROLE]),
+        segments=[
+            AudioTranscriptionSegment(text=iv.annotation, start=iv.start_sec, end=iv.end_sec)
+            for iv, _ in roles[SEGMENTS_ROLE]
+        ],
+        words=[
+            AudioTranscriptionWord(
+                word=iv.annotation,
+                segment_index=_segment_index_of(iv, roles[SEGMENTS_ROLE]),
+                start=iv.start_sec,
+                end=iv.end_sec,
+            )
+            for iv, _ in roles[WORDS_ROLE]
+        ],
+    )
+
+
+def _infer_component(grouped: dict[str, dict[str, list[tuple[Interval, str]]]]) -> str:
+    """Decide which component a set of tiers holds, from whether anything carries a speaker.
+
+    A file whose every tier is the `unassigned` bucket came from a plain audio_transcription, which
+    has no speaker field at all. Anything with a real label is speaker-aligned. The one ambiguous
+    case — a speaker-aligned file where diarization failed on every item — is read as plain, which
+    is the honest reading of a file that carries no speaker information.
+    """
+    labelled = any(
+        speaker != UNASSIGNED_SPEAKER for roles in grouped.values() for items in roles.values() for _, speaker in items
+    )
+    return SPEAKER_ALIGNED_COMPONENT if labelled else AUDIO_TRANSCRIPTION_COMPONENT
+
+
+def tiers_to_transcript(
+    tiers: list[Tier],
+    algorithm: str = ELAN_ALGORITHM,
+    import_segments: bool = True,
+    import_words: bool = True,
+) -> TranscriptionModel:
+    """Rebuild a transcription component output from annotator-corrected ELAN tiers.
+
+    The meta block is derived entirely from the tiers, so no reference to the detector output the
+    txt was exported from is needed:
+
+    - `component` follows whether any tier carries a real speaker label (see _infer_component)
+    - `tables` is fixed by the payload shape
+    - `subsequence_start` is 0: the export shifted these onto the recording timeline and they stay
+      there, so imported annotation is recording-absolute like NPZ ground truth. Placing a
+      subsequence back on the timeline is the consumer's job, and these are already on it.
+    - `algorithm` records that this is hand-corrected ELAN data, not a detector's output
+
+    Args:
+        tiers: The parsed tiers of a corrected ELAN txt.
+        algorithm: Value recorded as `meta.algorithm`.
+        import_segments: Read the `segments` tiers. When False the payload's segments are empty and
+            every word is imported without a segment_index, there being nothing to point at.
+        import_words: Read the `words` tiers.
+    """
+    roles_wanted = {role for role, wanted in ((SEGMENTS_ROLE, import_segments), (WORDS_ROLE, import_words)) if wanted}
+    grouped = _group_tiers(tiers, roles_wanted)
+    component = _infer_component(grouped)
+    aligned = component == SPEAKER_ALIGNED_COMPONENT
+
+    tracks = {}
     for track, roles in grouped.items():
-        if roles[_SPEAKER_SEGMENTS]:
-            out[track] = _transcript_from_speaker_segments(track, roles)
-        else:
-            out[track] = _transcript_from_plain_segments(track, roles)
-
-    return out
+        payload = _track_from_tiers(roles, aligned)
+        # A word in a gap between segments is kept, but it is worth saying so: on detector output
+        # every word sits inside a segment, so strays mean the two tiers were retimed apart. Only
+        # meaningful when both families were read — without segments there is nothing to fall in.
+        stray = sum(1 for word in payload.words if word.segment_index is None)
+        if stray and import_segments and import_words:
+            logging.warning(
+                f"Track '{track}': {stray} of {len(payload.words)} word(s) fall outside every segment "
+                "and are imported without a segment_index."
+            )
+        tracks[track] = payload
+    meta = JsonMeta(
+        component=component,
+        algorithm=algorithm,
+        subsequence_start=0.0,
+        tables={"tracks": [SEGMENTS_ROLE, "words"]},
+    )
+    return COMPONENT_MODELS[component](meta=meta, tracks=tracks)
