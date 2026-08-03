@@ -5,7 +5,7 @@ import logging
 import pytest
 
 from nicetoolbox.connectors.elan.elan_configs import GAZE_9COL, TRANSCRIPTION_4COL, ElanColumnSpec
-from nicetoolbox.connectors.elan.elan_data import Interval, Tier
+from nicetoolbox.connectors.elan.elan_data import ElanHeader, Interval, Tier
 from nicetoolbox.connectors.elan.elan_parser import parse_elan_file, parse_tiers
 from nicetoolbox.connectors.elan.elan_time import format_timecode, parse_time_cell
 from nicetoolbox.connectors.elan.elan_writer import write_elan_txt
@@ -168,6 +168,7 @@ def test_transcript_json_round_trip(tmp_path):
         component="speaker_aligned_transcription",
         algorithm="whisperx",
         subsequence_start=0.0,
+        subsequence_length=30.0,
         tables={"tracks": ["segments", "words"]},
     )
     transcript = parse_transcription(
@@ -200,7 +201,16 @@ def test_transcript_json_round_trip(tmp_path):
     assert [t.tier_name for t in tiers] == ["left_mic__segments__p1", "left_mic__words__p1"]
     write_elan_txt(path, tiers, TRANSCRIPTION_4COL)
 
-    out = tiers_to_transcript(parse_elan_file(path, TRANSCRIPTION_4COL).tiers)
+    # write_elan_txt emits only interval rows, so the file we just wrote carries no media header.
+    # The real round trip goes through ELAN, which adds one on its own export; this stands in for it.
+    header = ElanHeader(
+        ms_per_sample=40.0,
+        offset=0,
+        duration_ms=30000,
+        media_files=["file:///data/view_center.mp4"],
+        data_start_line=1,
+    )
+    out = tiers_to_transcript(parse_elan_file(path, TRANSCRIPTION_4COL).tiers, header)
     restored = out.tracks["left_mic"]
 
     # The payload survives the round trip; meta is rebuilt from the tiers, so the component is

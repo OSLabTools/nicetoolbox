@@ -132,6 +132,7 @@ def to_audio_transcription(
         component="audio_transcription",
         algorithm=algorithm,
         subsequence_start=subsequence_start,
+        subsequence_length=subsequence_length,
         tables={"tracks": ["segments", "words"]},
     )
     return AudioTranscription(meta=meta, tracks=tracks)
