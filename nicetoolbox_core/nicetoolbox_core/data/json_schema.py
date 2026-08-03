@@ -15,6 +15,8 @@ class JsonMeta(BaseModel):
     algorithm: str
     # ogirinal subsequence start in seconds
     subsequence_start: float
+    # subsequence duration in seconds,
+    subsequence_length: float
     # helper for generating csv tables
     # e.g. {"tracks": ["segments", "words"]} means: iterate the tracks mapping and, for
     # each entry, emit one CSV per listed field with a row per element.

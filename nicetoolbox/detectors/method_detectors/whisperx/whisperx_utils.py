@@ -120,8 +120,8 @@ def to_audio_transcription(
     Args:
         raw_tracks: {track_name: AlignedTranscriptionResult} as produced by whisperx.align.
         subsequence_start: Source-recording second this subsequence begins at.
-        subsequence_length: Length of the subsequence in seconds. Not recorded in meta; used only
-            as the total's end for a track that transcribed to nothing.
+        subsequence_length: Length of the subsequence in seconds. Recorded in meta, and used as
+            the total's end for a track that transcribed to nothing.
         algorithm: Detector instance name that produced this output.
     """
     tracks = {}
@@ -134,18 +134,24 @@ def to_audio_transcription(
         component="audio_transcription",
         algorithm=algorithm,
         subsequence_start=subsequence_start,
+        subsequence_length=subsequence_length,
         tables={"tracks": ["segments", "words"]},
     )
     return AudioTranscription(meta=meta, tracks=tracks)
 
 
-def to_audio_diarization(raw_tracks: dict, subsequence_start: float, algorithm: str) -> AudioDiarization:
+def to_audio_diarization(
+    raw_tracks: dict, subsequence_start: float, subsequence_length: float, algorithm: str
+) -> AudioDiarization:
     """Convert raw per-track pyannote diarization records into the AudioDiarization model.
 
     Args:
         raw_tracks: {track_name: [record, ...]} as produced by the diarization pipeline.
         subsequence_start: Source-recording second this subsequence begins at; turn timings are
             relative to it.
+        subsequence_length: Length of the subsequence in seconds, recorded in meta. Unlike the
+            transcription models there is no total to fall back on, so this is the only record of
+            the span covered — a track where nobody spoke yields no turns at all.
         algorithm: Detector instance name that produced this output.
     """
     tracks = {}
@@ -157,6 +163,7 @@ def to_audio_diarization(raw_tracks: dict, subsequence_start: float, algorithm: 
         component="audio_diarization",
         algorithm=algorithm,
         subsequence_start=subsequence_start,
+        subsequence_length=subsequence_length,
         tables={"tracks": ["segments"]},
     )
     return AudioDiarization(meta=meta, tracks=tracks)
@@ -170,8 +177,8 @@ def to_speaker_aligned_transcription(
     Args:
         raw_tracks: {track_name: result} as produced by whisperx.assign_word_speakers.
         subsequence_start: Source-recording second this subsequence begins at.
-        subsequence_length: Length of the subsequence in seconds. Not recorded in meta; used only
-            as the total's end for a track that transcribed to nothing.
+        subsequence_length: Length of the subsequence in seconds. Recorded in meta, and used as
+            the total's end for a track that transcribed to nothing.
         algorithm: Detector instance name that produced this output.
     """
     tracks = {}
@@ -184,6 +191,7 @@ def to_speaker_aligned_transcription(
         component="speaker_aligned_transcription",
         algorithm=algorithm,
         subsequence_start=subsequence_start,
+        subsequence_length=subsequence_length,
         tables={"tracks": ["segments", "words"]},
     )
     return SpeakerAlignedTranscription(meta=meta, tracks=tracks)

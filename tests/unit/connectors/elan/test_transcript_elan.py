@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from nicetoolbox.connectors.elan.elan_configs import ElanExportTranscriptionConfig, ElanImportTranscriptionConfig
-from nicetoolbox.connectors.elan.elan_data import Interval, Tier
+from nicetoolbox.connectors.elan.elan_data import ElanHeader, Interval, Tier
 from nicetoolbox.connectors.elan.transcript_elan import (
     _split_tier_name,
     parse_transcription,
@@ -23,7 +23,17 @@ _META = JsonMeta(
     component="speaker_aligned_transcription",
     algorithm="whisperx",
     subsequence_start=12.5,
+    subsequence_length=30.0,
     tables={"tracks": ["segments", "words"]},
+)
+
+# The media header ELAN writes on every export; the import reads the covered span from it.
+_HEADER = ElanHeader(
+    ms_per_sample=40.0,
+    offset=0,
+    duration_ms=60000,
+    media_files=["file:///data/view_center.mp4"],
+    data_start_line=1,
 )
 
 # A source anchored at 0, for export cases where the shift would otherwise obscure the assertion.
@@ -229,10 +239,11 @@ def test_parse_transcription_rejects_unknown_component():
         parse_transcription(raw)
 
 
-def test_tiers_to_transcript_rejects_unknown_component():
-    meta = _META_S0.model_copy(update={"component": "audio_diarization"})
-    with pytest.raises(ValueError, match="does not "):
-        tiers_to_transcript([Tier("room", [Interval(0.0, 1.0, "hi")])], meta)
+def test_tiers_to_transcript_rejects_untagged_tier_name():
+    # The component is inferred from the tiers, so it is never unknown here; what a rebuilt
+    # transcript can fail on is a tier that does not carry the <track>__<role>__<speaker> naming.
+    with pytest.raises(ValueError, match="does not follow"):
+        tiers_to_transcript([Tier("room", [Interval(0.0, 1.0, "hi")])], _HEADER)
 
 
 def test_select_tracks_keeps_only_the_named_tracks():
@@ -311,7 +322,7 @@ def _tiers(*specs):
 
 def test_meta_is_derived_entirely_from_the_tiers():
     tiers = _tiers(("room__segments__S0", [(1.0, 2.0, "hello there")]))
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
 
     assert out.meta.component == "speaker_aligned_transcription"
     assert out.meta.algorithm == "elan"
@@ -323,7 +334,7 @@ def test_meta_is_derived_entirely_from_the_tiers():
 
 def test_component_is_plain_when_nothing_carries_a_speaker():
     tiers = _tiers(("room__segments__unassigned", [(0.0, 1.0, "hi")]))
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
 
     assert out.meta.component == "audio_transcription"
     # The plain word/segment types have no speaker field at all.
@@ -332,7 +343,7 @@ def test_component_is_plain_when_nothing_carries_a_speaker():
 
 def test_algorithm_can_be_overridden():
     tiers = _tiers(("room__segments__unassigned", [(0.0, 1.0, "hi")]))
-    assert tiers_to_transcript(tiers, algorithm="manual").meta.algorithm == "manual"
+    assert tiers_to_transcript(tiers, _HEADER, algorithm="manual").meta.algorithm == "manual"
 
 
 def test_per_speaker_tiers_merge_into_one_time_ordered_list():
@@ -341,7 +352,7 @@ def test_per_speaker_tiers_merge_into_one_time_ordered_list():
         ("room__segments__S1", [(2.0, 3.0, "second")]),
         ("room__segments__S0", [(0.0, 1.0, "first")]),
     )
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
 
     segments = out.tracks["room"].segments
     assert [(s.start, s.text, s.speaker) for s in segments] == [(0.0, "first", "S0"), (2.0, "second", "S1")]
@@ -352,7 +363,7 @@ def test_unassigned_tier_becomes_a_null_speaker():
         ("room__words__S0", [(0.0, 1.0, "a")]),
         ("room__words__unassigned", [(1.0, 2.0, "b")]),
     )
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
 
     assert [(w.word, w.speaker) for w in out.tracks["room"].words] == [("a", "S0"), ("b", None)]
 
@@ -374,26 +385,26 @@ def test_imported_segments_are_fully_confident(extra_tiers):
     # second estimate to disagree with it. The word tiers are not consulted: ELAN does not tie
     # words to segments, so their timings say nothing about the segment's speaker.
     tiers = _tiers(("room__segments__S0", [(0.0, 3.0, "a b c")]), *extra_tiers)
-    assert tiers_to_transcript(tiers).tracks["room"].segments[0].speaker_confidence == 1.0
+    assert tiers_to_transcript(tiers, _HEADER).tracks["room"].segments[0].speaker_confidence == 1.0
 
 
 def test_total_is_recomputed_from_the_segments():
     tiers = _tiers(("room__segments__S0", [(2.0, 3.0, "second part."), (0.5, 1.5, "First part,")]))
-    total = tiers_to_transcript(tiers).tracks["room"].total
+    total = tiers_to_transcript(tiers, _HEADER).tracks["room"].total
 
     assert (total.text, total.start, total.end) == ("First part, second part.", 0.5, 3.0)
 
 
 def test_text_is_stored_verbatim():
     tiers = _tiers(("room__segments__S0", [(0.0, 1.0, "End of this year [UH] last year.")]))
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
     assert out.tracks["room"].segments[0].text == "End of this year [UH] last year."
 
 
 def test_missing_role_becomes_an_empty_list():
     # The schema requires both fields, so a file with only segments still validates.
     tiers = _tiers(("room__segments__unassigned", [(0.0, 1.0, "hi")]))
-    assert tiers_to_transcript(tiers).tracks["room"].words == []
+    assert tiers_to_transcript(tiers, _HEADER).tracks["room"].words == []
 
 
 def test_import_flags_select_tier_families():
@@ -402,14 +413,14 @@ def test_import_flags_select_tier_families():
         ("room__words__S0", [(0.0, 1.0, "a"), (2.0, 3.0, "b")]),
     )
 
-    both = tiers_to_transcript(tiers).tracks["room"]
+    both = tiers_to_transcript(tiers, _HEADER).tracks["room"]
     assert (len(both.segments), len(both.words)) == (1, 2)
 
-    segments_only = tiers_to_transcript(tiers, import_words=False).tracks["room"]
+    segments_only = tiers_to_transcript(tiers, _HEADER, import_words=False).tracks["room"]
     assert (len(segments_only.segments), len(segments_only.words)) == (1, 0)
 
     # Without segments there is nothing for a word to point at, so every index is null.
-    words_only = tiers_to_transcript(tiers, import_segments=False).tracks["room"]
+    words_only = tiers_to_transcript(tiers, _HEADER, import_segments=False).tracks["room"]
     assert (len(words_only.segments), len(words_only.words)) == (0, 2)
     assert [w.segment_index for w in words_only.words] == [None, None]
 
@@ -432,7 +443,7 @@ def test_multiple_tracks_are_kept_separate():
         ("left_mic__segments__unassigned", [(0.0, 1.0, "left")]),
         ("right_mic__segments__unassigned", [(0.0, 1.0, "right")]),
     )
-    out = tiers_to_transcript(tiers)
+    out = tiers_to_transcript(tiers, _HEADER)
 
     assert sorted(out.tracks) == ["left_mic", "right_mic"]
     assert out.tracks["left_mic"].segments[0].text == "left"

@@ -159,11 +159,18 @@ def import_transcription(
         logging.info(f"Output: {sequence.output}")
 
         elan_data = parse_elan_file(sequence.input, TRANSCRIPTION_4COL)
+        if elan_data.header is None:
+            raise ValueError(
+                f"ELAN txt '{sequence.input}' has no media header line, so the span it covers is "
+                "unknown and meta.subsequence_length cannot be recorded. Re-export from ELAN with "
+                "the media file loaded and header option selected in export settings."
+            )
 
-        # meta is derived from the tiers themselves, so no reference to the detector output this
-        # txt was exported from is needed.
+        # meta is derived from the tiers plus ELAN's own media header, so no reference to the
+        # detector output this txt was exported from is needed.
         rebuilt = tiers_to_transcript(
             elan_data.tiers,
+            elan_data.header,
             import_segments=cfg.import_segments,
             import_words=cfg.import_words,
         )

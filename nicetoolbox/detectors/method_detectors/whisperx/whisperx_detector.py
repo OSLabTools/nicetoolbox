@@ -62,6 +62,7 @@ class WhisperX(BaseMethod):
         diarization = to_audio_diarization(
             raw_diarization,
             subsequence_start=start,
+            subsequence_length=length,
             algorithm=self.algorithm_instance,
         )
 

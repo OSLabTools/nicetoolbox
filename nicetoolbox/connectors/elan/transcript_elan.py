@@ -14,7 +14,7 @@ from nicetoolbox_core.data.json_schema import (
     TrackTranscription,
 )
 
-from .elan_data import Interval, Tier
+from .elan_data import ElanHeader, Interval, Tier
 
 # The two transcription components this connector handles. Both share the {meta, tracks} envelope
 # and differ only in whether words and segments carry a speaker.
@@ -319,24 +319,31 @@ def _infer_component(grouped: dict[str, dict[str, list[tuple[Interval, str]]]]) 
 
 def tiers_to_transcript(
     tiers: list[Tier],
+    header: ElanHeader,
     algorithm: str = ELAN_ALGORITHM,
     import_segments: bool = True,
     import_words: bool = True,
 ) -> TranscriptionModel:
     """Rebuild a transcription component output from annotator-corrected ELAN tiers.
 
-    The meta block is derived entirely from the tiers, so no reference to the detector output the
-    txt was exported from is needed:
+    The meta block is derived from the tiers plus ELAN's own media header, so no reference to the
+    detector output the txt was exported from is needed:
 
     - `component` follows whether any tier carries a real speaker label (see _infer_component)
     - `tables` is fixed by the payload shape
     - `subsequence_start` is 0: the export shifted these onto the recording timeline and they stay
       there, so imported annotation is recording-absolute like NPZ ground truth. Placing a
       subsequence back on the timeline is the consumer's job, and these are already on it.
+    - `subsequence_length` is the loaded media's duration, which pairs with the 0 start to say
+      "spans the whole recording"
     - `algorithm` records that this is hand-corrected ELAN data, not a detector's output
 
     Args:
         tiers: The parsed tiers of a corrected ELAN txt.
+        header: The txt's ELAN header, whose media line carries the duration of the media the
+            annotator loaded. Required: the tiers alone only evidence the last annotated moment,
+            which silently under-reports trailing silence, and a span guessed from them would be
+            indistinguishable from a real one downstream.
         algorithm: Value recorded as `meta.algorithm`.
         import_segments: Read the `segments` tiers. When False the payload's segments are empty and
             every word is imported without a segment_index, there being nothing to point at.
@@ -363,7 +370,8 @@ def tiers_to_transcript(
     meta = JsonMeta(
         component=component,
         algorithm=algorithm,
-        subsequence_start=0.0,
+        subsequence_start=0.0,  # ELAN export from begging of the file
+        subsequence_length=header.duration_ms / 1000.0,  # until the end of the file
         tables={"tracks": [SEGMENTS_ROLE, "words"]},
     )
     return COMPONENT_MODELS[component](meta=meta, tracks=tracks)
