@@ -272,8 +272,7 @@ visualize = true
 window_length = 11
 polyorder = 2
 [templates.gaze_fusion.inputs]
-gaze_per_camera_3d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_3d" }
-gaze_per_camera_2d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_2d" }
+gaze_per_camera_3d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_3d_filtered" }
 gaze_origin_2d     = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_origin_2d" }
 
 # average multiple 3d gaze vectors across cameras (weighted by confidence)
