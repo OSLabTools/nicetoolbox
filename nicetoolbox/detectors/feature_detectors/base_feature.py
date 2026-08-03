@@ -6,13 +6,13 @@ Feature detectors run computations in-process using method detector outputs.
 import logging
 import os
 from abc import abstractmethod
-from pathlib import Path
-from typing import Any, Dict, Tuple, final
+from typing import Any, Dict, final
 
 from ...configs.schemas.detectors_instances_configs import FeatureDetectorRuntime
 from ...utils.base_detectors import flatten_inference_config
 from ...utils.config import save_config
 from ..base_detector import BaseDetector
+from ..detector_outputs import DetectorOutput
 
 
 class BaseFeature(BaseDetector):
@@ -35,9 +35,6 @@ class BaseFeature(BaseDetector):
 
         # Some common fields
         self.subjects_descr = self.data.subjects_descr
-        # Legacy input paths for not-yet-migrated detectors (still on `input_detector_names`).
-        # Migrated detectors read `self.loaded_inputs` (resolved in BaseDetector) instead.
-        self.input_map = self._legacy_input_map()
         self.viz_folders = self.compute_viz_folders(self.visualize)
         self.out_folders = self.compute_output_folders(self.requires_out_folder)
         self.result_folders = self.compute_result_folders()
@@ -81,22 +78,6 @@ class BaseFeature(BaseDetector):
             subjects_descr=self.subjects_descr,
         )
 
-    def _legacy_input_map(self) -> Dict[Tuple[str, str], Path]:
-        """Build the legacy {(component, algorithm): npz_path} map from `input_detector_names`.
-
-        Kept only for detectors not yet migrated to declarative `inputs`. Empty for migrated
-        detectors (which declare `inputs` and use `self.loaded_inputs`).
-        """
-        input_map: Dict[Tuple[str, str], Path] = {}
-        for component, algorithm in getattr(self.detector_config, "input_detector_names", None) or []:
-            input_path = self.io.get_detector_output_folder(component, algorithm, "result")
-            input_map[(component, algorithm)] = input_path / f"{algorithm}.npz"
-        return input_map
-
-    def get_input_file(self, component: str, algorithm: str) -> Path:
-        """Legacy accessor for a not-yet-migrated detector's upstream NPZ path."""
-        return self.input_map[(component, algorithm)]
-
     def _build_inference_config(self) -> Dict[str, Any]:
         """
         Build flattened config dictionary (Static + Runtime).
@@ -114,39 +95,23 @@ class BaseFeature(BaseDetector):
     def _initialize_detector(self) -> None:
         pass
 
-    def run(self) -> Any:
+    def run(self) -> DetectorOutput:
         """
         Execute feature detector: compute(), then validate + save declared outputs.
-
-        For detectors that declare `outputs`, compute() returns a DetectorOutput which is
-        validated against the declaration and saved here (the detector no longer saves itself).
-        Detectors that declare no outputs keep the legacy path: compute() saves its own NPZ and
-        its return value is passed straight to visualization().
-
-        Returns the computed data (a DetectorOutput for migrated detectors), for visualization.
         """
+        # do the actual computation
         out = self.compute()
-        if not self.declared_outputs:
-            return out  # legacy: compute() already saved itself
+        # validate all outputs against defined outputs and schemas
         out.validate(self.declared_outputs)
-        out.validate_canonical_axes(*self._canonical_axes())
+        # validate that all npz have valid axes
+        subjects, cameras, frames = self.data.canonical_axes
+        out.validate_canonical_axes(subjects, cameras, frames)
+        # dump results on drive
         out.save(self.io, self.algorithm_instance)
         return out
 
-    def _canonical_axes(self) -> tuple[list[str], list[str], list[str]]:
-        """The sequence's canonical (subjects, cameras, frames) axis labels.
-
-        Cameras are sorted to match `resolve_filter`'s ordering (see config_handler), so every
-        detector agrees on camera order. Frames are the zero-padded subsequence frame indices.
-        """
-        subjects = list(self.subsequence_context.subjects_descr)
-        cameras = sorted(self.subsequence_context.all_camera_names)
-        # TODO: hardcoded assumptions about the frame names, move somewhere else
-        frames = [str(i).zfill(9) for i in range(self.data.video_length_frames)]
-        return subjects, cameras, frames
-
     @abstractmethod
-    def compute(self) -> Any:
+    def compute(self) -> DetectorOutput:
         """
         Compute the feature from method detector outputs.
 

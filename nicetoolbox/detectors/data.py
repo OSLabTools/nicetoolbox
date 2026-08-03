@@ -3,7 +3,7 @@ Data module handling the data loading and processing of the give datasets.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from nicetoolbox_core.input_recipes import AudioInputRecipe, InputRecipes, VideoInputRecipe
 
@@ -72,6 +72,7 @@ class SequenceData:
         self.fps = self._video_handler.fps
         self.video_start_frame_index = self._video_handler.start_frame
         self.video_length_frames = self._video_handler.length_frames
+        self.frame_labels = self._video_handler.frame_labels
         self.video_start_ms = timestamp_to_ms(subsequence_context.video_start, self.fps)
         self.video_length_ms = timestamp_to_ms(subsequence_context.video_length, self.fps)
 
@@ -103,6 +104,14 @@ class SequenceData:
         if self._video_handler:
             return self._video_handler.calibration
         return None
+
+    @property
+    def canonical_axes(self) -> Tuple[List[str], List[str], List[str]]:
+        """The subsequence's canonical (subjects, cameras, frames) axis labels."""
+        subjects = list(self.subjects_descr)
+        cameras = sorted(self.all_camera_names)  # TODO: inject it from somewhere (config?)
+        frames = list(self.frame_labels)
+        return subjects, cameras, frames
 
     # -------------------------------------------------------------------------
     # Recipe access
