@@ -106,6 +106,6 @@ The pipeline runs in four stages: VAD preprocessing to segment speech, transcrip
 
 In the NICE Toolbox, CrisperWhisper runs as the **`crisper_whisper`** algorithm and outputs the **`audio_transcription`** component only. It processes each configured audio track independently, returning per-word chunks with start/end timestamps. A post-processing step (ported from the original repository) redistributes inter-word pauses up to a small threshold evenly between adjacent words to refine the boundaries.
 
-The raw word chunks are then converted into the same unified `{segments, word_segments}` structure used by WhisperX's `audio_transcription` component, so the two transcription backbones are interchangeable downstream. Note that CrisperWhisper performs neither speaker diarization nor speaker-aligned transcription.
+The raw word chunks are then converted into the same unified `{segments, words}` structure used by WhisperX's `audio_transcription` component, so the two transcription backbones are interchangeable downstream. Note that CrisperWhisper performs neither speaker diarization nor speaker-aligned transcription.
 
 [Wagner et al., 2024](https://arxiv.org/abs/2408.16589)

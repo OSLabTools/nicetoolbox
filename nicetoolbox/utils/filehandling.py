@@ -27,6 +27,24 @@ def read_npz_file(filepath):
     return data
 
 
+def find_json_files(directory):
+    """
+    Recursively find all json files in the given directory.
+
+    Args:
+        directory (str): The directory to search for json files.
+
+    Returns:
+        json_files (list): A list of paths to the json files found in the directory.
+    """
+    json_files = []
+    for root, _dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".json"):
+                json_files.append(os.path.join(root, file))
+    return json_files
+
+
 def find_npz_files(directory):
     """
     Recursively find all npz files in the given directory.

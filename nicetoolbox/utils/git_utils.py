@@ -33,11 +33,10 @@ def try_get_toolbox_git_metadata(repo_path: str = ".") -> Optional[GitMetadata]:
     git_folder = os.path.join(repo_path, ".git")
     if os.path.isdir(git_folder):
         # Try to get git commit metadata from the repo
-        # It will raise an error if the repo is not a valid git repository
-        repo = Repo(repo_path)
-        # All good, get the commit hash and summary
-        sha = repo.head.object.hexsha
-        message = repo.head.object.summary
+        with Repo(repo_path) as repo:
+            # All good, get the commit hash and summary
+            sha = repo.head.object.hexsha
+            message = repo.head.object.summary
         return GitMetadata(commit_hash=sha, commit_summary=message)
 
     # If no .git folder, try to get from environment variables

@@ -318,8 +318,6 @@ class CrisperWhisperConfig(BaseAlgorithmConfig):
     batch_size: int
     chunk_length_s: float
     stride_length_s: float
-    vad_onset: float
-    vad_offset: float
     hf_weights_cache_dir: str
     required_assets: Dict[str, str] = Field(default_factory=dict)
 

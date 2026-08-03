@@ -9,7 +9,8 @@ from nicetoolbox.connectors.elan.elan_data import Interval, Tier
 from nicetoolbox.connectors.elan.elan_parser import parse_elan_file, parse_tiers
 from nicetoolbox.connectors.elan.elan_time import format_timecode, parse_time_cell
 from nicetoolbox.connectors.elan.elan_writer import write_elan_txt
-from nicetoolbox.connectors.elan.transcript_elan import tiers_to_transcript, transcript_to_tiers
+from nicetoolbox.connectors.elan.transcript_elan import parse_transcription, tiers_to_transcript, transcript_to_tiers
+from nicetoolbox_core.data.json_schema import JsonMeta
 
 _TIERS = [Tier("left_mic", [Interval(0.573, 2.443, "end of this year"), Interval(2.649, 4.412, "okay.")])]
 
@@ -161,24 +162,53 @@ def test_spec_width():
 
 
 def test_transcript_json_round_trip(tmp_path):
-    transcript = {
-        "left_mic": {
-            "segments": [{"start": 0.6, "end": 1.2, "text": "end of this year"}],
-            "word_segments": [
-                {"word": "end", "start": 0.6, "end": 0.7, "speaker": "p1"},
-                {"word": "of", "start": 0.7, "end": 0.8, "speaker": "p1"},
-                {"word": "this", "start": 0.85, "end": 1.0, "speaker": "p1"},
-                {"word": "year", "start": 1.0, "end": 1.2, "speaker": "p1"},
-            ],
+    # subsequence_start is 0 so the exported tiers are unshifted and comparable to the source.
+    # Speaker labels ride on the words, so this is the speaker-aligned component.
+    meta = JsonMeta(
+        component="speaker_aligned_transcription",
+        algorithm="whisperx",
+        subsequence_start=0.0,
+        tables={"tracks": ["segments", "words"]},
+    )
+    transcript = parse_transcription(
+        {
+            "meta": meta.model_dump(),
+            "tracks": {
+                "left_mic": {
+                    "total": {"text": "end of this year", "start": 0.6, "end": 1.2},
+                    "segments": [
+                        {
+                            "start": 0.6,
+                            "end": 1.2,
+                            "text": "end of this year",
+                            "speaker": "p1",
+                            "speaker_confidence": 1.0,
+                        }
+                    ],
+                    "words": [
+                        {"word": "end", "start": 0.6, "end": 0.7, "speaker": "p1"},
+                        {"word": "of", "start": 0.7, "end": 0.8, "speaker": "p1"},
+                        {"word": "this", "start": 0.85, "end": 1.0, "speaker": "p1"},
+                        {"word": "year", "start": 1.0, "end": 1.2, "speaker": "p1"},
+                    ],
+                }
+            },
         }
-    }
+    )
     path = tmp_path / "rt.txt"
-    tiers = transcript_to_tiers(transcript, include_words=True, include_speaker=True)
+    tiers = transcript_to_tiers(transcript, export_words=True)
+    assert [t.tier_name for t in tiers] == ["left_mic__segments__p1", "left_mic__words__p1"]
     write_elan_txt(path, tiers, TRANSCRIPTION_4COL)
 
-    restored = tiers_to_transcript(parse_elan_file(path, TRANSCRIPTION_4COL).tiers)["left_mic"]
+    out = tiers_to_transcript(parse_elan_file(path, TRANSCRIPTION_4COL).tiers)
+    restored = out.tracks["left_mic"]
 
-    assert restored["total"]["text"] == "end of this year"
-    assert restored["segments"] == [{"start": 0.6, "end": 1.2, "text": "end of this year"}]
-    assert [w["word"] for w in restored["word_segments"]] == ["end", "of", "this", "year"]
-    assert {w["speaker"] for w in restored["word_segments"]} == {"p1"}
+    # The payload survives the round trip; meta is rebuilt from the tiers, so the component is
+    # recovered but the algorithm now records that this is hand-corrected ELAN data.
+    assert out.meta.component == meta.component
+    assert out.meta.algorithm == "elan"
+    assert restored.total.text == "end of this year"
+    assert [(s.start, s.end, s.text) for s in restored.segments] == [(0.6, 1.2, "end of this year")]
+    assert [w.word for w in restored.words] == ["end", "of", "this", "year"]
+    assert {w.speaker for w in restored.words} == {"p1"}
+    assert {s.speaker for s in restored.segments} == {"p1"}

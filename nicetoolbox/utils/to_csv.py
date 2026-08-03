@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -116,15 +117,82 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
         df.to_csv(os.path.join(output_folder, output_filename), index=False)
 
 
-def results_to_csv(results_folder, csv_output_folder) -> None:
+def convert_json_to_csv_files(json_path, output_folder) -> None:
     """
-    Converts all NPZ files in the results folder to CSV files and saves them in the
-    specified output folder.
+    Converts a JSON detector output to one CSV file per table declared in its meta.
+
+    The file describes its own layout: `meta.tables` is {container_field: [row_fields]}, so this
+    iterates the named container and emits one row per element of each listed field, without
+    knowing which component produced the file. The container's key becomes a leading column.
+    Meta itself stays in the JSON and is not repeated into the rows. Files without a `meta` block
+    (raw detector output, connector dumps) are skipped, mirroring the no-data_description skip
+    for NPZ.
 
     Args:
-        results_folder (str): The path to the folder containing NPZ result files.
+        json_path (str): The path to the JSON file.
+        output_folder (str): The path to the output folder where the CSV files will be saved.
+    """
+    filename = os.path.basename(json_path)
+    component_name = os.path.basename(os.path.dirname(json_path))
+    video_name = os.path.basename(os.path.dirname(os.path.dirname(json_path)))
+
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as err:
+        logger.debug("Skipping CSV for %s: could not read JSON (%s).", json_path, err)
+        return
+
+    if not isinstance(data, dict):
+        logger.debug("Skipping CSV for %s: top level is not an object.", json_path)
+        return
+
+    meta = data.get("meta")
+    if not isinstance(meta, dict):
+        logger.debug("Skipping CSV for %s: no meta block (raw detector output?).", json_path)
+        return
+
+    tables = meta.get("tables")
+    if not isinstance(tables, dict) or not tables:
+        logger.debug("Skipping CSV for %s: meta declares no tables.", json_path)
+        return
+
+    for container_field, row_fields in tables.items():
+        container = data.get(container_field)
+        if not isinstance(container, dict):
+            logger.debug("Skipping %r for %s: no mapping at that field.", container_field, json_path)
+            continue
+
+        for row_field in row_fields:
+            rows = []
+            for entry_key, entry in container.items():
+                if not isinstance(entry, dict):
+                    continue
+                for row in entry.get(row_field) or []:
+                    if isinstance(row, dict):
+                        rows.append({container_field: entry_key, **row})
+
+            if not rows:
+                logger.debug("Skipping table %r for %s: no rows.", row_field, json_path)
+                continue
+
+            output_filename = f'{video_name}_{component_name}_{filename.split(".")[0]}_{row_field}.csv'
+            pd.DataFrame(rows).to_csv(os.path.join(output_folder, output_filename), index=False)
+
+
+def results_to_csv(results_folder, csv_output_folder) -> None:
+    """
+    Converts all NPZ and JSON result files in the results folder to CSV files and saves
+    them in the specified output folder.
+
+    Args:
+        results_folder (str): The path to the folder containing result files.
         csv_output_folder (str): The path to the folder where CSV files will be saved.
     """
     npz_files_list = fh.find_npz_files(results_folder)
     for file in npz_files_list:
         convert_npz_to_csv_files(file, csv_output_folder)
+
+    json_files_list = fh.find_json_files(results_folder)
+    for file in json_files_list:
+        convert_json_to_csv_files(file, csv_output_folder)

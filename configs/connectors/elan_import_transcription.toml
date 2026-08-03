@@ -1,16 +1,17 @@
-# Import annotator-corrected ELAN transcription labels back into NICE transcription JSON.
-#
-# Point `output` at the dataset annotation path to promote the result to ground truth
-
 dataset_folder = "<datasets_folder_path>/communication_multiview"
-elan_input     = "<output_folder_path>/connectors/elan_export"
-elan_output    = "<output_folder_path>/connectors/elan_import"
+elan_import    = "<output_folder_path>/connectors/elan_import/transcription"
 
 log_level = "INFO"
-log_file_path = "<elan_output>/elan_import_transcription.log"
+log_file_path = "<elan_import>/elan_import_transcription.log"
+export_srt = true
+export_csv = true
 
-[run.sequence_xyz]
-input  = "<elan_input>/sequence_xyz_audio_transcription.txt"
-output = "<elan_output>/sequence_xyz_audio_transcription.json"
-start = 0
-end = -1
+# Which parts of ELAN labels to take
+import_segments = true
+import_words = true
+
+# Import the corrected speaker-aligned transcription
+[run.sequenc]
+input = "<dataset_folder>/annotations_raw/speaker_aligned_transcription_elan/sequence_xyz.txt"
+output = "<elan_import>/sequence_xyz.json"
+tracks = ["room"]

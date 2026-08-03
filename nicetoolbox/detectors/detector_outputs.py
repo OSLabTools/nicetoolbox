@@ -1,10 +1,13 @@
+import json
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterable
 
 import numpy as np
+from pydantic import BaseModel
 
+from nicetoolbox.configs.utils import model_to_dict
 from nicetoolbox.detectors.in_out import SequenceIO
 from nicetoolbox_core.data.array_schema import BaseArraySchema
 from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes, save_arrays
@@ -12,30 +15,40 @@ from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes, save_arra
 
 @dataclass(frozen=True)
 class BaseDetectorOutput:
-    """A declared detector output, keyed by the component it belongs to and its npz_key."""
+    """A declared detector output, identified by the component it belongs to."""
 
     component: str
-    npz_key: str
 
 
 @dataclass(frozen=True)
 class NpzDetectorOutput(BaseDetectorOutput):
     """A declared NPZ-array output, validated against schema on save."""
 
+    npz_key: str
     schema: BaseArraySchema | None = None
 
 
-class DetectorOutput:
-    """A builder for a detector's produced arrays.
+@dataclass(frozen=True)
+class JsonDetectorOutput(BaseDetectorOutput):
+    """A declared JSON output, for components whose results are not dense arrays."""
 
-    Detectors populate this in compute() via add(), then BaseFeature.run() validates it
-    against the declared outputs and saves it — grouping each component's arrays into that
-    component's single NPZ, matching the toolbox data_description layout.
+    schema: type[BaseModel] | None = None
+
+
+class DetectorOutput:
+    """A builder for a detector's produced arrays and JSONs.
+
+    Detectors populate this in compute() via add()/add_json(), then BaseFeature.run() validates
+    it against the declared outputs and saves it — grouping each component's arrays into that
+    component's single NPZ (matching the toolbox data_description layout), and writing each
+    JSON component to its own file.
     """
 
     def __init__(self) -> None:
         # (component, npz_key) -> NpzArray
         self._arrays: dict[tuple[str, str], NpzArray] = {}
+        # component -> pydantic model (one JSON per component)
+        self._jsons: dict[str, BaseModel] = {}
 
     def add(self, component: str, npz_key: str, *, data: np.ndarray, axes: NpzArrayAxes) -> "DetectorOutput":
         """Add one produced array under (component, npz_key); returns self so calls can chain."""
@@ -49,12 +62,29 @@ class DetectorOutput:
         self._arrays[key] = array
         return self
 
+    def add_json(self, component: str, model: BaseModel) -> "DetectorOutput":
+        """Add a component's JSON output as a pydantic model; returns self so calls can chain.
+
+        The model is kept as-is and only dumped to primitives at save time, so the declared
+        schema stays available for validation (see validate) rather than being flattened away.
+        """
+        if component in self._jsons:
+            raise ValueError(f"JSON for component '{component}' added more than once.")
+        self._jsons[component] = model
+        return self
+
     def get(self, component: str, npz_key: str) -> NpzArray:
         """Return the produced array for (component, npz_key), raising if absent."""
         key = (component, npz_key)
         if key not in self._arrays:
             raise KeyError(f"No output '{npz_key}' for component '{component}'. Produced: {list(self._arrays)}.")
         return self._arrays[key]
+
+    def get_json(self, component: str) -> BaseModel:
+        """Return the produced JSON model for a component, raising if absent."""
+        if component not in self._jsons:
+            raise KeyError(f"No JSON for component '{component}'. Produced: {list(self._jsons)}.")
+        return self._jsons[component]
 
     def items(self, component: str) -> Iterable[tuple[str, NpzArray]]:
         """Iterate (npz_key, NpzArray) for a single component (e.g. for visualization)."""
@@ -63,31 +93,35 @@ class DetectorOutput:
                 yield npz_key, array
 
     def validate(self, declared: list[BaseDetectorOutput]) -> None:
-        """Check the produced arrays exactly match the declared outputs.
+        """Check the produced outputs exactly match the declared ones.
 
-        Raises ValueError if a declared output is missing, an undeclared output was produced,
-        or a produced array fails its NpzDetectorOutput.schema.
+        Arrays are keyed by (component, npz_key) and JSONs by component, so the two kinds are
+        matched against their own declarations.
+
+        Raises ValueError if a declared output is missing, an undeclared output was produced, or a
+        produced array fails its NpzDetectorOutput.schema. JSON outputs need no schema check here:
+        they are pydantic models, so they were validated when constructed.
         """
-        declared_keys = {(o.component, o.npz_key) for o in declared}
-        produced_keys = set(self._arrays)
+        declared_arrays = {(o.component, o.npz_key) for o in declared if isinstance(o, NpzDetectorOutput)}
+        declared_jsons = {o.component for o in declared if isinstance(o, JsonDetectorOutput)}
 
-        missing = declared_keys - produced_keys
-        extra = produced_keys - declared_keys
+        missing = sorted(declared_arrays - set(self._arrays)) + sorted(declared_jsons - set(self._jsons))
+        extra = sorted(set(self._arrays) - declared_arrays) + sorted(set(self._jsons) - declared_jsons)
         if missing or extra:
             raise ValueError(
                 f"Detector output mismatch. "
-                f"Missing declared outputs: {sorted(missing)}. "
-                f"Undeclared produced outputs: {sorted(extra)}."
+                f"Missing declared outputs: {missing}. "
+                f"Undeclared produced outputs: {extra}."
             )
 
         for spec in declared:
             if isinstance(spec, NpzDetectorOutput) and spec.schema is not None:
-                array = self._arrays[(spec.component, spec.npz_key)]
-                errors = spec.schema.validate(array)
+                errors = spec.schema.validate(self._arrays[(spec.component, spec.npz_key)])
                 if errors:
                     details = "\n".join(errors)
                     raise ValueError(
-                        f"Output '{spec.npz_key}' (component '{spec.component}') failed schema validation:\n{details}"
+                        f"Output '{spec.npz_key}' (component '{spec.component}') "
+                        f"failed schema validation:\n{details}"
                     )
 
     def validate_canonical_axes(self, subjects: list[str], cameras: list[str], frames: list[str]) -> None:
@@ -119,10 +153,12 @@ class DetectorOutput:
                 )
 
     def save(self, io: SequenceIO, algorithm_instance: str) -> None:
-        """Save produced arrays, one NPZ per component under its result folder.
+        """Save produced outputs under each component's result folder.
 
-        Each component's arrays are grouped into '<result_folder>/<algorithm_instance>.npz',
-        matching the existing per-detector output layout.
+        Array outputs are grouped into '<result_folder>/<algorithm_instance>.npz' (one NPZ per
+        component). JSON outputs are written to '<result_folder>/<algorithm_instance>.json' —
+        saved as-is, so downstream consumers (ELAN connector, evaluation transcript loaders)
+        keep reading the same on-disk format.
         """
         by_component: dict[str, dict[str, NpzArray]] = defaultdict(dict)
         for (component, npz_key), array in self._arrays.items():
@@ -133,3 +169,10 @@ class DetectorOutput:
             npz_path = result_folder / f"{algorithm_instance}.npz"
             save_arrays(arrays, npz_path)
             logging.info(f"Saved output for component '{component}' ({list(arrays)}) to '{npz_path}'.")
+
+        for component, model in self._jsons.items():
+            result_folder = io.get_detector_output_folder(component, algorithm_instance, "result")
+            json_path = result_folder / f"{algorithm_instance}.json"
+            with open(json_path, "w") as f:
+                json.dump(model_to_dict(model), f, indent=4)
+            logging.info(f"Saved JSON output for component '{component}' to '{json_path}'.")

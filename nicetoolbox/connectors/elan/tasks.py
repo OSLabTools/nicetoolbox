@@ -4,9 +4,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...configs.models.video_timestamp import timestamp_to_frame_index, timestamp_to_ms
+from ...configs.models.video_timestamp import timestamp_to_frame_index
+from ...configs.utils import model_to_dict
 from ...utils import logging_utils as log_ut
-from ...utils.to_csv import convert_npz_to_csv_files
+from ...utils.srt import SrtWriter
+from ...utils.to_csv import convert_json_to_csv_files, convert_npz_to_csv_files
 from ...utils.video import json_to_video_info, probe_video
 from ..config_handler import ConnectorConfigHandler
 from .elan_configs import (
@@ -14,9 +16,7 @@ from .elan_configs import (
     ElanExportTranscriptionConfig,
     ElanImportGazeConfig,
     ElanImportTranscriptionConfig,
-    ElanTranscriptionSequence,
 )
-from .elan_data import ElanData
 from .elan_parser import parse_elan_file
 from .elan_processing import VideoMeta, trim_tiers, validate_video_alignment
 from .elan_writer import write_elan_txt
@@ -25,7 +25,7 @@ from .labeling_data import rename_subjects
 from .labeling_from_elan import elan_data_to_hierarchical
 from .npz_schema import schema_from_data
 from .toolbox_writer import hierarchical_to_npz_dict
-from .transcript_elan import tiers_to_transcript, transcript_to_tiers
+from .transcript_elan import parse_transcription, select_tracks, tiers_to_transcript, transcript_to_tiers
 
 
 def import_gaze(
@@ -95,22 +95,6 @@ def import_gaze(
             convert_npz_to_csv_files(sequence.output, sequence.output.parent)
 
 
-def _window_seconds(sequence: ElanTranscriptionSequence) -> tuple[float, float]:
-    """Resolve the sequence's [start, end) window in seconds.
-
-    Transcription intervals are time-based, so an integer is read as seconds directly (unlike the
-    frame-indexed gaze path). end = -1 means "until the end of the recording".
-    """
-
-    def to_seconds(value: int | str) -> float:
-        # fps is unused when the value is a timestamp string.
-        return timestamp_to_ms(value, fps=1) / 1000.0 if isinstance(value, str) else float(value)
-
-    start_sec = to_seconds(sequence.start)
-    end_sec = float("inf") if sequence.end == -1 else to_seconds(sequence.end)
-    return start_sec, end_sec
-
-
 def export_transcription(
     project_folder_path: Path,
     machine_specifics: Path,
@@ -129,29 +113,23 @@ def export_transcription(
     logging.info(f"Project path: '{handler.project_folder}'")
     logging.info(f"Run config: '{connector_config}'")
     logging.info(f"Sequences: {list(cfg.run)}")
-    logging.info(f"Word tiers: {cfg.include_words}, speaker tiers: {cfg.include_speaker}")
+    logging.info(f"Segments: {cfg.export_segments}, words: {cfg.export_words}")
 
     for sequence_id, sequence in cfg.run.items():
         log_ut.log_banner(f"Sequence: {sequence_id}")
         logging.info(f"Input:  {sequence.input}")
         logging.info(f"Output: {sequence.output}")
 
+        # load transcription component from json
         with open(sequence.input) as f:
-            transcript = json.load(f)
-        logging.info(f"Tracks: {list(transcript)}")
+            raw = json.load(f)
+        full_transcript = parse_transcription(raw)
 
-        tiers = transcript_to_tiers(
-            transcript,
-            cfg.include_words,
-            cfg.include_speaker,
-            cfg.include_speaker_segments,
-            cfg.mixed_segment_strategy,
-        )
+        # select tracks from user config
+        transcript = select_tracks(full_transcript, sequence.tracks)
+        logging.info(f"Component: {transcript.meta.component}, tracks: {list(transcript.tracks)}")
 
-        start_sec, end_sec = _window_seconds(sequence)
-        if start_sec > 0 or end_sec != float("inf"):
-            logging.info(f"Trimming to [{start_sec:.3f}s, {end_sec:.3f}s]...")
-            tiers = trim_tiers(ElanData(None, tiers), start_sec, end_sec).tiers
+        tiers = transcript_to_tiers(transcript, cfg.export_segments, cfg.export_words)
 
         write_elan_txt(sequence.output, tiers, TRANSCRIPTION_4COL)
 
@@ -182,15 +160,23 @@ def import_transcription(
 
         elan_data = parse_elan_file(sequence.input, TRANSCRIPTION_4COL)
 
-        start_sec, end_sec = _window_seconds(sequence)
-        if start_sec > 0 or end_sec != float("inf"):
-            logging.info(f"Trimming to [{start_sec:.3f}s, {end_sec:.3f}s]...")
-            elan_data = trim_tiers(elan_data, start_sec, end_sec)
-
-        transcript = tiers_to_transcript(elan_data.tiers)
-        logging.info(f"Tracks: {list(transcript)}")
+        # meta is derived from the tiers themselves, so no reference to the detector output this
+        # txt was exported from is needed.
+        rebuilt = tiers_to_transcript(
+            elan_data.tiers,
+            import_segments=cfg.import_segments,
+            import_words=cfg.import_words,
+        )
+        transcript = select_tracks(rebuilt, sequence.tracks)
+        logging.info(f"Component: {transcript.meta.component}, tracks: {list(transcript.tracks)}")
 
         sequence.output.parent.mkdir(parents=True, exist_ok=True)
         with open(sequence.output, "w") as f:
-            json.dump(transcript, f, indent=4)
+            json.dump(model_to_dict(transcript), f, indent=4)
         logging.info(f"Saved transcription JSON to: {sequence.output}")
+
+        # optional exports
+        if cfg.export_srt:
+            SrtWriter().write_tracks(transcript.tracks, str(sequence.output.parent))
+        if cfg.export_csv:
+            convert_json_to_csv_files(sequence.output, sequence.output.parent)

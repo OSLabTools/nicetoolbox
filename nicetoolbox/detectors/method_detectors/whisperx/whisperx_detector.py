@@ -1,27 +1,33 @@
-"""
-WhisperX method detector class (mock/debug implementation).
-"""
-
 import json
-import logging
 import os
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
+from nicetoolbox_core.data.json_schema import AudioDiarization, AudioTranscription, SpeakerAlignedTranscription
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils.srt import SrtWriter
 from ....utils.video import render_subtitled_track_video
+from ...detector_outputs import DetectorOutput, JsonDetectorOutput
 from ..base_method import BaseMethod
+from .whisperx_utils import to_audio_diarization, to_audio_transcription, to_speaker_aligned_transcription
+
+# Raw packs written by whisperx_inference.py
+RAW_TRANSCRIPTION_JSON_NAME = "whisperx_transcription_raw.json"
+RAW_DIARIZATION_JSON_NAME = "whisperx_diarization_raw.json"
+RAW_SPEAKER_ALIGNED_JSON_NAME = "whisperx_speaker_aligned_raw.json"
 
 
 class WhisperX(BaseMethod):
     algorithm_type = "whisperx"
     components = ["audio_transcription", "audio_diarization", "speaker_aligned_transcription"]
 
+    outputs = [
+        JsonDetectorOutput("audio_transcription", schema=AudioTranscription),
+        JsonDetectorOutput("audio_diarization", schema=AudioDiarization),
+        JsonDetectorOutput("speaker_aligned_transcription", schema=SpeakerAlignedTranscription),
+    ]
+
     def _initialize_detector(self) -> MethodDetectorRuntime:
-        """
-        Initializes the WhisperX detector.
-        """
         if not self.data.has_audio():
             raise RuntimeError("WhisperX requires audio data but no audio was prepared.")
 
@@ -32,93 +38,52 @@ class WhisperX(BaseMethod):
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> None:
-        """
-        Process individual speaker aligned transcription json outputs into our final json format.
+    def _load_raw(self, component: str, raw_name: str) -> dict:
+        """Load a component's raw inference pack from its out_folder."""
+        with open(os.path.join(self.out_folders[component], raw_name)) as f:
+            return json.load(f)
 
-        Structure:
-        {
-            "track_name": {
-                "total": {
-                    "text": "full concatenated transcription text for the track",
-                    "start": start_time_of_first_segment,
-                    "end": end_time_of_last_segment,
-                },
-                "segments": [
-                    {
-                        "start": segment_start_time,
-                        "end": segment_end_time,
-                        "text": "segment_transcription_text",
-                        "avg_logprob": segment_avg_log_probability,
-                    },
-                    ...
-                ],
-                "word_segments": [
-                    {
-                        "word": word_text,
-                        "start": word_start_time,
-                        "end": word_end_time,
-                        "score": word log probability score,
-                        "speaker": speaker_label provided by pyannote
-                    },
-                    ...
-                ],
-                "language": detected_language
-            },
-            ...
-        }
-        """
-        folder = self.result_folders["speaker_aligned_transcription"]
-        out_dict = {}
-        for track_name in self.audio_loader.tracks:
-            json_path = os.path.join(self.out_folders["speaker_aligned_transcription"], f"{track_name}.json")
-            if not os.path.exists(json_path):
-                logging.warning(f"No JSON output found for {track_name} in post_inference, skipping.")
-                continue
+    def post_inference(self) -> DetectorOutput:
+        """Convert the raw inference packs into this detector's component outputs."""
+        # Timestamps are relative to the subsequence, since inference is handed sliced audio.
+        # Recording where it starts lets a consumer place them back on the source timeline.
+        start = self.audio_loader.offset_seconds
+        length = self.audio_loader.duration_seconds
 
-            with open(json_path) as f:
-                track_data = json.load(f)
+        raw_transcription = self._load_raw("audio_transcription", RAW_TRANSCRIPTION_JSON_NAME)
+        transcription = to_audio_transcription(
+            raw_transcription,
+            subsequence_start=start,
+            subsequence_length=length,
+            algorithm=self.algorithm_instance,
+        )
 
-            segments = track_data["segments"]
-            total_text = ""
-            total_start = None
-            total_end = None
+        raw_diarization = self._load_raw("audio_diarization", RAW_DIARIZATION_JSON_NAME)
+        diarization = to_audio_diarization(
+            raw_diarization,
+            subsequence_start=start,
+            algorithm=self.algorithm_instance,
+        )
 
-            if segments:
-                total_text = " ".join(seg["text"].strip() for seg in segments if seg["text"])
-                total_start = segments[0]["start"]
-                total_end = segments[-1]["end"]
+        raw_speaker_aligned = self._load_raw("speaker_aligned_transcription", RAW_SPEAKER_ALIGNED_JSON_NAME)
+        speaker_aligned = to_speaker_aligned_transcription(
+            raw_speaker_aligned,
+            subsequence_start=start,
+            subsequence_length=length,
+            algorithm=self.algorithm_instance,
+        )
 
-                # Remove redundant words list from each segment and speaker labels
-                for seg in segments:
-                    seg.pop("words", None)
-                    seg.pop("speaker", None)
-
-            out_dict[track_name] = {
-                "total": {"text": total_text, "start": total_start, "end": total_end},
-                "segments": segments,
-                "word_segments": track_data["word_segments"],
-                "language": track_data["language"],
-            }
-
-        with open(os.path.join(folder, f"{self.algorithm_instance}.json"), "w") as f:
-            json.dump(out_dict, f, indent=4)
-
-        # Generate visualization SRTs from our unified component outputs (consistent across detectors).
+        # SRTs feed the subtitled-video visualization. Both transcription components get one so
+        # any difference introduced by speaker alignment is visible side by side.
         srt_writer = SrtWriter()
-        srt_writer.write_tracks(out_dict, self.out_folders["speaker_aligned_transcription"])
+        srt_writer.write_tracks(transcription.tracks, self.out_folders["audio_transcription"])
+        srt_writer.write_tracks(speaker_aligned.tracks, self.out_folders["speaker_aligned_transcription"])
 
-        # audio_transcription unified output is written directly by inference; its segments keep
-        # their words (no speaker). Load it back to emit matching SRTs for this component too.
-        audio_json = os.path.join(self.result_folders["audio_transcription"], f"{self.algorithm_instance}.json")
-        if os.path.exists(audio_json):
-            with open(audio_json) as f:
-                audio_tracks = json.load(f)
-            srt_writer.write_tracks(audio_tracks, self.out_folders["audio_transcription"])
-        else:
-            logging.warning(f"No audio_transcription output found at {audio_json}, skipping its SRT generation.")
-
-        logging.info("WhisperX post-inference processing complete. Speaker aligned transcription results collected.")
+        out = DetectorOutput()
+        out.add_json("audio_transcription", transcription)
+        out.add_json("audio_diarization", diarization)
+        out.add_json("speaker_aligned_transcription", speaker_aligned)
+        return out
 
     def visualization(self, _) -> None:
         """
