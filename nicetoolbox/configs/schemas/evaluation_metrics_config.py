@@ -1,11 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, PrivateAttr, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 from ..models.models_registry import ModelsRegistry
 from .evaluation_aggr import AggSpec
 from .evaluation_group_by import GroupBySpec
 from .evaluation_input_block import BaseInputBlock, InputBlock
+from .evaluation_transcript_ref import TranscriptRef
 
 METRICS_REGISTRY = ModelsRegistry()
 metric_config = METRICS_REGISTRY.register
@@ -129,3 +130,39 @@ class ConfusionMatrixConfig(BaseMetricConfig):
     ground_truth: InputBlock
 
     compute_group_by: GroupBySpec
+
+
+# =============================================================================
+# Audio metrics
+# =============================================================================
+
+
+@metric_config("transcription_error_rate")
+class TranscriptionErrorRateConfig(BaseMetricConfig):
+    """
+    WER/CER of one predicted transcript track against one reference track.
+
+    Scores exactly one (prediction, ground truth) pair, so there is nothing to group by or
+    aggregate - to compare several algorithms, declare one [metrics.*] entry per algorithm.
+    """
+
+    visualize: bool = True
+
+    predictions: TranscriptRef
+    ground_truth: TranscriptRef
+
+    # Normalization matrix. Mandatory on purpose: WER is only interpretable next to the regime
+    # that produced it, so every entry has to state all five axes rather than inherit a default.
+    remove_filler: bool  # filler words like "[UM]"
+    lower_case: bool
+    strip_punctuation: bool
+    expand_contractions: bool  # won't -> will not
+    normalize_numbers: bool  # 1,000 -> 1000
+
+    # Override for the CrisperWhisper-token -> annotation-token filler mapping, used only when
+    # remove_filler = false. Empty means use the built-in defaults in normalization.py.
+    filler_map: dict[str, str] = Field(default_factory=dict)
+
+    measures: list[Literal["wer", "mer", "wil", "wip", "cer"]] = Field(
+        default_factory=lambda: ["wer", "mer", "wil", "wip", "cer"]
+    )

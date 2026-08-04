@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+from matplotlib import pyplot as plt
+
 from nicetoolbox_core.data.loaded_array import NpzArray, save_arrays
 from nicetoolbox_core.data.npz_meta import AnnotationMeta, ExperimentMeta, NpzMeta, PathMeta
 
@@ -54,6 +56,7 @@ def save_plots(plot_result: PlotResult, metric_dir: Path) -> None:
         path = metric_dir / "visualization" / f"{name}.png"
         path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(path)
+        plt.close(fig)  # release the figure so long runs don't accumulate open figures
         logging.info(f"Saved plot: {path}")
 
 
