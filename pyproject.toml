@@ -29,6 +29,7 @@ dependencies = [
     "tqdm",
     "scikit-learn",
     "huggingface_hub",
+    "jiwer",
 ]
 
 [project.optional-dependencies]
@@ -127,7 +128,7 @@ disable = "invalid-name"
 
 [tool.codespell]
 skip = "__pycache__,./.mypy_cache,.git,.idea,./venv,./env,./.tox"
-ignore-words-list = "setts,fpr,tpr"
+ignore-words-list = "setts,fpr,tpr,wil"
 
 # Coverage run settings
 # coverage run -m  unittest discover

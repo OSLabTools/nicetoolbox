@@ -12,6 +12,7 @@ from ..utils import logging_utils as log_ut
 from ..utils.system import system_capability_check
 from .config_handler import ConfigHandler
 from .data.results_saver import save_results
+from .metrics.audio.transcription_error_rate import TranscriptionErrorRateMetric
 from .metrics.base_metric import BaseMetric
 from .metrics.categorical.confusion_matrix import ConfusionMatrixMetric
 from .metrics.categorical.pr_curve import PrCurveMetric
@@ -29,6 +30,7 @@ ALL_METRICS: dict[str, type[BaseMetric]] = dict(
     confusion_matrix=ConfusionMatrixMetric,
     pr_curve=PrCurveMetric,
     roc_auc=RocAucMetric,
+    transcription_error_rate=TranscriptionErrorRateMetric,
 )
 
 

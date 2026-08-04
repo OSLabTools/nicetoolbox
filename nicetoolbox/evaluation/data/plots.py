@@ -412,3 +412,40 @@ def plot_confusion_matrix_grid(
         figures[fig_key] = fig
 
     return figures
+
+
+def plot_error_composition(
+    df: pd.DataFrame,
+    group_col: str,
+    title: str,
+) -> plt.Figure:
+    """Stacked bar of substitution/deletion/insertion *rates* (count / reference words) per group.
+
+    Shows what kind of errors dominate (e.g. deletion-heavy = dropped speech, insertion-heavy =
+    hallucination). Expects `substitutions`/`deletions`/`insertions`/`ref_words` count
+    columns (as produced by the transcription metric's summary).
+    """
+    parts = ["substitutions", "deletions", "insertions"]
+    grp = df.groupby(group_col)[parts + ["ref_words"]].sum()
+    ref = grp["ref_words"].where(grp["ref_words"] != 0, np.nan)
+    rates = pd.DataFrame({p: (grp[p] / ref).fillna(0.0) for p in parts})
+
+    labels = list(rates.index)
+    x = np.arange(len(labels))
+    fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.2), 5))
+
+    bottom = np.zeros(len(labels))
+    for i, part in enumerate(parts):
+        values = rates[part].to_numpy()
+        bars = ax.bar(x, values, bottom=bottom, label=part, color=_TAB10[i])
+        ax.bar_label(bars, fmt="%.3f", label_type="center", fontsize=7)
+        bottom += values
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xlabel(group_col)
+    ax.set_ylabel("errors per reference word")
+    ax.set_title(title)
+    ax.legend()
+    fig.tight_layout()
+    return fig

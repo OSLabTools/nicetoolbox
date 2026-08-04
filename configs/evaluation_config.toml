@@ -202,3 +202,38 @@ ground_truth = { source = "annotation", component = "gaze_interaction", npz_key 
 broadcast_single = true
 negate_scores = true
 compute_group_by = []
+
+# ================================= Transcription Error Rate ====================================
+# Word/Character Error Rate for audio transcription detectors.
+
+# WER for whisperx
+[metrics.whisperx_wer]
+metric_type = "transcription_error_rate"
+# input information about the metrics
+subsequence = "communication_multiview_sequence_xyz_s0_l-1"
+algorithm = "whisperx"
+annotation_folder = "<datasets_folder_path>/communication_multiview/annotations"
+predictions = { path = "<default_experiment>/<subsequence>/audio_transcription/<algorithm>.json", track = "room" }
+ground_truth = { path = "<annotation_folder>/sequence_xyz_speaker_aligned_transcription.json", track = "room" }
+# Additional parameters for text processing
+remove_filler = true
+lower_case = true
+strip_punctuation = true
+expand_contractions = true
+normalize_numbers = true
+
+# WER for crisper_whisper
+[metrics.crisper_whisper_wer]
+metric_type = "transcription_error_rate"
+# input information about the metrics
+subsequence = "communication_multiview_sequence_xyz_s0_l-1"
+algorithm = "crisper_whisper"
+annotation_folder = "<datasets_folder_path>/communication_multiview/annotations"
+predictions = { path = "<default_experiment>/<subsequence>/audio_transcription/<algorithm>.json", track = "room" }
+ground_truth = { path = "<annotation_folder>/sequence_xyz_speaker_aligned_transcription.json", track = "room" }
+# Additional parameters for text processing
+remove_filler = true
+lower_case = true
+strip_punctuation = true
+expand_contractions = true
+normalize_numbers = true
