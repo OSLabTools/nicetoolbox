@@ -178,6 +178,7 @@ class Viewer:
             | (component == "emotion_individual")
             | (component == "head_orientation")
             | (component == "eye_closure_score")
+            | (component == "eye_closed_state")
         ):
             if is_3d:
                 entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"

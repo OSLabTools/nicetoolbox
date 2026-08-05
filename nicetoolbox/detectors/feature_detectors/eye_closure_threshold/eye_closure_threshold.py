@@ -19,7 +19,7 @@ from . import utils as threshold_utils
 # Per-eye closed/open state, per subject/camera/frame (axis3 = eye side, no data axis).
 # Boolean-valued but float-backed, so a missing upstream score stays NaN rather than
 # collapsing into "open".
-EYE_CLOSED_STATE = BooleanSchema(labels_columns=("left_eye", "right_eye"))
+EYE_CLOSED_STATE = BooleanSchema(labels_columns=("left_eye", "right_eye", "both_eyes"))
 
 
 class EyeClosureThreshold(BaseFeature):
@@ -44,7 +44,8 @@ class EyeClosureThreshold(BaseFeature):
         NpzDetectorInput("eye_closure_score", "eye_landmarks_2d", schema=VECTOR_2D_PER_LABEL, optional=True),
     ]
     outputs = [
-        NpzDetectorOutput("eye_closed_state", "state", schema=EYE_CLOSED_STATE),
+        NpzDetectorOutput("eye_closed_state", "per_camera_state", schema=EYE_CLOSED_STATE),
+        NpzDetectorOutput("eye_closed_state", "global_state", schema=EYE_CLOSED_STATE),
     ]
 
     def _initialize_detector(self) -> None:
@@ -74,23 +75,49 @@ class EyeClosureThreshold(BaseFeature):
         # restore the NaNs afterwards. A closed run interrupted by missing frames is therefore
         # measured as several shorter runs, not one long one.
         if self.min_duration > 0.0 or self.max_duration is not None:
-            n_subjects, n_cameras, _, n_eyes = eye_closed.shape
-            for subject_idx in range(n_subjects):
-                for camera_idx in range(n_cameras):
-                    for eye_idx in range(n_eyes):
-                        eye_closed[subject_idx, camera_idx, :, eye_idx] = threshold_utils.filter_duration(
-                            eye_closed[subject_idx, camera_idx, :, eye_idx],
-                            self.data.fps,
-                            self.min_duration,
-                            self.max_duration,
-                        )
+            eye_closed = threshold_utils.filter_duration(
+                eye_closed,
+                self.data.fps,
+                self.min_duration,
+                self.max_duration,
+                axis=2,
+            )
 
         eye_closed[missing] = np.nan
 
+        # Compute both_eyes state: 1.0 if both are 1.0, 0.0 if either is 0.0, else NaN
+        left = eye_closed[..., 0]
+        right = eye_closed[..., 1]
+        both = np.full_like(left, np.nan)
+        both[(left == 1.0) & (right == 1.0)] = 1.0
+        both[(left == 0.0) | (right == 0.0)] = 0.0
+
+        eye_closed = np.concatenate([eye_closed, both[..., np.newaxis]], axis=-1)
+
+        # Compute global left, right, and both-eyes closed state:
+        # 1.0 if closed for all cameras where subject is visible
+        # 0.0 if at least one visible camera is open
+        # NaN if not visible/missing in all cameras
+        any_left_open = np.any(left == 0.0, axis=1)  # (S, F)
+        any_left_closed = np.any(left == 1.0, axis=1)  # (S, F)
+        global_left = np.where(any_left_open, 0.0, np.where(any_left_closed, 1.0, np.nan))
+
+        any_right_open = np.any(right == 0.0, axis=1)  # (S, F)
+        any_right_closed = np.any(right == 1.0, axis=1)  # (S, F)
+        global_right = np.where(any_right_open, 0.0, np.where(any_right_closed, 1.0, np.nan))
+
+        global_both = np.full_like(global_left, np.nan)
+        global_both[(global_left == 1.0) & (global_right == 1.0)] = 1.0
+        global_both[(global_left == 0.0) | (global_right == 0.0)] = 0.0
+
+        global_data = np.stack([global_left, global_right, global_both], axis=-1)[:, np.newaxis, :, :]
+
         state_axes = EYE_CLOSED_STATE.make_axes(axes.subjects, axes.cameras, axes.frames)
+        global_axes = EYE_CLOSED_STATE.make_axes(axes.subjects, ["3d"], axes.frames)
 
         out = DetectorOutput()
-        out.add("eye_closed_state", "state", data=eye_closed, axes=state_axes)
+        out.add("eye_closed_state", "per_camera_state", data=eye_closed, axes=state_axes)
+        out.add("eye_closed_state", "global_state", data=global_data, axes=global_axes)
 
         logging.info(f"Computation of feature detector for {self.components} completed.")
         return out
@@ -99,23 +126,25 @@ class EyeClosureThreshold(BaseFeature):
         """Plot the per-frame closed state and, when landmarks are wired, draw eye overlays."""
         logging.info(f"Visualizing the feature detector output {self.components}.")
 
-        state = out.get("eye_closed_state", "state")
-        cameras = state.axes.cameras
-
-        threshold_utils.plot_eye_closed_states(
-            viz_folder=self.viz_folder,
-            eye_closed=state.data,
-            subjects_descr=self.subjects_descr,
-            camera_names=cameras,
-            cam_sees_subjects=self.data.cam_sees_subjects,
-            threshold=self.threshold,
-        )
+        for array_key in ("per_camera_state", "global_state"):
+            state = out.get("eye_closed_state", array_key)
+            threshold_utils.plot_eye_closed_states(
+                viz_folder=self.viz_folder,
+                eye_closed=state.data,
+                subjects_descr=self.subjects_descr,
+                camera_names=state.axes.cameras,
+                cam_sees_subjects=self.data.cam_sees_subjects,
+                threshold=self.threshold,
+            )
 
         # The frame overlay needs the eye points the score was computed from.
         landmarks_input = self.loaded_inputs.get("eye_landmarks_2d")
         if landmarks_input is None:
             logging.info("No eye_landmarks_2d input wired; skipping the eye overlay video.")
             return
+
+        state = out.get("eye_closed_state", "per_camera_state")
+        cameras = state.axes.cameras
 
         # Same camera restriction as compute(), so every array shares one camera axis.
         landmarks = select_array(landmarks_input.array, cameras=self.camera_names)

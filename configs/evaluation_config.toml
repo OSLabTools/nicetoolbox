@@ -134,19 +134,12 @@ summary_aggr = [
 # It produces summary .csv reports with per-group scores.
 # Check 'f1', 'precision', 'recall' in summary report - higher is better.
 
-[metrics.confusion_matrix_gaze_look_at]
+[metrics.confusion_matrix_gaze_look_at_3d]
 metric_type = "confusion_matrix"
 predictions = { component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 compute_group_by = []
 
-[metrics.confusion_matrix_gaze_look_at_detailed]
-metric_type = "confusion_matrix"
-predictions = { component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
-ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
-compute_group_by = "*"
-
-# 2d methods
 [metrics.confusion_matrix_gaze_look_at_2d]
 metric_type = "confusion_matrix"
 predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "gaze_look_at_2d" }
@@ -163,14 +156,13 @@ compute_group_by = []
 # It produces summary .csv reports and roc_curves.png visualization.
 # Check 'auc' in summary report - higher is better (1.0 perfect, 0.5 random).
 
-[metrics.roc_auc_gaze_look_at]
+[metrics.roc_auc_gaze_look_at_3d]
 metric_type = "roc_auc"
 predictions = { component = "gaze_interaction", npz_key = "distance_gaze_3d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 negate_scores = true  # larger distance = not looking, inverting scores
 compute_group_by = []
 
-# 2d methods
 [metrics.roc_auc_gaze_look_at_2d]
 metric_type = "roc_auc"
 predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }
@@ -187,14 +179,13 @@ compute_group_by = []
 # It produces summary .csv reports and pr_curves.png visualization.
 # Check 'ap' in summary report - higher is better.
 
-[metrics.pr_curve_gaze_look_at]
+[metrics.pr_curve_gaze_look_at_3d]
 metric_type = "pr_curve"
 predictions = { component = "gaze_interaction", npz_key = "distance_gaze_3d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 negate_scores = true  # larger distance = not looking, inverting scores
 compute_group_by = []
 
-# 2d methods
 [metrics.pr_curve_gaze_look_at_2d]
 metric_type = "pr_curve"
 predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }

@@ -269,32 +269,47 @@ face_detector_filename = "<assets>/eth_xgaze/mmod_human_face_detector.dat"
 [templates.gaze_fusion]
 algorithm_type = "gaze_fusion"
 visualize = true
+# closed eyes filtering
+closed_eye_filter_mode = "none"
+# filtering
+filtered = true
 window_length = 11
 polyorder = 2
 [templates.gaze_fusion.inputs]
 gaze_per_camera_3d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_3d_filtered" }
 gaze_origin_2d     = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_origin_2d" }
+eye_closed_state   = { component = "eye_closed_state", algorithm = "eye_state_ear", npz_key = "global_state" }
 
 # average multiple 3d gaze vectors across cameras (weighted by confidence)
-# do additional filtering after it
 [algorithms.gaze_fusion_weighted]
 template = "gaze_fusion"
 fusion_method = "weighted_average"
-filtered = true
+
+# average multiple 3d gaze vectors across cameras (weighted by confidence) and interpolate closed-eye gaps
+[algorithms.gaze_fusion_weighted_closed_eyes_interp]
+template = "gaze_fusion"
+fusion_method = "weighted_average"
+closed_eye_filter_mode = "interpolate"
+
+# average multiple 3d gaze vectors across cameras (weighted by confidence) and mark closed-eye gaps as nan
+[algorithms.gaze_fusion_weighted_closed_eyes_nan]
+template = "gaze_fusion"
+fusion_method = "weighted_average"
+closed_eye_filter_mode = "nan"
 
 # select individual camera based predictions, discard others
 [algorithms.gaze_fusion_per_subject]
 template = "gaze_fusion"
 fusion_method = "select_view"
 subject_view_map = {person_left = "view_left", person_right = "view_right"}
-filtered = false
+filtered = false  # data is already filtered, no need to filter it again
 
 # take only central view, both subjects visible, discard others
 [algorithms.gaze_fusion_only_center]
 template = "gaze_fusion"
 fusion_method = "select_view"
 subject_view_map = {person_left = "view_center", person_right = "view_center"}
-filtered = false
+filtered = false  # data is already filtered, no need to filter it again
 
 # ======================================================================
 #                           Gaze Interaction
@@ -303,7 +318,7 @@ filtered = false
 # detect that subject gaze is towards another subject in 2d
 [algorithms.gaze_distance_2d]
 algorithm_type = "gaze_distance_2d"
-used_keypoints = ["left_eye","right_eye"]  # mean of these body joints
+used_keypoints = ["nose"]  # mean of these body joints
 threshold_look_at = 130  # in pixels
 visualize = true
 [algorithms.gaze_distance_2d.inputs]
@@ -321,6 +336,30 @@ pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = 
 gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_3d_filtered" }
 gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_2d_filtered" }
 gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_origin_2d" }
+
+# gaze distance in 3D using the eye-closed interpolated gaze fusion output
+[algorithms.gaze_distance_3d_closed_eyes_interp]
+algorithm_type = "gaze_distance_3d"
+used_keypoints = ["nose"]
+threshold_look_at = 0.4
+visualize = true
+[algorithms.gaze_distance_3d_closed_eyes_interp.inputs]
+pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_3d_filtered" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_2d_filtered" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_origin_2d" }
+
+# gaze distance in 3D using the eye-closed interpolated gaze fusion output
+[algorithms.gaze_distance_3d_closed_eyes_nan]
+algorithm_type = "gaze_distance_3d"
+used_keypoints = ["nose"]
+threshold_look_at = 0.4
+visualize = true
+[algorithms.gaze_distance_3d_closed_eyes_nan.inputs]
+pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_3d_filtered" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_2d_filtered" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_origin_2d" }
 
 # in scene 3d, but use gaze_fusion_per_subject
 [algorithms.gaze_distance_3d_per_subject]
@@ -423,33 +462,33 @@ crisper_whisper = "<assets>/crisper_whisper/models--nyrahealth--CrisperWhisper"
 # ======================================================================
 
 # detects how much subject closed their eyes using 2d facial landmarks
-[algorithms.eye_closure_ear]
+[algorithms.eye_closure_score_ear]
 algorithm_type = "eye_closure_ear"
 camera_names = ["view_left", "view_right"]  # use only face cameras
 visualize = true
-[algorithms.eye_closure_ear.inputs]
+[algorithms.eye_closure_score_ear.inputs]
 landmarks_2d = { component = "head_orientation", algorithm = "spiga", npz_key = "face_landmark_2d" }
 
 # same, but using mmpose 2d landmarks
-[algorithms.eye_closure_ear_rtmpose]
+[algorithms.eye_closure_score_ear_rtmpose]
 algorithm_type = "eye_closure_ear"
 camera_names = ["view_left", "view_right"]  # use only face cameras
 visualize = true
-[algorithms.eye_closure_ear_rtmpose.inputs]
+[algorithms.eye_closure_score_ear_rtmpose.inputs]
 landmarks_2d = { component = "face_landmarks", algorithm = "rtmpose_l_wholebody", npz_key = "2d" }
 
 # define that eye closed if aspect ration is less than threshold
-[algorithms.eye_closed_ear]
+[algorithms.eye_state_ear]
 algorithm_type = "eye_closure_threshold"
 camera_names = ["view_right", "view_left"]
 visualize = true
 threshold = 0.22  # max ratio for closed eye
-[algorithms.eye_closed_ear.inputs]
-score = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "score" }
-eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "eye_landmarks_2d" }
+[algorithms.eye_state_ear.inputs]
+score = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "score" }
+eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "eye_landmarks_2d" }
 
 # calculate blinks
-[algorithms.eye_blinks_ear]
+[algorithms.eye_blinks_state_ear]
 algorithm_type = "eye_closure_threshold"
 camera_names = ["view_right", "view_left"]
 visualize = true
@@ -457,7 +496,7 @@ threshold = 0.22
 # define min and max time for eye to be considered blinked
 min_duration = 0.05
 max_duration = 0.5
-[algorithms.eye_blinks_ear.inputs]
-score = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "score" }
-eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_ear", npz_key = "eye_landmarks_2d" }
+[algorithms.eye_blinks_state_ear.inputs]
+score = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "score" }
+eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "eye_landmarks_2d" }
 

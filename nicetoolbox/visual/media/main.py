@@ -195,6 +195,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         kinematics_component,
         head_orientation_component,
         eye_closure_component,
+        eye_closed_state_component,
     ]
 
     # VISUALIZATION

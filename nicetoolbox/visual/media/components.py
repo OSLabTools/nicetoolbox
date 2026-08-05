@@ -859,7 +859,7 @@ class EyeClosedStateComponent(Component):
         subject_names (List[str]): The subject names.
     """
 
-    STATE_KEY = "state"
+    STATE_KEY = "per_camera_state"
 
     def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
         """
@@ -895,10 +895,10 @@ class EyeClosedStateComponent(Component):
         """Eye labels (axis3) per algorithm."""
         return [res["data_description"].item()[self.STATE_KEY]["axis3"] for res in self.algorithms_results]
 
-    def _log_data(self):
+    def _log_data(self, entity_path: str, val: float) -> None:
         pass
 
-    def visualize(self):
+    def visualize(self, frame_idx: int) -> None:
         pass
 
 
