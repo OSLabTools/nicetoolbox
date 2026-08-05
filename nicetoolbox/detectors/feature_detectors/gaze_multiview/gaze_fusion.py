@@ -11,12 +11,14 @@ from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_3D_CONF
 from nicetoolbox_core.data.loaded_array import NpzArray
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
+from ....configs.schemas.detectors_instances_configs import ClosedEyeFilterMode
 from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ...method_detectors.filters import SGFilter
 from ..base_feature import BaseFeature
+from ..eye_closure_threshold.eye_closure_threshold import EYE_CLOSED_STATE
 
 
 class GazeFusion(BaseFeature):
@@ -36,6 +38,7 @@ class GazeFusion(BaseFeature):
     inputs = [
         NpzDetectorInput("gaze_individual", "gaze_per_camera_3d", schema=VECTOR_3D_CONF),  # gaze vec per view
         NpzDetectorInput("gaze_individual", "gaze_origin_2d", schema=VECTOR_2D_CONF),  # visualization
+        NpzDetectorInput("eye_closed_state", "eye_closed_state", schema=EYE_CLOSED_STATE, optional=True),
     ]
 
     def resolve_outputs(self):
@@ -56,6 +59,8 @@ class GazeFusion(BaseFeature):
         self.fusion_method = self.detector_config.fusion_method
         self.subject_view_map = self.detector_config.subject_view_map
         self.calibration = self.data.calibration
+        self.closed_eye_filter_mode = self.detector_config.closed_eye_filter_mode
+        self.closed_eye_max_interpolate_gap = self.detector_config.closed_eye_max_interpolate_gap
 
     def compute(self) -> DetectorOutput:
         """Fuse per-camera world gaze into a single unit vector per (subject, frame), reproject
@@ -81,6 +86,33 @@ class GazeFusion(BaseFeature):
 
         # Assemble the fused world gaze under the ["3d"] pseudo-camera slot with confidence.
         gaze_3d = self._pack_gaze_3d(fused_xyz, fused_conf, subjects, frames)
+
+        # Apply eye-closed filtering/interpolation to the fused gaze
+        eye_closed_input = self.loaded_inputs.get("eye_closed_state")
+        if eye_closed_input is not None and self.closed_eye_filter_mode in (
+            ClosedEyeFilterMode.NAN,
+            ClosedEyeFilterMode.INTERPOLATE,
+        ):
+            # Load global closed state (axis3 index 2 is both_eyes)
+            global_closed = eye_closed_input.array.data[:, 0, :, 2]  # (S, F)
+            closed_mask = global_closed == 1.0  # (S, F)
+
+            gaze_3d_data = gaze_3d.data.copy()
+
+            # Vectorized assignment: broadcast (S, F) to (S, 1, F, 3)
+            gaze_3d_data[:, 0, :, :][closed_mask] = np.nan
+
+            if self.closed_eye_filter_mode == ClosedEyeFilterMode.INTERPOLATE:
+                gaze_3d_data = self._interpolate_gaze_data(
+                    gaze_3d_data, is_3d=True, max_empty=self.closed_eye_max_interpolate_gap
+                )
+
+            gaze_3d = NpzArray(gaze_3d_data, gaze_3d.axes)
+
+        # Extract the final filtered/interpolated fused vectors and confidence
+        fused_xyz = gaze_3d.data[:, 0, :, :3]
+        fused_conf = gaze_3d.data[:, 0, :, 3]
+
         # Reproject fused direction back to each real camera; conf broadcast across cameras.
         gaze_2d = self._pack_gaze_2d(fused_xyz, fused_conf, subjects, cameras, frames)
 
@@ -104,6 +136,50 @@ class GazeFusion(BaseFeature):
             out.add_array("gaze_multiview", "gaze_2d_filtered", gaze_2d_filtered)
 
         return out
+
+    def _interpolate_gaze_data(self, data: np.ndarray, is_3d: bool, max_empty: int) -> np.ndarray:
+        n_subjects, n_cameras, _, n_channels = data.shape
+        out_data = data.copy()
+
+        for s in range(n_subjects):
+            for c in range(n_cameras):
+                x = out_data[s, c, :, 0]
+                if not np.isnan(x).any():
+                    continue
+
+                valid_mask = ~np.isnan(x)
+                valid_idx = np.where(valid_mask)[0]
+
+                if valid_idx.size <= 1:
+                    continue
+
+                # Identify gaps and filter out those that exceed max_empty
+                gaps = np.diff(valid_idx)
+                valid_gaps_mask = (gaps > 1) & (gaps <= (max_empty + 1))
+                if not np.any(valid_gaps_mask):
+                    continue
+
+                # Directly collect gap endpoints using the boolean mask
+                starts = valid_idx[:-1][valid_gaps_mask]
+                ends = valid_idx[1:][valid_gaps_mask]
+
+                # Build list of NaN frame indices to fill
+                fill_indices = np.hstack([np.arange(st + 1, en) for st, en in zip(starts, ends)])
+                if fill_indices.size == 0:
+                    continue
+
+                # Linear interpolation across all channels simultaneously
+                for ch in range(n_channels):
+                    out_data[s, c, fill_indices, ch] = np.interp(fill_indices, valid_idx, out_data[s, c, valid_idx, ch])
+
+                # Re-normalize 3D unit vectors for interpolated frames simultaneously
+                if is_3d:
+                    vecs = out_data[s, c, fill_indices, :3]
+                    norms = np.linalg.norm(vecs, axis=-1, keepdims=True)
+                    norms[norms == 0] = 1.0  # Avoid division by zero
+                    out_data[s, c, fill_indices, :3] = vecs / norms
+
+        return out_data
 
     def _fuse_vectors(
         self, vectors: np.ndarray, conf: np.ndarray, subjects: list[str], cameras: list[str]
@@ -263,6 +339,10 @@ class GazeFusion(BaseFeature):
                     continue
 
                 for sub_id in range(n_subjects):
+                    vec = gaze_2d[sub_id, cam_idx, frame_idx]
+                    if np.isnan(vec).any():
+                        continue
+
                     origin = origins[sub_id, cam_idx, frame_idx]
                     if np.isnan(origin).any():
                         continue
@@ -286,7 +366,6 @@ class GazeFusion(BaseFeature):
                         )
 
                     # Fused arrow: red, full length.
-                    vec = gaze_2d[sub_id, cam_idx, frame_idx]
                     if np.isnan(vec).any():
                         continue
                     end_point = np.round(origin + vec).astype(np.int32)

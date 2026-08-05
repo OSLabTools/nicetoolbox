@@ -1,6 +1,7 @@
 # collection of all method and feature detectors configurations
 # new detectors should be added and registered here
 
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
@@ -351,6 +352,12 @@ class BodyDistanceConfig(BaseAlgorithmConfig):
     visualize: bool
 
 
+class ClosedEyeFilterMode(str, Enum):
+    NONE = "none"
+    NAN = "nan"
+    INTERPOLATE = "interpolate"
+
+
 @detector_config("gaze_fusion")
 class GazeFusionConfig(BaseAlgorithmConfig):
     fusion_method: str  # "weighted_average" | "mean" | "select_view"
@@ -361,6 +368,8 @@ class GazeFusionConfig(BaseAlgorithmConfig):
     window_length: int
     polyorder: int
     visualize: bool
+    closed_eye_filter_mode: ClosedEyeFilterMode = ClosedEyeFilterMode.NONE
+    closed_eye_max_interpolate_gap: int = 10
 
     @model_validator(mode="after")
     def _check_select_view(self):

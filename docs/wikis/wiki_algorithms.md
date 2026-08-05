@@ -57,7 +57,7 @@ In the NICE Toolbox, ETH-XGaze runs as the **`eth_xgaze`** algorithm and outputs
 
 Two derived algorithms build on top of `gaze_individual` outputs to characterize interpersonal gaze dynamics:
 
-- **`gaze_fusion`** (`gaze_multiview` component): aggregates per-camera ETH-XGaze estimates into a single fused gaze direction using weighted averaging, with optional temporal smoothing.
+- **`gaze_fusion`** (`gaze_multiview` component): aggregates per-camera ETH-XGaze estimates into a single fused gaze direction using weighted averaging, with optional temporal smoothing. Optionally, this can be configured to take `eye_closed_state` as input and use it to filter/interpolate gaze_fusion output during eye closures via `closed_eye_filter_mode` (supports `"none"`, `"nan"`, or `"interpolate"`, defaulting to `"none"`).
 - **`gaze_distance`** (`gaze_interaction` component): detects mutual gaze between subjects by computing the angular distance between each subject's fused gaze vector and the direction towards the other subject. The `threshold_look_at` parameter (default `0.4`) controls the sensitivity of mutual gaze detection.
 
 ## Kinematics
@@ -85,7 +85,7 @@ Two derived algorithms build on top of `gaze_individual` outputs to characterize
 Two algorithms support tracking blink/closure states and dynamics from facial landmark outputs:
 
 - **`eye_closure_ear`** (`eye_closure_score` component): Computes the Eye Aspect Ratio (EAR) as the ratio of eye height to eye width, indicating closure degree. [Soukupová and Čech, 2016](https://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf)
-- **`eye_closure_threshold`** (`eye_closed_state` component): Categorizes the eye state (closed/open) via a threshold applied to the closure score, with optional duration-based temporal filtering.
+- **`eye_closure_threshold`** (`eye_closed_state` component): Categorizes the eye state (closed/open) via a threshold applied to the closure score, with optional duration-based temporal filtering. It outputs per-camera (`per_camera_state`) and global (`global_state`) eye closed states for `"left_eye"`, `"right_eye"`, and `"both_eyes"`.
 
 
 ## WhisperX (Audio Transcription & Speaker Diarization)

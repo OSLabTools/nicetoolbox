@@ -32,7 +32,7 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | proximity | body_distance_2d, body_distance_3d |
 | emotion_individual | faceboxes, aus, emotions, poses |
 | eye_closure_score | score |
-| eye_closed_state | state |
+| eye_closed_state | per_camera_state, global_state |
 
 All these numpy arrays share a common structure: the first 3 dimensions contain the subjects, cameras, and frames, the remaining dimensions vary with the respective entity.
 
@@ -96,7 +96,7 @@ The `data_description` dictionary details the entries of all numpy files within 
 | poses | Pitch, Roll, Yaw | -- |
 | head_orientation | start_x, start_y, end_x, end_y, confidence | -- |
 | score | left_eye, right_eye | -- |
-| state | left_eye, right_eye | -- |
+| per_camera_state, global_state | left_eye, right_eye, both_eyes | -- |
 
 
 ### Python code
@@ -183,6 +183,16 @@ The *gaze-fusion* algorithm integrates 3D gaze estimations from different camera
 
 For visualization or further analysis, the algorithm also projects the fused 3D gaze direction back into each camera view, resulting in 2D gaze coordinates per camera (see `…_gaze_2d.csv` and `gaze_2d.npy` file). These 2D projections are also smoothed during post-processing (see `…_gaze_2d_filtered.csv` or `gaze_2d_filtered.npy` file).
 
+### Closed Eye Filtering and Interpolation
+When a subject's eyes are closed, gaze estimates can become highly inaccurate. `gaze_fusion` can optionally ingest the `eye_closed_state` input to filter (set to `NaN`) or temporally interpolate these invalid frames before fusing the camera views.
+
+The behavior is configured via the following parameters in `GazeFusionConfig`:
+- **`closed_eye_filter_mode`** (default: `"none"`):
+  - `"none"`: Disables closed eye filtering/interpolation.
+  - `"nan"`: Leaves filtered frames as `NaN`.
+  - `"interpolate"`: Temporally interpolates coordinates and confidence scores over the closed-eye frames.
+- **`closed_eye_max_interpolate_gap`** (default: `10`): Maximum consecutive closed-eye frames that can be interpolated. Gaps larger than this limit remain `NaN`.
+
 ## Gaze Interaction
 Monitors the gaze interaction between dyads (mutual-gaze) to provide more insights into the communication dynamics. The CSV files containing the <gaze_interaction> key and the `<output_folder>/gaze_interaction/<algorithm_name>.npz` file represent the results of this component.
 
@@ -221,8 +231,10 @@ The output is saved as a `head_orientation` array within the `<output_folder>/he
 ## Eye Closure
 
 Monitors eye blink and closure dynamics. This is split into two components:
-- **`eye_closure_score`**: Represents the raw computed metric of how closed/open each eye is.
-- **`eye_closed_state`**: Represents the binarized state (1 = closed, 0 = open) based on a threshold applied to the eye closure score, with optional duration-based temporal filtering.
+- **`eye_closure_score`**: Represents the raw computed metric of how closed/open each eye is, calculated for left eye and right eye separately. Stored under `<output_folder>/eye_closure_score/<algorithm_name>.npz`
+- **`eye_closed_state`**: Represents the binarized state (1 = closed, 0 = open) calculated using `eye_closure_score`. This component produces two arrays stored under `<output_folder>/eye_closed_state/<algorithm_name>.npz`:
+  - **`per_camera_state`**: Array containing binarized states for left eye, right eye and both eyes combined per camera view.
+  - **`global_state`**: Array containing global binarized states for left eye, right eye and both eyes combined under the pseudo-camera `"3d"`. 
 
 ### Eye Aspect Ratio (EAR)
 Calculated by comparing the vertical distance between the eyelid keypoints to their horizontal distance. A lower value indicates a more closed eye.  

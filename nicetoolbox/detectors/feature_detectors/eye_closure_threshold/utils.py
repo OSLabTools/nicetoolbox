@@ -7,6 +7,7 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.ndimage as ndimage
 
 from ....utils import video as vd
 
@@ -28,16 +29,29 @@ def plot_eye_closed_states(
             ax = axes[subject_idx, 0]
             subject_name = subjects_descr[subject_idx]
 
-            if subject_idx not in cam_sees_subjects.get(camera_name, []):
+            # If it is a camera view, check visibility. Skip for pseudo-camera "3d"
+            if camera_name != "3d" and subject_idx not in cam_sees_subjects.get(camera_name, []):
                 ax.set_title(f"Eye Closed State - {subject_name} ({camera_name}) - Not visible")
                 ax.grid(True, linestyle="--", alpha=0.5)
                 continue
 
-            left_eye_state = eye_closed[subject_idx, cam_idx, :, 0]
-            right_eye_state = eye_closed[subject_idx, cam_idx, :, 1]
+            n_channels = eye_closed.shape[-1]
+            if n_channels == 3:
+                left_eye_state = eye_closed[subject_idx, cam_idx, :, 0]
+                right_eye_state = eye_closed[subject_idx, cam_idx, :, 1]
+                both_eye_state = eye_closed[subject_idx, cam_idx, :, 2]
 
-            ax.step(range(len(left_eye_state)), left_eye_state, label="Left Eye", color="blue", where="post")
-            ax.step(range(len(right_eye_state)), right_eye_state, label="Right Eye", color="green", where="post")
+                ax.step(range(len(left_eye_state)), left_eye_state, label="Left Eye", color="blue", where="post")
+                ax.step(range(len(right_eye_state)), right_eye_state, label="Right Eye", color="green", where="post")
+                ax.step(
+                    range(len(both_eye_state)),
+                    both_eye_state,
+                    label="Both Eyes",
+                    color="red",
+                    linestyle="--",
+                    where="post",
+                )
+
             ax.set_ylabel("Closed State")
             ax.set_ylim(-0.2, 1.2)
 
@@ -159,32 +173,40 @@ def visualize_eye_closed_videos(
 
 
 def filter_duration(
-    binary_array: np.ndarray, fps: float, min_duration: float, max_duration: float = None
+    binary_array: np.ndarray, fps: float, min_duration: float, max_duration: float = None, axis: int = -1
 ) -> np.ndarray:
     """
-    Filters contiguous runs of 1s in a 1D binary array based on their duration in seconds.
+    Filters contiguous runs of 1s in a binary array along the specified axis based on their duration in seconds.
     If a run meets the criteria, it is kept as 1. Otherwise, it is reset to 0.
 
-    The array may be integer- or float-typed; the output keeps the input dtype. Values must be
-    exactly 0 or 1 — NaN would break the run-edge detection, so callers must mask it out first.
+    The array can be of any shape. Values must be exactly 0 or 1.
     """
-    out = np.zeros_like(binary_array)
+    if binary_array.ndim == 1:
+        flat = binary_array[np.newaxis, :]
+    else:
+        moved_array = np.moveaxis(binary_array, axis, -1)
+        original_shape = moved_array.shape
+        flat = moved_array.reshape(-1, original_shape[-1])
 
-    # Detect start and end indices of contiguous runs of 1s
-    padded = np.concatenate([[0], binary_array, [0]])
-    diff = np.diff(padded)
-    starts = np.where(diff == 1)[0]
-    ends = np.where(diff == -1)[0]
+    # Connect adjacent components only horizontally (along the time/frame axis)
+    structure = np.zeros((3, 3), dtype=int)
+    structure[1, :] = 1
 
-    for start, end in zip(starts, ends):
-        length = end - start
-        duration = length / fps
+    labeled, num_features = ndimage.label(flat, structure=structure)
+    if num_features == 0:
+        return np.zeros_like(binary_array)
 
-        keep = duration >= min_duration
-        if max_duration is not None:
-            keep = keep and (duration <= max_duration)
+    sizes = ndimage.sum(np.ones_like(flat), labeled, range(1, num_features + 1))
+    durations = sizes / fps
+    keep = durations >= min_duration
+    if max_duration is not None:
+        keep = keep & (durations <= max_duration)
 
-        if keep:
-            out[start:end] = 1
+    map_array = np.zeros(num_features + 1, dtype=flat.dtype)
+    map_array[1:] = np.where(keep, 1.0, 0.0)
+    flat_filtered = map_array[labeled]
 
-    return out
+    if binary_array.ndim == 1:
+        return flat_filtered[0]
+    reshaped = flat_filtered.reshape(original_shape)
+    return np.moveaxis(reshaped, -1, axis)
