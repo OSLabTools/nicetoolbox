@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -38,6 +39,7 @@ class ResolvedInput:
     npz_key: str | None
     upstream_config: BaseAlgorithmConfig
     array: NpzArray | None
+    file_path: Path
 
     @property
     def data(self) -> np.ndarray:
@@ -70,16 +72,19 @@ def _available_npz_keys(npz_path) -> list[str]:
         return []
 
 
-def _load_npz_input(spec: NpzDetectorInput, cfg: DetectorInputConfig, io: SequenceIO):
+def _npz_path(cfg: DetectorInputConfig, io: SequenceIO) -> Path:
+    """Locate the file an upstream detector wrote for one configured input."""
+    result_folder = io.get_detector_output_folder(cfg.component, cfg.algorithm, "result")
+    return result_folder / f"{cfg.algorithm}.npz"
+
+
+def _load_npz_input(spec: NpzDetectorInput, cfg: DetectorInputConfig, npz_path: Path):
     """Load and schema-validate one NPZ input.
 
     `optional` governs only whether the input *block* may be omitted from the config (handled in
     load_detector_inputs). Once a block is configured, it must resolve fully: the NPZ file and the
     requested npz_key must exist, so a missing file or key is always an error here.
     """
-    result_folder = io.get_detector_output_folder(cfg.component, cfg.algorithm, "result")
-    npz_path = result_folder / f"{cfg.algorithm}.npz"
-
     if not npz_path.exists():
         raise FileNotFoundError(
             f"Input '{spec.name}' (component '{cfg.component}', algorithm '{cfg.algorithm}') "
@@ -145,10 +150,12 @@ def load_detector_inputs(
                 f"but missing from the config's [inputs] table. Available: {list(inputs_cfg)}."
             )
 
-        array = None
+        array, file_path = None, None
         if isinstance(spec, NpzDetectorInput):
-            array = _load_npz_input(spec, input_cfg, io)
+            file_path = _npz_path(input_cfg, io)
+            array = _load_npz_input(spec, input_cfg, file_path)
         # TODO: load parsed json/other comp type here? as dict? as pydantic?
+        # TODO: at least pass json path
 
         upstream_config = subsequence_context.get_detector_config(input_cfg.algorithm)
         resolved[spec.name] = ResolvedInput(
@@ -158,6 +165,7 @@ def load_detector_inputs(
             npz_key=input_cfg.npz_key,
             upstream_config=upstream_config,
             array=array,
+            file_path=file_path,
         )
 
     return resolved

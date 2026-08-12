@@ -191,6 +191,13 @@ class BaseMethod(BaseDetector):
     def _run_inference(self) -> None:
         """Run the inference subprocess."""
         logging.info(f"INFERENCE: Launching {self.algorithm_instance} subprocess...")
+        # debugging shortcut
+        if self.subsequence_context.run.skip_inference:
+            logging.warning(
+                f"INFERENCE: skip_inference is set - reusing existing {self.algorithm_instance} "
+                "inference output and running post-processing only."
+            )
+            return self.post_inference()
 
         command = self._create_command()
 

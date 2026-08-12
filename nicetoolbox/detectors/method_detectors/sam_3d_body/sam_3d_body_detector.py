@@ -18,12 +18,12 @@ from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime, Sam3dBodyConfig
 from ....configs.schemas.predictions_mapping import Sam3dBodyMhr
 from ....utils import video as vd
+from ...utils.filters import adaptive_savgol_filter
+from ...utils.keypoints_triangualation import apply_stereo_triangulation_to_body_joints_payload
 from ..base_method import BaseMethod
-from ..filters import adaptive_savgol_filter
 from . import sam_3d_body_mesh_viz as mesh_viz
 from .sam_3d_body_export_tensors import build_body_joints_npz_payload, build_body_mesh_npz_payload, frame_person_list
 from .sam_3d_body_paths import RAW_INFERENCE_NPZ_NAME, SAM3D_BODY_LOCAL_NPZ_STEM, SAM3D_BODY_OUTPUT_NPZ_STEM
-from .sam_3d_body_stereo_triangulation import apply_stereo_triangulation_to_body_joints_payload
 
 
 def _calibration_usable_for_world_alignment(calibration: dict[str, Any] | None, camera_names: list[str]) -> bool:

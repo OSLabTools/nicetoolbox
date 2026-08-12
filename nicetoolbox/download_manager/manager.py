@@ -1,6 +1,7 @@
 import logging
 import shutil
 import time
+import zipfile
 from pathlib import Path
 from typing import List
 
@@ -105,6 +106,64 @@ class AssetManager:
                     logging.error(f"Please check internet or manually place file at: {dest_path}")
                     raise
 
+    def download_and_extract_zip(self, url: str, dest_path: Path, desc: str, flatten_single_root: bool = False):
+        zip_path = dest_path.parent / (dest_path.name + ".zip")
+        staging_path = dest_path.parent / (dest_path.name + ".incomplete")
+
+        self.download_file(url, zip_path, desc=desc)
+
+        shutil.rmtree(staging_path, ignore_errors=True)
+        try:
+            staging_path.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(zip_path) as archive:
+                self._assert_safe_zip(archive, desc)
+                archive.extractall(staging_path)
+            if flatten_single_root:
+                self._flatten_single_root(staging_path, desc)
+            staging_path.rename(dest_path)
+        except zipfile.BadZipFile as err:
+            shutil.rmtree(staging_path, ignore_errors=True)
+            zip_path.unlink(missing_ok=True)
+            raise RuntimeError(f"Downloaded archive for '{desc}' is not a valid zip file.") from err
+        except Exception:
+            shutil.rmtree(staging_path, ignore_errors=True)
+            raise
+        finally:
+            zip_path.unlink(missing_ok=True)
+
+        logging.info(f"Asset '{desc}' extracted to {dest_path}.")
+
+    @staticmethod
+    def _flatten_single_root(folder: Path, desc: str) -> None:
+        entries = list(folder.iterdir())
+        if len(entries) != 1 or not entries[0].is_dir():
+            logging.warning(
+                f"Asset '{desc}' set flatten_single_root, but the archive does not have a single "
+                f"top-level folder. Extracted contents left as-is."
+            )
+            return
+
+        nested = entries[0]
+        # Move via a sibling temp name: renaming the child onto its own parent is not portable.
+        lifted = folder.parent / (folder.name + ".lifted")
+        shutil.rmtree(lifted, ignore_errors=True)
+        nested.rename(lifted)
+        folder.rmdir()
+        lifted.rename(folder)
+
+    @staticmethod
+    def _assert_safe_zip(archive: zipfile.ZipFile, desc: str) -> None:
+        """
+        Rejects archives whose members would escape the extraction folder.
+
+        Guards against path traversal ('../') and absolute paths in member names, which
+        `extractall` would otherwise honour and write outside the assets tree.
+        """
+        for member in archive.namelist():
+            member_path = Path(member)
+            if member_path.is_absolute() or ".." in member_path.parts:
+                raise RuntimeError(f"Archive for '{desc}' contains an unsafe path: '{member}'.")
+
     def download_hf_repo(self, repo_id: str, cache_dir: Path, desc: str):
         """
         Downloads a Hugging Face repository using snapshot_download.
@@ -176,6 +235,14 @@ class AssetManager:
                 if not dest_path.exists():
                     logging.info(f"Missing asset: {key}. Downloading...")
                     self.download_file(url, dest_path, desc=key)
+                else:
+                    logging.info(f"Asset '{key}' verified.")
+
+            elif source == "zip":
+                if not dest_path.exists():
+                    logging.info(f"Missing asset: {key}. Downloading and extracting...")
+                    flatten = asset_info.get("flatten_single_root", False)
+                    self.download_and_extract_zip(url, dest_path, desc=key, flatten_single_root=flatten)
                 else:
                     logging.info(f"Asset '{key}' verified.")
             else:

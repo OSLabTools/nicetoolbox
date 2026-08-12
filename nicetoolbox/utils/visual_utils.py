@@ -51,12 +51,23 @@ def get_cam_para_studio(content, cam):
     return cam_matrix, cam_distor, cam_rotation, cam_extrinsic
 
 
-def return_2d_vector(image_width, pitchyaw, length_ratio=5.0):
-    # Pixel-space arrow displacement. Kept as float so NaN gaze flows through as NaN.
-    length = image_width / length_ratio
-    dx = -length * np.sin(pitchyaw[:, 1]) * np.cos(pitchyaw[:, 0])
-    dy = -length * np.sin(pitchyaw[:, 0])
+def return_2d_vector(pitchyaw):
+    # Unit-length image-plane direction. Kept as float so NaN gaze flows through as NaN.
+    # Callers scale this by a pixel length when drawing (see gaze_arrow_pixel_length).
+    dx = -np.sin(pitchyaw[:, 1]) * np.cos(pitchyaw[:, 0])
+    dy = -np.sin(pitchyaw[:, 0])
+    norm = np.sqrt(dx**2 + dy**2)
+    # A gaze pointing straight down the optical axis has no image-plane direction; leave it NaN
+    # rather than emitting a 0/0 vector that would render as an arbitrary arrow.
+    with np.errstate(invalid="ignore", divide="ignore"):
+        dx = np.where(norm > 0, dx / norm, np.nan)
+        dy = np.where(norm > 0, dy / norm, np.nan)
     return dx, dy
+
+
+def gaze_arrow_pixel_length(image_width, length_ratio=5.0):
+    """Pixel length used to draw a unit gaze direction as an arrow on a frame of this width."""
+    return image_width / length_ratio
 
 
 def vector_to_pitchyaw(vector):
@@ -71,9 +82,14 @@ def vector_to_pitchyaw(vector):
     return np.vstack((pitch, yaw)).T
 
 
-def reproject_gaze_to_camera_view_vectorized(cam_rotation, gaze_vectors, image_width):
+def reproject_gaze_to_camera_view_vectorized(cam_rotation, gaze_vectors):
+    """Reproject world gaze directions into a camera as unit image-plane (dx, dy) directions.
+
+    The result is normalized, not pixel-scaled: multiply by gaze_arrow_pixel_length(image_width)
+    at the point of drawing.
+    """
     # Convert the gaze to current camera coordinate system for multiple vectors
     gaze_cam = np.dot(cam_rotation, gaze_vectors.T).T  # Apply rotation to all gaze vectors
     draw_gaze_dir = vector_to_pitchyaw(gaze_cam)
-    dx, dy = return_2d_vector(image_width, draw_gaze_dir)
+    dx, dy = return_2d_vector(draw_gaze_dir)
     return dx, dy

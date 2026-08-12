@@ -103,6 +103,11 @@ class FeatureDetectorRuntime(BaseDetectorRuntime):
     ...
 
 
+# =============================================================================
+# Shared Subconfigs (triangulation, interpolation, filtering, etc.)
+# =============================================================================
+
+
 class TriangulationConfig(BaseModel):
     """Stereo triangulation settings for detectors that lift 3d from two views."""
 
@@ -125,6 +130,47 @@ class TriangulationConfig(BaseModel):
                 f"triangulation.triangulation_cameras must be two distinct cameras, "
                 f"got {self.triangulation_cameras}."
             )
+        return self
+
+
+class FilterConfig(BaseModel):
+    """
+    Savitzky-Golay temporal smoothing settings, applied along the frame axis.
+    """
+
+    filtered: bool
+    window_length: int
+    polyorder: int
+
+    @model_validator(mode="after")
+    def _check_window(self):
+        if not self.filtered:
+            return self
+        if self.window_length < 3 or self.window_length % 2 == 0:
+            raise ValueError(
+                f"window_length must be an odd integer >= 3 when filtered is true, got {self.window_length}."
+            )
+        if self.polyorder >= self.window_length:
+            raise ValueError(
+                f"polyorder must be less than window_length, "
+                f"got polyorder={self.polyorder}, window_length={self.window_length}."
+            )
+        return self
+
+
+class InterpolationConfig(BaseModel):
+    """
+    Gap-filling settings for missing per-frame estimates, applied along the frame axis.
+    """
+
+    interpolated: bool
+    # Longest run of consecutive missing frames that may be filled, in frames.
+    max_gap: int
+
+    @model_validator(mode="after")
+    def _check_max_gap(self):
+        if self.interpolated and self.max_gap < 1:
+            raise ValueError(f"max_gap must be >= 1 when interpolated is true, got {self.max_gap}.")
         return self
 
 
@@ -214,17 +260,45 @@ class MotionbertAlgorithmConfig(BaseAlgorithmConfig):
 class SpigaConfig(BaseAlgorithmConfig):
     env_name: str
     camera_names: str | list[str]
-    log_frame_idx_interval: int
     batch_size: int
     visualize: bool
-    spiga_dataset: str
+    visualize_native: bool
+    visualize_keypoints_npz_key: str
+    keypoint_mapping: str
+    filter_keypoints: FilterConfig
+    interpolate_keypoints: InterpolationConfig
+    triangulate_keypoints: TriangulationConfig
 
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
     class RuntimeConfig(MethodDetectorRuntime):
         """SPIGA-specific runtime fields."""
 
-        face_landmarks_description: List[str]
+        face_bbox_npz: str
+        face_bbox_npz_key: str
+
+
+@detector_config("insight_face")
+class InsightFaceConfig(BaseAlgorithmConfig):
+    """InsightFace face detection."""
+
+    env_name: str
+    camera_names: str | list[str]
+    visualize: bool
+    visualize_native: bool
+    visualize_keypoints_npz_key: str
+    filter_keypoints: FilterConfig
+    interpolate_keypoints: InterpolationConfig
+    triangulate_keypoints: TriangulationConfig
+
+    # InsightFace model pack (e.g. "buffalo_l"), downloaded into `model_root` on first use.
+    model_pack: str
+    model_root: str
+
+    # InsightFace parameters (TODO: add detection resolution override)
+    det_thresh: float
+
+    required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
 @detector_config("py_feat")

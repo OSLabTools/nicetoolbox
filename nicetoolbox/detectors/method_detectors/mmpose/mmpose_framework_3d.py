@@ -11,9 +11,10 @@ import numpy as np
 from ....configs.schemas.detectors_instances_configs import MotionbertAlgorithmConfig
 from ....utils import video as vd
 from ... import config_handler as confh
-from ..filters import SGFilter
-from . import pose_utils
-from .mmpose_framework_base import BaseMMPose, extract_key_per_value
+from ...utils import pose_utils
+from ...utils.filters import SGFilter
+from ...utils.keypoints_post_processing import extract_key_per_value
+from .mmpose_framework_base import BaseMMPose
 
 
 def _pose_det_dataset_from_keypoint_mapping(mapping_name: str) -> str:

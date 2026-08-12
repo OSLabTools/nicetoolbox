@@ -51,22 +51,12 @@ class EyeClosureEar(BaseFeature):
         """Resolve the left/right eye landmark indices from the upstream keypoint mapping."""
         self.camera_names = self.detector_config.camera_names
         upstream_config = self.loaded_inputs["landmarks_2d"].upstream_config
-        keypoint_mapping_name = getattr(upstream_config, "keypoint_mapping", None)
+        keypoint_mapping_name = upstream_config.keypoint_mapping
 
-        # TODO: unify keypoint mapping lookup here
-        if keypoint_mapping_name:
-            # HumanPose family (e.g. coco_wholebody): face landmarks are a slice of the
-            # whole-body keypoint set, so global IDs must be remapped to slice-local ones.
-            self.keypoint_mapping = getattr(self.predictions_mapping.human_pose, keypoint_mapping_name)
-            face_indices = self.keypoint_mapping.keypoints_index.face
-            self.left_eye_indices = ear_utils.resolve_eye_indices(face_indices, "left_eye")
-            self.right_eye_indices = ear_utils.resolve_eye_indices(face_indices, "right_eye")
-        else:
-            # HeadOrientation family (spiga): face landmarks are already their own array.
-            self.keypoint_mapping = self.predictions_mapping.head_orientation.spiga
-            face_indices = self.keypoint_mapping.keypoints_index.face
-            self.left_eye_indices = face_indices["left_eye"]
-            self.right_eye_indices = face_indices["right_eye"]
+        self.keypoint_mapping = getattr(self.predictions_mapping.human_pose, keypoint_mapping_name)
+        face_indices = self.keypoint_mapping.keypoints_index.face
+        self.left_eye_indices = ear_utils.resolve_eye_indices(face_indices, "left_eye")
+        self.right_eye_indices = ear_utils.resolve_eye_indices(face_indices, "right_eye")
 
         self.eye_layout = self.keypoint_mapping.eye_layout
         self.eyes_landmark_indexes = list(self.left_eye_indices) + list(self.right_eye_indices)

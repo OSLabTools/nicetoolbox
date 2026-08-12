@@ -22,6 +22,7 @@ ifeq ($(OS), Windows_NT)
 	ETH_XGAZE_EXE_DIR = ./envs/eth_xgaze/Scripts
 	PYFEAT_EXE_DIR = ./envs/py_feat/Scripts
 	SPIGA_EXE_DIR = ./envs/spiga/Scripts
+	INSIGHT_FACE_EXE_DIR = ./envs/insight_face/Scripts
 	WHISPERX_EXE_DIR = ./envs/whisperx/Scripts
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/Scripts
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/Scripts
@@ -33,6 +34,7 @@ else
 	ETH_XGAZE_EXE_DIR = ./envs/eth_xgaze/bin
 	PYFEAT_EXE_DIR = ./envs/py_feat/bin
 	SPIGA_EXE_DIR = ./envs/spiga/bin
+	INSIGHT_FACE_EXE_DIR = ./envs/insight_face/bin
 	WHISPERX_EXE_DIR = ./envs/whisperx/bin
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/bin
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/bin
@@ -185,6 +187,7 @@ install:
 	-@make install_eth_xgaze
 	-@make install_pyfeat
 	-@make install_spiga
+	-@make install_insight_face
 	-@make install_whisperx
 	-@make install_sam3d_body
 	-@make install_crisper_whisper
@@ -263,10 +266,36 @@ install_spiga:
 	@echo "Virtual environment created in ./envs/spiga"
 
 	@echo "Installing requirements for 'SPIGA'..."
-	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
 	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/spiga/spiga_requirements.txt
 	@$(SPIGA_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'SPIGA' environment setup completed successfully."
+
+
+# Install the venv for insightface
+.PHONY: install_insight_face
+install_insight_face:
+	@make create_separator
+	@make clean_venv NAME=insight_face
+	@echo "Installing virtual environment for algorithm 'InsightFace'..."
+
+	@echo "Creating virtual environment..."
+	@$(PYTHON_EXE) -m venv ./envs/insight_face
+	@$(INSIGHT_FACE_EXE_DIR)/python -m pip install --upgrade pip
+	@echo "Virtual environment created in ./envs/insight_face"
+
+# need bundled cuda and cudnn for onnxruntime to use GPU
+	@echo "Installing Pytorch..."
+	@$(INSIGHT_FACE_EXE_DIR)/pip install torch --index-url https://download.pytorch.org/whl/cu129
+	@echo "Installing requirements for 'InsightFace'..."
+	@$(INSIGHT_FACE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/insight_face/insight_face_requirements.txt
+
+# need this hack to make gpu work - delete cpu version of onnx, keep only cuda
+	@$(INSIGHT_FACE_EXE_DIR)/pip uninstall -y onnxruntime
+	@$(INSIGHT_FACE_EXE_DIR)/pip install --no-cache-dir onnxruntime-gpu==1.23.2
+
+	@$(INSIGHT_FACE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@echo "'InsightFace' environment setup completed successfully."
 
 
 # Install the venv for whisperx

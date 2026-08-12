@@ -128,7 +128,7 @@ radii = {'3d'= 0.01, 'camera_view'= 4}
 algorithms = ['spiga']
 
 [media.head_orientation.canvas]
-head_orientation_2d = ["view_center", "view_top", "view_left", "view_right"]  ##value options: [camera names]
+head_direction_2d = ["view_center", "view_top", "view_left", "view_right"]  ##value options: [camera names]
 
 [media.head_orientation.appearance]
 colors =  [[[255,92,0], [85,170,47]]] #neon orange, dark olive green

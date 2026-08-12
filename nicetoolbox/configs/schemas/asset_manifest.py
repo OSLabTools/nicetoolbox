@@ -1,19 +1,39 @@
-from typing import Dict, Literal
+from typing import Annotated, Dict, Literal, Union
 
 from pydantic import BaseModel, Field, RootModel
 
 
-class AssetMetadata(BaseModel):
-    """Metadata for a single asset."""
+class BaseAssetMetadata(BaseModel):
+    """Fields shared by every asset, regardless of download backend."""
 
-    url: str = Field(..., description="The HTTP URL for direct downloads, or the Repo ID for Hugging Face.")
-    source: Literal["url", "huggingface"] = Field(
-        ..., description="The download backend: 'url' for direct HTTP, 'huggingface' for HF hub."
-    )
-    access: Literal["hosted", "open", "gated"] = Field(
-        ...,
-        description="Access level: 'hosted' (direct URL), 'open' (public HF), 'gated' (requires token and license).",
-    )
+    url: str
+    access: Literal["hosted", "open", "gated"]
+
+
+class UrlAssetMetadata(BaseAssetMetadata):
+    """A single file fetched over HTTP and written verbatim to the asset path."""
+
+    source: Literal["url"]
+
+
+class ZipAssetMetadata(BaseAssetMetadata):
+    """A zip archive fetched over HTTP and extracted into the asset folder."""
+
+    source: Literal["zip"]
+    flatten_single_root: bool = False
+
+
+class HuggingFaceAssetMetadata(BaseAssetMetadata):
+    """A Hugging Face repo snapshot; `url` holds the repo id."""
+
+    source: Literal["huggingface"]
+
+
+# Discriminated on `source`, so each backend only accepts the fields that apply to it.
+AssetMetadata = Annotated[
+    Union[UrlAssetMetadata, ZipAssetMetadata, HuggingFaceAssetMetadata],
+    Field(discriminator="source"),
+]
 
 
 class AssetManifest(RootModel[Dict[str, AssetMetadata]]):

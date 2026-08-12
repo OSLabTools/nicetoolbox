@@ -112,31 +112,36 @@ class Sam3dBodyMhrEvaluation(Sam3dBodyMhr):
     pass
 
 
+class Face5ptKeypointsIndex(BaseModel):
+    face: Dict[str, int]
+
+
+class Face5pt(BaseModel):
+    keypoints_index: Face5ptKeypointsIndex
+
+
+class WflwKeypointsIndex(BaseModel):
+    face: Dict[str, List[int]]
+
+
+class Wflw(BaseModel):
+    keypoints_index: WflwKeypointsIndex
+    eye_layout: EyeLayout
+
+
 class HumanPose(BaseModel):
     coco_wholebody: CocoWholebody
     human36m: Human36m
     mpii: Mpii
     sam_3d_body_mhr: Sam3dBodyMhr
     sam_3d_body_mhr_evaluation: Optional[Sam3dBodyMhrEvaluation] = None
+    face_5pt: Face5pt
+    wflw: Wflw
     bodypart_names: Dict[str, List[str]]
     bone_dict: Dict[str, List[str]]
     joint_diameter_size: Dict[str, float]
 
 
-class SpigaKeypointsIndex(BaseModel):
-    face: Dict[str, List[int]]
-
-
-class Spiga(BaseModel):
-    keypoints_index: SpigaKeypointsIndex
-    eye_layout: EyeLayout
-
-
-class HeadOrientation(BaseModel):
-    spiga: Spiga
-
-
 # Top-level keys in predictions_mapping.toml
 class PredictionsMappingConfig(BaseModel):
     human_pose: HumanPose
-    head_orientation: HeadOrientation

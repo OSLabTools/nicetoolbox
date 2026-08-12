@@ -16,7 +16,7 @@ from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
-from ...method_detectors.filters import SGFilter
+from ...utils.filters import SGFilter
 from ..base_feature import BaseFeature
 from ..eye_closure_threshold.eye_closure_threshold import EYE_CLOSED_STATE
 
@@ -256,7 +256,7 @@ class GazeFusion(BaseFeature):
         cameras: list[str],
         frames: list[str],
     ) -> NpzArray:
-        """Reproject fused world gaze into each camera as a 2D arrow; broadcast fused conf per camera."""
+        """Reproject fused world gaze into each camera as a 2D unit direction; broadcast fused conf."""
         projected = self._project_to_cameras(fused_xyz, cameras)  # (S, C, F, 2)
         conf_broadcast = np.broadcast_to(fused_conf[:, np.newaxis, :, np.newaxis], projected.shape[:-1] + (1,))
         data = np.concatenate([projected, conf_broadcast], axis=-1)  # (S, C, F, 3)
@@ -264,7 +264,7 @@ class GazeFusion(BaseFeature):
         return NpzArray(data, axes)
 
     def _project_to_cameras(self, world_gaze: np.ndarray, cameras: list[str]) -> np.ndarray:
-        """Project a world direction (S, F, 3) into each camera's image plane as (dx, dy) arrows.
+        """Project a world direction (S, F, 3) into each camera's image plane as unit (dx, dy).
 
         NaN gaze frames propagate to NaN pixel arrows through the trig chain, so no explicit
         masking is needed. Calibration is guaranteed present by the upstream eth_xgaze fail-fast.
@@ -278,18 +278,18 @@ class GazeFusion(BaseFeature):
         return projected
 
     def _project_to_camera(self, world_gaze: np.ndarray, cam_name: str) -> np.ndarray:
-        """Project a world direction (S, F, 3) into a single camera's image plane as (dx, dy).
+        """Project a world direction (S, F, 3) into a single camera's image plane as unit (dx, dy).
 
-        Returns (S, F, 2). Shared by the fused 2D output and the per-view visualization arrows so
-        both render in the same pixel space for the camera being drawn.
+        Returns (S, F, 2) of unit length. Shared by the fused 2D output and the per-view
+        visualization arrows, so both describe the same direction convention for the camera being
+        drawn; the visualization scales them to pixels.
         """
         n_subj = world_gaze.shape[0]
         _, _, cam_R, _ = vis_ut.get_cam_para_studio(self.calibration, cam_name)
-        image_width = self.calibration[cam_name]["image_size"][0]
 
         projected = np.full(world_gaze.shape[:2] + (2,), np.nan)
         for sub_id in range(n_subj):
-            dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, world_gaze[sub_id], image_width)
+            dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_R, world_gaze[sub_id])
             projected[sub_id, :, 0] = -dx
             projected[sub_id, :, 1] = -dy
 
@@ -304,12 +304,13 @@ class GazeFusion(BaseFeature):
         the same origin — divergence between yellow arrows shows which views pull the fusion.
 
         Each view's world gaze is reprojected into the camera currently being drawn, so every
-        yellow arrow lives in that image's pixel space and is directly comparable to the red one.
-        Using the per-view gaze_2d directly would paste arrows measured in one camera's image
-        plane onto a different camera's image.
+        yellow arrow is expressed in that camera's image plane and is directly comparable to the
+        red one. Using the per-view gaze_2d directly would paste arrows measured against a
+        different camera's image plane. All these directions are unit vectors, so they are scaled
+        to a per-camera pixel arrow length here.
         """
         gaze_key = "gaze_2d_filtered" if self.filtered else "gaze_2d"
-        gaze_2d = out.get("gaze_multiview", gaze_key).data[..., :2]  # (S, C, F, 2)
+        gaze_2d = out.get("gaze_multiview", gaze_key).data[..., :2]  # (S, C, F, 2) unit dirs
         origins = out.get("gaze_multiview", "gaze_origin_2d").data[..., :2]  # (S, C, F, 2)
         per_view_world = self.loaded_inputs["gaze_per_camera_3d"].data[..., :3]  # (S, V, F, 3)
 
@@ -338,6 +339,8 @@ class GazeFusion(BaseFeature):
                 if img is None:
                     continue
 
+                arrow_length = vis_ut.gaze_arrow_pixel_length(self.calibration[cam_name]["image_size"][0])
+
                 for sub_id in range(n_subjects):
                     vec = gaze_2d[sub_id, cam_idx, frame_idx]
                     if np.isnan(vec).any():
@@ -354,7 +357,7 @@ class GazeFusion(BaseFeature):
                         view_vec = per_view_2d[cam_name][sub_id, view_idx, frame_idx]
                         if np.isnan(view_vec).any():
                             continue
-                        view_end = np.round(origin + 0.5 * view_vec).astype(np.int32)
+                        view_end = np.round(origin + 0.5 * arrow_length * view_vec).astype(np.int32)
                         cv2.arrowedLine(
                             img,
                             origin_i,
@@ -368,7 +371,7 @@ class GazeFusion(BaseFeature):
                     # Fused arrow: red, full length.
                     if np.isnan(vec).any():
                         continue
-                    end_point = np.round(origin + vec).astype(np.int32)
+                    end_point = np.round(origin + arrow_length * vec).astype(np.int32)
                     cv2.arrowedLine(
                         img,
                         origin_i,

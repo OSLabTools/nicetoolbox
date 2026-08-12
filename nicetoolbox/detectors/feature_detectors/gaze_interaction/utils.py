@@ -13,6 +13,7 @@ import numpy as np
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....utils import video as vd
+from ....utils import visual_utils as vis_ut
 
 # BGR colors for the per-subject gaze arrow.
 _COLOR_LOOK_AT = (0, 200, 0)  # green: this subject looks at someone this frame
@@ -42,7 +43,8 @@ def visualize_gaze_arrows(
 
     Args:
         heads (ndarray): 2D head anchors, image coords, shape (subjects, cameras, frames, 2).
-        gaze (ndarray): image-plane gaze direction vectors (u, v), same shape as heads.
+        gaze (ndarray): unit image-plane gaze direction vectors (u, v), same shape as heads. They
+            are scaled to a pixel arrow length per camera, derived from the drawn frame's width.
         looks_at_anyone (ndarray): per-subject bool (as float 0/1/nan), whether the subject looks
             at any other subject, shape (subjects, cameras, frames).
         radii (ndarray): per-head target-circle radius in pixels, shape (subjects, cameras, frames).
@@ -64,6 +66,9 @@ def visualize_gaze_arrows(
             img = cv2.imread(str(path))
             if img is None:
                 continue
+
+            # Gaze arrives as a unit direction; scale it to a visible arrow for this frame width.
+            arrow_length = vis_ut.gaze_arrow_pixel_length(img.shape[1])
 
             for sub_id in range(num_subjects):
                 head = heads[sub_id, cam_idx, frame_idx]
@@ -88,7 +93,7 @@ def visualize_gaze_arrows(
                         lineType=cv2.LINE_AA,
                     )
 
-                end_point = np.round(head + vec).astype(np.int32)
+                end_point = np.round(head + arrow_length * vec).astype(np.int32)
                 cv2.arrowedLine(
                     img,
                     tuple(head_point),

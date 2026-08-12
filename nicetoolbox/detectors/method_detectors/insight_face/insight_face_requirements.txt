@@ -1,0 +1,3 @@
+# insight face 1.0.1 fork
+# doesn't have tag, so use directly hash
+insightface @ git+https://github.com/OSLabTools/insightface.git@70f3269ea628d0658c5723976944c9de414e96f8#subdirectory=python-package
