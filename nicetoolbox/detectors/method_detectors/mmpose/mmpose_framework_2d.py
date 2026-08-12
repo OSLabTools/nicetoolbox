@@ -16,9 +16,10 @@ import numpy as np
 from ....utils import check_and_exception as check
 from ....utils import triangulation as tri
 from ... import config_handler as confh
-from ..filters import SGFilter
-from . import pose_utils
-from .mmpose_framework_base import BaseMMPose, extract_key_per_value
+from ...utils import pose_utils
+from ...utils.filters import SGFilter
+from ...utils.keypoints_post_processing import extract_key_per_value
+from .mmpose_framework_base import BaseMMPose
 
 
 class MMPose2D(BaseMMPose):

@@ -17,6 +17,8 @@ from typing import Dict, List, Tuple
 import numpy as np
 import rerun as rr
 
+from ...utils import visual_utils as vis_utils
+
 
 class Component(ABC):
     """
@@ -399,6 +401,9 @@ class GazeFusionComponent(Component):
         projected_gaze_2d_per_alg (List[np.ndarray]): Reprojected 2D gaze per algorithm (S, C, F, 3).
     """
 
+    # Fallback arrow length (px) for drawing unit gaze directions when calibration is unavailable.
+    DEFAULT_ARROW_LENGTH_PX = 200.0
+
     def __init__(
         self,
         visualizer_config: Dict,
@@ -449,6 +454,17 @@ class GazeFusionComponent(Component):
     def _get_algorithms_labels(self) -> List[List[str]]:
         """Labels for the fused gaze axis3 (per algorithm)."""
         return [res["data_description"].item()["gaze_3d"]["axis3"] for res in self.algorithms_results]
+
+    def _arrow_length(self, cam_name: str) -> float:
+        """Pixel length for drawing a unit gaze direction in `cam_name`'s view.
+
+        gaze_2d is stored normalized, so it needs a pixel scale to render as a visible arrow.
+        Calibration is optional in the visualizer, so fall back to a fixed length when this
+        camera's image size is unknown.
+        """
+        if self.calib and cam_name in self.calib:
+            return vis_utils.gaze_arrow_pixel_length(self.calib[cam_name]["image_size"][0])
+        return self.DEFAULT_ARROW_LENGTH_PX
 
     def _get_look_at_color(self, sub_idx: int, alg_idx: int, look_to_subject: str, frame_idx: int) -> List[int]:
         """
@@ -552,8 +568,9 @@ class GazeFusionComponent(Component):
                         if subject_idx not in cam["sees_subjects"]:
                             continue
                         origin = origins[subject_idx, cam_idx, frame_idx, :2]
-                        # gaze_2d carries [x, y, conf]; drop conf.
-                        gaze_2d = projected[subject_idx, cam_idx, frame_idx, :2]
+                        # gaze_2d carries [x, y, conf]; drop conf. It is a unit direction, so
+                        # scale it to a pixel arrow for this camera's image width.
+                        gaze_2d = projected[subject_idx, cam_idx, frame_idx, :2] * self._arrow_length(cam_name)
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,
                             is_3d=False,
@@ -1074,6 +1091,13 @@ class HeadOrientationComponent(Component):
     Class for visualizing head orientation data.
     """
 
+    # The heading and the pixel anchor it is drawn from are separate arrays, so the origin is
+    # read directly instead of through the canvas config.
+    DIRECTION_KEY = "head_direction_2d"
+    ORIGIN_KEY = "head_origin_2d"
+    # Arrow length (px), since the direction is a unitless heading rather than pixels.
+    ARROW_LENGTH_PX = 60.0
+
     def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
         """
         Initialize the HeadOrientationComponent.
@@ -1086,15 +1110,17 @@ class HeadOrientationComponent(Component):
         """
         super().__init__(visualizer_config, io, logger, component_name)
         # the camera_names and subject_names results will be read from first algorithm
-        # we are getting camera names from landmarks_2d because 3d doesn't have any
-        # camera info
-        self.camera_names = self.algorithms_results[0]["data_description"].item()["headpose"][
+        # head_direction_2d is per-camera, so it carries both the camera and subject axes
+        self.camera_names = self.algorithms_results[0]["data_description"].item()[self.DIRECTION_KEY][
             "axis1"
         ]  # axis1 gives camera info
-        self.subject_names = self.algorithms_results[0]["data_description"].item()["headpose"][
+        self.subject_names = self.algorithms_results[0]["data_description"].item()[self.DIRECTION_KEY][
             "axis0"
         ]  # axis0 gives subject info
         self.algorithm_labels = self._get_algorithms_labels()
+        self.origins_per_alg = [
+            alg_result[self.ORIGIN_KEY][..., :2].astype(float) for alg_result in self.algorithms_results
+        ]
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """
@@ -1106,9 +1132,7 @@ class HeadOrientationComponent(Component):
         # axis 3 gives labels information, this might be different for each algorithm
         algorithm_labels = []
         for i, _alg in enumerate(self.algorithm_list):
-            algorithm_labels.append(
-                self.algorithms_results[i]["data_description"].item()["head_orientation_2d"]["axis3"]
-            )
+            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()[self.DIRECTION_KEY]["axis3"])
         return algorithm_labels
 
     def _log_data(
@@ -1124,12 +1148,14 @@ class HeadOrientationComponent(Component):
 
         Args:
             entity_path (str): The entity path.
-            head_points (np.ndarray): The head points.
-            data_points (np.ndarray): The gaze points.
+            head_points (np.ndarray): The arrow origin in pixels (the nose tip).
+            data_points (np.ndarray): The head direction, a unitless image-plane heading.
             color (List[int]): The color.
             dimension (str): The dimension.
         """
-        vectors_forward = data_points[0:2] - head_points
+        # The direction is a heading, not a second point, so it is scaled to a fixed on-screen
+        # length rather than subtracted from the origin.
+        vectors_forward = data_points[0:2] * self.ARROW_LENGTH_PX
         if dimension == "2d":
             radii = self._parse_radii("camera_view")
             rr.log(
@@ -1158,16 +1184,21 @@ class HeadOrientationComponent(Component):
                 continue
             cam_name = canvas
             camera_index = self.camera_names.index(cam_name)
-            for alg_idx, alg_data in enumerate(self.canvas_data["head_orientation_2d"]):
+            for alg_idx, alg_data in enumerate(self.canvas_data[self.DIRECTION_KEY]):
                 num_frames = alg_data.shape[2]
                 if frame_idx >= num_frames:  # number of frames
                     continue
                 alg_name = self.algorithm_list[alg_idx]
+                origins = self.origins_per_alg[alg_idx]
                 for subject_idx, subject in enumerate(self.subject_names):
                     cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
                     subjs = cam["sees_subjects"]
                     if subject_idx in subjs:
-                        frame_data = alg_data[subject_idx, camera_index, frame_idx]
+                        direction = alg_data[subject_idx, camera_index, frame_idx]
+                        origin = origins[subject_idx, camera_index, frame_idx]
+                        # NaN marks a frame where no face was assigned to this subject slot.
+                        if np.isnan(origin).any() or np.isnan(direction[:2]).any():
+                            continue
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,
                             is_3d=False,
@@ -1177,7 +1208,7 @@ class HeadOrientationComponent(Component):
                         )
 
                         color = self.visualizer_config["media"][self.component_name]["appearance"]["colors"][alg_idx]
-                        self._log_data(entity_path, frame_data[:2], frame_data[2:], color, "2d")
+                        self._log_data(entity_path, origin, direction, color, "2d")
 
 
 class ProximityComponent(Component):

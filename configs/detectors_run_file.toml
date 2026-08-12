@@ -4,6 +4,7 @@
 # and top layer dictionary entries
 
 visualize = true              # whether to save image/video visualizations of detectors
+skip_inference = false        # whether to skip native detectors inference and jump directly to post-processing/visualization
 save_csv = true               # whether to save all results to csv-files
 
 error_level = "DETECTOR"      # Options: "DETECTOR", "SEQUENCE", "STRICT" (from least to most strict)
@@ -29,7 +30,8 @@ algorithms = [
    "spiga",                                           # head orientation
    "py_feat",                                         # emotions detection
    "whisperx", "crisper_whisper",                     # audio transcription
-   "eye_closure_score_ear", "eye_state_ear"           # closed eyes detection (2d)
+   "eye_closure_score_ear", "eye_state_ear",          # closed eyes detection (2d)
+   "insight_face",                                    # face bounding box detection
 ]
 
 # define which data to run on

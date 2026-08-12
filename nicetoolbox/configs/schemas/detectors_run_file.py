@@ -86,6 +86,7 @@ class DetectorsRunFile(BaseModel):
     """
 
     visualize: bool
+    skip_inference: bool
     save_csv: bool
 
     error_level: ErrorLevel

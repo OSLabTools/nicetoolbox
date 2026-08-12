@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from nicetoolbox.detectors.method_detectors.mmpose.pose_utils import create_iou_all_pairs
+from nicetoolbox.detectors.utils.pose_utils import create_iou_all_pairs
 
 
 def test_output_shape(mock_output_data):

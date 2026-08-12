@@ -108,6 +108,37 @@ url = "https://keeper.mpdl.mpg.de/f/c3cbf5ea07e341bbba4e/?dl=1"
 source = "url"
 access = "hosted"
 
+# --- InsightFace ---
+["insight_face/models/buffalo_l"]
+url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip"
+source = "zip"
+access = "open"
+
+# buffalo_m.zip is packed with a redundant 'buffalo_m/' top-level folder, unlike its siblings.
+["insight_face/models/buffalo_m"]
+url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip"
+source = "zip"
+access = "open"
+flatten_single_root = true
+
+["insight_face/models/buffalo_s"]
+url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip"
+source = "zip"
+access = "open"
+
+# Detection + recognition only (no landmark or genderage models).
+["insight_face/models/buffalo_sc"]
+url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip"
+source = "zip"
+access = "open"
+
+# Alternative pack to buffalo: same five task slots, stronger recognition model (glintr100).
+["insight_face/models/antelopev2"]
+url = "https://github.com/deepinsight/insightface/releases/download/v0.7/antelopev2.zip"
+source = "zip"
+access = "open"
+flatten_single_root = true
+
 # --- WhisperX HuggingFace ---
 ["whisperx/models--Systran--faster-whisper-large-v3"]
 url = "Systran/faster-whisper-large-v3"

@@ -385,25 +385,62 @@ gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_c
 gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_2d" }
 gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_origin_2d" }
 
+
+# ======================================================================
+#                              InsightFace
+# ======================================================================
+
+# face detection model + five keypoints for face
+[algorithms.insight_face]
+algorithm_type = "insight_face"
+env_name = "venv:insight_face"
+camera_names = "*"
+# visualization settings
+visualize = true
+visualize_native = false
+visualize_keypoints_npz_key = "2d_interpolated"  # can be "2d", "2d_filtered", "2d_interpolated" or "2d_reprojected_from_3d"
+# model selection
+model_pack = "buffalo_l"  # can be buffalo_l, buffalo_m, buffalo_s, buffalo_sc, antelopev2 
+model_root = "<assets>/insight_face"
+# post processing settings
+det_thresh = 0.5  # minimum face detection and keypoints confidence
+# SVG filter
+filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
+# fill short detection dropouts (linear)
+interpolate_keypoints = {interpolated = true, max_gap = 10 }
+# triangulate to 3d
+triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}  
+[algorithms.insight_face.required_assets]
+model_pack_path = "<assets>/insight_face/models/<model_pack>"
+
+
 # ======================================================================
 #                                SPIGA
 # ======================================================================
 
-# head_orientation
+# head_orientation + facial landmarks
 [algorithms.spiga]
 algorithm_type = "spiga"
-camera_names = "*"
 env_name = "venv:spiga"
-log_frame_idx_interval = 200
+camera_names = "*"
+keypoint_mapping = "wflw"
 batch_size = 32
+# visualization
 visualize = true
-spiga_dataset = "wflw" # SPIGA model variant, can be wflw, 300wpublic, 300wprivate or merlrav
+visualize_native = false
+visualize_keypoints_npz_key = "2d_interpolated"  # can be "2d", "2d_filtered", "2d_interpolated" or "2d_reprojected_from_3d"
+# post processing settings
+filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
+interpolate_keypoints = {interpolated = true, max_gap = 10 }
+triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}
+[algorithms.spiga.inputs]
+face_bbox_2d = { component = "face_bounding_box", algorithm = "insight_face", npz_key = "bbox_2d" }
 [algorithms.spiga.required_assets]
-model_weights_path = "<assets>/spiga/spiga_<spiga_dataset>.pt" # path to weights folder
+model_weights_path = "<assets>/spiga/spiga_wflw.pt" # path to weights folder
 
 
 # ======================================================================
-#                        Emotions Detection Py-Feat 
+#                        Emotions Detection Py-Feat
 # ======================================================================
 
 # emotion_individual
@@ -467,7 +504,7 @@ algorithm_type = "eye_closure_ear"
 camera_names = ["view_left", "view_right"]  # use only face cameras
 visualize = true
 [algorithms.eye_closure_score_ear.inputs]
-landmarks_2d = { component = "head_orientation", algorithm = "spiga", npz_key = "face_landmark_2d" }
+landmarks_2d = { component = "face_landmarks", algorithm = "spiga", npz_key = "2d" }
 
 # same, but using mmpose 2d landmarks
 [algorithms.eye_closure_score_ear_rtmpose]

@@ -255,34 +255,3 @@ class BaseMMPose(BaseMethod):
     def _get_2d_array_for_visualization(self, prediction):
         """2D keypoints drawn on exported videos (subclasses may override)."""
         return prediction["2d_interpolated"]
-
-
-def extract_key_per_value(input_dict):
-    """
-    Extracts keys from a dictionary based on the type of their values.
-
-    If all values in the dictionary are integers, it returns a list of keys.
-    If any value is a list, it appends an index to the key to create a unique key.
-
-    Args:
-        input_dict (dict): The input dictionary to extract keys from.
-
-    Returns:
-        return_keys (list): A list of keys extracted from the input dictionary.
-
-    Raises:
-        NotImplementedError: If a value in the dictionary is neither an integer nor a
-        list.
-    """
-    if all(isinstance(val, int) for val in list(input_dict.values())):
-        return list(input_dict.keys())
-    return_keys = []
-    for key, value in input_dict.items():
-        if isinstance(value, int):
-            return_keys.append(value)
-        elif isinstance(value, list):
-            for idx, _ in enumerate(value):
-                return_keys.append(f"{key}_{idx}")
-        else:
-            raise NotImplementedError
-    return return_keys

@@ -19,31 +19,6 @@ from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 # that post_inference will produce). Kept as a module constant so the detector can import it.
 RAW_INFERENCE_NPZ_NAME = "eth_xgaze_inference_raw.npz"
 
-# The 6 face landmarks the detector returns, in order (eye + mouth corners).
-LANDMARK_NAMES = ["right_eye_0", "right_eye_1", "left_eye_0", "left_eye_1", "mouth_0", "mouth_1"]
-
-
-def _bundle_calib_for_npz(calibration, camera_names):
-    """Copy the per-camera calibration needed for the later world-lift / reprojection.
-
-    Kept minimal and self-contained so the raw pack can be structured without re-reading
-    the sequence config.
-    """
-    if not calibration:
-        return {}
-    out = {}
-    for cam in camera_names:
-        if cam not in calibration:
-            continue
-        cam_calib = calibration[cam]
-        entry = {}
-        for key in ("intrinsic_matrix", "distortions", "rotation_matrix", "translation", "image_size"):
-            if key in cam_calib and cam_calib[key] is not None:
-                entry[key] = np.asarray(cam_calib[key], dtype=np.float64)
-        if entry:
-            out[cam] = entry
-    return out
-
 
 def _visualize_frame(config, camera_names, images, frame_bundle, real_frame_idx, debug):
     """Draw each detection's camera-local gaze arrow on its camera image (debug only).
@@ -142,19 +117,11 @@ def eth_xgaze_inference(config, debug=False):
             frame_bundle[camera_name] = detections
 
         per_frame_outputs.append(frame_bundle)
-
-        # (C) Optional inference-time debug visualization (camera-local gaze projected to 2D).
-        # Gated by `visualize_native` so the toolbox-side viz can run without the extra image writes.
-        if config.get("visualize_native", False):
+        if config["visualize_native"]:
             _visualize_frame(config, camera_names, images, frame_bundle, real_frame_idx, debug)
 
     # (5) Save the raw native pack. Object-array pickle is fine within the eth_xgaze env.
-    out_dict = {
-        "per_frame_outputs": np.asarray(per_frame_outputs, dtype=object),
-        "camera_names_order": np.asarray([str(c) for c in camera_names], dtype=object),
-        "landmark_names": np.asarray(LANDMARK_NAMES, dtype=object),
-        "camera_params_bundle": np.asarray(_bundle_calib_for_npz(calibration, camera_names), dtype=object),
-    }
+    out_dict = {"per_frame_outputs": np.asarray(per_frame_outputs, dtype=object)}
 
     save_file_name = os.path.join(config["out_folders"]["gaze_individual"], RAW_INFERENCE_NPZ_NAME)
     np.savez_compressed(save_file_name, **out_dict)

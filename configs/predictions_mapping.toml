@@ -305,17 +305,27 @@ face_landmarks = []
 "upper_body" = [5, 6, 7, 8, 15, 16]     # l/r shoulder, l/r elbow, l/r wrist
 "lower_body" = [9, 10, 11, 12, 13, 14]  # l/r hip, l/r knee, l/r ankle
 
+# Five face keypoints used by InsigthFace (SCRFD, RetinaFace, MTCNN, etc.)
+[human_pose.face_5pt]
+[human_pose.face_5pt.keypoints_index.face]
+"eye_right" = 0
+"eye_left" = 1
+"nose" = 2
+"mouth_right" = 3
+"mouth_left" = 4
 
-[head_orientation]
-[head_orientation.spiga]
-[head_orientation.spiga.eye_layout]
+
+# WFLW-98 dense face landmarks (Wu et al., CVPR 2018), emitted by SPIGA's wflw weights.
+# 33-point face contour, 9-point eyebrows, 8-point eyes, plus the two iris centres that
+# the sparser conventions lack.
+[human_pose.wflw]
+[human_pose.wflw.eye_layout]
 upper_eyelid = [0, 1, 2, 3, 4]
 lower_eyelid = [0, 7, 6, 5, 4]
 vertical_pairs = [[1, 7], [3, 5]]
 horizontal_pair = [0, 4]
 
-
-[head_orientation.spiga.keypoints_index.face]
+[human_pose.wflw.keypoints_index.face]
 "face_landmarks" =  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,
     29,30,31,32]
 "right_eyebrow" = [33,34,35,36,37,38,39,40,41]

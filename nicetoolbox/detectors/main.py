@@ -30,6 +30,7 @@ from .feature_detectors.proximity.body_distance import BodyDistance2D, BodyDista
 from .in_out import SequenceIO
 from .method_detectors.crisper_whisper.crisper_whisper_detector import CrisperWhisper
 from .method_detectors.eth_xgaze.eth_xgaze_detector import EthXgaze
+from .method_detectors.insight_face.insight_face_detector import InsightFace
 from .method_detectors.mmpose.mmpose_framework_2d import MMPose2D
 from .method_detectors.mmpose.mmpose_framework_3d import MotionBERT
 from .method_detectors.py_feat.py_feat import PyFeat
@@ -45,6 +46,7 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     EthXgaze,
     PyFeat,
     Spiga,
+    InsightFace,
     WhisperX,
     CrisperWhisper,
     Sam3dBody,

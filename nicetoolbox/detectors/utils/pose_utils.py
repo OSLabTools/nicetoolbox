@@ -1,5 +1,5 @@
 """
-Pose estimation utilities. # TODO: Move to a more appropriate location?
+Pose estimation utilities.
 """
 
 import logging
@@ -25,6 +25,12 @@ def interpolate_data(data, is_3d=True, max_empty=10):  # TODO make max_empty 1/3
     Returns:
         ndarray: The interpolated data array with the same shape as the input data.
 
+    TODO: two known limitations, both visible to every caller (mmpose_2d, insight_face):
+      - Gap selection collects the indices *before* each short gap and then appends only one
+        index past the last of them, so a track with several separated short gaps keeps only
+        the first stretch as interpolation knots and is under-filled.
+      - `kind` is hardcoded to "linear", so it cannot be configured per detector. Expose it as
+        an argument before adding a config field for it anywhere.
     """
     num_people, num_cameras, _, num_keypoints, _ = data.shape
     for i in range(num_people):

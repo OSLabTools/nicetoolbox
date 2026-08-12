@@ -2,7 +2,6 @@ import logging
 import os
 import warnings
 
-import cv2
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
@@ -10,11 +9,11 @@ from nicetoolbox_core.data.loaded_array import NpzArray
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
-from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...utils.draw_2d import RenderContext, draw_direction_vector
+from ...utils.filters import SGFilter
 from ..base_method import BaseMethod
-from ..filters import SGFilter
 
 # Raw native pack written by eth_xgaze_inference.py (kept in sync manually; importing the
 # inference module here would pull its eth_xgaze-venv-only deps into the main toolbox env).
@@ -42,8 +41,9 @@ class EthXgaze(BaseMethod):
             NpzDetectorOutput("gaze_individual", "gaze_3d_camera_space", schema=VECTOR_3D_CONF),
             NpzDetectorOutput("gaze_individual", "gaze_3d", schema=VECTOR_3D_CONF),
             NpzDetectorOutput("gaze_individual", "gaze_2d", schema=VECTOR_2D_CONF),
-            NpzDetectorOutput("gaze_individual", "landmarks_2d", schema=VECTOR_2D_CONF_PER_LABEL),
             NpzDetectorOutput("gaze_individual", "gaze_origin_2d", schema=VECTOR_2D_CONF),
+            # TODO: move this to facial landmarks component (see insight_face or spiga)
+            NpzDetectorOutput("gaze_individual", "landmarks_2d", schema=VECTOR_2D_CONF_PER_LABEL),
         ]
         if self.detector_config.filtered:
             outputs.append(NpzDetectorOutput("gaze_individual", "gaze_3d_filtered", schema=VECTOR_3D_CONF))
@@ -56,6 +56,7 @@ class EthXgaze(BaseMethod):
         """
         # (1) Convenience reference
         self.subjects = self.data.subjects_descr
+        self.frame_names = self.data.frame_labels
         self.cameras = self.detector_config.camera_names
         self.video_start = self.data.video_start_frame_index
         self.cam_sees_subjects = self.data.cam_sees_subjects
@@ -68,10 +69,14 @@ class EthXgaze(BaseMethod):
         self.dataloader = ImagePathsByFrameIndexLoader(
             config=self.data.get_input_recipes(), expected_cameras=self.cameras
         )
-        # TODO: need to read it from somewhere else. subsequence context?
-        self.frame_names = [
-            f"{idx:09d}" for idx in range(self.dataloader.start, self.dataloader.end, self.dataloader.step)
-        ]
+
+        # Used by visualization() to walk the source frames via the shared 2d renderer.
+        self.render_context = RenderContext(
+            dataloader=self.dataloader,
+            cam_sees_subjects=self.cam_sees_subjects,
+            fps=self.data.fps,
+            video_start=self.video_start,
+        )
 
         # Sanity checks
         # ETH-XGaze needs per-camera calibration: intrinsics for the head-pose/normalization at inference
@@ -138,66 +143,18 @@ class EthXgaze(BaseMethod):
 
         return out
 
-    def visualization(self, out: DetectorOutput):
+    def visualization(self, out: DetectorOutput) -> None:
         """
         Draw each subject's 2D gaze arrow on the source frames and stitch a video per camera.
 
-        The arrow starts at the subject's mean face-landmark position and points along the
-        reprojected 2D gaze (gaze_2d, or gaze_2d_filtered when filtering is on). Frames are
-        written to <viz>/<camera>/ and combined into <viz>/<camera>.mp4. `out` is the
-        DetectorOutput produced by post_inference (passed through run()).
+        The arrow starts at the subject's mean face-landmark position (gaze_origin_2d) and points
+        along the reprojected gaze (gaze_2d, or gaze_2d_filtered when filtering is on), which is a
+        unit heading scaled to a fixed on-screen length by the shared renderer.
         """
-        n_subjects = len(self.subjects)
-
         gaze_key = "gaze_2d_filtered" if self.filtered else "gaze_2d"
-        gaze_2d = out.get("gaze_individual", gaze_key).data[..., :2]  # drop conf -> (S, C, F, 2) arrow
-        mean_face = out.get("gaze_individual", "gaze_origin_2d").data[..., :2]  # (S, C, F, 2)
-
-        # per camera and frame, visualize each subject's gaze
-        success = True
-        for cam_idx, camera_name in enumerate(self.cameras):
-            os.makedirs(os.path.join(self.viz_folder, camera_name), exist_ok=True)
-
-            for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(self.dataloader):
-                image = cv2.imread(frame_paths_per_camera[camera_name])
-
-                for subject_idx in range(n_subjects):
-                    if subject_idx not in self.cam_sees_subjects[camera_name]:
-                        continue
-
-                    # the predicted gaze vector + the mid point of all face landmarks
-                    gaze_vector = gaze_2d[subject_idx, cam_idx, frame_idx]
-                    subject_eyes_mid = mean_face[subject_idx, cam_idx, frame_idx]
-                    # in case no face was detected, draw the arrow in the middle
-                    if np.isnan(subject_eyes_mid).any():
-                        h, w = image.shape[:2]
-                        subject_eyes_mid = np.array([w / n_subjects * (0.5 + subject_idx), h / 2])
-                    gaze_direction = subject_eyes_mid + gaze_vector
-                    if np.isnan(gaze_direction).any():
-                        continue
-
-                    image = cv2.arrowedLine(
-                        image,
-                        np.round(subject_eyes_mid).astype(np.int32),
-                        np.round(gaze_direction).astype(np.int32),
-                        color=(0, 0, 255),
-                        thickness=2,
-                        line_type=cv2.LINE_AA,
-                        tipLength=0.2,
-                    )
-
-                cv2.imwrite(os.path.join(self.viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"), image)
-
-            # create and save video
-            success *= vd.frames_to_video(
-                os.path.join(self.viz_folder, camera_name),
-                os.path.join(self.viz_folder, f"{camera_name}.mp4"),
-                fps=self.data.fps,
-                start_frame=int(self.video_start),
-            )
-
-        logging.info(f"Detector {self.components}: visualization finished with code {success}.")
-        return success
+        gaze_2d = out.get("gaze_individual", gaze_key)
+        gaze_origin_2d = out.get("gaze_individual", "gaze_origin_2d")
+        draw_direction_vector(gaze_2d, gaze_origin_2d, self.render_context, self.viz_folder)
 
     def _world_lift(self, gaze_cam: NpzArray) -> NpzArray:
         """Rotate each camera's local gaze direction into the shared world frame.
@@ -221,22 +178,22 @@ class EthXgaze(BaseMethod):
         return NpzArray(data, gaze_cam.axes)
 
     def _project_to_2d(self, gaze_world: NpzArray) -> NpzArray:
-        """Reproject a world-space gaze direction back into each camera as a 2D pixel arrow.
+        """Reproject a world-space gaze direction back into each camera as a 2D unit direction.
 
         Projecting into camera C re-applies that camera's rotation, undoing the world-lift, so the
-        result equals projecting the original camera-local gaze — a (dx, dy) image-plane arrow. The
-        confidence channel (axis3 index 3) is carried through unchanged onto the 2D output.
+        result equals projecting the original camera-local gaze — a (dx, dy) image-plane direction
+        of unit length, resolution-independent. Consumers scale it by a pixel length when drawing.
+        The confidence channel (axis3 index 3) is carried through unchanged onto the 2D output.
         """
         n_subjects, n_cams, n_frames, _ = gaze_world.data.shape
         projected = np.full((n_subjects, n_cams, n_frames, 3), np.nan, dtype=float)
 
         for cam_idx, cam_name in enumerate(self.cameras):
             _, _, cam_rotation, _ = vis_ut.get_cam_para_studio(self.calibration, cam_name)
-            image_width = self.calibration[cam_name]["image_size"][0]
 
             for subject_idx in range(n_subjects):
                 vectors = gaze_world.data[subject_idx, cam_idx, :, :3]  # (frames, 3)
-                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_rotation, vectors, image_width)
+                dx, dy = vis_ut.reproject_gaze_to_camera_view_vectorized(cam_rotation, vectors)
                 projected[subject_idx, cam_idx, :, 0] = -dx
                 projected[subject_idx, cam_idx, :, 1] = -dy
                 projected[subject_idx, cam_idx, :, 2] = gaze_world.data[subject_idx, cam_idx, :, 3]  # confidence

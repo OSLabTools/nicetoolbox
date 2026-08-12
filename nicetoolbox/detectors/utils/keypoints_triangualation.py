@@ -5,9 +5,12 @@ from typing import Any
 
 import numpy as np
 
-from ....utils import check_and_exception as check
-from ....utils import triangulation as tri
-from ..mmpose import pose_utils
+from nicetoolbox_core.data.array_schema import VECTOR_3D_CONF_PER_LABEL
+from nicetoolbox_core.data.loaded_array import NpzArray
+
+from ...utils import check_and_exception as check
+from ...utils import triangulation as tri
+from . import pose_utils
 
 
 def calibration_usable_for_stereo_triangulation(
@@ -185,3 +188,32 @@ def apply_stereo_triangulation_to_body_joints_payload(
     dd["2d_interpolated"] = dict(dd["2d"])
     body_payload["data_description"] = np.asarray(dd, dtype=object)
     return True
+
+
+def triangulate_keypoints(
+    keypoints_2d: NpzArray,
+    triangulation_config,
+    calibration: dict,
+    cam_sees_subjects: dict[str, list[int]],
+) -> NpzArray:
+    # TODO: create reusable triangulation, not reuse sam3d
+    axes = keypoints_2d.axes
+    triangulation_cameras = triangulation_config.triangulation_cameras
+    data_3d = triangulate_stereo_body_joints_from_two_cameras(
+        keypoints_2d.data,
+        calibration=calibration,
+        camera_names=axes.cameras,
+        triangulation_cameras=triangulation_cameras,
+        cam_sees_subjects=cam_sees_subjects,
+    )
+    # The helper only returns None when the two cameras have no subject in common, which
+    # makes the configured triangulation unsatisfiable rather than merely empty.
+    if data_3d is None:
+        raise ValueError(
+            f"triangulation.triangulation_cameras {triangulation_cameras} share no subjects "
+            f"(cam_sees_subjects: {cam_sees_subjects}); cannot triangulate 3d keypoints."
+        )
+
+    # The result is view-independent, so the camera axis collapses to a single pseudo-camera.
+    axes_3d = VECTOR_3D_CONF_PER_LABEL.make_axes(axes.subjects, ["3d"], axes.frames, labels=axes.labels)
+    return NpzArray(data_3d, axes_3d)
