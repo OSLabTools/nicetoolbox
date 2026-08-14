@@ -3,6 +3,14 @@ set -e
 TAG=${1:-"latest"}
 DEV=${2:-false}
 INCLUDE_GATED_HF_MODELS=${3:-false}
+VARIANT=${4:-base}
+
+# full - the whole toolbox, all third-party detectors and their models
+# base - core toolbox only, detectors can be installed later inside the container
+if [ "$VARIANT" != "full" ] && [ "$VARIANT" != "base" ]; then
+  echo "ERROR: variant must be 'full' or 'base', got '$VARIANT'." >&2
+  exit 1
+fi
 
 GIT_HASH=$(git rev-parse HEAD)
 GIT_SUMMARY=$(git log -1 --pretty=%s)
@@ -12,10 +20,11 @@ echo "Building with commit: $GIT_HASH"
 echo "Commit message: $GIT_SUMMARY"
 echo "Dev mode: $DEV"
 echo "Include gated HF models: $INCLUDE_GATED_HF_MODELS"
+echo "Variant: $VARIANT"
 
 # Only pass the HF token secret when gated models are requested and a token is
 # available. When omitted, the Dockerfile's optional secret mount is empty and
-# 'make all' skips gated models.
+# the installation skips gated models.
 # HF_TOKEN_SUFFIX is the last 6 chars of the token, passed as a build arg so the
 # build cache invalidates when the token changes (BuildKit excludes the secret
 # itself from the cache key). Empty when no gated build, so it has no effect.
@@ -39,6 +48,7 @@ docker rmi -f mpioslab/nicetoolbox:$TAG 2>/dev/null || true
 # start rebuilding the docker
 # ensure BuildKit is enabled and pass the secret
 DOCKER_BUILDKIT=1 docker build \
+  --target "$VARIANT" \
   --build-arg NICETOOLBOX_GIT_HASH="$GIT_HASH" \
   --build-arg NICETOOLBOX_GIT_SUMMARY="$GIT_SUMMARY" \
   --build-arg NICETOOLBOX_DEV="$DEV" \
