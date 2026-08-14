@@ -43,6 +43,8 @@ class BaseMethod(BaseDetector):
     conda_path: Path
     venv: str
     env_name: str
+    env_root: Path
+    venv_activate: Path | None
     script_path: str
 
     # method specific settings
@@ -143,6 +145,57 @@ class BaseMethod(BaseDetector):
             raise FileNotFoundError(script)
         return script
 
+    def _resolve_env_root(self) -> Path:
+        """
+        Resolve the folder holding this detector's environment.
+
+        Third-party detectors are not installed by default, so a missing environment
+        is an expected user-facing state rather than a bug.
+
+        Returns:
+            Path: The environment folder.
+
+        Raises:
+            FileNotFoundError: If the environment is not installed.
+        """
+        env_root = self.io.code_folder / "envs" / self.env_name
+        if not env_root.is_dir():
+            raise FileNotFoundError(
+                f"Detector '{self.algorithm_instance}': the environment "
+                f"'{self.env_name}' is not installed.\n\n"
+                f"Expected at: {env_root}"
+            )
+        return env_root
+
+    def _resolve_venv_activate(self, env_root: Path) -> Path:
+        """
+        Resolve the activation script of a 'venv' environment.
+
+        Only meaningful for venvs. Conda environments are activated by folder, or
+        called through their interpreter directly, so they have no such script.
+
+        Args:
+            env_root (Path): The environment folder.
+
+        Returns:
+            Path: The path of the activation script.
+
+        Raises:
+            FileNotFoundError: If the environment exists but has no activation script.
+        """
+        if self.os_type == "windows":
+            env_activate = env_root / "Scripts" / "activate"
+        else:
+            env_activate = env_root / "bin" / "activate"
+
+        if not env_activate.exists():
+            raise FileNotFoundError(
+                f"Detector '{self.algorithm_instance}': the environment "
+                f"'{self.env_name}' is corrupted.\n\n"
+                f"Expected activation script at: {env_activate}"
+            )
+        return env_activate
+
     def _setup_subprocess_settings(self) -> None:
         """Setup OS-specific subprocess execution settings."""
         self.os_type = detect_os_type()
@@ -152,9 +205,9 @@ class BaseMethod(BaseDetector):
         self.venv, self.env_name = env_name.split(":")
 
         self.script_path = self._resolve_inference_script()
-
+        self.env_root = self._resolve_env_root()
         if self.venv == "venv":
-            self.venv_path = self.io.get_venv_path(self.detector_config.algorithm_type, self.env_name)
+            self.venv_activate = self._resolve_venv_activate(self.env_root)
 
     def _subprocess_env(self) -> dict:
         """Copy os.environ and set HF_TOKEN from machine_specific_paths.toml when configured."""
@@ -234,22 +287,16 @@ class BaseMethod(BaseDetector):
 
         if self.venv == "conda":
             if self.os_type == "windows":
-                conda_env_path = os.path.join(self.io.code_folder, "envs", self.env_name)
-                # fmt: off
-                command = (
-                    f"deactivate && "
-                    f'cmd /s /c "conda activate {conda_env_path} && '
-                    f'python {script} {config}"'
-                )
-                # fmt: on
+                subcmd = f"conda activate {self.env_root} && python {script} {config}"
+                command = f'deactivate && cmd /s /c "{subcmd}"'
             else:
-                python_path = os.path.join(self.io.code_folder, "envs", self.env_name, "bin/python")
+                python_path = self.env_root / "bin" / "python"
                 command = f"'{python_path}' {script} {config}"
         elif self.venv == "venv":
             if self.os_type == "windows":
-                command = f'cmd /s /c ""{self.venv_path}" && python {script} {config}"'
+                command = f'cmd /s /c ""{self.venv_activate}" && python {script} {config}"'
             else:
-                command = f"source '{self.venv_path}' && " f"python {script} {config}"
+                command = f"source '{self.venv_activate}' && " f"python {script} {config}"
         else:
             raise ValueError(f"Unknown venv type '{self.venv}'. Expected 'conda' or 'venv'.")
         return command

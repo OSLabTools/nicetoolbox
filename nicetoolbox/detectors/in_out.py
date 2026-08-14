@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional
 
 from ..utils import check_and_exception as exc
-from ..utils import system as oslab_sys
 from .subsequence_context import SubsequenceContext
 
 
@@ -115,35 +114,6 @@ class SequenceIO:
             exc.file_exists(filepath)
         except FileNotFoundError:
             logging.exception(f"Detector inference file {filepath} does not exist!")
-            raise
-        return filepath
-
-    def get_venv_path(self, detector_name, env_name):
-        """
-        Get the file path of the virtual environment for the given detector and
-        environment name.
-
-        Args:
-            detector_name (str): The name of the detector.
-            env_name (str): The name of the environment.
-
-        Returns:
-            str: The file path of the virtual environment.
-
-        Raises:
-            FileNotFoundError: If the virtual environment does not exist.
-        """
-        os_type = oslab_sys.detect_os_type()
-        if os_type == "linux":
-            filepath = os.path.join(self.code_folder, "envs", env_name, "bin/activate")
-        elif os_type == "windows":
-            filepath = os.path.join(self.code_folder, "envs", env_name, "Scripts", "activate")
-        try:
-            exc.file_exists(filepath)
-        except FileNotFoundError:
-            logging.exception(
-                f"Virtual environment file {filepath} for detector = " f"'{detector_name}' does not exist!"
-            )
             raise
         return filepath
 

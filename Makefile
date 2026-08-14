@@ -12,6 +12,7 @@ ifneq ($(strip $(dev)),)
 endif
 MACHINE_SPECIFICS = machine_specific_paths.toml
 PROJECT_CONFIG = nice_project.toml
+.DEFAULT_GOAL := install_full
 
 # Define variables for third party venvs
 ifeq ($(OS), Windows_NT)
@@ -53,10 +54,22 @@ EXAMPLE_DATASET_URL = https://keeper.mpdl.mpg.de/seafhttp/f/ceb0b695b10c40148ff9
 
 
 # -----------------------------------
-# Full setup: installation + download
+# Minimalistic setup
 # -----------------------------------
-.PHONY: all
-all: create_machine_specifics create_project install download_assets download_dataset
+.PHONY: install
+install: create_machine_specifics create_project install_nicetoolbox_venv download_dataset
+	@make create_separator
+	@echo "Core NICE Toolbox installed. Third-party detectors are NOT installed."
+	@echo "  Install all:  make install_all_detectors"
+	@echo "  Install one:  make install_eth_xgaze   (see the Makefile for the full list)"
+
+# -----------------------------------
+# Install all toolbox third-party detectors + download models
+# -----------------------------------
+.PHONY: install_full
+install_full: install install_all_detectors download_assets
+	@make create_separator
+	@echo "NICE Toolbox and all detectors installed."
 
 # ------------------------
 # Clean a specific virtual environment
@@ -133,24 +146,12 @@ $(PROJECT_CONFIG):
 # ----------------------
 # Download keeper assets
 # ----------------------
-# Smart download based on the run file (Default)
+# Smart download based on the run file
 .PHONY: download_assets
 download_assets:
 	@make create_separator
 	@echo "Running AssetManager to verify and download required models..."
 	@$(VENV_EXE_DIR)/download_assets
-
-# Download specific components
-# Usage: make download_components COMPS="gaze_individual body_joints"
-.PHONY: download_components
-download_components:
-	@make create_separator
-	@if [ -z "$(COMPS)" ]; then \
-		echo "Error: Must provide COMPS variable. Example: make download_components COMPS=\"gaze_individual body_joints\""; \
-		exit 1; \
-	fi
-	@echo "Running AssetManager for specific components: $(COMPS)..."
-	@$(VENV_EXE_DIR)/download_assets --components $(COMPS)
 
 # Download everything
 .PHONY: download_all_assets
@@ -176,24 +177,6 @@ endif
 	@unzip $(EXAMPLE_DATASET).zip -d $(DATASETS_DIR)
 	@rm $(EXAMPLE_DATASET).zip
 	@echo "Example dataset downloaded to $(DATASETS_DIR)/$(EXAMPLE_DATASET)."
-
-# -------------------
-# Install nicetoolbox
-# -------------------
-install:
-# core nicetoolbox venv
-	@make install_nicetoolbox_venv
-# detectors venv installations
-	-@make install_eth_xgaze
-	-@make install_pyfeat
-	-@make install_spiga
-	-@make install_insight_face
-	-@make install_whisperx
-	-@make install_sam3d_body
-	-@make install_crisper_whisper
-# detectors conda installations
-	-@make install_mmpose
-
 
 # Install nicetoolbox venv
 .PHONY: install_nicetoolbox_venv
@@ -221,6 +204,27 @@ endif
 	@echo "$(TOOL_NAME) installed in $(VENV_DIR) successfully."
 
 
+# -----------------------------------
+# Install all third-party detectors
+#
+# These are not maintained by the NICE Toolbox authors and are provided as-is by
+# their respective owners, under their own licenses. See LICENSES_ALGORITHMS.md.
+# -----------------------------------
+.PHONY: install_all_detectors
+install_all_detectors:
+# 	detectors venv installations
+	-@make install_eth_xgaze
+	-@make install_pyfeat
+	-@make install_spiga
+	-@make install_insight_face
+	-@make install_whisperx
+	-@make install_sam3d_body
+	-@make install_crisper_whisper
+# 	detectors conda installations
+	-@make install_mmpose
+	@make create_separator
+	@echo "Detectors installation finished."
+
 # Install the venv for eth-xgaze
 .PHONY: install_eth_xgaze
 install_eth_xgaze:
@@ -231,7 +235,7 @@ install_eth_xgaze:
 	@echo "Virtual environment created in ./envs/eth_xgaze"
 
 	@echo "Installing requirements for 'ETH-XGaze'..."
-	@$(ETH_XGAZE_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(ETH_XGAZE_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 	@$(ETH_XGAZE_EXE_DIR)/pip install submodules/eth_xgaze -c submodules/eth_xgaze/constraints.txt
 	@$(ETH_XGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
 
@@ -249,7 +253,7 @@ install_pyfeat:
 	@echo "Virtual environment created in ./envs/py_feat"
 
 	@echo "Installing requirements for 'Py-Feat'..."
-	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
 	@$(PYFEAT_EXE_DIR)/pip install submodules/py-feat
 	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
@@ -266,13 +270,13 @@ install_spiga:
 	@echo "Virtual environment created in ./envs/spiga"
 
 	@echo "Installing requirements for 'SPIGA'..."
-	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu118
+	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/spiga/spiga_requirements.txt
 	@$(SPIGA_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'SPIGA' environment setup completed successfully."
 
 
-# Install the venv for insightface
+# Install the venv for InsightFace
 .PHONY: install_insight_face
 install_insight_face:
 	@make create_separator
@@ -284,13 +288,13 @@ install_insight_face:
 	@$(INSIGHT_FACE_EXE_DIR)/python -m pip install --upgrade pip
 	@echo "Virtual environment created in ./envs/insight_face"
 
-# need bundled cuda and cudnn for onnxruntime to use GPU
+# 	need bundled cuda and cudnn for onnxruntime to use GPU
 	@echo "Installing Pytorch..."
-	@$(INSIGHT_FACE_EXE_DIR)/pip install torch --index-url https://download.pytorch.org/whl/cu129
+	@$(INSIGHT_FACE_EXE_DIR)/pip install torch==2.9.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
 	@echo "Installing requirements for 'InsightFace'..."
 	@$(INSIGHT_FACE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/insight_face/insight_face_requirements.txt
 
-# need this hack to make gpu work - delete cpu version of onnx, keep only cuda
+# 	need this hack to make gpu work - delete cpu version of onnx, keep only cuda
 	@$(INSIGHT_FACE_EXE_DIR)/pip uninstall -y onnxruntime
 	@$(INSIGHT_FACE_EXE_DIR)/pip install --no-cache-dir onnxruntime-gpu==1.23.2
 
@@ -310,12 +314,11 @@ install_whisperx:
 	@echo "Virtual environment created in ./envs/whisperx"
 
 	@echo "Installing requirements for 'WhisperX'..."
-	@$(WHISPERX_EXE_DIR)/pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@$(WHISPERX_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
 	@$(WHISPERX_EXE_DIR)/pip install submodules/whisperX
 	@$(WHISPERX_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
 	@$(WHISPERX_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'WhisperX' environment setup completed successfully."
-
 
 # Install the venv for crisper-whisper
 .PHONY: install_crisper_whisper
@@ -329,7 +332,7 @@ install_crisper_whisper:
 	@echo "Virtual environment created in ./envs/crisper_whisper"
 
 	@echo "Installing requirements for 'CrisperWhisper'..."
-	@$(CRISPER_WHISPER_EXE_DIR)/pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@$(CRISPER_WHISPER_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
 	@$(CRISPER_WHISPER_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/crisper_whisper/crisper_whisper_requirements.txt
 	@$(CRISPER_WHISPER_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'CrisperWhisper' environment setup completed successfully."
@@ -356,7 +359,7 @@ install_sam3d_body:
 	@echo "Creating SAM 3D Body venv at $(VENV_ROOT_DIR)/sam_3d_body ..."
 	@$(PYTHON_EXE) -m venv ./envs/sam_3d_body
 	@echo "Installing PyTorch (2.8.0, cu129)..."
-	@$(SAM3D_BODY_EXE_DIR)/pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
+	@$(SAM3D_BODY_EXE_DIR)/pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
 	@echo "Installing SAM 3D Body dependencies..."
 	@$(SAM3D_BODY_EXE_DIR)/pip install -r nicetoolbox/detectors/method_detectors/sam_3d_body/sam_3d_body_pip_requirements.txt
 	@echo "Installing Detectron2..."
@@ -364,3 +367,4 @@ install_sam3d_body:
 	@echo "Installing MoGe..."
 	@$(SAM3D_BODY_EXE_DIR)/pip install 'git+https://github.com/microsoft/MoGe.git'
 	@$(SAM3D_BODY_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@echo "'SAM 3D Body' environment setup completed successfully."

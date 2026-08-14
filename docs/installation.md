@@ -5,7 +5,7 @@
 ```
 
 ```{attention}
-NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 5 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md). 
+NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 5 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
 ```
 
 ## System Requirements
@@ -19,16 +19,26 @@ NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/n
 
 ## Docker 
 
-You can install NICE Toolbox using Docker. With Docker, you won't need to install dependencies manually as they are prepackaged into the Docker image.
+You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites (like Python, CUDA, Conda, FFmpeg), so you do not have to set any of them up yourself.
 
-To download and run the latest NICE Toolbox Docker image:
+The third-party detectors are not part of the image. They are covered by their own licenses, some of which are more restrictive than the NICE Toolbox license. You can choose which of them to install:
 
 ```shell
+# download the base container from Docker Hub
 docker pull mpioslab/nicetoolbox
-docker run --rm --gpus all -it mpioslab/nicetoolbox
+
+# start a base container
+docker run --name my-nice-toolbox --gpus all -it mpioslab/nicetoolbox 
+# inside the container, install the detectors you need
+make install_pyfeat install_mmpose
+# when finished, stop the container
+exit
+
+# start it again to do experiments
+docker start -ai my-nice-toolbox
 ```
 
-It should start an interactive bash session inside a Docker container.  Follow [getting started](https://nicetoolbox.readthedocs.io/en/stable/getting_started.html) to enable a virtual environment and run detectors.
+When finished, follow [getting started](https://nicetoolbox.readthedocs.io/en/stable/getting_started.html) to enable a virtual environment and run detectors. For more information about installation options, see [Installing only the detectors you need](#installing-only-the-detectors-you-need).
 
 ## Prerequisites
 
@@ -165,17 +175,32 @@ cd /path/to/nicetoolbox/
 make        
 ```
 
+This is the full installation. It sets up the core toolbox and every third-party detector, and downloads their model weights.
+
 Available commands include:
 
-- `make` or `make all`  - Run all the commands below.
+- `make` or `make install_full`  - Full installation: core toolbox, all third-party detectors and their model weights.
+- `make install` - Core toolbox only, without any third-party detector.
+- `make install_all_detectors` - Install all third-party detectors.
+- `make install_<detector>` - Install a single detector, e.g. `make install_eth_xgaze`.
 - `make create_machine_specifics` - Generate the machine-specific configuration file.
 - `make create_project` - Generate the project configuration file.
-- `make install` - Install all dependencies.
-- `make download_assets` - Check and download assets.
+- `make download_assets` - Check and download the model weights needed by your run file.
+- `make download_all_assets` - Download every available model weight.
 - `make download_dataset` - Check and download the example dataset.
 
-In case of errors during the installation, you can run `make install` again. It will remove all existing virtual environments and reinstall them. You can also manually reinstall specific detectors with `make install_eth_xgaze` or `make install_whisperx`.
+In case of errors during the installation, you can run the failed command again. Installing a detector removes its existing virtual environment and recreates it, so `make install_<detector>` can be used to repair a single detector without touching the others.
 
+### Installing only the detectors you need
+
+The full installation requires a considerable amount of disk space. The third-party detectors are also covered by their own licenses, some of which are more restrictive than the NICE Toolbox license itself (see [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md)).
+
+If you want to save disk space or if some of the detectors are not compatible with your intended use, you can install the core toolbox on its own and then add only the detectors you need:
+
+```bash
+make install                                   # core NICE Toolbox
+make install_pyfeat install_mmpose             # add the detectors you need
+```
 
 ## Hugging Face Access Token
 

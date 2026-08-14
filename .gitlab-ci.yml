@@ -25,7 +25,8 @@ unit-test:
   tags:
     - shell
   script:
-    - bash scripts/build_docker.sh cicd true true # dev build, include gated HF models for tests
+    # base build: unit tests run in the core venv only, no third-party detectors needed
+    - bash scripts/build_docker.sh cicd true false base
     - docker run --rm mpioslab/nicetoolbox:cicd bash -c
       "source ./envs/nicetoolbox/bin/activate && pytest -v"
 
@@ -38,7 +39,7 @@ publish-apptainer:
     - shell
   script:
     - apptainer registry login -u 'robot$'${HARBOR_ROBOT_NAME} -p $HARBOR_ROBOT_TOKEN $HARBOR_URL
-    - bash scripts/build_docker.sh cicd false true # internal build: include gated HF models
+    - bash scripts/build_docker.sh cicd false true full # internal build: all detectors, include gated HF models
     - apptainer build nicetoolbox.sif docker-daemon://mpioslab/nicetoolbox:cicd
     - apptainer push nicetoolbox.sif ${HARBOR_URL}/oslab/nicetoolbox:${CI_COMMIT_SHORT_SHA}
   after_script:
@@ -90,7 +91,9 @@ publish-to-dockerhub:
         exit 1
       fi
     - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-    - bash scripts/build_docker.sh latest false false # public build: exclude gated HF models
+    # public build: core toolbox only. Third-party detectors are installed by the user,
+    # so that we do not redistribute them under their own licenses.
+    - bash scripts/build_docker.sh latest false false base
     - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:latest
     - docker image tag mpioslab/nicetoolbox:latest mpioslab/${DOCKERHUB_REPO}:$TAGS
     - docker image push mpioslab/${DOCKERHUB_REPO}:latest
