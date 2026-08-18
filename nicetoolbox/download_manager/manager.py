@@ -97,6 +97,18 @@ class AssetManager:
                     logging.error(f"Please check internet or manually place file at: {dest_path}")
                     raise
 
+    def _to_manifest_key(self, asset: str | Path) -> str:
+        path = Path(asset)
+        # Already a relative manifest key
+        if not path.is_absolute():
+            logging.debug(f"Asset path '{path}' is likely already a manifest key.")
+            return path.as_posix()
+        try:
+            return path.relative_to(self.assets_root).as_posix()
+            # as_posix makes it a string and keeps it Windows-friendly
+        except ValueError as e:
+            raise ValueError(f"Asset path '{path}' is outside assets root: {self.assets_root}") from e
+
     def verify_and_download(self, asset_keys: List[str]):
         """
         Checks if required assets exist, downloads them if missing.
@@ -104,6 +116,7 @@ class AssetManager:
         log_ut.log_banner("Download Manager Assets Check")
 
         for key in set(asset_keys):
+            key = self._to_manifest_key(key)
             if key not in self.manifest:
                 logging.warning(f"Asset key '{key}' not found in asset_manifest.toml.")
                 continue
@@ -132,11 +145,8 @@ class AssetManager:
             if algo_model and hasattr(algo_model, "required_assets"):
                 for val in algo_model.required_assets.values():
                     try:
-                        # 'val' is the fully resolved absolute path.
-                        # This extracts just the relative part to match the manifest keys
-                        clean_key = str(Path(val).relative_to(self.assets_root))
-                        clean_key = clean_key.replace("\\", "/")  # Safe fallback for Windows
-                        required_assets.append(clean_key)
+                        # val will be cleaned in verify_and_download
+                        required_assets.append(val)
                     except ValueError:
                         logging.warning(f"Path '{val}' is not inside the assets root!")
 
