@@ -1,0 +1,3 @@
+# MultiView ETH-XGaze fork
+# no tag on the fork, so pin the commit hash directly
+multiview_eth_xgaze @ git+https://github.com/OSLabTools/ETH_XGaze.git@d82ac9a042fdbacbe38109625492c31f417de425

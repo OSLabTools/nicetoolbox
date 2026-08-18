@@ -1,1 +1,4 @@
 librosa==0.11.0
+
+# whisperX fork
+whisperx @ git+https://github.com/OSLabTools/whisperX.git@v3.8.5

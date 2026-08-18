@@ -36,13 +36,8 @@ pip install mmengine
 mim install "mmcv==2.1.0"
 mim install "mmdet>=3.1.0"
 mim install "mmpretrain>=1.0.0rc8"  # required for Vitpose
-echo "Navigate Inside to mmpose directory"
-cd ./submodules/mmpose/
-echo "Installing requirements from MMPose..."
-pip install -r requirements.txt
-pip install build
-python -m build --wheel --no-isolation
-pip install dist/mmpose-*.whl
+echo "Installing MMPose from the OSLabTools fork..."
+pip install -r ./nicetoolbox/detectors/method_detectors/mmpose/mmpose_requirements.txt
 
 # Install additional dependencies required for nicetoolbox inference scripts
 echo "Installing additional dependencies..."

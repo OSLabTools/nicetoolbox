@@ -1,2 +1,6 @@
+# py-feat fork
+# the pinned commit has no tag, so use the hash directly
+py-feat @ git+https://github.com/OSLabTools/py-feat.git@c6db84eb6296a99e33f7f2283e1c7225ba104148
+
 # need to force scipy to specific version for py-feat
 scipy<1.14

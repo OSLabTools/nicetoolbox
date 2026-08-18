@@ -150,7 +150,7 @@ camera_names = ["view_top", "view_center"]
 env_name = "venv:sam_3d_body"
 device = "cuda:0"
 visualize = true
-# If Empty, use git submodule at submodules/sam-3d-body
+# If empty, use the checkout cloned into the venv at envs/sam_3d_body/src/sam-3d-body
 sam3d_repo_path = ""
 detector_name = "vitdet"
 segmentor_name = "sam2"

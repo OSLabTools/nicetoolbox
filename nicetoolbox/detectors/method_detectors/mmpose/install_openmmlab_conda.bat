@@ -38,13 +38,8 @@ call pip install mmengine
 call mim install "mmcv==2.1.0"
 call mim install "mmdet>=3.1.0"
 call mim install "mmpretrain>=1.0.0rc8"
-echo Navigate Inside to mmpose directory
-cd ./submodules/mmpose/
-echo Installing requirements from MMPose...
-call pip install -r requirements.txt
-call pip install build
-call python -m build --wheel --no-isolation
-for %%f in (dist\mmpose-*.whl) do call pip install "%%f"
+echo Installing MMPose from the OSLabTools fork...
+call pip install -r ./nicetoolbox/detectors/method_detectors/mmpose/mmpose_requirements.txt
 
 :: Install additional dependencies required for nicetoolbox inference scripts
 echo Installing additional dependencies...

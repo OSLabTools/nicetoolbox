@@ -1,3 +1,4 @@
+
 matplotlib==3.9.3
 numpy==1.24.4
 opencv-python==4.11.0.86
@@ -5,3 +6,6 @@ pandas==2.0.3
 Pillow==10.3.0
 scikit-learn==1.2.2
 scipy==1.13.0
+# SPIGA fork
+# the pinned commit has no tag, so use the hash directly
+spiga @ git+https://github.com/OSLabTools/SPIGA.git@656f90a76a6800e6091bbce519550e86e04cf17f

@@ -1,5 +1,8 @@
 accelerate
 faster-whisper
-git+https://github.com/OSLabTools/crhisper-whisper-transformers.git@crisper_whisper
 librosa
 scipy
+
+# transformers 4.37.2 fork (branch crisper_whisper), replaces upstream transformers
+# the fork has no tags, so pin the commit hash directly
+transformers @ git+https://github.com/OSLabTools/crhisper-whisper-transformers.git@8eb900e81d43576d2ddf69cceb1c2bb8b0330bc1
