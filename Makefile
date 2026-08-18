@@ -235,8 +235,8 @@ install_eth_xgaze:
 	@echo "Virtual environment created in ./envs/eth_xgaze"
 
 	@echo "Installing requirements for 'ETH-XGaze'..."
-	@$(ETH_XGAZE_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
-	@$(ETH_XGAZE_EXE_DIR)/pip install submodules/eth_xgaze -c submodules/eth_xgaze/constraints.txt
+	@$(ETH_XGAZE_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
+	@$(ETH_XGAZE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/eth_xgaze/eth_xgaze_requirements.txt
 	@$(ETH_XGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
 
 	@echo "ETH-XGaze' environment setup completed successfully."
@@ -255,7 +255,6 @@ install_pyfeat:
 	@echo "Installing requirements for 'Py-Feat'..."
 	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
-	@$(PYFEAT_EXE_DIR)/pip install submodules/py-feat
 	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'Py-Feat' environment setup completed successfully."
 
@@ -315,7 +314,6 @@ install_whisperx:
 
 	@echo "Installing requirements for 'WhisperX'..."
 	@$(WHISPERX_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
-	@$(WHISPERX_EXE_DIR)/pip install submodules/whisperX
 	@$(WHISPERX_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
 	@$(WHISPERX_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'WhisperX' environment setup completed successfully."
@@ -351,13 +349,18 @@ else
 endif
 	@echo "'MMPose' environment setup completed successfully."
 
-# Standard venv at ./envs/sam_3d_body (matches detectors_config env_name = "venv:sam_3d_body").
+# SAM 3D repository path
+SAM3D_BODY_REPO_DIR = $(VENV_ROOT_DIR)/sam_3d_body/src/sam-3d-body
+
 .PHONY: install_sam3d_body
 install_sam3d_body:
 	@make create_separator
 	@make clean_venv NAME=sam_3d_body
-	@echo "Creating SAM 3D Body venv at $(VENV_ROOT_DIR)/sam_3d_body ..."
+	@echo "Creating SAM 3D Body venv at sam_3d_body ..."
 	@$(PYTHON_EXE) -m venv ./envs/sam_3d_body
+	@echo "Cloning SAM 3D Body fork..."
+	@git clone https://github.com/OSLabTools/sam-3d-body $(SAM3D_BODY_REPO_DIR)
+	@git -C $(SAM3D_BODY_REPO_DIR) checkout --detach b5c765a0d89d789985e186d396315e7590887b94
 	@echo "Installing PyTorch (2.8.0, cu129)..."
 	@$(SAM3D_BODY_EXE_DIR)/pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
 	@echo "Installing SAM 3D Body dependencies..."

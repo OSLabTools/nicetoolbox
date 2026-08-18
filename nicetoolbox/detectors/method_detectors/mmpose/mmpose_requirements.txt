@@ -1,0 +1,3 @@
+# mmpose fork
+# the fork has no tags, so pin the commit hash directly
+mmpose @ git+https://github.com/OSLabTools/mmpose.git@71ec36ebd63c475ab589afc817868e749a61491f
