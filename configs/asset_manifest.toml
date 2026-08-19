@@ -1,136 +1,181 @@
 # nicetoolbox/configs/asset_manifest.toml
 
 # --- Eth XGaze ---
-["eth_xgaze/shape_predictor_68_face_landmarks.dat"]
-url = "https://keeper.mpdl.mpg.de/f/cd7dfd31a27e47ab986e/?dl=1"
-source = "url"
-access = "hosted"
-
 ["eth_xgaze/face_model.txt"]
 url = "https://keeper.mpdl.mpg.de/f/21b9bf8bb4064564b215/?dl=1"
 source = "url"
 access = "hosted"
+licence = "CC BY-NC-SA 4.0"
+licence_link = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+original_link = "https://github.com/xucong-zhang/ETH-XGaze/blob/3abb72840deb954df1c4ea5d89f243d7bd0d085f/face_model.txt"
 
 ["eth_xgaze/epoch_24_ckpt.pth.tar"]
 url = "https://keeper.mpdl.mpg.de/f/cf93d03b37ba4b50a002/?dl=1"
 source = "url"
 access = "hosted"
+licence = "CC BY-NC-SA 4.0"
+licence_link = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+original_link = "https://drive.google.com/file/d/1Ma6zJrECNTjo_mToZ5GKk7EF-0FS4nEC/view"
 
-["eth_xgaze/mmod_human_face_detector.dat"]
-url = "https://keeper.mpdl.mpg.de/f/aae1a60f13394f099048/?dl=1"
+# --- face_alignment (used by eth_xgaze landmark detection) ---
+["face_alignment/hub/checkpoints/s3fd-619a316812.pth"]
+url = "https://keeper.mpdl.mpg.de/seafhttp/f/ff49be49e8034eb1896b/?op=view"
 source = "url"
 access = "hosted"
+licence = "BSD 3-Clause"
+licence_link = "https://github.com/1adrianb/face-alignment/blob/608505febb47082eb83c2e54254294b3044d976f/LICENSE"
+original_link = "https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth"
+
+["face_alignment/hub/checkpoints/2DFAN4-cd938726ad.zip"]
+url = "https://keeper.mpdl.mpg.de/seafhttp/f/d8e1cd78a89c4fe7bd32/?op=view"
+source = "url"
+access = "hosted"
+licence = "BSD 3-Clause"
+licence_link = "https://github.com/1adrianb/face-alignment/blob/608505febb47082eb83c2e54254294b3044d976f/LICENSE"
+original_link = "https://www.adrianbulat.com/downloads/python-fan/2DFAN4-cd938726ad.zip"
 
 # --- MMPose Framework (HRNet, ViTPose, RTMPose, MotionBERT) ---
 ["mmpose/configs/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"]
 url = "https://keeper.mpdl.mpg.de/f/b1ad36417abf45598c5c/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
 
 ["mmpose/configs/faster_rcnn_r50_fpn_coco.py"]
 url = "https://keeper.mpdl.mpg.de/f/6f367697e29046cd82b7/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/demo/mmdetection_cfg/faster_rcnn_r50_fpn_coco.py"
 
 ["mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"]
 url = "https://keeper.mpdl.mpg.de/f/fee14e24f8ea4367b145/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "http://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
 
 ["mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"]
 url = "https://keeper.mpdl.mpg.de/f/7b8fbc37f96b40379547/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/body_2d_keypoint/topdown_heatmap/coco/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
 
 ["mmpose/configs/rtmpose-l_8xb256-420e_aic-coco-384x288.py"]
 url = "https://keeper.mpdl.mpg.de/f/a4acf55761ea4599b2c6/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/configs/body_2d_keypoint/rtmpose/coco/rtmpose-l_8xb256-420e_aic-coco-384x288.py"
 
 ["mmpose/configs/rtmpose-l_simcc-aic-coco_pt-aic-coco_420e-384x288-97d6cb0f_20230228.pth"]
 url = "https://keeper.mpdl.mpg.de/f/f437a0e448c840ada76f/?dl=1"
 source = "url"
-access = "hosted"
+access = "open"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-aic-coco_pt-aic-coco_420e-384x288-97d6cb0f_20230228.pth"
 
 ["mmpose/configs/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py"]
 url = "https://keeper.mpdl.mpg.de/f/0d7ac775dbc54e6f8593/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/configs/wholebody_2d_keypoint/rtmpose/ubody/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py"
 
 ["mmpose/configs/rtmpose-l_simcc-coco-wholebody_pt-aic-coco_270e-384x288-eaeb96c8_20230125.pth"]
 url = "https://keeper.mpdl.mpg.de/f/6dd06484de214632aace/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-coco-wholebody_pt-aic-coco_270e-384x288-eaeb96c8_20230125.pth"
 
 ["mmpose/configs/rtmpose-m_8xb64-210e_mpii-256x256.py"]
 url = "https://keeper.mpdl.mpg.de/f/971b389926ee4fd5a60d/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/configs/body_2d_keypoint/rtmpose/mpii/rtmpose-m_8xb64-210e_mpii-256x256.py"
 
 ["mmpose/configs/rtmpose-m_simcc-mpii_pt-aic-coco_210e-256x256-ec4dbec8_20230206.pth"]
 url = "https://keeper.mpdl.mpg.de/f/034a2e90816846678da4/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-mpii_pt-aic-coco_210e-256x256-ec4dbec8_20230206.pth"
 
 ["mmpose/configs/td-hm_ViTPose-huge_8xb64-210e_coco-256x192-e32adcd4_20230314.pth"]
 url = "https://keeper.mpdl.mpg.de/f/3d8bbd4e6c3c4c049298/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/body_2d_keypoint/topdown_heatmap/coco/td-hm_ViTPose-huge_8xb64-210e_coco-256x192-e32adcd4_20230314.pth"
 
 ["mmpose/configs/motionbert_dstformer-243frm_8xb32-240e_h36m.py"]
 url = "https://keeper.mpdl.mpg.de/f/912deef505e140be981f/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/configs/body_3d_keypoint/motionbert/h36m/motionbert_dstformer-243frm_8xb32-240e_h36m.py"
 
 ["mmpose/configs/motionbert_h36m-f554954f_20230531.pth"]
 url = "https://keeper.mpdl.mpg.de/f/2d618b9b1be14cbe8fb7/?dl=1"
 source = "url"
 access = "hosted"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/LICENSE"
+original_link = "https://download.openmmlab.com/mmpose/v1/body_3d_keypoint/pose_lift/h36m/motionbert_h36m-f554954f_20230531.pth"
 
 # --- SPIGA ---
 ["spiga/spiga_wflw.pt"]
-url = "https://keeper.mpdl.mpg.de/f/8843a556fd0a4947b05a/?dl=1"
+url = "https://huggingface.co/aprados/spiga/resolve/main/spiga_wflw.pt?download=true"
 source = "url"
-access = "hosted"
-
-["spiga/spiga_300wpublic.pt"]
-url = "https://keeper.mpdl.mpg.de/f/9ca0dd9c61794292805b/?dl=1"
-source = "url"
-access = "hosted"
-
-["spiga/spiga_300wprivate.pt"]
-url = "https://keeper.mpdl.mpg.de/f/233f8871d9c4462ab1ef/?dl=1"
-source = "url"
-access = "hosted"
-
-["spiga/spiga_merlrav.pt"]
-url = "https://keeper.mpdl.mpg.de/f/c3cbf5ea07e341bbba4e/?dl=1"
-source = "url"
-access = "hosted"
+access = "open"
 
 # --- InsightFace ---
 ["insight_face/models/buffalo_l"]
 url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip"
 source = "zip"
 access = "open"
+licence = "Non-Commercial Research License"
+licence_link = "https://github.com/deepinsight/insightface/blob/7fadd420c2351d0ffa8cac403421c1a3ed733365/README.md#license"
 
 # buffalo_m.zip is packed with a redundant 'buffalo_m/' top-level folder, unlike its siblings.
 ["insight_face/models/buffalo_m"]
 url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip"
 source = "zip"
 access = "open"
+licence = "Non-Commercial Research License"
+licence_link = "https://github.com/deepinsight/insightface/blob/7fadd420c2351d0ffa8cac403421c1a3ed733365/README.md#license"
 flatten_single_root = true
 
 ["insight_face/models/buffalo_s"]
 url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip"
 source = "zip"
 access = "open"
+licence = "Non-Commercial Research License"
+licence_link = "https://github.com/deepinsight/insightface/blob/7fadd420c2351d0ffa8cac403421c1a3ed733365/README.md#license"
 
 # Detection + recognition only (no landmark or genderage models).
 ["insight_face/models/buffalo_sc"]
 url = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip"
 source = "zip"
 access = "open"
+licence = "Non-Commercial Research License"
+licence_link = "https://github.com/deepinsight/insightface/blob/7fadd420c2351d0ffa8cac403421c1a3ed733365/README.md#license"
 
 # Alternative pack to buffalo: same five task slots, stronger recognition model (glintr100).
 ["insight_face/models/antelopev2"]
@@ -138,40 +183,56 @@ url = "https://github.com/deepinsight/insightface/releases/download/v0.7/antelop
 source = "zip"
 access = "open"
 flatten_single_root = true
+licence = "Non-Commercial Research License"
+licence_link = "https://github.com/deepinsight/insightface/blob/7fadd420c2351d0ffa8cac403421c1a3ed733365/README.md#license"
+
 
 # --- WhisperX HuggingFace ---
 ["whisperx/models--Systran--faster-whisper-large-v3"]
 url = "Systran/faster-whisper-large-v3"
 source = "huggingface"
 access = "open"
+licence = "MIT License"
+licence_link = "https://opensource.org/license/MIT"
 
 ["whisperx/models--pyannote--speaker-diarization-community-1"]
 url = "pyannote/speaker-diarization-community-1"
 source = "huggingface"
 access = "gated"
+licence = "CC BY 4.0"
+licence_link = "https://creativecommons.org/licenses/by/4.0/deed.en"
 
 # --- WhisperX Keeper ---
 ["whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60k_asr_ls960.pth"]
 url = "https://keeper.mpdl.mpg.de/f/6c9f4a9680584f038ecb/?dl=1"
 source = "url"
 access = "hosted"
+licence = "MIT License"
+licence_link = "https://opensource.org/license/MIT"
+original_link = "https://download.pytorch.org/torchaudio/models/wav2vec2_fairseq_large_lv60k_asr_ls960.pth"
 
 # --- CrisperWhisper HuggingFace ---
 ["crisper_whisper/models--nyrahealth--CrisperWhisper"]
 url = "nyrahealth/CrisperWhisper"
 source = "huggingface"
 access = "open"
+licence = "CC BY-NC 4.0"
+licence_link = "https://creativecommons.org/licenses/by-nc/4.0/deed.en"
 
 # --- Sam_3d_body ---
 ["sam_3d_body/models--facebook--sam-3d-body-dinov3"]
 url = "facebook/sam-3d-body-dinov3"
 source = "huggingface"
 access = "gated"
+licence = "sam-licence"
+licence_link = "https://huggingface.co/facebook/sam-3d-body-dinov3/blob/main/LICENSE"
 
 ["sam_3d_body/models--facebook--sam2-hiera-large"]
 url = "facebook/sam2-hiera-large"
 source = "huggingface"
 access = "open"
+licence = "Apache 2.0 License"
+licence_link = "https://opensource.org/license/Apache-2.0"
 
 # MoGE (Monocular Geometry Estimation) is a Microsoft Research project. The weights are hosted
 # by Ruicheng Feng (first author) on his personal HF profile — there is no official facebook/
@@ -180,3 +241,5 @@ access = "open"
 url = "Ruicheng/moge-2-vitl-normal"
 source = "huggingface"
 access = "open"
+licence = "MIT License"
+licence_link = "https://opensource.org/license/MIT"

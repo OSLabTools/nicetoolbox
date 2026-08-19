@@ -60,6 +60,11 @@ def eth_xgaze_inference(config, debug=False):
     # (1) Access config parameters
     camera_names = config["camera_names"]
     calibration = config["calibration"]
+    # Patch TORCH_HOME OS env variable
+    # face_alignment s3fd and 2DFAN4 models are used implicitly by torch
+    # they should be already downloaded by the asset manager
+    face_alignment_cache_dir = config["face_alignment_cache_dir"]
+    os.environ["TORCH_HOME"] = face_alignment_cache_dir
 
     # (2) Prepare data loader
     dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
@@ -67,8 +72,9 @@ def eth_xgaze_inference(config, debug=False):
     # (3) Initialize gaze estimator and face detector
     logging.info("Load gaze estimator and start detection.")
     req_assets = config["required_assets"]
+
     gaze_estimator = GazeEstimator(req_assets["face_model_filename"], req_assets["pretrained_model_filename"])
-    face_detector = lm.get_face_detector(req_assets["shape_predictor_filename"], req_assets["face_detector_filename"])
+    face_detector = lm.get_face_detector(None, None)  # TODO: both parameters never used
 
     # (4) Inference loop — accumulate ragged per-detection records (no dense toolbox arrays).
     per_frame_outputs = []

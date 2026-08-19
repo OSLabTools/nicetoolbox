@@ -320,6 +320,7 @@ class EthXGazeConfig(BaseAlgorithmConfig):
     polyorder: int
     visualize: bool
     visualize_native: bool
+    face_alignment_cache_dir: str
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
