@@ -254,11 +254,12 @@ window_length = 11
 polyorder = 2
 visualize = true
 visualize_native = false  # if true, inference subprocess also writes per-frame debug overlays
+face_alignment_cache_dir = "<assets>/face_alignment"
 [algorithms.eth_xgaze.required_assets]
-shape_predictor_filename = "<assets>/eth_xgaze/shape_predictor_68_face_landmarks.dat"
 face_model_filename = "<assets>/eth_xgaze/face_model.txt"
 pretrained_model_filename = "<assets>/eth_xgaze/epoch_24_ckpt.pth.tar"
-face_detector_filename = "<assets>/eth_xgaze/mmod_human_face_detector.dat"
+face_alignment_detector = "<assets>/face_alignment/hub/checkpoints/s3fd-619a316812.pth"
+face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938726ad.zip"
 
 
 # ======================================================================
