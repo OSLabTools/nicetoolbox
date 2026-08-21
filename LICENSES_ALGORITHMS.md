@@ -17,3 +17,5 @@ List of Licenses and Links to the 3rd party algorithms used in NICE Toolbox.
 | [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper)                         | [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)                        |
 
 Please keep in mind that model weights may have licenses different from the codebase. Contact the original algorithm and model creators to learn more about their licenses.
+
+Some model weights are redistributed through NICE Toolbox storage to ensure they remain available if the original source goes offline. For a full list, please see [`asset_manifest.toml`](https://github.com/OSLabTools/nicetoolbox/blob/main/configs/asset_manifest.toml). If you have a question about a particular redistributed model, contact us at <nicetoolbox@tue.mpg.de>.

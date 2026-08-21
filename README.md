@@ -82,7 +82,7 @@ We thank the [MPI-IS Software Workshop](https://is.mpg.de/en/software-workshop) 
 ## License
 
 [NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2026 Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V is licensed under
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1), see [LICENSE.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md).
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html), see [LICENSE.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md).
 
 Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses
 listed in [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
