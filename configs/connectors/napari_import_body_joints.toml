@@ -1,23 +1,15 @@
-dataset_folder = "<datasets_folder_path>/communication_multiview"
-dataset_raw_annot = "<datasets_folder_path>/communication_multiview/annotations_raw/body_joints_napari"
-napari_output = "<output_folder_path>/connectors/napari_import"
+annotation_folder = "<datasets_folder_path>/communication_multiview/annotations_raw"
+napari_output = "<output_folder_path>/connectors/napari_import/body_joints"
 
 log_level = "INFO"
 log_file_path = "<napari_output>/napari_import_body_joints.log"
 
 export_csv = true
 
-[run.sequence_xyz_cam3]
-input  = "<dataset_raw_annot>/cam3/CollectedData_X.csv"
+[run.sequence_xyz]
+input = "<annotation_folder>/body_joints_napari"
 output = "<napari_output>/sequence_xyz_body_joints.npz"
-video  = "<dataset_folder>/sequence_xyz/view_top.mp4"
-start  = "00:02:20"
-end    = "00:02:25"
-reset_frames = true
-
-[subjects]
-pL = "person_left"
-pR = "person_right"
-
-[cameras]
-cam3 = "view_top"
+start = 0
+end = -1
+fps = 30  
+reset_frames = false

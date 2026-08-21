@@ -1,12 +1,12 @@
 dataset_folder = "<datasets_folder_path>/communication_multiview"
-elan_output    = "<output_folder_path>/connectors/elan_import"
+elan_output    = "<output_folder_path>/connectors/elan_import/gaze"
 
 log_level = "INFO"
 log_file_path = "<elan_output>/elan_import_gaze.log"
 export_csv = true
 
 [run.sequence_xyz]
-input = "<dataset_folder>/annotations_raw/gaze_elan/sequence_xyz.txt"
+input = "<dataset_folder>/annotations_raw/gaze_elan/sequence_xyz_gaze.txt"
 output = "<elan_output>/sequence_xyz_gaze.npz"
 video = "<dataset_folder>/sequence_xyz/view_top.mp4"
 start = 0

@@ -142,18 +142,38 @@ def default_runtime_placeholders():
     }
 
 
-def resolve_filter(declared: str | list[str], all_names: list[str]) -> list[str]:
+def resolve_filter(declared: str | list[str], all_names: list[str], raise_on_unknown: bool = False) -> list[str]:
     """
     Resolve a name-filter declaration against a pool of available names.
 
     - "*" (or ["*"]) expands to every available name, preserving pool order.
     - A single string is treated as a one-element list.
     - A list of names intersects with the available pool, preserving declared order.
-      Names absent from the pool are dropped silently.
+      Names absent from the pool are dropped silently, unless `raise_on_unknown`.
+
+    Args:
+        declared: The filter as written in config: "*", a single name, or a list of names.
+        all_names: The pool of names actually available.
+        raise_on_unknown: When True, a declared name missing from the pool raises instead of
+            being dropped, and an empty declaration is rejected. Use for tasks where quietly
+            doing less than asked is worse than failing (e.g. writing export files).
+
+    Raises:
+        ValueError: If `raise_on_unknown` and a declared name is absent from the pool, or the
+            declaration is empty.
     """
     if declared == "*" or declared == ["*"]:
         return list(all_names)
     if isinstance(declared, str):
         declared = [declared]
+
+    if raise_on_unknown:
+        if not declared:
+            raise ValueError(f'Empty filter. Use "*" to select all. Available: {all_names}')
+        unknown = [name for name in declared if name not in all_names]
+        if unknown:
+            raise ValueError(f"Requested {unknown} not available. Available: {all_names}")
+        return list(declared)
+
     available = set(all_names)
     return [name for name in declared if name in available]

@@ -113,6 +113,10 @@ def convert_npz_to_csv_files(npz_path, output_folder) -> None:
             cameras_dict = {0: "none"}
         df["Camera"] = df["Camera"].map(cameras_dict).fillna(df["Camera"])
 
+        if data_desc_arr["axis2"]:
+            frames_dict = {i: label for i, label in enumerate(data_desc_arr["axis2"])}
+            df["Frame"] = df["Frame"].map(frames_dict).fillna(df["Frame"])
+
         output_filename = f'{video_name}_{component_name}_{filename.split(".")[0]}_{key}.csv'
         df.to_csv(os.path.join(output_folder, output_filename), index=False)
 
