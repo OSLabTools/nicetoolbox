@@ -5,7 +5,7 @@
 ```
 
 ```{attention}
-NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 5 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
+NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 15, 16, 17 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
 ```
 
 ## System Requirements
@@ -35,6 +35,10 @@ make install_pyfeat install_mmpose
 exit
 
 # start it again to do experiments
+docker start -ai my-nice-toolbox
+
+# or start it again with disconnected network access
+docker network disconnect bridge my-nice-toolbox
 docker start -ai my-nice-toolbox
 ```
 
