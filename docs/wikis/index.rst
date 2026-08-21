@@ -12,3 +12,4 @@ The wiki provides detailed information about certain parts of the NICE Tolbox.
    wiki_components
    wiki_algorithms
    wiki_evaluation_metrics
+   wiki_body_joints_labeling

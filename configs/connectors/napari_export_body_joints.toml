@@ -1,0 +1,31 @@
+experiment_name = "<yyyymmdd>"
+experiment      = "<output_folder_path>/experiments/<experiment_name>"
+napari_output   = "<output_folder_path>/connectors/napari_export/body_joints" 
+
+log_level = "INFO"
+log_file_path = "<napari_output>/napari_export_body_joints.log"
+
+# Which array to read from the body_joints NPZ.
+npz_key = "2d_filtered"
+
+# optional sliding window sampling (delete if want to sample all frames)
+[window]
+size   = 5   # frames per window
+stride = 30  # distance between window starts
+
+# Export detected body joints to napari for manual correction.
+[run.vitpose_huge]
+dataset_sequence = "communication_multiview_sequence_xyz"
+subsequence_name = "<dataset_sequence>_s0_l-1"
+input   = "<experiment>/<subsequence_name>/body_joints/vitpose_huge.npz"
+frames_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>"
+cameras = ["view_center", "view_top"]  # "*" for all cameras
+output  = "<napari_output>/vitpose_huge"
+
+[run.hrnetw48]
+dataset_sequence = "communication_multiview_sequence_xyz"
+subsequence_name = "<dataset_sequence>_s0_l-1"
+input   = "<experiment>/<subsequence_name>/body_joints/hrnetw48.npz"
+frames_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>"
+cameras = ["view_center", "view_top"]
+output  = "<napari_output>/hrnetw48"

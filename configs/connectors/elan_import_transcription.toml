@@ -12,6 +12,6 @@ import_words = true
 
 # Import the corrected speaker-aligned transcription
 [run.sequenc]
-input = "<dataset_folder>/annotations_raw/speaker_aligned_transcription_elan/sequence_xyz.txt"
-output = "<elan_import>/sequence_xyz.json"
+input = "<dataset_folder>/annotations_raw/speaker_aligned_transcription_elan/sequence_xyz_transcription.txt"
+output = "<elan_import>/sequence_xyz_speaker_aligned_transcription.json"
 tracks = ["room"]

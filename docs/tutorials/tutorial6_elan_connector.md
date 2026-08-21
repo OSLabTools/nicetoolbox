@@ -32,7 +32,7 @@ Throughout this tutorial we use the `communication_multiview` example dataset. I
 The `communication_multiview` example dataset includes a ready-made ELAN annotation file. Open it in ELAN via **File → Open**:
 
 ```
-<datasets_folder_path>/communication_multiview/annotations_raw/gaze_elan/sequence_xyz.eaf
+<datasets_folder_path>/communication_multiview/annotations_raw/gaze_elan/sequence_xyz_gaze.eaf
 ```
 
 This opens the annotation alongside the two face-camera videos. You will see two tiers in the timeline — `client eyes` and `therapist eyes` — one for each participant.
