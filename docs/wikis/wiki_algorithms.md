@@ -53,6 +53,22 @@ In the NICE Toolbox, ETH-XGaze runs as the **`eth_xgaze`** algorithm and outputs
 
 [Zhang et al., 2020](https://arxiv.org/abs/2007.15837)
 
+## UniGaze (Gaze Estimation)
+
+**UniGaze** is a generalized appearance-based gaze estimation framework. It detects faces using face alignment, normalizes the face crops, and runs a pre-trained network to estimate 3D gaze vectors and pitch/yaw gaze angles.
+
+In the NICE Toolbox, UniGaze runs as the **`unigaze`** algorithm and outputs the **`gaze_individual`** component. It processes all configured cameras independently and outputs:
+- `gaze_3d_camera_space` (camera-space 3D gaze vectors)
+- `gaze_3d` (world-space 3D gaze vectors)
+- `gaze_2d` (reprojected 2D pixel-plane gaze arrows)
+- `landmarks_2d` (all 68 facial landmarks detected by the face-alignment model)
+- `gaze_origin_2d` (midpoint between the eyes)
+
+> [!NOTE]
+> The UniGaze detector does not natively output prediction confidence scores. For schema compatibility, all predictions are assigned a constant confidence score of `1.0`.
+
+[Qin et al., 2025](https://arxiv.org/pdf/2502.02307)
+
 ## Gaze Interaction
 
 Two derived algorithms build on top of `gaze_individual` outputs to characterize interpersonal gaze dynamics:

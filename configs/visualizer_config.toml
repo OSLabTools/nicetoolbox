@@ -41,7 +41,7 @@ visualize_interval = 1                                     # 1 means visualize e
 # (fused 3D, per-camera 2D reprojection, 2D face origin) are read from each fusion NPZ.
 # Look-at coloring (from gaze_interaction) only recolors the first algorithm's arrow.
 [media.gaze_multiview]
-algorithms = ['gaze_fusion_weighted_closed_eyes_interp']
+algorithms = ['gaze_fusion_weighted', 'gaze_fusion_unigaze']
 
 [media.gaze_multiview.canvas]
 # Canvas list controls which canvases receive the overlay; keys are informational.
@@ -51,7 +51,7 @@ gaze_3d_filtered = ["3D_Canvas", "view_left", "view_right", "view_top", "view_ce
 ## Note: Delete '3D_Canvas' if you don't have a multi-view setup.
 
 [media.gaze_multiview.appearance]
-colors = [[0, 150, 90]]  # one color per algorithm above
+colors = [[0, 150, 90], [200, 50, 50]]  # green for eth_xgaze-based, red for unigaze-based
 radii = {'3d'= 0.01, 'camera_view'= 4}
 
 # Component: gaze interaction
@@ -60,7 +60,7 @@ radii = {'3d'= 0.01, 'camera_view'= 4}
 # gaze_distance_3d_per_subject <-> gaze_fusion_per_subject
 # The two lists MUST have the same length; each pair recolors the corresponding fusion arrow.
 [media.gaze_interaction]
-algorithms = ['gaze_distance_3d_closed_eyes_interp']
+algorithms = ['gaze_distance_3d', 'gaze_distance_3d_unigaze' ]
 
 [media.gaze_interaction.canvas]
 gaze_look_at_3d = ["3D_Canvas", "view_left", "view_right"] ## value options: [3D_Canvas], [3D_Canvas, camera names], [camera names], []
@@ -70,6 +70,7 @@ gaze_look_at_3d = ["3D_Canvas", "view_left", "view_right"] ## value options: [3D
 # One [looking-at, not-looking-at] color pair per algorithm above.
 colors = [
     [[0,255, 0], [255, 0, 0]],   # gaze_distance_3d: green / red
+    [[0,255, 255], [255, 0, 255]],   # gaze_distance_3d_unigaze: green / red
 ]
 radii = {}
 

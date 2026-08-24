@@ -36,6 +36,7 @@ from .method_detectors.mmpose.mmpose_framework_3d import MotionBERT
 from .method_detectors.py_feat.py_feat import PyFeat
 from .method_detectors.sam_3d_body.sam_3d_body_detector import Sam3dBody
 from .method_detectors.spiga.spiga_detector import Spiga
+from .method_detectors.unigaze.unigaze_detector import UniGaze
 from .method_detectors.whisperx.whisperx_detector import WhisperX
 
 # set of all detectors implemented by NICE Toolbox
@@ -44,6 +45,7 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     MMPose2D,
     MotionBERT,
     EthXgaze,
+    UniGaze,
     PyFeat,
     Spiga,
     InsightFace,

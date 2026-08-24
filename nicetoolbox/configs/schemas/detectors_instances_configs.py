@@ -324,6 +324,19 @@ class EthXGazeConfig(BaseAlgorithmConfig):
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
+@detector_config("unigaze")
+class UniGazeConfig(BaseAlgorithmConfig):
+    camera_names: str | list[str]
+    env_name: str
+    filtered: bool = True
+    window_length: int = 11
+    polyorder: int = 2
+    visualize: bool
+    visualize_native: bool
+    face_alignment_cache_dir: str
+    required_assets: Dict[str, str] = Field(default_factory=dict)
+
+
 @detector_config("whisperx")
 class WhisperXConfig(BaseAlgorithmConfig):
     env_name: str

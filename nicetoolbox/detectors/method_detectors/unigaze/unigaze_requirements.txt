@@ -1,0 +1,12 @@
+face-alignment==1.4.0
+huggingface_hub
+numpy<2.0.0
+safetensors
+setuptools<70.0.0
+timm==0.3.2
+tqdm
+
+# UniGaze fork
+# no tag on the fork, so pin the commit hash directly
+unigaze @ git+https://github.com/OSLabTools/UniGaze.git@9c240fbe33f3d6146970a77b7c8fa06a7e60019e#subdirectory=unigaze_easy
+wheel

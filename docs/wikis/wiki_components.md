@@ -163,15 +163,15 @@ Detects the position of key landmarks to analyze facial expressions and movement
 The CSV files containing the <face_landmarks> key and the `<output_folder>/face_landmarks/<algorithm_name>.npz` file represent the results of this component. The post-processing steps and naming conventions are the same as those used for body joints.
 
 ## Gaze Individual
-Tracks the individual's gaze using the *Multiview_eth_xgaze* algorithm. The CSV files containing the <gaze_individual> key and the `<output_folder>/gaze_individual/<algorithm_name>.npz` file represent the results of this component.
+Tracks the individual's gaze using the **`eth_xgaze`** or **`unigaze`** algorithm. The CSV files containing the <gaze_individual> key and the `<output_folder>/gaze_individual/<algorithm_name>.npz` file represent the results of this component.
 
-The algorithm first detects the eye region and then calculates the 3D gaze direction. It is capable of tracking gaze in 3D space even with a single camera. When multiple cameras are used, the algorithm aggregates gaze detection results from each camera that captures the subject's gaze.
+The algorithms detect the face/eye region and calculate the 3D gaze direction. Gaze individual tracking works in 3D space even with a single camera.
 
-The `…_3d.csv` file and `3d.npy` data is saved inside the `<output_folder>/gaze_individual/<algorithm_name>.npz` contains the 3D gaze direction, with the starting point derived from the position of the eye. The 2D eye region positions are stored in `…_landmarks_2d.csv` and `landmarks_2d.npy` file.
-
-Gaze direction results of the algorithm are further smoothed during post-processing using Savitzky-Golay filter (see `…_3d_filtered.csv` or `3d_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.multiview_eth_xgaze.filtered`, `algorithms.multiview_eth_xgaze.window_length`, and `algorithms.multiview_eth_xgaze.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
-
-Note: Gaze individual component is currently doing fusion for the ETH-XGaze model for back compatibility reasons. We recommend using the Gaze Multiview component, which provides improved fusion methods and additional functionalities. 
+The outputs stored in `<output_folder>/gaze_individual/<algorithm_name>.npz` are:
+*   `3d` / `…_3d.csv`: The 3D gaze vectors in the world coordinate system.
+*   `3d_filtered` / `…_3d_filtered.csv`: Gaze vectors smoothed during post-processing using a Savitzky-Golay filter. Filtering can be adjusted or disabled (see `algorithms.<algorithm_name>.filtered`, `algorithms.<algorithm_name>.window_length`, and `algorithms.<algorithm_name>.polyorder` in `detectors_config.toml`).
+*   `pitch_yaw` / `…_pitch_yaw.csv` (*UniGaze only*): Per-camera pitch and yaw gaze angles (in radians).
+*   `landmarks_2d` / `…_landmarks_2d.csv` (*ETH-XGaze only*): 2D face landmarks. For UniGaze, these landmarks are stored inside the `.npz` archive to support visualization, but are excluded from CSV output for cleaner results.
 
 ## Gaze Multiview
 Combines gaze data from multiple camera views to enhance the accuracy of gaze tracking. The CSV files containing the <gaze_multiview> key and the `<output_folder>/gaze_multiv

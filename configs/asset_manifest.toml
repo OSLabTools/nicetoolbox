@@ -219,6 +219,14 @@ access = "open"
 licence = "CC BY-NC 4.0"
 licence_link = "https://creativecommons.org/licenses/by-nc/4.0/deed.en"
 
+# --- UniGaze ---
+["unigaze/unigaze_h14_joint.safetensors"]
+url = "https://huggingface.co/UniGaze/UniGaze-models/resolve/d3f8335cd4b7d249adbc32389986ce49b52f6f72/unigaze_h14_joint.safetensors"
+source = "url"
+access = "open"
+licence = "ModelGo Attribution-NonCommercial-ResponsibleAI 2.0"
+licence_link = "https://huggingface.co/UniGaze/UniGaze-models/blob/d3f8335cd4b7d249adbc32389986ce49b52f6f72/LICENSE.txt"
+
 # --- Sam_3d_body ---
 ["sam_3d_body/models--facebook--sam-3d-body-dinov3"]
 url = "facebook/sam-3d-body-dinov3"

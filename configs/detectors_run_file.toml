@@ -22,11 +22,9 @@ algorithms = [
    "velocity_body_2d", "velocity_body_3d",            # body velocity
    "body_distance_2d", "body_distance_3d",            # distance between subjects (per dimension)
    "sam_3d_body",                                     # 3d body mesh
-   "eth_xgaze",                                       # gaze detection
-   "gaze_fusion_weighted",                            # gaze fusion
-   "gaze_distance_2d",                                # gaze interaction (2d, single camera)
-   "gaze_fusion_weighted_closed_eyes_interp",         # gaze fusion (closed eyes interpolation)
-   "gaze_distance_3d_closed_eyes_interp",             # gaze interaction (3d, closed eyes interpolation)
+   "eth_xgaze", "unigaze",                            # gaze direction
+   "gaze_per_subject",                                # gaze directions fusion (select facial cameras)
+   "gaze_distance_2d", "gaze_distance_3d",            # gaze interaction (for single camera and multi-camera)
    "spiga",                                           # head orientation
    "py_feat",                                         # emotions detection
    "whisperx", "crisper_whisper",                     # audio transcription
