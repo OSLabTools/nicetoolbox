@@ -27,6 +27,7 @@ ifeq ($(OS), Windows_NT)
 	WHISPERX_EXE_DIR = ./envs/whisperx/Scripts
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/Scripts
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/Scripts
+	UNIGAZE_EXE_DIR = ./envs/unigaze/Scripts
 else
 	PYTHON_EXE = python3.10
 	CONDA_DIR := $(shell conda info --base)
@@ -39,6 +40,7 @@ else
 	WHISPERX_EXE_DIR = ./envs/whisperx/bin
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/bin
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/bin
+	UNIGAZE_EXE_DIR = ./envs/unigaze/bin
 endif
 
 # Download data variables
@@ -214,6 +216,7 @@ endif
 install_all_detectors:
 # 	detectors venv installations
 	-@make install_eth_xgaze
+	-@make install_unigaze
 	-@make install_pyfeat
 	-@make install_spiga
 	-@make install_insight_face
@@ -371,3 +374,19 @@ install_sam3d_body:
 	@$(SAM3D_BODY_EXE_DIR)/pip install 'git+https://github.com/microsoft/MoGe.git'
 	@$(SAM3D_BODY_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'SAM 3D Body' environment setup completed successfully."
+
+# Install the venv for UniGaze
+.PHONY: install_unigaze
+install_unigaze:
+	@make create_separator
+	@make clean_venv NAME=unigaze
+	@echo "Creating virtual environment for algorithm 'UniGaze'..."
+	@$(PYTHON_EXE) -m venv ./envs/unigaze
+	@echo "Virtual environment created in ./envs/unigaze"
+
+	@echo "Installing requirements for 'UniGaze'..."
+	@$(UNIGAZE_EXE_DIR)/pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
+	@$(UNIGAZE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/unigaze/unigaze_requirements.txt
+	@$(UNIGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
+
+	@echo "UniGaze environment setup completed successfully."

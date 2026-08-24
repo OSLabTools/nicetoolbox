@@ -263,6 +263,27 @@ face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938
 
 
 # ======================================================================
+#                               UniGaze
+# ======================================================================
+
+# UniGaze for appearance-based 3d gaze vector detection
+[algorithms.unigaze]
+algorithm_type = "unigaze"
+camera_names = "*"
+env_name = "venv:unigaze"
+filtered = false  # TODO: filtering is too aggressive with NaNs, disabled it
+window_length = 11
+polyorder = 2
+visualize = true
+visualize_native = true  # if true, inference subprocess also writes per-frame debug overlays
+face_alignment_cache_dir = "<assets>/face_alignment"
+[algorithms.unigaze.required_assets]
+face_alignment_detector = "<assets>/face_alignment/hub/checkpoints/s3fd-619a316812.pth"
+face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938726ad.zip"
+unigaze_model = "<assets>/unigaze/unigaze_h14_joint.safetensors"
+
+
+# ======================================================================
 #                               Gaze Fusion
 # ======================================================================
 
@@ -270,47 +291,41 @@ face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938
 [templates.gaze_fusion]
 algorithm_type = "gaze_fusion"
 visualize = true
-# closed eyes filtering
-closed_eye_filter_mode = "none"
-# filtering
-filtered = true
+filtered = false  # TODO: filtering is too aggressive with NaNs, disabled it
 window_length = 11
 polyorder = 2
 [templates.gaze_fusion.inputs]
-gaze_per_camera_3d = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_3d_filtered" }
-gaze_origin_2d     = { component = "gaze_individual", algorithm = "eth_xgaze", npz_key = "gaze_origin_2d" }
-eye_closed_state   = { component = "eye_closed_state", algorithm = "eye_state_ear", npz_key = "global_state" }
+gaze_per_camera_3d = { component = "gaze_individual", algorithm = "unigaze", npz_key = "gaze_3d" }
+gaze_origin_2d     = { component = "gaze_individual", algorithm = "unigaze", npz_key = "gaze_origin_2d" }
 
 # average multiple 3d gaze vectors across cameras (weighted by confidence)
-[algorithms.gaze_fusion_weighted]
+[algorithms.gaze_weighted]
 template = "gaze_fusion"
 fusion_method = "weighted_average"
-
-# average multiple 3d gaze vectors across cameras (weighted by confidence) and interpolate closed-eye gaps
-[algorithms.gaze_fusion_weighted_closed_eyes_interp]
-template = "gaze_fusion"
-fusion_method = "weighted_average"
-closed_eye_filter_mode = "interpolate"
-
-# average multiple 3d gaze vectors across cameras (weighted by confidence) and mark closed-eye gaps as nan
-[algorithms.gaze_fusion_weighted_closed_eyes_nan]
-template = "gaze_fusion"
-fusion_method = "weighted_average"
-closed_eye_filter_mode = "nan"
 
 # select individual camera based predictions, discard others
-[algorithms.gaze_fusion_per_subject]
+[algorithms.gaze_per_subject]
 template = "gaze_fusion"
 fusion_method = "select_view"
 subject_view_map = {person_left = "view_left", person_right = "view_right"}
-filtered = false  # data is already filtered, no need to filter it again
 
-# take only central view, both subjects visible, discard others
-[algorithms.gaze_fusion_only_center]
+# take only central view where both subjects are visible, discard others
+[algorithms.gaze_only_center]
 template = "gaze_fusion"
 fusion_method = "select_view"
 subject_view_map = {person_left = "view_center", person_right = "view_center"}
-filtered = false  # data is already filtered, no need to filter it again
+
+# additional filtering by closed eyes
+[algorithms.gaze_weighted_closed_eyes]
+template = "gaze_fusion"
+fusion_method = "weighted_average"
+closed_eye_filter_mode = "interpolate"  # can be "none", "nan" and "interpolate"
+closed_eye_max_interpolate_gap = 10
+[algorithms.gaze_weighted_closed_eyes.inputs]
+gaze_per_camera_3d = { component = "gaze_individual", algorithm = "unigaze", npz_key = "gaze_3d" }
+gaze_origin_2d     = { component = "gaze_individual", algorithm = "unigaze", npz_key = "gaze_origin_2d" }
+eye_closed_state   = { component = "eye_closed_state", algorithm = "eye_state_ear", npz_key = "global_state" }
+
 
 # ======================================================================
 #                           Gaze Interaction
@@ -324,7 +339,7 @@ threshold_look_at = 130  # in pixels
 visualize = true
 [algorithms.gaze_distance_2d.inputs]
 pose_2d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "2d_filtered" }
-gaze_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_2d_filtered" }
+gaze_2d = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_2d" }
 
 # same, but do it using scene 3d
 [algorithms.gaze_distance_3d]
@@ -334,57 +349,9 @@ threshold_look_at = 0.4  # in absolute units (meters)
 visualize = true
 [algorithms.gaze_distance_3d.inputs]
 pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
-gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_3d_filtered" }
-gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_2d_filtered" }
-gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted", npz_key = "gaze_origin_2d" }
-
-# gaze distance in 3D using the eye-closed interpolated gaze fusion output
-[algorithms.gaze_distance_3d_closed_eyes_interp]
-algorithm_type = "gaze_distance_3d"
-used_keypoints = ["nose"]
-threshold_look_at = 0.4
-visualize = true
-[algorithms.gaze_distance_3d_closed_eyes_interp.inputs]
-pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
-gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_3d_filtered" }
-gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_2d_filtered" }
-gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_interp", npz_key = "gaze_origin_2d" }
-
-# gaze distance in 3D using the eye-closed interpolated gaze fusion output
-[algorithms.gaze_distance_3d_closed_eyes_nan]
-algorithm_type = "gaze_distance_3d"
-used_keypoints = ["nose"]
-threshold_look_at = 0.4
-visualize = true
-[algorithms.gaze_distance_3d_closed_eyes_nan.inputs]
-pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
-gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_3d_filtered" }
-gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_2d_filtered" }
-gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_weighted_closed_eyes_nan", npz_key = "gaze_origin_2d" }
-
-# in scene 3d, but use gaze_fusion_per_subject
-[algorithms.gaze_distance_3d_per_subject]
-algorithm_type = "gaze_distance_3d"
-used_keypoints = ["nose"]   # mean of these body joints
-threshold_look_at = 0.4  # in absolute units (meters)
-visualize = true
-[algorithms.gaze_distance_3d_per_subject.inputs]
-pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
-gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_3d" }
-gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_2d" }
-gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_per_subject", npz_key = "gaze_origin_2d" }
-
-# in scene 3d, but use gaze_fusion_per_subject
-[algorithms.gaze_distance_3d_only_center]
-algorithm_type = "gaze_distance_3d"
-used_keypoints = ["nose"]   # mean of these body joints
-threshold_look_at = 0.4  # in absolute units (meters)
-visualize = true
-[algorithms.gaze_distance_3d_only_center.inputs]
-pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
-gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_3d" }
-gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_2d" }
-gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_fusion_only_center", npz_key = "gaze_origin_2d" }
+gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_3d" }
+gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_2d" }
+gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_origin_2d" }
 
 
 # ======================================================================
