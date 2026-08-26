@@ -24,7 +24,7 @@ nice_project.toml
 **/env/
 **/venv/
 **/*.pth
-**/*.bib
+# **/*.bib
 **/*.aux
 **/*.fls
 **/*.log

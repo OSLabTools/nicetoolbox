@@ -93,5 +93,8 @@ envs/
 # ideally we want also exclude all downloaded assets
 nicetoolbox/detectors/assets/
 
+# paper
+**/paper.bib
+
 # and some specific to toolbox stuff
 machine_specific_paths.toml
