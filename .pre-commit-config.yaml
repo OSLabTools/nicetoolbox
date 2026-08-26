@@ -3,6 +3,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-added-large-files
+        exclude: ^paper/images/
       - id: requirements-txt-fixer
       - id: check-ast
       - id: check-case-conflict
@@ -27,6 +28,7 @@ repos:
     rev: v2.2.4
     hooks:
     - id: codespell
+      exclude: ^paper/
       additional_dependencies:
         - tomli
 
