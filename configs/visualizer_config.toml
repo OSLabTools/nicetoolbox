@@ -12,7 +12,7 @@ experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # 
 
 [media]                                                    # each Media session shows one video results.
 [media.visualize]                                          # specify what will be visualized
-components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "emotion_individual", "kinematics", "proximity", "eye_closure_score", "eye_closed_state"]
+components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "face_bounding_box", "emotion_individual", "kinematics", "proximity", "eye_closure_score", "eye_closed_state"]
 start_frame = 0                                            # starting frame for the visualization
 end_frame = -1                                             # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                                     # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -113,15 +113,29 @@ colors =  [[170,171,69]] #[255,255,4] yellow =- green j. [77, 188, 139]
 radii = {'3d'= 0.01, 'camera_view'= 4}
 
 
+# Component: face_bounding_box
+[media.face_bounding_box]
+algorithms = ['py_feat']
+
+[media.face_bounding_box.canvas]
+# TODO: need to keep empty to allow py_feat overwrite
+bbox_2d = []  ##value options: [camera names]
+
+[media.face_bounding_box.appearance]
+colors = [[0,255,0]] # green
+radii = {}
+
 # Component: emotion_individual
 [media.emotion_individual]
 algorithms = ['py_feat']
 
 [media.emotion_individual.canvas]
 emotions = ["view_left", "view_right"]  ##value options: [camera names]
+valence_arousal = ["Metrics"]  ## plotted as a timeseries, one plot per tracked subject/camera; [] to disable
 
 [media.emotion_individual.appearance]
-colors =  [[[255,0,0], [85,170,47], [72,61,139], [255,215,0], [70,130,180], [255,140,0], [128, 128, 128]]] #red, dark olive green, dark stale blue, gold, steel blue, dark orange, gray  
+# one color per emotion
+colors =  [[[128,128,128], [255,215,0], [72,61,139], [0,191,255], [128,0,128], [85,170,47], [255,0,0], [255,0,255], [128,128,0]]] #gray, gold, dark slate blue, deep sky blue, purple, olive green, red, magenta, olive
 radii = {'3d'= 0.01, 'camera_view'= 4}
 
 # Component: head orientation

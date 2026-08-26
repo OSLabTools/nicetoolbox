@@ -980,14 +980,26 @@ class GazeInteractionComponent(Component):
         pass
 
 
-class EmotionIndividualComponent(Component):
+class FaceBoundingBoxComponent(Component):
     """
-    Class for visualizing emotion individual data.
+    Class for visualizing face bounding box data.
+
+    Draws one box per subject per camera view, labelled with the detection confidence.
+
+    The boxes also anchor other face-level overlays: EmotionIndividualComponent recolors
+    them by the dominant emotion rather than drawing boxes of its own, so the two never
+    disagree about where a face is.
+
+    Attributes:
+        camera_names (List[str]): The camera names.
+        subject_names (List[str]): The subject names.
     """
+
+    BBOX_KEY = "bbox_2d"
 
     def __init__(self, visualizer_config: Dict, io, logger, component_name: str):
         """
-        Initialize the EmotionIndividualComponent.
+        Initialize the FaceBoundingBoxComponent.
 
         Args:
             visualizer_config (Dict): The visualizer configuration settings.
@@ -996,94 +1008,320 @@ class EmotionIndividualComponent(Component):
             component_name (str): The name of the component.
         """
         super().__init__(visualizer_config, io, logger, component_name)
-        # the camera_names and subject_names results will be read from first algorithm
-        # we are getting camera names from landmarks_2d because 3d doesn't have any
-        # camera info
-        self.camera_names = self.algorithms_results[0]["data_description"].item()["emotions"][
-            "axis1"
-        ]  # axis1 gives camera info
-        self.subject_names = self.algorithms_results[0]["data_description"].item()["emotions"][
-            "axis0"
-        ]  # axis0 gives subject info
-        self.algorithm_labels = self._get_algorithms_labels()
+        descr = self.algorithms_results[0]["data_description"].item()
+        self.camera_names = descr[self.BBOX_KEY]["axis1"]  # axis1 gives camera info
+        self.subject_names = descr[self.BBOX_KEY]["axis0"]  # axis0 gives subject info
 
-    def _get_algorithms_labels(self) -> List[List[str]]:
+    def get_bbox_data(self) -> List[Tuple[np.ndarray, List[str]]]:
         """
-        Get the labels for the algorithms.
+        Get the bounding boxes for every configured algorithm, in list order.
+
+        Each entry corresponds positionally to `[media.face_bounding_box].algorithms[i]` and
+        is intended to be paired with a face-level component that draws on top of the boxes.
 
         Returns:
-            List[List[str]]: The labels for the algorithms.
+            List of (data, camera_names) tuples, one per algorithm. Data is
+            (subjects, cameras, frames, x0/y0/x1/y1/conf), NaN where no face was assigned.
         """
-        # axis 3 gives labels information, this might be different for each algorithm
-        algorithm_labels = []
-        for i, _alg in enumerate(self.algorithm_list):
-            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()["emotions"]["axis3"])
-        return algorithm_labels
+        return [(res[self.BBOX_KEY], self.camera_names) for res in self.algorithms_results]
 
-    def _log_data(self, entity_path: str, head_bbox: np.ndarray, colors: str, labels: str) -> None:
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """Bounding box corner labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.BBOX_KEY]["axis3"] for res in self.algorithms_results]
+
+    def _log_data(self, entity_path: str, box: np.ndarray, color: List[int], label: str) -> None:
         """
-        Log the face bounding box and emotion.
+        Log one face bounding box in rerun.
 
         Args:
             entity_path (str): The entity path.
-            head_points (np.ndarray): The head points.
-            data_points (np.ndarray): The gaze points.
+            box (np.ndarray): The box as [x0, y0, x1, y1].
             color (List[int]): The color.
-            dimension (str): The dimension.
+            label (str): The box label.
         """
         rr.log(
             entity_path,
             rr.Boxes2D(
-                array=head_bbox,
-                array_format=rr.Box2DFormat.XYWH,
-                labels=labels,
-                colors=colors,
+                array=box,
+                array_format=rr.Box2DFormat.XYXY,
+                labels=label,
+                colors=color,
             ),
         )
 
     def visualize(self, frame_idx: int) -> None:
         """
-        Visualize the emotion individual component.
-
-        Combines the _log_data and _log_annotation_context method to visualize the
-        emotion individual component in camera views.
+        Visualize the face bounding boxes on each camera view.
 
         Args:
             frame_idx (int): The frame index.
         """
-        dataname = "emotions"
-        head_bbox = "faceboxes"
         for canvas in self.canvas_list:
-            if not canvas:
+            if not canvas or canvas == "3D_Canvas":
                 continue
             cam_name = canvas
+            if cam_name not in self.camera_names:
+                continue
             camera_index = self.camera_names.index(cam_name)
-            for alg_idx, alg_data in enumerate(self.canvas_data[dataname]):
-                alg_colors = self._parse_alg_color(alg_idx)
+
+            for alg_idx, alg_data in enumerate(self.canvas_data[self.BBOX_KEY]):
                 if frame_idx >= alg_data.shape[2]:  # number of frames
                     continue
                 alg_name = self.algorithm_list[alg_idx]
+                color = self._parse_alg_color(alg_idx)
+
                 for subject_idx, subject in enumerate(self.subject_names):
                     subjs = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]["sees_subjects"]
-                    if subject_idx in subjs:
-                        subject_head_bbox = self.algorithms_results[alg_idx][head_bbox][
-                            subject_idx, camera_index, frame_idx
-                        ]
-                        subject_emotion_probability = alg_data[subject_idx, camera_index, frame_idx]
-                        max_probability_idx = np.argmax(subject_emotion_probability)
-                        entity_path = self.logger.generate_component_entity_path(
-                            self.component_name,
-                            is_3d=False,
-                            alg_name=alg_name,
-                            subject_name=subject,
-                            cam_name=cam_name,
-                        )
-                        self._log_data(
-                            entity_path,
-                            subject_head_bbox,
-                            labels=self.algorithm_labels[alg_idx][max_probability_idx],
-                            colors=alg_colors[max_probability_idx],
-                        )
+                    if subject_idx not in subjs:
+                        continue
+                    box = alg_data[subject_idx, camera_index, frame_idx]
+                    # NaN marks a frame where no face was assigned to this subject slot.
+                    if np.isnan(box[:4]).any():
+                        continue
+                    entity_path = self.logger.generate_component_entity_path(
+                        self.component_name,
+                        is_3d=False,
+                        alg_name=alg_name,
+                        subject_name=subject,
+                        cam_name=cam_name,
+                    )
+                    self._log_data(entity_path, box[:4], color, f"{subject} {box[4]:.2f}")
+
+
+class EmotionIndividualComponent(Component):
+    """
+    Class for visualizing emotion individual data.
+
+    Draws each subject's face bounding box coloured by their strongest emotion and labelled
+    with it. The boxes come from face_bounding_box (paired in via bbox_tuples) rather than
+    from this component's own NPZ, so the emotion overlay and the box overlay always agree
+    on where the face is.
+
+    The emotion labels are read from the NPZ's axis3, so whatever set the detector predicts
+    is what gets drawn - the count is not assumed.
+
+    The `valence_arousal` array is additionally plotted as a scalar timeseries, one plot per
+    tracked (subject, camera) pair with a line per dimension. Pairs the detector never tracked
+    are all-NaN and are dropped rather than plotted empty.
+
+    Attributes:
+        camera_names (List[str]): The camera names.
+        subject_names (List[str]): The subject names.
+        bbox_per_alg (List[Tuple[np.ndarray, List[str]]]): Per-algorithm (boxes, camera_names).
+            Empty when no bounding box component is wired.
+        valence_arousal_per_alg (List[np.ndarray | None]): Per-algorithm valence/arousal, or
+            None when the canvas is empty or the detector does not emit it.
+    """
+
+    EMOTIONS_KEY = "emotions"
+    VALENCE_AROUSAL_KEY = "valence_arousal"
+
+    def __init__(
+        self,
+        visualizer_config: Dict,
+        io,
+        logger,
+        component_name: str,
+        bbox_tuples: List[Tuple[np.ndarray, List[str]]] = None,
+    ):
+        """
+        Initialize the EmotionIndividualComponent.
+
+        Args:
+            visualizer_config (Dict): The visualizer configuration settings.
+            io: The input/output object.
+            logger (viewer.Viewer): The viewer rerun object.
+            component_name (str): The name of the component.
+            bbox_tuples (List[Tuple[np.ndarray, List[str]]], optional): Per-algorithm
+                (bbox_2d, camera_names) from face_bounding_box, positionally aligned with
+                this component's algorithms. Defaults to None (nothing is drawn).
+        """
+        super().__init__(visualizer_config, io, logger, component_name)
+        descr = self.algorithms_results[0]["data_description"].item()
+        self.camera_names = descr[self.EMOTIONS_KEY]["axis1"]  # axis1 gives camera info
+        self.subject_names = descr[self.EMOTIONS_KEY]["axis0"]  # axis0 gives subject info
+        self.algorithm_labels = self._get_algorithms_labels()
+
+        # Per-algorithm boxes to draw on (aligned positionally with self.algorithm_list). The
+        # emotion is a property of a face, so with no box there is nowhere to draw it.
+        self.bbox_per_alg: List[Tuple[np.ndarray, List[str]]] = []
+        if bbox_tuples:
+            if len(bbox_tuples) != len(self.algorithm_list):
+                raise ValueError(
+                    f"emotion_individual has {len(self.algorithm_list)} algorithms but "
+                    f"face_bounding_box provided {len(bbox_tuples)} entries. The two algorithms "
+                    f"lists must be the same length (each emotion instance paired with the "
+                    f"boxes of the detector that produced it)."
+                )
+            self.bbox_per_alg = bbox_tuples
+        else:
+            print(
+                "WARNING! emotion_individual needs face_bounding_box to draw on, but it is not "
+                "in the components list. Emotions will not be visualized.\n  "
+                "Add 'face_bounding_box' to the components list in the visualizer_config.toml file"
+            )
+
+        # Per-algorithm valence/arousal, plotted as a timeseries alongside the boxes. Skipped
+        # entirely when the canvas is empty, and per-algorithm when a detector emits only emotions.
+        plot_valence_arousal = bool(
+            self.visualizer_config["media"][self.component_name]["canvas"].get(self.VALENCE_AROUSAL_KEY)
+        )
+        self.valence_arousal_per_alg: List[np.ndarray | None] = [
+            res[self.VALENCE_AROUSAL_KEY] if plot_valence_arousal and self.VALENCE_AROUSAL_KEY in res.files else None
+            for res in self.algorithms_results
+        ]
+        self.valence_arousal_labels_per_alg: List[List[str]] = [
+            res["data_description"].item()[self.VALENCE_AROUSAL_KEY]["axis3"]
+            if self.valence_arousal_per_alg[i] is not None
+            else []
+            for i, res in enumerate(self.algorithms_results)
+        ]
+        # A (subject, camera) pair a detector never saw is all-NaN -- e.g. the left subject on
+        # the right-facing camera. Plotting it would add a permanently empty view, so the
+        # tracked pairs are resolved once here and the rest are skipped.
+        self.plotted_series_per_alg = [
+            self._resolve_plotted_series(alg_idx) for alg_idx in range(len(self.valence_arousal_per_alg))
+        ]
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """Emotion labels (axis3) per algorithm."""
+        return [res["data_description"].item()[self.EMOTIONS_KEY]["axis3"] for res in self.algorithms_results]
+
+    def _resolve_plotted_series(self, alg_idx: int) -> List[Tuple[int, int]]:
+        """
+        Resolve which (subject_idx, camera_idx) valence/arousal series are worth plotting.
+
+        A pair that is NaN for every frame means the detector never tracked that subject on
+        that camera -- e.g. the left-seated subject on the right-facing camera -- so it is
+        dropped rather than logged as a permanently empty plot.
+
+        Returns:
+            List of (subject_idx, camera_idx) pairs that carry at least one real value.
+        """
+        valence_arousal = self.valence_arousal_per_alg[alg_idx]
+        if valence_arousal is None:
+            return []
+
+        # Any non-NaN across the frame and dimension axes means the pair was tracked at some point.
+        tracked = ~np.isnan(valence_arousal).all(axis=(2, 3))  # (subjects, cameras)
+        return [(int(s), int(c)) for s, c in zip(*np.nonzero(tracked))]
+
+    def _log_score(self, entity_path: str, value: float) -> None:
+        """
+        Log one valence/arousal value as a scalar timeseries point in rerun.
+
+        Args:
+            entity_path (str): The entity path.
+            value (float): The valence or arousal value.
+        """
+        rr.log(entity_path, rr.Scalar(round(float(value), 3)))
+
+    def _log_data(self, entity_path: str, box: np.ndarray, color: List[int], label: str) -> None:
+        """
+        Log the face bounding box coloured by its dominant emotion.
+
+        Args:
+            entity_path (str): The entity path.
+            box (np.ndarray): The box as [x0, y0, x1, y1].
+            color (List[int]): The colour of the dominant emotion.
+            label (str): The emotion name and its score.
+        """
+        rr.log(
+            entity_path,
+            rr.Boxes2D(
+                array=box,
+                array_format=rr.Box2DFormat.XYXY,
+                labels=label,
+                colors=color,
+            ),
+        )
+
+    def visualize(self, frame_idx: int) -> None:
+        """
+        Visualize the emotion individual component on each camera view.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        self._plot_valence_arousal(frame_idx)
+
+        for canvas in self.canvas_list:
+            if not canvas or canvas == "3D_Canvas":
+                continue
+            cam_name = canvas
+            if cam_name not in self.camera_names:
+                continue
+            camera_index = self.camera_names.index(cam_name)
+
+            for alg_idx, alg_data in enumerate(self.canvas_data[self.EMOTIONS_KEY]):
+                if alg_idx >= len(self.bbox_per_alg) or frame_idx >= alg_data.shape[2]:
+                    continue
+                alg_name = self.algorithm_list[alg_idx]
+                # One colour per emotion, so the config carries a colour list per algorithm.
+                emotion_colors = self._parse_alg_color(alg_idx)
+                emotion_labels = self.algorithm_labels[alg_idx]
+                boxes, bbox_camera_names = self.bbox_per_alg[alg_idx]
+                # The box detector has its own camera axis, which may be a different subset.
+                if cam_name not in bbox_camera_names:
+                    continue
+                bbox_camera_index = bbox_camera_names.index(cam_name)
+
+                for subject_idx, subject in enumerate(self.subject_names):
+                    subjs = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]["sees_subjects"]
+                    if subject_idx not in subjs:
+                        continue
+
+                    box = boxes[subject_idx, bbox_camera_index, frame_idx]
+                    scores = alg_data[subject_idx, camera_index, frame_idx]
+                    # NaN marks a frame where no face was assigned to this subject slot.
+                    if np.isnan(box[:4]).any() or np.isnan(scores).all():
+                        continue
+
+                    strongest = int(np.nanargmax(scores))
+                    entity_path = self.logger.generate_component_entity_path(
+                        self.component_name,
+                        is_3d=False,
+                        alg_name=alg_name,
+                        subject_name=subject,
+                        cam_name=cam_name,
+                    )
+                    self._log_data(
+                        entity_path,
+                        box[:4],
+                        color=emotion_colors[strongest % len(emotion_colors)],
+                        label=f"{emotion_labels[strongest]} {scores[strongest]:.2f}",
+                    )
+
+    def _plot_valence_arousal(self, frame_idx: int) -> None:
+        """
+        Log the valence/arousal timeseries for every tracked (subject, camera) pair.
+
+        Independent of the canvas cameras -- a plot is a view of its own, not an overlay on a
+        camera image -- so this runs once per frame rather than once per canvas. Both dimensions
+        go under the same entity prefix so they share one plot, one line each.
+
+        Args:
+            frame_idx (int): The frame index.
+        """
+        for alg_idx, valence_arousal in enumerate(self.valence_arousal_per_alg):
+            if valence_arousal is None or frame_idx >= valence_arousal.shape[2]:
+                continue
+            alg_name = self.algorithm_list[alg_idx]
+            labels = self.valence_arousal_labels_per_alg[alg_idx]
+
+            for subject_idx, camera_idx in self.plotted_series_per_alg[alg_idx]:
+                for label_idx, label in enumerate(labels):
+                    value = valence_arousal[subject_idx, camera_idx, frame_idx, label_idx]
+                    # Gaps stay gaps: logging NaN would draw a line through untracked frames.
+                    if np.isnan(value):
+                        continue
+                    entity_path = self.logger.generate_metric_entity_path(
+                        alg_name=alg_name,
+                        subject_name=self.subject_names[subject_idx],
+                        cam_name=self.camera_names[camera_idx],
+                        metric=label,
+                    )
+                    self._log_score(entity_path, value)
 
 
 class HeadOrientationComponent(Component):

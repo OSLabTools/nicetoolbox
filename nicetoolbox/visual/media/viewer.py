@@ -176,6 +176,7 @@ class Viewer:
             | (component == "face_landmarks")
             | (component == "gaze_multiview")
             | (component == "emotion_individual")
+            | (component == "face_bounding_box")
             | (component == "head_orientation")
             | (component == "eye_closure_score")
             | (component == "eye_closed_state")

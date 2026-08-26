@@ -17,6 +17,7 @@ from .components import (
     EmotionIndividualComponent,
     EyeClosedStateComponent,
     EyeClosureComponent,
+    FaceBoundingBoxComponent,
     FaceLandmarksComponent,
     GazeFusionComponent,
     GazeInteractionComponent,
@@ -131,8 +132,17 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         else None
     )
 
+    face_bbox_component = (
+        FaceBoundingBoxComponent(visualizer_config, io, viewer, "face_bounding_box")
+        if "face_bounding_box" in components
+        else None
+    )
+
+    # returns list of (bbox_2d, camera_names), one per face detector instance
+    bbox_tuples = face_bbox_component.get_bbox_data() if face_bbox_component is not None else None
+
     emotion_ind_component = (
-        EmotionIndividualComponent(visualizer_config, io, viewer, "emotion_individual")
+        EmotionIndividualComponent(visualizer_config, io, viewer, "emotion_individual", bbox_tuples)
         if "emotion_individual" in components
         else None
     )
@@ -190,6 +200,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         hand_joints_component,
         face_landmarks_component,
         gaze_fusion_component,
+        face_bbox_component,
         emotion_ind_component,
         proximity_component,
         kinematics_component,

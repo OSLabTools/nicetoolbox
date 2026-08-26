@@ -173,3 +173,21 @@ class BooleanSchema(ArraySchema):
 
 
 BOOLEAN_NAN = BooleanSchema()
+
+
+@dataclass(frozen=True)
+class BoundedSchema(ArraySchema):
+    """Array whose values must fall inside a closed range, or be NaN."""
+
+    minimum: float = -1.0
+    maximum: float = 1.0
+
+    def validate(self, array: NpzArray) -> list[str]:
+        errors = super().validate(array)
+
+        finite = array.data[~np.isnan(array.data)]
+        invalid = finite[(finite < self.minimum) | (finite > self.maximum)]
+        if invalid.size:
+            errors.append(f"values must be within [{self.minimum}, {self.maximum}] or NaN; found {invalid[:5]}")
+
+        return errors
