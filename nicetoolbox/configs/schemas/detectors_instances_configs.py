@@ -305,9 +305,15 @@ class InsightFaceConfig(BaseAlgorithmConfig):
 class PyFeatConfig(BaseAlgorithmConfig):
     camera_names: str | list[str]
     env_name: str
-    log_frame_idx_interval: int
     batch_size: int
+    face_detection_threshold: float
+    output_size: List[int]
+    num_workers: int
+    save_face_mesh: bool
     visualize: bool
+    visualize_native: bool
+    visualize_native_barplots: bool
+    hf_weights_cache_dir: str
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 

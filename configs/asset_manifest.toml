@@ -227,6 +227,23 @@ access = "open"
 licence = "ModelGo Attribution-NonCommercial-ResponsibleAI 2.0"
 licence_link = "https://huggingface.co/UniGaze/UniGaze-models/blob/d3f8335cd4b7d249adbc32389986ce49b52f6f72/LICENSE.txt"
 
+# --- Py-Feat ---
+# Multitask model: AUs, emotion, valence/arousal, gaze, 478-point mesh, head pose
+# and blendshapes from a single forward pass over each RetinaFace crop.
+["py_feat/models--py-feat--face_multitask_v2"]
+url = "py-feat/face_multitask_v2"
+source = "huggingface"
+access = "open"
+licence = "Research / non-commercial use only"
+licence_link = "https://huggingface.co/py-feat/face_multitask_v2/blob/7c18f8da048b90f7bf135d6129bcf349960ec32f/README.md#license"
+
+["py_feat/models--py-feat--retinaface_r34"]
+url = "py-feat/retinaface_r34"
+source = "huggingface"
+access = "open"
+licence = "MIT License"
+licence_link = "https://opensource.org/license/MIT"
+
 # --- Sam_3d_body ---
 ["sam_3d_body/models--facebook--sam-3d-body-dinov3"]
 url = "facebook/sam-3d-body-dinov3"

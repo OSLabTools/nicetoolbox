@@ -24,6 +24,22 @@ from ...utils import video as vd
 # Per-subject BGR colours, cycled when there are more subjects than colours.
 SUBJECT_COLORS = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (0, 255, 255)]
 
+# Per-label BGR colours for categorical overlays (emotions, classes, ...), cycled the same way.
+# Kept distinct from SUBJECT_COLORS so a label overlay is never mistaken for a subject one.
+# Mirrored in visualizer_config.toml as RGB, so a label keeps its colour between the
+# detector's mp4 and the rerun visualizer.
+LABEL_COLORS = [
+    (128, 128, 128),  # grey
+    (0, 215, 255),  # gold
+    (139, 61, 72),  # dark slate blue
+    (255, 191, 0),  # deep sky blue
+    (128, 0, 128),  # purple
+    (47, 170, 85),  # olive green
+    (0, 0, 255),  # red
+    (255, 0, 255),  # magenta
+    (0, 128, 128),  # olive
+]
+
 # Default arrow length in pixels. A direction is a heading only, so arrows are drawn at a fixed
 # on-screen size rather than in any metric unit.
 ARROW_LENGTH_PX = 200
@@ -32,6 +48,11 @@ ARROW_LENGTH_PX = 200
 def subject_color(subject_idx: int) -> tuple[int, int, int]:
     """BGR colour for a subject, so every overlay gives the same subject the same colour."""
     return SUBJECT_COLORS[subject_idx % len(SUBJECT_COLORS)]
+
+
+def label_color(label_idx: int) -> tuple[int, int, int]:
+    """BGR colour for a categorical label, by its position on the array's labels axis."""
+    return LABEL_COLORS[label_idx % len(LABEL_COLORS)]
 
 
 @dataclass
@@ -191,6 +212,47 @@ def draw_bounding_boxes(bbox_2d: NpzArray, context: RenderContext, viz_folder: s
         cv2.putText(
             image,
             f"{subjects[subject_idx]} {box[4]:.2f}",
+            (int(top_left[0]), int(top_left[1]) - 5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            color,
+            thickness=1,
+            lineType=cv2.LINE_AA,
+        )
+
+    render_per_camera_videos(draw_subject, bbox_2d.axes, context, viz_folder)
+
+
+def draw_emotions(bbox_2d: NpzArray, emotions: NpzArray, context: RenderContext, viz_folder: str) -> None:
+    """
+    Draw each subject's bounding box coloured by their strongest emotion, labelled with its score.
+
+    Frames where no detection was assigned to the subject's slot (NaN box) are skipped.
+
+    Args:
+        bbox_2d (NpzArray): (subjects, cameras, frames, x0/y0/x1/y1/conf).
+        emotions (NpzArray): (subjects, cameras, frames, emotions) scores; the labels axis names
+            the emotions, so any label set works.
+        context (RenderContext): Frame source and timing for this subsequence.
+        viz_folder (str): Visualization folder of the component being rendered.
+    """
+    boxes = bbox_2d.data
+    scores = emotions.data
+    labels = emotions.axes.labels
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        box = boxes[subject_idx, cam_idx, frame_idx]
+        subject_scores = scores[subject_idx, cam_idx, frame_idx]
+        if np.isnan(box[:4]).any() or np.isnan(subject_scores).all():
+            return
+
+        strongest = int(np.nanargmax(subject_scores))
+        color = label_color(strongest)
+        top_left = np.round(box[:2]).astype(np.int32)
+        cv2.rectangle(image, top_left, np.round(box[2:4]).astype(np.int32), color, thickness=2)
+        cv2.putText(
+            image,
+            f"{labels[strongest]} {subject_scores[strongest]:.2f}",
             (int(top_left[0]), int(top_left[1]) - 5),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,

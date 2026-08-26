@@ -414,13 +414,22 @@ model_weights_path = "<assets>/spiga/spiga_wflw.pt" # path to weights folder
 # emotion_individual
 [algorithms.py_feat]
 algorithm_type = "py_feat"
+env_name = "conda:py_feat"
 camera_names = ["view_left", "view_right"]
-env_name = "venv:py_feat"
-log_frame_idx_interval = 200
-# For batch_size, ensure:
-# [(batch_size) * (~Size of one frame (GB))] < Available vRAM (RAM) (GB)
-batch_size = 512
+# visualization
 visualize = true
+visualize_native = false  # run native Py-Feat visualize
+visualize_native_barplots = false  # if visualize_native true, draw bar plots for AU and emotions
+# inference settings
+batch_size = 32
+face_detection_threshold = 0.5  # RetinaFace detection confidence threshold; faces below this are dropped.
+output_size = []  # Optional (width, height) to resize frames before detection. Empty = native resolution.
+num_workers = 0  # CPU workers for the preprocessing DataLoader (0 = load in the main process).
+save_face_mesh = false  # Keep the 3d face mesh?
+hf_weights_cache_dir = "<assets>/py_feat"
+[algorithms.py_feat.required_assets]
+multitask_model = "<assets>/py_feat/models--py-feat--face_multitask_v2"
+face_detector_model = "<assets>/py_feat/models--py-feat--retinaface_r34"
 
 # ======================================================================
 #                      Audio Transcription WhisperX

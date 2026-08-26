@@ -244,20 +244,20 @@ install_eth_xgaze:
 
 	@echo "ETH-XGaze' environment setup completed successfully."
 
-# Install the venv for pyfeat
+# Install the conda env for pyfeat
 .PHONY: install_pyfeat
 install_pyfeat:
 	@make create_separator
 	@make clean_venv NAME=py_feat
-	@echo "Installing virtual environment for algorithm 'Py-Feat'..."
-
-	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/py_feat
-	@echo "Virtual environment created in ./envs/py_feat"
+	@echo "Installing conda environment for algorithm 'Py-Feat'..."
+# Py-Feat v2 requires Python 3.11+, so we use conda
+	@echo "Creating conda environment..."
+	@conda create -p ./envs/py_feat python=3.11 -y
+	@echo "Conda environment created in ./envs/py_feat"
 
 	@echo "Installing requirements for 'Py-Feat'..."
-	@$(PYFEAT_EXE_DIR)/pip install torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
-	@$(PYFEAT_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
+	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location torch==2.11.0+cu126 torchvision==0.26.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
 	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'Py-Feat' environment setup completed successfully."
 
