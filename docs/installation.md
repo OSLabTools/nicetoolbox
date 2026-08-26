@@ -2,10 +2,11 @@
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 ```{attention}
-NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 15, 16, 17 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
+NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 15, 16, 17 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
 ```
 
 ## System Requirements
@@ -21,7 +22,7 @@ NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/n
 
 You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites (like Python, CUDA, Conda, FFmpeg), so you do not have to set any of them up yourself.
 
-The third-party detectors are not part of the image. They are covered by their own licenses, some of which are more restrictive than the NICE Toolbox license. You can choose which of them to install:
+The third-party detectors are not part of the image. You can choose which of them to install:
 
 ```shell
 # download the base container from Docker Hub

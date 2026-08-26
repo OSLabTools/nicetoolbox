@@ -5,6 +5,7 @@ The configuration files are Python dictionaries saved in `.toml` - files that co
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 

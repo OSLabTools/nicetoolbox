@@ -6,6 +6,7 @@ For a full reference of all available metrics and their parameters, see the [Eva
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 

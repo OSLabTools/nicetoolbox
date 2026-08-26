@@ -6,22 +6,24 @@
 [Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
 [Documentation](https://nicetoolbox.readthedocs.io/en/stable/index.html) &emsp;&emsp;&emsp;
 [Changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) &emsp;&emsp;&emsp;
-mailto: <nicetoolbox@tue.mpg.de>
+<nicetoolbox@tue.mpg.de>
 
 <br>
 
-> 🚀 We are releasing a new major 0.3.0 version which includes [SAM 3D Body](https://github.com/facebookresearch/sam-3d-body) model support, [WhisperX](https://github.com/m-bain/whisperX) audio transcription, updated evaluation pipeline, connectors to [ELAN](https://archive.mpi.nl/tla/elan) and [napari](https://napari.org/), and many other improvements and fixes. Please check [the changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) for more information.
+> 🚀 We are releasing a new 0.3.1 version that adds new [UniGaze](https://github.com/ut-vision/UniGaze) gaze estimation, [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper) audio transcription, [InsightFace](https://github.com/deepinsight/insightface) face analysis, eye closure and blink detection, [Py-Feat](https://github.com/cosanlab/py-feat) updated to a new version, audio evaluation metrics, a reworked installation, and many other improvements and fixes. Please check [the changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) for more information.
 
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
 and behaviors of the individual. Additionally, these visual nonverbal cues reveal the
 interpersonal dynamics between people in face-to-face conversations.
 
-NICE combines existing computer vision **detectors** into a single, easy-to-use framework. Working from single- or multi-camera video data, it covers whole-body pose estimation, gaze tracking, movement dynamics (kinematics), gaze interaction monitoring (mutual gaze), physical proximity between dyads, emotion detection and more. For a full list, see the [components overview](https://nicetoolbox.readthedocs.io/en/stable/wikis/wiki_components.html).
+NICE combines existing computer vision **detectors** into a single, easy-to-use framework. Working from single- or multi-camera video data, it covers whole-body pose estimation, gaze tracking, movement dynamics (kinematics), gaze interaction monitoring (mutual gaze), physical proximity between dyads, emotion detection and more. For a full list, see the [components overview](https://nicetoolbox.readthedocs.io/en/stable/wikis/wiki_components.html) and [supported algorithms](https://nicetoolbox.readthedocs.io/en/stable/wikis/wiki_algorithms.html) pages.
 
-The toolbox also includes a **visualizer** molule for interactively exploring outputs, an **evaluation** module that runs configurable metrics and a collection of **connectors** for importing/exporting data to third-party tools (i.e. for labelling in [ELAN](https://archive.mpi.nl/tla/elan) or [napari-deeplabcut](https://github.com/DeepLabCut/napari-deeplabcut)).
+The toolbox also includes a **visualizer** module for interactively exploring outputs, an **evaluation** module that runs configurable metrics and a collection of **connectors** for importing/exporting data to third-party tools (e.g. for labelling in [ELAN](https://archive.mpi.nl/tla/elan) or [napari-deeplabcut](https://github.com/DeepLabCut/napari-deeplabcut)).
 
-## Installation & getting started
+If you have additional questions or would like to collaborate on a project using NICE Toolbox, please reach out to us at <nicetoolbox@tue.mpg.de>.
+
+## Installation & Getting Started
 
 For instructions on installing the toolbox on a Linux or Windows machine, please see the
 [installation instructions](https://nicetoolbox.readthedocs.io/en/stable/installation.html)
@@ -34,34 +36,27 @@ access this [documentation](https://nicetoolbox.readthedocs.io/en/stable/index.h
 by downloading it as a PDF. Just use the ReadTheDocs pop-up menu located in the bottom right
 corner of the screen.
 
-## Future releases
-
-In future releases, we plan to extend the NICE Toolbox to include detectors for facial
-expressions, head movements, eye closure, active speaking, emotional valence and arousal,
-and micro-action recognition.
-
-Our goal is to provide comprehensive and objective evaluations of the algorithms,
-ultimately creating a practically useful toolbox for researchers analyzing human
-interaction and communication.
-
-If you are interested in collaborating with us or contributing to the project, please
-reach out to us at **<nicetoolbox@tue.mpg.de>**.
-
 ## Acknowledgments
 
-The NICE Toolbox is using the following existing tools, methods, and frameworks:
+We acknowledge the following tools, methods, and frameworks:
 [MMPose](https://github.com/open-mmlab/mmpose/tree/main),
-[MotionBERT](https://arxiv.org/abs/2210.06551),
 [HigherHRNet](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation/tree/master),
 [ViTPose](https://github.com/ViTAE-Transformer/ViTPose/tree/main),
 [DarkPose](https://github.com/ilovepose/DarkPose/tree/master),
 [RTMPose](https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose),
+[MotionBERT](https://arxiv.org/abs/2210.06551),
 [SAM 3D Body](https://github.com/facebookresearch/sam-3d-body),
+[SAM 2](https://github.com/facebookresearch/sam2),
+[MoGe](https://github.com/microsoft/MoGe),
+[Detectron2](https://github.com/facebookresearch/detectron2),
 [ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze),
+[UniGaze](https://github.com/ut-vision/UniGaze),
 [SPIGA](https://github.com/andresprados/SPIGA),
+[InsightFace](https://github.com/deepinsight/insightface),
+[face-alignment](https://github.com/1adrianb/face-alignment),
 [WhisperX](https://github.com/m-bain/whisperx),
 [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper),
-[Py-FEAT](https://py-feat.org/pages/intro.html), and
+[Py-Feat](https://py-feat.org/), and
 [rerun.io](https://rerun.io/).
 
 ## Authors
@@ -81,8 +76,7 @@ We thank the [MPI-IS Software Workshop](https://is.mpg.de/en/software-workshop) 
 
 ## License
 
-[NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2026 Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V is licensed under
-[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html), see [LICENSE.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE.md).
+[NICE Toolbox](https://github.com/OSLabTools/nicetoolbox) © 2026 Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V. is licensed under
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html), see [LICENSE](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE).
 
-Some components of the NICE Toolbox further use algorithms that are being distributed under other licenses
-listed in [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
+NICE Toolbox has optional support for third-party algorithms and models that are distributed under their own licenses. See [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md) for the full list.

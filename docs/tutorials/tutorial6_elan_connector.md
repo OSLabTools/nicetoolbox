@@ -1,9 +1,10 @@
 # ELAN Connector: Import Gaze Annotations
 
-This tutorial shows how to import human-annotated gaze data from [ELAN](https://archive.mpi.nl/tla/elan) to use as ground truth for evaluating NICE Toolbox detector outputs.
+This tutorial shows how to import human-annotated gaze data from [ELAN](https://archive.mpi.nl/tla/elan) to use as ground truth for evaluating NICE Toolbox detector outputs. For the full set of tasks and config options, see the [Connectors wiki](../wikis/wiki_connectors.md).
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 
@@ -50,7 +51,7 @@ For each interval, use one of the two recognized labels:
 | `eyfx` | Looking at the other person (fixed gaze)  |
 | `eyga` | Gaze averted / not looking at partner     |
 
-Intervals with no label are treated as gaps — you can configure a default label to fill them (see [Labeling categories](#labeling-categories)).
+Intervals with no label are treated as gaps.
 
 The final result of the labeling will looks something like this:
 ![ELAN main window](../graphics/elan_main_window.png)
@@ -63,7 +64,10 @@ Once your annotation is complete, go to **File → Export As → Tab-delimited T
 
 In the export dialog, make sure:
 - Both `client eyes` and `therapist eyes` tiers are checked under **By Tier Names**.
-- **Include header lines containing media file information** is checked — this embeds the FPS and duration metadata that the connector uses for validation.
+- **Begin Time**, **End Time**, and **Duration** are checked under **Include time column for**.
+- **hh:mm:ss.ms** and **ss.msec** are checked under **Include time format**.
+
+Together these produce the 9-column layout the connector expects.
 
 ![ELAN export dialog](../graphics/elan_export_dialog.png)
 
@@ -96,7 +100,7 @@ reset_frames = true    # keep the frames order
 | `start` / `end` | Time window to extract, as `"HH:MM:SS"` or frame index |
 | `reset_frames` | If `true`, output frame labels start at `000000000`; if `false`, they use the original video frame numbers |
 
-You can define multiple sequences in the same config file by adding more `[run.<sequence_id>]` tables.
+You can define multiple sequences in the same config file by adding more `[run.<sequence_id>]` tables. For the full field reference and the other ELAN tasks, see [Import gaze](../wikis/wiki_connectors.md#import-gaze) in the Connectors wiki.
 
 ### Subject mapping
 

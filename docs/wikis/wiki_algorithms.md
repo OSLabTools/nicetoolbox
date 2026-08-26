@@ -2,6 +2,7 @@
 
 ```{contents} Contents
 :depth: 2
+:local:
 ```
 
 
@@ -69,20 +70,42 @@ In the NICE Toolbox, UniGaze runs as the **`unigaze`** algorithm and outputs the
 
 [Qin et al., 2025](https://arxiv.org/pdf/2502.02307)
 
+## Gaze Fusion
+
+**`gaze_fusion`** (`gaze_multiview` component) aggregates per-camera gaze estimates from an upstream `gaze_individual` detector into a single fused gaze direction, with optional temporal smoothing. Optionally, it can take `eye_closed_state` as input and use it to filter or interpolate the fused output during eye closures via `closed_eye_filter_mode` (supports `"none"`, `"nan"`, or `"interpolate"`, defaulting to `"none"`).
+
+Four instances are configured by default:
+
+- **`gaze_weighted`** — averages all cameras, weighted by confidence.
+- **`gaze_per_subject`** — selects one dedicated camera per subject (`view_left` / `view_right`).
+- **`gaze_only_center`** — uses the central view only, where both subjects are visible.
+- **`gaze_weighted_closed_eyes`** — weighted averaging over UniGaze estimates, interpolating gaps where `eye_state_ear` reports closed eyes (`closed_eye_max_interpolate_gap = 10`).
+
 ## Gaze Interaction
 
-Two derived algorithms build on top of `gaze_individual` outputs to characterize interpersonal gaze dynamics:
+**`gaze_distance`** (`gaze_interaction` component) detects mutual gaze between subjects by computing the angular distance between each subject's fused gaze vector and the direction towards the other subject. The `threshold_look_at` parameter (default `0.4`) controls the sensitivity of mutual gaze detection.
 
-- **`gaze_fusion`** (`gaze_multiview` component): aggregates per-camera ETH-XGaze estimates into a single fused gaze direction using weighted averaging, with optional temporal smoothing. Optionally, this can be configured to take `eye_closed_state` as input and use it to filter/interpolate gaze_fusion output during eye closures via `closed_eye_filter_mode` (supports `"none"`, `"nan"`, or `"interpolate"`, defaulting to `"none"`).
-- **`gaze_distance`** (`gaze_interaction` component): detects mutual gaze between subjects by computing the angular distance between each subject's fused gaze vector and the direction towards the other subject. The `threshold_look_at` parameter (default `0.4`) controls the sensitivity of mutual gaze detection.
+Two instances are configured by default: **`gaze_distance_2d`** and **`gaze_distance_3d`**, for image-plane and world-space geometry respectively.
 
 ## Kinematics
 
-**`velocity_body`** (`kinematics` component) computes frame-by-frame movement dynamics — velocity and acceleration — from body joint positions produced by an upstream `body_joints` detector (default: `hrnetw48`). No separate model weights are required.
+**`velocity_body`** (`kinematics` component) computes frame-by-frame movement dynamics — velocity and acceleration — from body joint positions produced by an upstream `body_joints` detector. No separate model weights are required.
+
+Four instances are configured by default: **`velocity_body_2d`** and **`velocity_body_3d`** read from the 2D pose pipeline, while **`velocity_body_motiobert_local`** and **`velocity_body_sam3d_local`** read the camera-native 3D output of MotionBERT and SAM 3D Body respectively.
 
 ## Proximity
 
-**`body_distance`** (`proximity` component) estimates the physical distance between subjects based on selected body keypoints (default: `nose`). It reads from an upstream `body_joints` detector (default: `hrnetw48`) and requires camera calibration for world-space distance estimates. No separate model weights are required.
+**`body_distance`** (`proximity` component) estimates the physical distance between subjects based on selected body keypoints (default: `nose`). It reads from an upstream `body_joints` detector and requires camera calibration for world-space distance estimates. No separate model weights are required. Two instances are configured by default: **`body_distance_2d`** and **`body_distance_3d`**.
+
+## InsightFace (Face Detection)
+
+**InsightFace** is a face analysis toolkit. In the NICE Toolbox it provides **face detection** and five-point face keypoints, running as the **`insight_face`** algorithm and outputting the **`face_bounding_box`** component. The detected bounding boxes are consumed downstream by SPIGA, which relies on them instead of running its own face detector.
+
+The model pack is selectable via `model_pack` (`buffalo_l` by default; `buffalo_m`, `buffalo_s`, `buffalo_sc`, and `antelopev2` are also supported), and `det_thresh` sets the minimum detection confidence. Keypoint post-processing shares the same options as SPIGA: Savitzky-Golay filtering (`filter_keypoints`), linear interpolation over short dropouts (`interpolate_keypoints`), and 3D triangulation across cameras (`triangulate_keypoints`).
+
+The default `buffalo_l` pack detects faces with **SCRFD-10GF**; the packs also bundle ArcFace recognition and dense landmark models, which the NICE Toolbox does not use.
+
+[Guo et al., 2021](https://arxiv.org/abs/2105.04714) (SCRFD) — see the [InsightFace repository](https://github.com/deepinsight/insightface#citation) for the full list of citations covering the other bundled models.
 
 ## Py-FEAT (Facial Expression Analysis Toolbox)
 
