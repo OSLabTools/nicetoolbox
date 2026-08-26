@@ -8,6 +8,7 @@ For the mechanics of getting frames into an annotation tool and the results back
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 

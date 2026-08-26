@@ -4,6 +4,7 @@ The evaluation module measures the quality and consistency of detector outputs b
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 ## Available Metrics

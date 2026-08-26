@@ -1,9 +1,10 @@
 # Napari-DeepLabCut Connector: Export and Import Body Joints
 
-This tutorial shows how to export NICE Toolbox body joint detections to [napari-DeepLabCut](https://github.com/DeepLabCut/napari-deeplabcut), manually correct hand, and import the corrected annotations back into the toolbox as ground truth for evaluation.
+This tutorial shows how to export NICE Toolbox body joint detections to [napari-DeepLabCut](https://github.com/DeepLabCut/napari-deeplabcut), manually correct hand, and import the corrected annotations back into the toolbox as ground truth for evaluation. For the full set of tasks and config options, see the [Connectors wiki](../wikis/wiki_connectors.md).
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 

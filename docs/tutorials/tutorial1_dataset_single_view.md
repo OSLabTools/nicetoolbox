@@ -6,6 +6,7 @@ If you are running the NICE Toolbox for the first time, please note that there i
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 <br>

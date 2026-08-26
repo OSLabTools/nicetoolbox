@@ -6,6 +6,7 @@ This document first introduces the toolbox's output files and then details the d
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 
@@ -24,7 +25,9 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | body_joints_local | 3d (camera-native or root-relative, depending on algorithm) |
 | body_mesh | faces, vertices |
 | hand_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
-| face_landmarks | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
+| hand_joints_local | 3d (camera-native) |
+| face_bounding_box | bbox_2d |
+| face_landmarks | 2d, 2d_filtered, 2d_interpolated, 2d_reprojected_from_3d, 3d |
 | gaze_individual | landmarks_2d, 3d |
 | gaze_multiview | gaze_2d, gaze_2d_filtered, gaze_fused, gaze_fused_filtered |
 | gaze_interaction | distance_gaze_2d/3d, gaze_look_at_2d/3d, gaze_mutual_2d/3d |
@@ -131,7 +134,9 @@ print(arr['data_description'].item()['3d'])
 
 
 ## Body joints
-Identifies and tracks the position of key body joints, (e.g., shoulders, elbows) to analyze body posture and movements. Available algorithms are *HRNet-w48*, *ViTPose* / *ViTPose-Huge*, and *RTMPose* variants. The figure below illustrates the key body joints identified. *ViTPose* estimates full-body joints, including arms, shoulders, hips, wrists, and ankles, but excludes foot-specific joints like heels and toes. *HRNet-w48* includes these additional foot joints.
+Identifies and tracks the position of key body joints, (e.g., shoulders, elbows) to analyze body posture and movements. Available algorithms are *HRNet-w48*, *ViTPose* / *ViTPose-Huge*, *RTMPose* variants, *MotionBERT*, and *SAM 3D Body*. The figure below illustrates the key body joints identified. *ViTPose* estimates full-body joints, including arms, shoulders, hips, wrists, and ankles, but excludes foot-specific joints like heels and toes. *HRNet-w48* includes these additional foot joints.
+
+Keypoint layouts differ per algorithm: the whole-body models use the COCO whole-body layout, `rtmpose_m_mpii` uses the 16-point MPII layout, *MotionBERT* outputs 17 keypoints in Human3.6M order, and *SAM 3D Body* uses the MHR layout.
 
 [<img src="../graphics/body_joints.png" height="400">](../graphics/body_joints.png)
 [<img src="../graphics/foot_joints.png" height="200">](../graphics/foot_joints.png)
@@ -141,26 +146,45 @@ The CSV files containing the <body_joints> key and the `<output_folder>/body_joi
 
 The algorithms estimate the position of joints in 2D (x and y coordinates) along with a confidence score for each joint. The `…_2d.csv` files and `2d.npy` data is saved inside the `<output_folder>/body_joints/<algorithm_name>.npz` file represent the raw output of the algorithm. These 2D estimates are further refined during post-processing. 
 
-The algorithm's results are smoothed in post-processing using Savitzky-Golay filter (see `…_2d_filtered.csv` or `2d_filtered.npy` file). This smoothing helps mitigate the well-known flickering issue in pose estimation but may also smooth out small, meaningful movement changes. Filtering is optional and users can deactivate or fine-tune its parameters (see `frameworks.mmpose.filtered`, `frameworks.mmpose.window_length`, and `frameworks.mmpose.polyorder`  parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file.
+The algorithm's results are smoothed in post-processing using Savitzky-Golay filter (see `…_2d_filtered.csv` or `2d_filtered.npy` file). This smoothing helps mitigate the well-known flickering issue in pose estimation but may also smooth out small, meaningful movement changes. Filtering is optional and users can deactivate or fine-tune its parameters (see the `filtered`, `window_length`, and `polyorder` parameters of the relevant algorithm or template in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
 
 Joint estimations with a confidence score below 0.60 are marked as missing because they often indicate an occluded joint or an incorrect estimate. These likely incorrect estimations are replaced with missing values, and linear interpolation is applied between the last two non-missing estimates of the joint. If the gap exceeds 1/3 of a second, the joint positions remain empty (see `…_2d_interpolated.csv` or `2d_interpolated.npy` file).
 
 With calibrated stereo cameras, the 3D positions (x, y, and z coordinates) of the body joints are computed via the triangulation method (see `..._3d.csv` or `3d.npy` file). Since 3D estimation is performed after interpolation of the 2D estimations, any missing 2D joint point will also be missing in the 3D results.
 If the user has more than two camera views, the first two camera views listed in the `frameworks.mmpose.camera_names` parameter in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file will be used for triangulation.
 
+## Body joints local
+Holds 3D body joints in a **camera-native** coordinate system, so — unlike `body_joints` — it does not require camera calibration and is available in single-camera setups. Available algorithms are *SAM 3D Body* (camera-native 3D) and *MotionBERT* (root-relative 3D lifted from 2D keypoints).
+
+Results are stored as a single `3d` array in `<output_folder>/body_joints_local/<algorithm_name>.npz`. Because the coordinates are not world-aligned, values from different cameras are not directly comparable; use `body_joints` when you need a shared world frame.
+
+## Body mesh
+Contains the full 3D body surface produced by *SAM 3D Body* in the **MHR** (Mesh Human Recovery) parameterization, rather than a sparse set of joints.
+
+Two arrays are stored in `<output_folder>/body_mesh/<algorithm_name>.npz`: `vertices` (the per-frame 3D mesh vertex positions) and `faces` (the fixed triangle indices connecting them, identical across frames). The mesh can be rendered in the Rerun visualizer by enabling the `body_mesh` component in `visualizer_config.toml`.
+
 ## Hand joints
-Tracks the positions of hand joints to analyze hand movements and gestures. Available algorithm is *HRNet-w48*. The figure below represents the identified hand joints.
+Tracks the positions of hand joints to analyze hand movements and gestures. Available algorithms are *HRNet-w48*, *RTMPose (wholebody)*, and *SAM 3D Body*. The figure below represents the identified hand joints.
 
 [<img src="../graphics/hand_joints.png" height="250">](../graphics/hand_joints.png)
 
 The CSV files containing the <hand_joints> key and the `<output_folder>/hand_joints/<algorithm_name>.npz` file represent the results of this component. The post-processing steps and naming conventions are the same as those used for body joints.
 
+*SAM 3D Body* additionally writes a **`hand_joints_local`** component holding camera-native 3D hand joints, which — unlike `hand_joints` — does not require camera calibration.
+
+## Face bounding box
+Locates the face region for each subject and camera. Available algorithms are *InsightFace* and *SPIGA*.
+
+The component holds a single `bbox_2d` array with the top-left and bottom-right image coordinates plus a detection confidence score. It exists mainly as an input for downstream face algorithms: SPIGA consumes the boxes produced by *InsightFace* rather than running its own face detector. The detection confidence floor is set by `det_thresh`.
+
 ## Face landmarks
-Detects the position of key landmarks to analyze facial expressions and movements. Available algorithm is *HRNet-w48*. The figure below represents the identified face landmarks. 
+Detects the position of key landmarks to analyze facial expressions and movements. Available algorithms are *HRNet-w48*, *RTMPose (wholebody)*, *SPIGA*, and *InsightFace*. The figure below represents the identified face landmarks.
 
 [<img src="../graphics/face_landmarks.png" height="350">](../graphics/face_lanmarks.png)
 
 The CSV files containing the <face_landmarks> key and the `<output_folder>/face_landmarks/<algorithm_name>.npz` file represent the results of this component. The post-processing steps and naming conventions are the same as those used for body joints.
+
+The number and layout of landmarks depend on the algorithm: *SPIGA* uses the 98-point `wflw` layout, *InsightFace* provides 5 face keypoints, and the whole-body models follow the COCO whole-body face layout. When triangulation is enabled, a `2d_reprojected_from_3d` array is also written, holding the 3D landmarks projected back into each camera view.
 
 ## Gaze Individual
 Tracks the individual's gaze using the **`eth_xgaze`** or **`unigaze`** algorithm. The CSV files containing the <gaze_individual> key and the `<output_folder>/gaze_individual/<algorithm_name>.npz` file represent the results of this component.
@@ -177,7 +201,7 @@ The outputs stored in `<output_folder>/gaze_individual/<algorithm_name>.npz` are
 Combines gaze data from multiple camera views to enhance the accuracy of gaze tracking. The CSV files containing the <gaze_multiview> key and the `<output_folder>/gaze_multiv
 iew/<algorithm_name>.npz` file represent the results of this component.
 
-You can choose between two different fusion mechanisms: Inside the detectors configuration file (`./configs/detectors_config.toml`), set the `algorithms.gaze_fusion.method` parameter to either *average* or *weighted_average*.
+You can choose between two different fusion mechanisms: Inside the detectors configuration file (`./configs/detectors_config.toml`), set the `fusion_method` parameter of the algorithm instance to either *weighted_average* (average all cameras, weighted by confidence) or *select_view* (use one camera per subject, chosen via `subject_view_map`). The default instances are `gaze_weighted`, `gaze_per_subject`, `gaze_only_center`, and `gaze_weighted_closed_eyes`.
 
 The *gaze-fusion* algorithm integrates 3D gaze estimations from different camera views to produce a more accurate 3D gaze direction. The fused 3D gaze data is stored in the `…_gaze_fused.csv` and `gaze_fused.npy` file. Additionally, the fused gaze results are smoothed during post-processing using Savitzky-Golay filter (see `…_gaze_fused_filtered.csv` or `gaze_fused_filtered.npy` file). Filtering is optional and users can deactivate or fine-tune its parameters (see `algorithms.gaze_fusion.filtered`, `algorithms.gaze_fusion.window_length`, and `algorithms.gaze_fusion.polyorder` parameters in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file).
 

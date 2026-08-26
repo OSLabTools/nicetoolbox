@@ -6,6 +6,7 @@ This tutorial explains how to use [rerun](rerun.io) for an interactive visualiza
 
 ```{contents} Contents
 :depth: 3
+:local:
 ```
 
 

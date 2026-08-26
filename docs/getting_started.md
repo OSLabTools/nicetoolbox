@@ -2,12 +2,10 @@
 
 ```{contents} Contents
 :depth: 2
+:local:
 ```
 
-## 0. Install NICE Toolbox
-
 Follow the [installation instructions](installation.md) to set up the environment, download model weights and example dataset. Once installation is complete, come back here to configure your first experiment.
-
 
 ## 1. Machine-specific and project configs
 
@@ -40,7 +38,7 @@ Adjust `datasets_folder_path` and `output_folder_path` as needed for your setup.
 
 ## 2. Example dataset
 
-We provide an example dataset called `communication_multiview` to demonstrate the NICE Toolbox's capabilities. Please find it in the `datasets` folder specified above.
+We provide an example dataset called `communication_multiview` to demonstrate the NICE Toolbox's capabilities. By default, it should be one folder above the NICE Toolbox folder installation in the folder named `datasets`.
 
 ## 3. Check the dataset's properties
 
@@ -92,7 +90,7 @@ cd /path/to/nicetoolbox/
 # LINUX: activate the environment 
 source ./envs/nicetoolbox/bin/activate
 
-# WINDOWS: activate the environment TODO: update
+# WINDOWS: activate the environment
 envs\nicetoolbox\Scripts\activate
 
 # run the toolbox
@@ -100,7 +98,7 @@ run_detectors
 ```
 
 The outputs will be saved in the folder defined in `./configs/detectors_run_file.toml` under `io.out_folder` (with filled-in placeholders).
-To monitor the experiment, check the log file at `/path/to/<out_folder>/nicetoolbox.log`.
+To monitor the experiment, check the logs in the terminal or log file at `/path/to/<out_folder>/nicetoolbox.log`.
 
 ## 6. Visualize the results
 
@@ -170,4 +168,4 @@ Each connector reads a run config TOML from `./configs/connectors/` and is invok
 elan_connector import_gaze
 ```
 
-For a full walkthrough - including ELAN export format, tier naming conventions, and run config structure - see the [ELAN connector tutorial](tutorials/tutorial7_elan_connector.md).
+For a full walkthrough, including ELAN export format, tier naming conventions, and run config structure, see the [ELAN connector tutorial](tutorials/tutorial6_elan_connector.md).
