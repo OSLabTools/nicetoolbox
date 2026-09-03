@@ -372,6 +372,7 @@ model_pack = "buffalo_l"  # can be buffalo_l, buffalo_m, buffalo_s, buffalo_sc, 
 model_root = "<assets>/insight_face"
 # post processing settings
 det_thresh = 0.5  # minimum face detection and keypoints confidence
+det_size = [[128, 128], [640, 640]]  # face detection resolutions passes
 # SVG filter
 filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
 # fill short detection dropouts (linear)

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # check=skip=SecretsUsedInArgOrEnv
 
-FROM docker.io/nvidia/cuda:12.6.0-cudnn-runtime-ubuntu24.04 AS base
+FROM docker.io/nvidia/cuda:12.6.0-runtime-ubuntu24.04 AS base
 
 # install make, git, ffmpeg + some essential stuff
 ENV DEBIAN_FRONTEND=noninteractive

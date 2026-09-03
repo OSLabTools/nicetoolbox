@@ -131,8 +131,9 @@ class VideoDataHandler(BaseModalityHandler):
             raw = vid.probe_video(str(path))
             infos[cam] = vid.json_to_video_info(raw)
 
+        # TODO: warn user that we are rounding fps. Or better, support float fps.
         # Cross-camera consistency: every probed camera must agree on fps and frame count.
-        fps_values = {cam: int(info.fps) for cam, info in infos.items() if info.fps is not None}
+        fps_values = {cam: round(info.fps) for cam, info in infos.items() if info.fps is not None}
         frame_values = {cam: info.frames for cam, info in infos.items() if info.frames is not None}
 
         if len(fps_values) != len(infos):
@@ -152,10 +153,19 @@ class VideoDataHandler(BaseModalityHandler):
             return fps, video_length_frame
 
         # Auto-detect from frame count
-        total_frames = next(iter(frame_values.values())) if frame_values else None
-        if total_frames is None:
-            raise ValueError("Could not determine frame count from any camera video.")
+        # Every camera must report the same number
+        if len(frame_values) != len(infos):
+            # One or more cameras missing frame count meta
+            # That means we can't reliably know the end of the video
+            # TODO: we can count frames after extraction and see if they agree
+            missing = sorted(set(infos) - set(frame_values))
+            raise ValueError(
+                f"Could not determine frame count from cameras: {missing}. The container does not "
+                "store one (common for webm/mkv and streamed mp4). Set an explicit video_length "
+                "for this sequence in detector_run_config, or re-encode this video."
+            )
 
+        total_frames = next(iter(frame_values.values()))
         start_frame = timestamp_to_frame_index(self.subsequence_context.video_start, fps)
         available = total_frames - start_frame
         if available <= 0:

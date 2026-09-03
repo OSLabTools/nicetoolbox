@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import List
 
 import requests
+from huggingface_hub import hf_hub_download, parse_hf_uri, snapshot_download
 from huggingface_hub import logging as hf_logging
-from huggingface_hub import snapshot_download
-from huggingface_hub.errors import GatedRepoError, RepositoryNotFoundError
+from huggingface_hub.errors import GatedRepoError, HfUriError, RepositoryNotFoundError
 from huggingface_hub.file_download import repo_folder_name
 from tqdm import tqdm
 
@@ -38,7 +38,15 @@ class AssetManager:
         """
         Streams a file from a URL to a local destination with a progress bar.
         Incorporates resume (.tmp) and robust retry logic for network drops.
+
+        huggingface.co URLs are routed through the Hub client instead, which handles token
+        auth, resume and the Hub's own transfer backend rather than the single-connection
+        stream below.
         """
+        if self.is_hf_url(url):
+            self.download_hf_file(url, dest_path, desc=desc)
+            return
+
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = dest_path.parent / (dest_path.name + ".tmp")
 
@@ -205,6 +213,73 @@ class AssetManager:
                     time.sleep(5)
                 else:
                     logging.error(f"Failed HF repo '{desc}' after {max_retries} attempts. Details: {e}")
+                    raise
+
+    @staticmethod
+    def is_hf_url(url: str) -> bool:
+        # check if this link is hugging face file
+        try:
+            parse_hf_uri(url)
+            return True
+        except HfUriError:
+            return False
+
+    def download_hf_file(self, url: str, dest_path: Path, desc: str):
+        """
+        Downloads a single file from a Hugging Face repo straight to its manifest path.
+        The repo id, revision and in-repo path are parsed out of the URL.
+        """
+        uri = parse_hf_uri(url)
+
+        token = effective_hf_hub_token(self.config.machine_specific_config)
+        if not token:
+            logging.warning(f"No HF token found in config. Attempting public download for '{uri.id}'.")
+
+        # local_dir writes the real file (not a symlink into a blob cache), so the asset lands
+        # where required_assets expects it. HF names it after its in-repo path, which must
+        # therefore match the manifest key's basename.
+        expected = dest_path.parent / Path(uri.path_in_repo).name
+        if expected != dest_path:
+            raise RuntimeError(
+                f"Asset '{desc}' maps to in-repo file '{uri.path_in_repo}', which would be written "
+                f"to '{expected}' instead of the manifest path '{dest_path}'. Rename the manifest key "
+                f"to match the file name in the repo."
+            )
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        logging.info(f"Downloading HF file '{uri.path_in_repo}' from {uri.id} (revision: {uri.revision or 'main'})")
+
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                hf_hub_download(
+                    repo_id=uri.id,
+                    filename=uri.path_in_repo,
+                    revision=uri.revision,
+                    repo_type=uri.type,
+                    local_dir=dest_path.parent,
+                    token=token,
+                )
+                logging.info(f"HF file '{desc}' successfully downloaded.")
+                return
+            except GatedRepoError:
+                logging.error(
+                    f"HF repo '{uri.id}' is gated. Accept the license on Hugging Face "
+                    "and ensure a valid token is configured."
+                )
+                raise
+            except RepositoryNotFoundError:
+                logging.error(f"HF repo '{uri.id}' was not found. Check the URL in asset_manifest.toml.")
+                raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logging.warning(
+                        f"Network drop while downloading HF file '{desc}'. "
+                        f"Retrying in 5s... ({attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(5)
+                else:
+                    logging.error(f"Failed HF file '{desc}' after {max_retries} attempts. Details: {e}")
                     raise
 
     def verify_and_download(self, asset_keys: List[str]):

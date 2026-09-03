@@ -71,6 +71,48 @@ def test_inconsistent_frame_counts_across_cameras_raises(tmp_path, default_vid_p
         handler.prepare()
 
 
+def test_missing_frame_count_raises(tmp_path, default_vid_patches):
+    """Containers without a frame index (webm/mkv, streamed mp4) expose no frame count."""
+    cameras = ["cam_front"]
+    handler, _, _ = make_flat_handler(tmp_path, cameras, video_length=-1)
+
+    default_vid_patches["json_to_video_info"].return_value = FakeVideoInfo(
+        video_path=Path("cam_front.webm"), frames=None
+    )
+
+    with pytest.raises(ValueError, match="Could not determine frame count"):
+        handler.prepare()
+
+
+def test_partially_missing_frame_count_raises(tmp_path, default_vid_patches):
+    """A count from one camera must not be assumed to hold for a camera that lacks one."""
+    cameras = ["cam_front", "cam_top"]
+    handler, _, _ = make_flat_handler(tmp_path, cameras, video_length=-1)
+
+    default_vid_patches["json_to_video_info"].side_effect = [
+        FakeVideoInfo(video_path=Path("cam_front.mp4"), frames=300),
+        FakeVideoInfo(video_path=Path("cam_top.webm"), frames=None),
+    ]
+
+    with pytest.raises(ValueError, match="cam_top"):
+        handler.prepare()
+
+
+def test_missing_frame_count_ignored_when_length_configured(tmp_path, default_vid_patches):
+    """An explicit video_length makes the frame count irrelevant."""
+    cameras = ["cam_front"]
+    handler, ctx, io = make_flat_handler(tmp_path, cameras, video_start=0, video_length=100)
+
+    default_vid_patches["json_to_video_info"].return_value = FakeVideoInfo(
+        video_path=Path("cam_front.webm"), frames=None
+    )
+    make_frames_cache(io, ctx)
+
+    handler.prepare()
+
+    assert handler.length_frames == 100
+
+
 def test_timestamp_video_start(tmp_path, default_vid_patches):
     # "00-00-02" = 2 seconds at 30fps = frame 60; VIDEO_FRAMES=300 → length=240
     cameras = ["cam_front"]

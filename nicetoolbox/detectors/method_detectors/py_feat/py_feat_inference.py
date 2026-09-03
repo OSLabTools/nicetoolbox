@@ -33,18 +33,26 @@ def create_pyfeat_detector(assets_dir: str):
     import feat.utils
     from feat.multitask.inference import HF_REPO, HF_WEIGHTS_FILE
 
-    os.environ["HF_HUB_OFFLINE"] = "1"
-
     # ! fallback_filename and cache_dir are part of py-feat's call signature but unused here:
     # the current weights file exists, and cache_dir is what we are overriding.
     def patched(repo_id, filename, fallback_filename, cache_dir):  # noqa: ARG001
-        return hf_hub_download(repo_id=repo_id, filename=filename, cache_dir=assets_dir)
+        return hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            cache_dir=assets_dir,
+            local_files_only=True,
+        )
 
     feat.utils.hf_hub_download_with_fallback = patched
 
     from feat import Detectorv2  # imported after the patch so it picks it up
 
-    multitask_path = hf_hub_download(repo_id=HF_REPO, filename=HF_WEIGHTS_FILE, cache_dir=assets_dir)
+    multitask_path = hf_hub_download(
+        repo_id=HF_REPO,
+        filename=HF_WEIGHTS_FILE,
+        cache_dir=assets_dir,
+        local_files_only=True,
+    )
     return Detectorv2(
         device="cuda",
         multitask_weights=multitask_path,

@@ -257,6 +257,9 @@ install_pyfeat:
 
 	@echo "Installing requirements for 'Py-Feat'..."
 	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location torch==2.11.0+cu126 torchvision==0.26.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+# py-feat requires torchcodec>=0.11 and its linux wheels link against CUDA 13
+# but we are still CUDA 12 and we don't even use it, so lets fix it to cpu
+	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location torchcodec==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
 	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
 	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'Py-Feat' environment setup completed successfully."
@@ -317,6 +320,8 @@ install_whisperx:
 
 	@echo "Installing requirements for 'WhisperX'..."
 	@$(WHISPERX_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+# 	whisperx alignment needs the nltk punkt tokenizer
+	@$(WHISPERX_EXE_DIR)/python -m nltk.downloader -d ./envs/whisperx/nltk_data punkt_tab
 	@$(WHISPERX_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
 	@$(WHISPERX_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'WhisperX' environment setup completed successfully."
@@ -370,8 +375,6 @@ install_sam3d_body:
 	@$(SAM3D_BODY_EXE_DIR)/pip install -r nicetoolbox/detectors/method_detectors/sam_3d_body/sam_3d_body_pip_requirements.txt
 	@echo "Installing Detectron2..."
 	@$(SAM3D_BODY_EXE_DIR)/pip install "detectron2==0.6+fd27788pt2.8.0cu129" --extra-index-url https://miropsota.github.io/torch_packages_builder --no-deps
-	@echo "Installing MoGe..."
-	@$(SAM3D_BODY_EXE_DIR)/pip install 'git+https://github.com/microsoft/MoGe.git'
 	@$(SAM3D_BODY_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'SAM 3D Body' environment setup completed successfully."
 
@@ -385,7 +388,7 @@ install_unigaze:
 	@echo "Virtual environment created in ./envs/unigaze"
 
 	@echo "Installing requirements for 'UniGaze'..."
-	@$(UNIGAZE_EXE_DIR)/pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
+	@$(UNIGAZE_EXE_DIR)/pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 	@$(UNIGAZE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/unigaze/unigaze_requirements.txt
 	@$(UNIGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
 
