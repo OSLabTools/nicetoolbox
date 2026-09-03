@@ -52,9 +52,11 @@ class UniGaze(BaseMethod):
         self.subjects = self.data.subjects_descr
         self.cameras = self.detector_config.camera_names
         self.video_start = self.data.video_start_frame_index
-        self.calibration = self.data.calibration
         self.cam_sees_subjects = self.data.cam_sees_subjects
         self.results_folder = self.result_folders[self.components[0]]
+        self.calibration = self.data.calibration
+        if not self.calibration:  # TODO: fake it?
+            raise ValueError(f"UniGaze '{self.algorithm_instance}' requires camera calibration, but none is available.")
 
         self.filtered = self.detector_config.filtered
         if self.filtered:

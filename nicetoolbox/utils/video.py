@@ -12,65 +12,10 @@ from contextlib import suppress
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import Optional
-
-import cv2
+from typing import Any, Optional
 
 from ..configs.models.video_timestamp import timestamp_to_ms
 from .system import normalize_ffmpeg_filter_path_in_windows
-
-
-def get_number_of_frames(video_file: str) -> int:
-    """
-    Get the number of frames in a video file.
-
-    Args:
-        video_file (str): The path to the video file.
-
-    Returns:
-        int: The number of frames in the video file.
-    """
-    return int(cv2.VideoCapture(video_file).get(cv2.CAP_PROP_FRAME_COUNT))
-
-
-def get_fps(video_file) -> int:
-    """
-    Get the frame rate of a video file.
-
-    Args:
-        video_file (str): The path to the video file.
-
-    Returns:
-        int: The frame rate of the video file.
-    """
-    fps = int(cv2.VideoCapture(video_file).get(cv2.CAP_PROP_FPS))
-    if (fps == 0) or (fps is None):
-        # fmt: off
-        cmd = [
-            "ffprobe",
-            "-v", "error",
-            "-select_streams", "v:0",
-            "-show_entries",
-            "stream=avg_frame_rate",
-            "-of", "json",
-            video_file,
-        ]
-        # fmt: on
-
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            info = json.loads(result.stdout)
-
-            if "streams" in info and info["streams"]:
-                rate = info["streams"][0]["avg_frame_rate"]  # e.g. "30/1"
-                num, den = map(int, rate.split("/"))
-                fps = int(num / den)
-                return fps
-        except Exception as e:
-            logging.error(f"Error in get_fps for {video_file}: {e}")
-            return -1
-    else:
-        return fps
 
 
 def get_ffmpeg_base_args(video_file: str) -> list:
@@ -372,7 +317,7 @@ def json_to_video_info(data: dict) -> VideoInfo:
     format = data["format"]
     video_path = Path(format["filename"])
 
-    video_stream = None
+    video_stream: dict[str, Any] = None
     for stream in data.get("streams", []):
         if stream.get("codec_type") == "video":
             video_stream = stream
@@ -397,17 +342,19 @@ def json_to_video_info(data: dict) -> VideoInfo:
         fps = None
 
     # get number of frames info
-    nb_frames_raw = video_stream["nb_frames"]
-    frames = int(nb_frames_raw) if nb_frames_raw and nb_frames_raw.isdigit() else None
+    frames = None
+    with suppress(ValueError, TypeError):
+        frames = int(video_stream.get("nb_frames"))
 
     # get duration info
     duration = None
     with suppress(ValueError, TypeError):
         duration = float(video_stream.get("duration"))
 
+    # failed to find it in the stream, lets try format?
     if duration is None:
         with suppress(ValueError, TypeError):
-            duration = float(data.get("format", {}).get("duration"))
+            duration = float(format.get("duration"))
 
     if duration is None:
         logging.warning("Video duration could not be extracted")

@@ -29,8 +29,9 @@ def _visualize_frame(app, out_folder, camera_name, image, faces, real_frame_idx)
 def _cuda_providers():
     available = onnxruntime.get_available_providers()
     if "CUDAExecutionProvider" not in available:
-        raise RuntimeError("CUDAExecutionProvider is not available to onnxruntime. Available providers: {available}.")
-    return ["CUDAExecutionProvider"]
+        raise RuntimeError(f"CUDAExecutionProvider is not available to onnxruntime. Available providers: {available}.")
+    # HEURISTIC instead of the default EXHAUSTIVE: we change resolution each time and kill GPU by it
+    return [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"})]
 
 
 @run_inference_entrypoint
@@ -53,9 +54,14 @@ def insight_face_inference(config: dict) -> None:
     app = FaceAnalysis(name=model_pack, root=model_root, allowed_modules=ALLOWED_MODULES, providers=providers)
 
     # Set insigh face hyperparams
-    # TODO: expose det_size to customize face detection resolution
     det_thresh = float(config["det_thresh"])
-    app.prepare(ctx_id=0, det_thresh=det_thresh, det_size=None)
+    det_size = [tuple(pair) for pair in config["det_size"]]
+    app.prepare(ctx_id=0, det_thresh=det_thresh, det_size=det_size)
+
+    bound_providers = app.models["detection"].session.get_providers()
+    logging.info(f"InsightFace detection session providers: {bound_providers}, det_size: {det_size}")
+    if "CUDAExecutionProvider" not in bound_providers:
+        raise RuntimeError(f"InsightFace detection session is not running on CUDA. Providers: {bound_providers}.")
 
     # (4) Run InsighFace for each frame
     per_frame_outputs = []

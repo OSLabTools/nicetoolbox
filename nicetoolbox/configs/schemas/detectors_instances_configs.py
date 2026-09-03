@@ -295,8 +295,10 @@ class InsightFaceConfig(BaseAlgorithmConfig):
     model_pack: str
     model_root: str
 
-    # InsightFace parameters (TODO: add detection resolution override)
+    # InsightFace parameters
     det_thresh: float
+    # Detection resolutions as [width, height] pairs; one inference pass per pair.
+    det_size: List[List[int]]
 
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
@@ -485,6 +487,6 @@ class EyeClosureEarConfig(BaseAlgorithmConfig):
 class EyeClosureThresholdConfig(BaseAlgorithmConfig):
     threshold: float
     visualize: bool
-    camera_names: List[str]
+    camera_names: str | list[str]
     min_duration: float = 0.0
     max_duration: Optional[float] = None

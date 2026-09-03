@@ -81,11 +81,9 @@ class EthXgaze(BaseMethod):
         # Sanity checks
         # ETH-XGaze needs per-camera calibration: intrinsics for the head-pose/normalization at inference
         self.calibration = self.data.calibration
-        if not self.calibration:
-            raise ValueError(
-                f"ETH-XGaze '{self.algorithm_instance}' requires camera calibration, but none is available "
-                f"for this sequence."
-            )
+        if not self.calibration:  # TODO: fake it?
+            raise ValueError(f"UniGaze '{self.algorithm_instance}' requires camera calibration, but none is available.")
+
         # SVG window cannot exceed the number of frames to smooth.
         if self.filtered and self.filter_window_length > len(self.frame_names):
             raise ValueError(

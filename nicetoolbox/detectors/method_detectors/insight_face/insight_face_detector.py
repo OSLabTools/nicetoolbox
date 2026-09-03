@@ -48,7 +48,8 @@ class InsightFace(BaseMethod):
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_filtered", schema=VECTOR_2D_CONF_PER_LABEL))
         if self.detector_config.interpolate_keypoints.interpolated:
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_interpolated", schema=VECTOR_2D_CONF_PER_LABEL))
-        if self.detector_config.triangulate_keypoints.triangulate:
+        # triangulation also requires calibration
+        if self.detector_config.triangulate_keypoints.triangulate and self.data.calibration:
             outputs.append(NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL))
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_PER_LABEL))
         return outputs
@@ -104,7 +105,7 @@ class InsightFace(BaseMethod):
         # using view_ceter and view_top allow us to see both subjects, but reprojection error is too high
         # ideally, we need more robust algorithm that can utilize view_center and face cameras
         triangulation_config = self.detector_config.triangulate_keypoints
-        if triangulation_config.triangulate:
+        if triangulation_config.triangulate and self.data.calibration:
             logging.info("Triangulating 2d facial keypoints to 3d...")
             kp_3d = triangulate_keypoints(
                 kp_2d,

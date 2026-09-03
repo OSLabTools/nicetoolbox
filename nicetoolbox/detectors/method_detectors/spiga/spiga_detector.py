@@ -58,17 +58,20 @@ class Spiga(BaseMethod):
         outputs = [
             NpzDetectorOutput("head_orientation", "head_rotation_raw", schema=SPIGA_RAW_HEAD_ROT),
             NpzDetectorOutput("head_orientation", "head_direction_3d_camera_space", schema=VECTOR_3D_CONF),
-            NpzDetectorOutput("head_orientation", "head_direction_3d", schema=VECTOR_3D_CONF),
             NpzDetectorOutput("head_orientation", "head_direction_2d", schema=VECTOR_2D_CONF),
             NpzDetectorOutput("head_orientation", "head_origin_2d", schema=VECTOR_2D_CONF),
             NpzDetectorOutput("face_landmarks", "2d", schema=VECTOR_2D_CONF_PER_LABEL),
         ]
+        # world space head direction needs each camera's rotation matrix
+        if self.data.calibration:
+            outputs.append(NpzDetectorOutput("head_orientation", "head_direction_3d", schema=VECTOR_3D_CONF))
         # optional post processing + triangulation
         if self.detector_config.filter_keypoints.filtered:
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_filtered", schema=VECTOR_2D_CONF_PER_LABEL))
         if self.detector_config.interpolate_keypoints.interpolated:
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_interpolated", schema=VECTOR_2D_CONF_PER_LABEL))
-        if self.detector_config.triangulate_keypoints.triangulate:
+        # triangulation also requires calibration
+        if self.detector_config.triangulate_keypoints.triangulate and self.data.calibration:
             outputs.append(NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL))
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_PER_LABEL))
             outputs.append(NpzDetectorOutput("head_orientation", "head_origin_3d", schema=VECTOR_3D_CONF))
@@ -148,7 +151,7 @@ class Spiga(BaseMethod):
             out.add_array("face_landmarks", "2d_interpolated", landmarks_2d)
         # do we need to lift the keypoints to 3d?
         triangulation_config = self.detector_config.triangulate_keypoints
-        if triangulation_config.triangulate:
+        if triangulation_config.triangulate and self.data.calibration:
             logging.info("Triangulating 2d facial keypoints to 3d...")
             landmarks_3d = triangulate_keypoints(
                 landmarks_2d,
@@ -164,6 +167,13 @@ class Spiga(BaseMethod):
                 camera_names=self.camera_names,
             )
             out.add_array("face_landmarks", "2d_reprojected_from_3d", landmarks_2d_backprojected)
+            # the head rotation's origin in world space, so the direction becomes a real 3d ray
+            out.add_array("head_orientation", "head_origin_3d", self._head_origin_3d(landmarks_3d))
+
+        # where that direction starts: the nose tip, which is the point the rotation is about.
+        # TODO: it's not "real" head origin, but close enoug. Check the inference script for full info.
+        # landmarks_2d is whatever the post-processing chain produced last.
+        out.add_array("head_orientation", "head_origin_2d", self._head_origin_2d(landmarks_2d))
 
         # head rotation post-processing
         # TODO: we save only direction for now, head rotationn stays in raw unprocessed way
@@ -173,18 +183,12 @@ class Spiga(BaseMethod):
         # first in the camera space
         head_dir_cam = self._head_direction_camera_space(head_rot)
         out.add_array("head_orientation", "head_direction_3d_camera_space", head_dir_cam)
-        # next transfer it to the world space
-        head_dir_world = self._world_lift(head_dir_cam)
-        out.add_array("head_orientation", "head_direction_3d", head_dir_world)
         # flatten the camera space vector onto each image plane, for 2d overlays
         out.add_array("head_orientation", "head_direction_2d", self._project_to_2d(head_dir_cam))
-        # where that direction starts: the nose tip, which is the point the rotation is about.
-        # TODO: it's not "real" head origin, but close enoug. Check the inference script for full info.
-        # landmarks_2d is whatever the post-processing chain produced last.
-        out.add_array("head_orientation", "head_origin_2d", self._head_origin_2d(landmarks_2d))
-        # the head rotation's origin in world space, so the direction becomes a real 3d ray
-        if triangulation_config.triangulate:
-            out.add_array("head_orientation", "head_origin_3d", self._head_origin_3d(landmarks_3d))
+        # next transfer it to the world space, if we know how the cameras are oriented
+        if self.data.calibration:
+            head_dir_world = self._world_lift(head_dir_cam)
+            out.add_array("head_orientation", "head_direction_3d", head_dir_world)
 
         return out
 

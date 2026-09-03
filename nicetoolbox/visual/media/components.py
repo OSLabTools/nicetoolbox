@@ -1680,6 +1680,7 @@ class BodyMeshComponent(Component):
         self.camera_names = self.algorithms_results[0]["data_description"].item()["vertices"]["axis1"]
 
         self.faces = self.algorithms_results[0]["faces"]  # (F, 3) int32
+        self._missing_world_warned = set()
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """
@@ -1720,6 +1721,15 @@ class BodyMeshComponent(Component):
             camera_index = self.camera_names.index(cam_name)
 
             for alg_idx, alg_name in enumerate(self.algorithm_list):
+                if "vertices_world" not in self.algorithms_results[alg_idx].files:
+                    if alg_name not in self._missing_world_warned:
+                        self._missing_world_warned.add(alg_name)
+                        print(
+                            f"[BodyMeshComponent] '{alg_name}' results do not contain 'vertices_world', "
+                            f"skipping 3D mesh visualization for this algorithm."
+                        )
+                    continue
+
                 alg_data_world = self.algorithms_results[alg_idx]["vertices_world"]
 
                 if frame_idx >= alg_data_world.shape[2]:

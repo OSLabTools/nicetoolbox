@@ -28,7 +28,7 @@ dependencies = [
     "requests",
     "tqdm",
     "scikit-learn",
-    "huggingface_hub",
+    "huggingface_hub>=1.13.0",
     "jiwer",
     "tables",
 ]

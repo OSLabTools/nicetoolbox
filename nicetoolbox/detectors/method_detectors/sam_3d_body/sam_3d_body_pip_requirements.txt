@@ -7,6 +7,9 @@ dill
 einops 
 ffmpeg 
 fvcore 
+
+# MoGe v2
+git+https://github.com/OSLabTools/MoGe.git@925b8ed835a7a9cdb7578ba15c658a0afc969030
 huggingface_hub
 hydra-colorlog 
 hydra-core 
@@ -32,5 +35,5 @@ tensorboard
 timm 
 wandb 
 webdataset 
-xtcocotools 
+xtcocotools
 yacs
