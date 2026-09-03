@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from pydantic import BaseModel
 
@@ -17,6 +17,7 @@ class AppearanceConfig(BaseModel):
 
     colors: List[Any]  # TODO: inconsistent dimensions
     radii: dict[str, Any]
+    alpha: Optional[int] = None
 
 
 class VisualizerComponentConfig(BaseModel):

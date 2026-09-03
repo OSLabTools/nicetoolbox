@@ -1665,3 +1665,123 @@ class KinematicsComponent(Component):
                                 bodypart=bodypart,
                             )
                             self._log_data(entity_path, velocity)
+
+
+class BodyMeshComponent(Component):
+    """
+    Class for visualizing body mesh data.
+    """
+
+    def __init__(self, visualizer_config: Dict, io, logger, component_name: str, calib: Dict):
+        super().__init__(visualizer_config, io, logger, component_name)
+
+        self.calib = calib
+        self.subject_names = self.algorithms_results[0]["data_description"].item()["vertices"]["axis0"]
+        self.camera_names = self.algorithms_results[0]["data_description"].item()["vertices"]["axis1"]
+
+        self.faces = self.algorithms_results[0]["faces"]  # (F, 3) int32
+
+    def _get_algorithms_labels(self) -> List[List[str]]:
+        """
+        Get the labels for the algorithms.
+
+        Returns:
+            List[List[str]]: The labels for the algorithms.
+        """
+        # axis 3 gives labels information, this might be different for each algorithm
+        algorithm_labels = []
+        for i, _alg in enumerate(self.algorithm_list):
+            algorithm_labels.append(self.algorithms_results[i]["data_description"].item()["vertices"]["axis3"])
+        return algorithm_labels
+
+    def _log_data(self, entity_path: str, data_points: np.ndarray, alg_idx: int):
+        if np.all(np.isnan(data_points)):
+            return
+        color = self._parse_alg_color(alg_idx)
+        rgba = [color[0], color[1], color[2], self._parse_transparency()]
+        vertex_colors = np.tile(rgba, (data_points.shape[0], 1))
+        normals = self._compute_vertex_normals(data_points)
+        rr.log(
+            entity_path,
+            rr.Mesh3D(
+                vertex_positions=data_points,
+                vertex_normals=normals,
+                triangle_indices=self.faces,
+                vertex_colors=vertex_colors,
+            ),
+        )
+
+    def visualize(self, frame_idx: int) -> None:
+        for canvas in self.canvas_list:
+            if not canvas:
+                continue
+
+            cam_name = canvas
+            camera_index = self.camera_names.index(cam_name)
+
+            for alg_idx, alg_name in enumerate(self.algorithm_list):
+                alg_data_world = self.algorithms_results[alg_idx]["vertices_world"]
+
+                if frame_idx >= alg_data_world.shape[2]:
+                    continue
+
+                for subject_idx, subject in enumerate(self.subject_names):
+                    vertices_world = alg_data_world[subject_idx, camera_index, frame_idx]  # (N_v, 3)
+                    # get mesh head centroid — top ~5% of vertices by Z (or Y in rerun coords)
+                    vertices_finite = vertices_world[np.isfinite(vertices_world).all(axis=1)]
+
+                    # TODO: subjects vertices of sam3d located at 0,0,0.
+                    #  To separate subjects location during visualization we are using here
+                    #  a kind of fix unit based on mesh's size, so their distance does not
+                    # represent the real locations in 3D world.
+                    # Later we will fix it while post-processing body_mesh results
+                    mesh_height = vertices_finite[:, 0].max() - vertices_finite[:, 0].min()
+                    offset = np.array([subject_idx * mesh_height * 2, 0.0, 0.0])
+                    # shift mesh based on offset
+                    vertices_corrected = vertices_world + offset
+
+                    vertices_rr = self._to_rerun_coords(vertices_corrected)
+                    entity_path_3d = self.logger.generate_component_entity_path(
+                        self.component_name,
+                        is_3d=True,
+                        alg_name=alg_name,
+                        subject_name=subject,
+                        cam_name=cam_name,
+                    )
+                    self._log_data(entity_path_3d, vertices_rr, alg_idx)
+
+    def _to_rerun_coords(self, vertices: np.ndarray) -> np.ndarray:
+        """Convert from Z-up (world) to Rerun's Y-up convention.
+
+        World:  X=right, Y=forward, Z=up
+        Rerun:  X=right, Y=up,      Z=backward
+        """
+        v = vertices.copy()
+        return np.stack([v[:, 0], v[:, 2], -v[:, 1]], axis=1)
+
+    def _compute_vertex_normals(self, vertices: np.ndarray) -> np.ndarray:
+        """Compute per-vertex normals for proper lighting/shading."""
+        v0 = vertices[self.faces[:, 0]]
+        v1 = vertices[self.faces[:, 1]]
+        v2 = vertices[self.faces[:, 2]]
+
+        face_normals = np.cross(v1 - v0, v2 - v0)
+        norms = np.linalg.norm(face_normals, axis=1, keepdims=True)
+        face_normals = face_normals / np.where(norms == 0, 1, norms)
+
+        vertex_normals = np.zeros_like(vertices)
+        for j in range(3):
+            np.add.at(vertex_normals, self.faces[:, j], face_normals)
+
+        norms = np.linalg.norm(vertex_normals, axis=1, keepdims=True)
+        vertex_normals = vertex_normals / np.where(norms == 0, 1, norms)
+        return vertex_normals
+
+    def _parse_transparency(self) -> int:
+        """
+        Parse the alpha value from the visulizer config.
+
+        Returns:
+            int: The alpha value.
+        """
+        return self.visualizer_config["media"][self.component_name]["appearance"]["alpha"]
