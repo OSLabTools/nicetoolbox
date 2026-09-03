@@ -14,6 +14,7 @@ from .. import config_handler as vis_cfg
 from ..in_out import IO
 from .components import (
     BodyJointsComponent,
+    BodyMeshComponent,
     EmotionIndividualComponent,
     EyeClosedStateComponent,
     EyeClosureComponent,
@@ -71,9 +72,6 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
             "requires calibration data."
         )
 
-    # INITIALIZE VIEWER
-    viewer = Viewer(visualizer_config)
-
     # CHECK CONFIGURATION
     all_cameras = config_handler.get_camera_names()
     config_handler.check_config()
@@ -91,6 +89,9 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
             )
             continue
         components.append(component)
+
+    # INITIALIZE VIEWER
+    viewer = Viewer(visualizer_config, all_cameras, components_list)
 
     if "body_joints" in components:
         body_joints_component = BodyJointsComponent(visualizer_config, io, viewer, "body_joints")
@@ -170,6 +171,10 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         KinematicsComponent(visualizer_config, io, viewer, "kinematics") if "kinematics" in components else None
     )
 
+    body_mesh_component = (
+        BodyMeshComponent(visualizer_config, io, viewer, "body_mesh", calib) if "body_mesh" in components else None
+    )
+
     eye_closed_state_component = (
         EyeClosedStateComponent(visualizer_config, io, viewer, "eye_closed_state")
         if "eye_closed_state" in components
@@ -207,6 +212,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
         head_orientation_component,
         eye_closure_component,
         eye_closed_state_component,
+        body_mesh_component,
     ]
 
     # VISUALIZATION

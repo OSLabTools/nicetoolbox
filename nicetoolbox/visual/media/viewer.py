@@ -10,6 +10,7 @@ Classes:
 
 import numpy as np
 import rerun as rr
+import rerun.blueprint as rrb
 
 from ...configs.models.video_timestamp import timestamp_to_frame_index
 
@@ -22,7 +23,7 @@ class Viewer:
         config (dict): Configuration settings for the viewer.
     """
 
-    def __init__(self, visualizer_config: dict):
+    def __init__(self, visualizer_config: dict, cameras_list: list, components_list: list):
         """
         Initializes the Viewer class with the given configuration.
 
@@ -31,13 +32,14 @@ class Viewer:
         """
 
         self.visualizer_config = visualizer_config
+        self.all_cameras = cameras_list
+        self.components_list = components_list
 
         canvas_list = []
         for component in self.visualizer_config["media"]["visualize"]["components"]:
             for canvases in self.visualizer_config["media"][component]["canvas"].values():
                 canvas_list.extend(canvases)
         self.canvas_list = list(set(canvas_list))
-
         self.fps = self.visualizer_config["video"]["fps"]
         self._create_canvas_roots()
 
@@ -51,6 +53,59 @@ class Viewer:
         """
         rr.init(app_id, spawn=self.visualizer_config["spawn_viewer"])
         rr.set_time_seconds("time", 0)
+        rr.send_blueprint(self._build_blueprint())
+
+    def _build_blueprint(self) -> rrb.BlueprintLike:
+        top_views = [rrb.Spatial3DView(name="Main 3D", origin=self.ROOT3D)]
+        cam_views = []
+        kinematics_views = []
+
+        for component in self.components_list:
+            if component in (
+                "body_joints",
+                "hand_joints",
+                "face_landmarks",
+                "gaze_individual",
+                "emotion_individual",
+                "head_orientation",
+                "proximity",
+            ):
+                # 2D: one view per camera — deduplicate since multiple components share same cam views
+                for cam_name in self.all_cameras:
+                    origin = self.generate_component_entity_path(
+                        component, is_3d=False, cam_name=cam_name, blueprint_only=True
+                    )
+                    if origin not in [v.origin for v in cam_views]:
+                        cam_views.append(rrb.Spatial2DView(name=cam_name, origin=origin))
+
+            elif component == "kinematics":
+                kinematics_views.append(rrb.TimeSeriesView(name="Kinematics", origin="kinematics"))
+
+            elif component == "body_mesh":
+                origin = self.generate_component_entity_path(component, is_3d=True, blueprint_only=True)
+                top_views.append(rrb.Spatial3DView(name="Body Mesh", origin=origin))
+
+        # assemble layout
+        if cam_views and kinematics_views:
+            bottom_row = rrb.Horizontal(
+                rrb.Horizontal(*cam_views),
+                rrb.Vertical(*kinematics_views),
+                column_shares=[2, 1],
+            )
+        elif cam_views:
+            bottom_row = rrb.Horizontal(*cam_views)
+        elif kinematics_views:
+            bottom_row = rrb.Vertical(*kinematics_views)
+        else:
+            bottom_row = None
+
+        if bottom_row:
+            return rrb.Vertical(
+                rrb.Horizontal(*top_views),
+                bottom_row,
+                row_shares=[2, 1],
+            )
+        return rrb.Horizontal(*top_views)
 
     def go_to_timestamp(self, frame_idx: int) -> None:
         """
@@ -121,6 +176,7 @@ class Viewer:
         self.ROOT3D = "3D_Canvas"
         self.CAMERAS_ROOT = "3D_Canvas/cameras"
         self.IMAGES_ROOT = "3D_Canvas/cameras"
+        self.MESH3D_ROOT = "Mesh_Canvas"
 
     def get_camera_pos_entity_path(self, camera_name: str) -> str:
         """
@@ -153,6 +209,7 @@ class Viewer:
         alg_name: str = None,
         subject_name: str = None,
         bodypart: str = None,
+        blueprint_only: bool = False,
     ) -> str:
         """
         Generates the entity path for a given component.
@@ -165,6 +222,7 @@ class Viewer:
             alg_name (str, optional): The name of the algorithm. Defaults to None.
             subject_name (str, optional): The name of the subject. Defaults to None.
             bodypart (str, optional): The name of the body part. Defaults to None.
+            blueprint_only (bool, optional): True if wants to get root only to give blueprint
         Returns:
             str: The generated entity path.
         Raises:
@@ -182,24 +240,34 @@ class Viewer:
             | (component == "eye_closed_state")
         ):
             if is_3d:
-                entity_path = f"{self.ROOT3D}/{component}/{alg_name}/{subject_name}"
+                root = f"{self.ROOT3D}"
+                full = f"{root}/{component}/{alg_name}/{subject_name}"
             else:
-                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}/" f"{subject_name}"
+                root = f"{self.IMAGES_ROOT}/{cam_name}"
+                full = f"{root}/{component}/{alg_name}/{subject_name}"
         elif component == "proximity":
             if is_3d:
-                entity_path = f"{self.ROOT3D}/{component}/{alg_name}"
+                root = f"{self.ROOT3D}"
+                full = f"{root}/{component}/{alg_name}"
             else:
-                entity_path = f"{self.IMAGES_ROOT}/{cam_name}/{component}/{alg_name}"
+                root = f"{self.IMAGES_ROOT}/{cam_name}"
+                full = f"{root}/{component}/{alg_name}"
         elif component == "kinematics":
             if is_3d:
-                entity_path = f"{alg_name}_{subject_name}/{bodypart}"
+                root = "kinematics"
+                full = f"{root}/{alg_name}_{subject_name}/{bodypart}"
             else:
-                entity_path = f"{alg_name}_{subject_name}_{cam_name}/{bodypart}"
+                root = "kinematics"
+                full = f"{root}/{alg_name}_{subject_name}_{cam_name}/{bodypart}"
+        elif component == "body_mesh":
+            if is_3d:
+                root = f"{self.MESH3D_ROOT}"
+                full = f"{root}/{component}/{alg_name}/{subject_name}"
 
         else:
-            raise ValueError(f"ERROR in generate_component_entity_path(): Component {component} " "did not implemented")
+            raise ValueError(f"Component {component} not implemented")
 
-        return entity_path
+        return root if blueprint_only else full
 
     def generate_metric_entity_path(self, alg_name: str, subject_name: str, cam_name: str, metric: str) -> str:
         """

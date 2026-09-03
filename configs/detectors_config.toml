@@ -156,7 +156,7 @@ detector_name = "vitdet"
 segmentor_name = "sam2"
 fov_name = "moge2"
 inference_type = "body"
-save_vertices = false
+save_vertices = true
 visualize_mesh = false
 # Optional single-file 3D mesh viewer (Plotly HTML)
 # visualize_mesh_interactive = true

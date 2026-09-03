@@ -12,7 +12,8 @@ experiment_video_component = "<experiment_video_folder>/<cur_component_name>" # 
 
 [media]                                                    # each Media session shows one video results.
 [media.visualize]                                          # specify what will be visualized
-components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "face_bounding_box", "emotion_individual", "kinematics", "proximity", "eye_closure_score", "eye_closed_state"]
+components = ["body_joints", "hand_joints", "face_landmarks", "head_orientation", "gaze_multiview", "gaze_interaction", "face_bounding_box", "emotion_individual", "kinematics", "proximity", "eye_closure_score", "eye_closed_state", "body_mesh"]
+
 start_frame = 0                                            # starting frame for the visualization
 end_frame = -1                                             # end frame for the visualization, -1 means process until the end of the video
 visualize_interval = 1                                     # 1 means visualize every frame; change the parameter accordingly if you want to visualize every x frames
@@ -207,3 +208,15 @@ body_distance_2d = ["view_top", "view_center"] ## value options: [camera nanes]
 [media.proximity.appearance]
 colors = [[153,50,204]]
 radii = {'3d'= 0.008, 'camera_view'= 3}
+
+# Component: body_mesh
+[media.body_mesh]
+algorithms = ['sam_3d_body']
+
+[media.body_mesh.canvas]
+vertices = ['view_center'] ## value options: camera name. The mesh from the selected view will be drawn inside the 3D space
+
+[media.body_mesh.appearance]
+colors = [[200, 230, 200]]
+radii = {}
+alpha = 80 # adjust 0-255 for transparency
