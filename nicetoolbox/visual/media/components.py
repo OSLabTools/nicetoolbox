@@ -1721,6 +1721,7 @@ class BodyMeshComponent(Component):
             camera_index = self.camera_names.index(cam_name)
 
             for alg_idx, alg_name in enumerate(self.algorithm_list):
+                # TODO: add support for single-view/no-calibration datasets
                 if "vertices_world" not in self.algorithms_results[alg_idx].files:
                     if alg_name not in self._missing_world_warned:
                         self._missing_world_warned.add(alg_name)

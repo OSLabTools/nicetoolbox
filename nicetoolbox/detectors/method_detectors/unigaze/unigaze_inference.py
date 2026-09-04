@@ -290,6 +290,8 @@ def unigaze_inference(config):
                     cam_matrix,
                 )
 
+                # discard after certain degree
+                # TODO: at least save gaze origin?
                 hr_norm = np.array([np.arcsin(hR_norm[1, 2]), np.arctan2(hR_norm[0, 2], hR_norm[2, 2])])
                 if np.linalg.norm(hr_norm) > 80 * np.pi / 180:
                     continue

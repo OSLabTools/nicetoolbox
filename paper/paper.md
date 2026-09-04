@@ -23,6 +23,8 @@ authors:
     affiliation: 2
   - name: Anton KG Marx
     affiliation: 2
+  - name: Anamaria Semm
+    affiliation: 2
   - name: Gökce Ergün
     affiliation: 1
   - name: Senya Polikovsky
@@ -192,7 +194,7 @@ Munich, the toolbox was used to quantify movement synchrony from
 pose-estimation-based kinematic displacement measures across 32 videos of
 16 parent–child dyads undergoing psychotherapy, distinguishing genuine
 interactive coupling from coincidental covariation and comparing free-play
-with structured-play conditions [@buaria2026synchrony]. In a separate study on
+with structured-play conditions [@Buaria:2026]. In a separate study on
 emotional and behavioural responses to microaggressions in human–AI
 interaction at work, the toolbox provided multimodal behavioural
 measurements (facial expression, gaze, posture) across 482 interaction
