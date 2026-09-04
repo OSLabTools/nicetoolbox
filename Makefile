@@ -217,13 +217,13 @@ install_all_detectors:
 # 	detectors venv installations
 	-@make install_eth_xgaze
 	-@make install_unigaze
-	-@make install_pyfeat
 	-@make install_spiga
 	-@make install_insight_face
 	-@make install_whisperx
 	-@make install_sam3d_body
 	-@make install_crisper_whisper
 # 	detectors conda installations
+	-@make install_pyfeat
 	-@make install_mmpose
 	@make create_separator
 	@echo "Detectors installation finished."

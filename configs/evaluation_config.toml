@@ -142,7 +142,7 @@ compute_group_by = []
 
 [metrics.confusion_matrix_gaze_look_at_2d]
 metric_type = "confusion_matrix"
-predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "gaze_look_at_2d" }
+predictions = { component = "gaze_interaction", camera = "view_top", npz_key = "gaze_look_at_2d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 broadcast_single = true
 compute_group_by = []
@@ -165,7 +165,7 @@ compute_group_by = []
 
 [metrics.roc_auc_gaze_look_at_2d]
 metric_type = "roc_auc"
-predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }
+predictions = { component = "gaze_interaction", camera = "view_top", npz_key = "distance_gaze_2d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 broadcast_single = true
 negate_scores = true  # larger distance = not looking, inverting scores
@@ -188,7 +188,7 @@ compute_group_by = []
 
 [metrics.pr_curve_gaze_look_at_2d]
 metric_type = "pr_curve"
-predictions = { component = "gaze_interaction", camera = "view_center", npz_key = "distance_gaze_2d" }
+predictions = { component = "gaze_interaction", camera = "view_top", npz_key = "distance_gaze_2d" }
 ground_truth = { source = "annotation", component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
 broadcast_single = true
 negate_scores = true
