@@ -17,14 +17,14 @@ authors:
     affiliation: 1
   - name: Buket Naz Zeren
     affiliation: 1
-  - name: Sophie Bauer
-    affiliation: 1
+  - name: Sophie K. Bauer
+    affiliation: "1, 2"
   - name: Johannes Kopf-Beck
-    affiliation: 2
-  - name: Anton KG Marx
-    affiliation: 2
+    affiliation: "1, 2, 3, 4"
+  - name: Anton K.G. Marx
+    affiliation: "2, 3"
   - name: Anamaria Semm
-    affiliation: 2
+    affiliation: "2, 3"
   - name: Gökce Ergün
     affiliation: 1
   - name: Senya Polikovsky
@@ -33,9 +33,15 @@ affiliations:
  - name: Max Planck Institute for Intelligent Systems, Tübingen, Germany
    index: 1
    ror: 04fq9j139
- - name: Ludwig-Maximilians-Universität München, Munich, Germany
+ - name: Max Planck Institute of Psychiatry, Munich, Germany
    index: 2
+   ror: 04dq56617
+ - name: LMU Munich, Department of Psychology, Germany
+   index: 3
    ror: 05591te55
+ - name: German Center for Mental Health (DZPG), Partner Site Munich; Augsburg, Germany
+   index: 4
+   ror: 00tkfw097
 date: 10 July 2026
 bibliography: paper.bib
 ---
@@ -58,31 +64,32 @@ signals scalable, reproducible, and accessible for psychological research.
 
 # Statement of need
  
-Labelling and annotation of nonverbal behaviour signals from video recordings is one of the key methods
-of psychological research on interpersonal communication. Traditionally, this
-is done manually by trained student assistants or professional labellers
-rewatching videos multiple times. The process is slow, hard to scale, and
-inconsistent across annotators [@bakeman1997observing]. It also limits study dataset size,
-due to labelling budget and time constraints. These challenges compound the broader reproducibility
-concerns that have emerged in psychological research [@open2015estimating].
+Labelling and annotation of nonverbal behaviour signals from video
+recordings is one of the key methods of psychological research on
+interpersonal communication [@bakeman2011sequential]. Traditionally, this is
+done manually by trained student assistants or professional labellers
+rewatching videos multiple times. The process is slow, difficult to scale, and
+results are hard to make consistent across annotators [@vinciarelli2009social].
+This also limits study dataset size, due to labelling budget and time constraints.
 
 Computer vision and speech-processing models exist for each of the underlying
-signals (body pose, gaze, facial expression, speech transcription, and others),
+signals (body pose, gaze, speech transcription, and others),
 but they are distributed as separate research libraries with different software
 dependencies, input/output formats, and configuration conventions. Combining
 them into a working analysis workflow requires machine-learning and
-software-engineering expertise that most psychology researchers do not have.
+software-engineering expertise, which usually lies outside the scope of a
+psychology research project.
 
-Even when suitable models exist, choosing among them is difficult. Recording
-setups in psychological studies vary widely in camera placement, lighting,
-microphone setup, participant distance, appearance, interaction style, and
-data formats. Algorithm rankings on public benchmarks often do
-not transfer to a specific study's setup, so the best choice of model is one
-made empirically on the target data. Even within a given model, detectors
-are sensitive to hyperparameters that typically need tuning per setup.
-This requires an evaluation integrated with the detection pipeline, so
-researchers can compare candidate models and hyperparameter configurations
-on their own recordings before committing to one for their study.
+Furthermore, choosing among existing models to determine the most suitable
+one for a specific study can be difficult for most psychological
+researchers. Data recording setups vary widely in camera placement,
+lighting, participant distance, appearance, interaction style, and data
+formats. Algorithm rankings on public benchmarks often do not transfer to a
+specific study, so researchers must compare candidate models and
+hyperparameter configurations on their own data before committing to one
+for their study [@d2022underspecification]. As of yet, no available algorithm
+framework offers such an integrated performance evaluation pipeline while
+allowing the combination of different models to capture multimodal data streams.
 
 `NICE Toolbox` is a Python framework for psychology researchers that unifies
 data processing and model inference across a large set of machine-learning
@@ -105,13 +112,21 @@ Automated open-source signal measurement tools usually cover only one specific c
 pixel change as a proxy for body movement and has been widely used to study
 interpersonal synchrony in psychotherapy. `OpenFace` [@Baltrusaitis2018] and
 `Py-Feat` [@cheong2023py] are open-source libraries for facial analysis used in
-psychological research. `CrisperWhisper` [@wagner2024] and `WhisperX` [@whisperx]
-are considered the standard for audio transcription.
+psychological research. `CrisperWhisper` [@wagner2024] and `WhisperX` [@whisperx] are widely used for audio transcription. Combining these tools into a multimodal
+analysis pipeline is done by the researcher, who must adapt output formats,
+coordinate systems, and sampling rates using custom post-processing scripts.
+
+One effort to centralise these tools in a single hub is `EnvisionBox`
+[@envisionbox]. It is a community-driven platform that curates open code
+modules, tutorials, and datasets for multimodal analysis in
+social-interaction research. Rather than providing a single unified software, it
+functions as a shared storage for code examples demonstrating model inference and
+data analysis.
 
 Commercial platforms such as `FaceReader` [@lewinski2014automated] and
 `iMotions` [@imotions] provide integrated multimodal analysis with polished
 user interfaces, but their proprietary licensing, closed algorithms, and
-cost limit reproducibility and accessibility for academic research. Their
+costs limit reproducibility and accessibility for academic research. Their
 coverage is also bounded by what the vendor supports: signals or models not
 offered by the platform cannot be added by the user.
 
@@ -121,7 +136,7 @@ drive it through its graphical front-end, the `NOVA` annotation tool
 [@Heimerl2019], to explore content, inspect recordings, and refine
 annotations.
 
-Compared to these alternatives, `NICE Toolbox` focuses on automated
+Compared to `DISCOVER` and other alternatives, `NICE Toolbox` focuses on automated
 large-scale dataset processing without human intervention or refinement.
 Each user-created configuration defines a computational pipeline in which
 detector outputs from different modalities can feed into one another. The
@@ -143,19 +158,17 @@ multimodal analysis without writing code, (2) to maintain consistent data
 structures (components) across different detectors, and (3) to reuse
 established open-source models and libraries rather than reimplementing them
 (including MMPose [@mmpose2020], SAM 3D Body [@sam3dbody], ETH-XGaze [@Zhang2020ETHXGaze],
-`Py-Feat` [@cheong2023py], `CrisperWhisper` [@wagner2024], `WhisperX` [@whisperx],
-and others).
+`Py-Feat` [@cheong2023py], and others).
 
-![`NICE Toolbox` architecture. Multi-camera video, audio, and calibration files (1) are combined with user-supplied TOML configuration (2) that describes the dataset, detectors, evaluation, visualisation, and connectors. A detector pipeline (3) chains primary models (e.g., MMPose, ETH-XGaze) with second-level detectors that compute kinematics, proximity, blinks, and mutual gaze. Results are saved in tabular formats (4), exported to external annotation tools (5), evaluated across algorithms (6), and visualised (7).\label{fig:software-design}](images/software-design.png){ width=100% }
+![`NICE Toolbox` experiment example. Multi-camera video with optional audio and calibration files (1) are combined with user-supplied TOML configuration (2) that describes the dataset, requested detectors, evaluation, visualisation, and connectors. A detector pipeline (3) connects primary models (e.g., MMPose for body pose estimation, ETH-XGaze for gaze direction) with second-level detectors (kinematics from body velocity, proximity from inter-body distance, blinks from eye-closure ratios, and mutual gaze from fused gaze directions across cameras). Results are saved per subject in tabular formats (4), exported to external annotation tools such as `ELAN` (5), and evaluated across candidate algorithms on the user's own recordings (6), with metrics such as mean error score per algorithm and per-keypoint error heatmap. Interactive 2D/3D visualisation (7) shows final results for inspection and diagnosis.\label{fig:software-design}](images/software-design.png){ width=100% }
 
-The toolbox is organised into modules (see \autoref{fig:software-design}) with separated
+The toolbox is organised into modules 
+(see the example experiment at \autoref{fig:software-design}) with separate
 responsibilities: **detectors** runs the computer vision and audio models on
 recordings, **evaluation** computes configurable metrics based on the
 user-specific dataset, **visualizer** provides the interactive `rerun` [@RerunSDK] 3D visualizer,
 and **connectors** handles import and export to third-party tools such as
 `ELAN` and `napari-deeplabcut` [@napari_deeplabcut] for ground-truth annotation.
-
-![An example layout of the interactive `NICE Toolbox` visualiser, showing detector results from a dyadic interaction: triangulated body joints, body mesh, gaze direction, head orientation, and synchronised kinematics time series. \label{fig:visualizer}](images/interactive-visualization.png){ width=100% }
 
 Users control the software through TOML configuration files that describe
 algorithm parameters, evaluation metrics, visualizer layouts (see \autoref{fig:visualizer}), and dataset
@@ -165,9 +178,11 @@ keep configuration concise and flexible, `NICE Toolbox` supports
 variables and named wildcards inside the configuration system.
 Detector algorithms additionally support template inheritance, so
 users can define a parameter set once and derive variants that override only
-the fields that differ — for example, running the same pose estimator with
+the fields that differ; for example, running the same pose estimator with
 different confidence thresholds, or comparing two backbones that share the
 same camera setup and I/O components.
+
+![An example layout of the interactive `NICE Toolbox` rerun visualizer, showing detector results from a dyadic interaction: triangulated body joints, body mesh, gaze direction, head orientation, and synchronised kinematics time series. \label{fig:visualizer}](images/interactive-visualization.png){ width=100% }
 
 Detectors can use the output of other detectors as their input, allowing the
 construction of a directed computational graph. The order of execution is
@@ -189,8 +204,8 @@ detector's outputs back from disk in the unified data format.
 
 `NICE Toolbox` has been used to extract behavioural cues for
 psychological research at the Max Planck Institute for Intelligent Systems
-and by external collaborators. In work led by Ludwig-Maximilians-Universität
-Munich, the toolbox was used to quantify movement synchrony from
+and by other collaborators. In work led by LMU Munich, the toolbox was
+used to quantify movement synchrony from
 pose-estimation-based kinematic displacement measures across 32 videos of
 16 parent–child dyads undergoing psychotherapy, distinguishing genuine
 interactive coupling from coincidental covariation and comparing free-play
