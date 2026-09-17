@@ -154,6 +154,9 @@ class MotionBERT(MMPose3D):
     algorithm_type = "motionbert"
     components = ["body_joints_local"]
 
+    def get_inference_script(self) -> str:
+        return "motionbert_inference.py"
+
     def compute_viz_folder(self, _visualize: bool) -> Optional[str]:
         """Return None so base __init__ does not mkdir the visualization folder.
 
