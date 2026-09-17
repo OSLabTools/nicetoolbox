@@ -130,15 +130,26 @@ class BaseMethod(BaseDetector):
             input_recipes=self.data.get_input_recipes(),
         )
 
+    def get_inference_script(self) -> Path | str:
+        """
+        Overridable helper method hook for downstream detectors to specify
+        their inference script path in code.
+        """
+        return f"{self.detector_config.algorithm_type}_inference.py"
+
     def _resolve_inference_script(self) -> Path:
         """
         Resolve the inference script path relative to the concrete subclass's file.
-        Convention: <same_folder_as_class>/<algorithm_type>_inference.py
+        Default convention: <same_folder_as_class>/<algorithm_type>_inference.py
+        Uses get_inference_script() hook to override it
         """
         class_file = Path(inspect.getfile(type(self)))
-        script = class_file.parent / f"{self.detector_config.algorithm_type}_inference.py"
-        if not script.exists():
-            logging.error(f"Detector inference file {script} does not exist!")
+        detector_folder = class_file.parent
+        file_name = self.get_inference_script()
+
+        script = detector_folder / file_name
+        if not script.is_file():
+            logging.error(f"Detector '{self.algorithm_instance}' inference script not found at: {script}")
             raise FileNotFoundError(script)
         return script
 
