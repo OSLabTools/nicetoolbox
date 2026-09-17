@@ -23,14 +23,7 @@ def _mmpose_visualization_dir(config: dict[str, Any], camera_name: str) -> str:
     """
     Returns the visualization directory for a given camera.
     """
-    result_folders = config["result_folders"]
-    if not result_folders:
-        pred_dir = config["prediction_folders"][camera_name]
-        out_root = os.path.normpath(os.path.join(pred_dir, "..", ".."))
-        return os.path.join(out_root, "visualization", camera_name)
-    comp = next(iter(result_folders.keys()))
-    base = result_folders[comp]
-    return os.path.join(base, config["algorithm"], "visualization", camera_name)
+    return os.path.join(config["native_viz_folder"], camera_name)
 
 
 def _validate_subject_aligned_frame_batch(data, num_persons: int):
@@ -518,7 +511,7 @@ def main(config: dict[str, Any]) -> None:
 
     frame_indices = [f"{idx:09d}" for idx in range(start_frame, end_frame)]
 
-    for component, result_folder in config["result_folders"].items():
+    for component in config["keypoints_indices"]:
         indices = config["keypoints_indices"][component]
         data_desc = {
             "2d": {
@@ -527,6 +520,7 @@ def main(config: dict[str, Any]) -> None:
                 "axis2": frame_indices,
                 "axis3": config["keypoints_description"][component],
                 "axis4": estimations_data_descr["2d"],
+                "csv_skip": True,
             },
             "bbox_2d": {
                 "axis0": subjects_in_any_camera_view,
@@ -534,6 +528,7 @@ def main(config: dict[str, Any]) -> None:
                 "axis2": frame_indices,
                 "axis3": ["full_body"],
                 "axis4": estimations_data_descr["bbox_2d"],
+                "csv_skip": True,
             },
         }
         out_dict = {
@@ -549,8 +544,10 @@ def main(config: dict[str, Any]) -> None:
                 "axis2": frame_indices,
                 "axis3": config["keypoints_description"][component],
                 "axis4": estimations_data_descr["3d"],
+                "csv_skip": True,
             }
-        save_file_name = os.path.join(result_folder, f"{config['algorithm']}.npz")
+        save_file_name = os.path.join(config["algorithm_out_folder"], component, f"{config['algorithm']}.npz")
+        os.makedirs(os.path.dirname(save_file_name), exist_ok=True)
         np.savez_compressed(save_file_name, **out_dict)
 
     logging.info(f'3D pose lift from 2D NPZ — {config["algorithm"]} COMPLETED!\n')

@@ -46,8 +46,8 @@ def _visualize_frame(config, camera_names, images, frame_bundle, real_frame_idx,
             cv2.imshow("img_show", image)
             cv2.waitKey(0)
 
-        # Match the method-detector convention: detector_output/images/<camera_name>/.
-        out_dir = os.path.join(config["out_folder"], "images", camera_name)
+        # Save native visualization frames under native_viz_folder/<camera_name>/
+        out_dir = os.path.join(config["native_viz_folder"], camera_name)
         os.makedirs(out_dir, exist_ok=True)
         cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), image)
 
@@ -129,6 +129,6 @@ def eth_xgaze_inference(config, debug=False):
     # (5) Save the raw native pack. Object-array pickle is fine within the eth_xgaze env.
     out_dict = {"per_frame_outputs": np.asarray(per_frame_outputs, dtype=object)}
 
-    save_file_name = os.path.join(config["out_folders"]["gaze_individual"], RAW_INFERENCE_NPZ_NAME)
+    save_file_name = os.path.join(config["algorithm_out_folder"], RAW_INFERENCE_NPZ_NAME)
     np.savez_compressed(save_file_name, **out_dict)
     logging.info(f"Gaze detection 'ETH-XGaze' raw pack COMPLETED! Wrote '{save_file_name}'.\n")

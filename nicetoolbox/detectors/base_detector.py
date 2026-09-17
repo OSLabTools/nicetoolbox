@@ -163,15 +163,6 @@ class BaseDetector(ABC):
             for comp in self.components
         }
 
-    def compute_output_folders(self, requires_out_folder: bool) -> Dict[str, str]:
-        """Compute extra output folders for all components."""
-        if requires_out_folder:
-            return {
-                comp: str(self.io.get_detector_output_folder(comp, self.algorithm_instance, "output"))
-                for comp in self.components
-            }
-        return {}
-
     def compute_viz_folders(self, visualize: bool) -> Dict[str, str]:
         """Compute visualization folders for all components."""
         if visualize:

@@ -106,12 +106,11 @@ class BaseMMPose(BaseMethod):
         """
         Generate and return a dictionary of prediction folders for each camera.
 
-        Structure: detector_output/predictions/<camera_name>/
+        Structure: _native_outputs/<algorithm>/detector_output/predictions/<camera_name>/
         """
         folders = {}
-        base_output_folder = self.io.get_detector_output_folder(self.components[0], self.algorithm_instance, "output")
         for camera in self.camera_names:
-            folder = os.path.join(base_output_folder, "predictions", camera)
+            folder = os.path.join(self.algorithm_out_folder, "predictions", camera)
             if make_dirs:
                 os.makedirs(folder, exist_ok=True)
             folders[camera] = folder
@@ -122,15 +121,11 @@ class BaseMMPose(BaseMethod):
         Generate and return a dictionary of image folders for each camera.
 
         These are the 3rd-party MMPose visualization outputs (per-frame images).
-        Structure: detector_output/images/<camera_name>/
-
-        Note: Our own visualizations (videos) are saved to the separate
-        visualization/ folder via self.viz_folder.
+        Structure: _native_outputs/<algorithm>/visualization/<camera_name>/
         """
         folders = {}
-        base_output_folder = self.io.get_detector_output_folder(self.components[0], self.algorithm_instance, "output")
         for camera in self.camera_names:
-            folder = os.path.join(base_output_folder, "images", camera)
+            folder = os.path.join(self.native_viz_folder, camera)
             if make_dirs:
                 os.makedirs(folder, exist_ok=True)
             folders[camera] = folder
@@ -159,8 +154,8 @@ class BaseMMPose(BaseMethod):
         # Input data loader from nicetoolbox-core shared code is created.
         dataloader = ImagePathsByCameraLoader(config=self.data.get_input_recipes(), expected_cameras=self.camera_names)
 
-        for _component, result_folder in self.result_folders.items():
-            viz_dir = os.path.join(result_folder, self.algorithm_instance, "visualization")
+        for component, result_folder in self.result_folders.items():
+            viz_dir = self.viz_folders[component]
             os.makedirs(viz_dir, exist_ok=True)
             prediction_file = os.path.join(result_folder, f"{self.algorithm_instance}.npz")
             prediction = np.load(prediction_file, allow_pickle=True)
@@ -170,7 +165,7 @@ class BaseMMPose(BaseMethod):
             subject_names = prediction["data_description"].item()["2d"]["axis0"]
 
             # Visualization parameters are set.
-            if _component == "body_joints":
+            if component == "body_joints":
                 RADIUS = 4
                 THICKNESS = 2
             else:
@@ -208,7 +203,7 @@ class BaseMMPose(BaseMethod):
 
                         keypoints_dict = {label: i for i, label in enumerate(algorithm_labels)}
 
-                        connections = self._get_skeleton_connections(_component)
+                        connections = self._get_skeleton_connections(component)
                         start_points, end_points = [], []
                         for connect in connections:
                             for k in range(len(connect) - 1):

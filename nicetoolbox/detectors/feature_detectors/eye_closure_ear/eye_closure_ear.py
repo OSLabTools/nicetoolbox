@@ -117,7 +117,7 @@ class EyeClosureEar(BaseFeature):
         dataloader = ImagePathsByFrameIndexLoader(config=self.data.get_input_recipes(), expected_cameras=cameras)
 
         ear_utils.visualize_eye_closure_scores(
-            viz_folder=self.viz_folder,
+            viz_folder=self.viz_folders["eye_closure_score"],
             dataloader=dataloader,
             camera_names=cameras,
             subjects_descr=self.subjects_descr,

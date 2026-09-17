@@ -20,8 +20,8 @@ RAW_INFERENCE_PICKLE_NAME = "insight_face_inference_raw.pkl"
 ALLOWED_MODULES = ["detection"]
 
 
-def _visualize_frame(app, out_folder, camera_name, image, faces, real_frame_idx):
-    out_dir = os.path.join(out_folder, "images", camera_name)
+def _visualize_frame(app, native_viz_folder, camera_name, image, faces, real_frame_idx):
+    out_dir = os.path.join(native_viz_folder, camera_name)
     os.makedirs(out_dir, exist_ok=True)
     cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), app.draw_on(image, faces))
 
@@ -39,7 +39,8 @@ def insight_face_inference(config: dict) -> None:
     logging.info("RUNNING face detection 'InsightFace' (raw native save)!")
 
     # (1) Access config parameters
-    out_folder = config["out_folders"]["face_bounding_box"]
+    out_folder = config["algorithm_out_folder"]
+    native_viz_folder = config["native_viz_folder"]
     visualize_native = config["visualize_native"]
 
     # (2) Prepare data loader
@@ -84,7 +85,7 @@ def insight_face_inference(config: dict) -> None:
 
             # Optional native visualization
             if visualize_native:
-                _visualize_frame(app, out_folder, camera_name, image, faces, real_frame_idx)
+                _visualize_frame(app, native_viz_folder, camera_name, image, faces, real_frame_idx)
 
         per_frame_outputs.append(frame_bundle)
 

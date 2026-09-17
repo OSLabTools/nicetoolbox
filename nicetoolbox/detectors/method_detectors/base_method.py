@@ -50,7 +50,7 @@ class BaseMethod(BaseDetector):
     # method specific settings
     visualize: bool
     requires_out_folder: bool
-    out_folders: dict[str, str]
+    algorithm_out_folder: str
     result_folders: dict[str, str]
     viz_folders: dict[str, str]
     config_paths: list[Path]
@@ -77,32 +77,27 @@ class BaseMethod(BaseDetector):
         # (2) Setup subprocess execution settings
         self._setup_subprocess_settings()
 
-        # (3) Setup method detector (builds runtime, validates, saves config)
-        self.requires_out_folder = True
-        self.out_folders = self.compute_output_folders(self.requires_out_folder)
+        # (3) Component-Centric Result Folders (<component_name>/)
         self.result_folders = self.compute_result_folders()
         self.viz_folders = self.compute_viz_folders(self.visualize)
 
-        self.runtime = self._initialize_detector()  # This will be overloaded by child detectors!
+        # (4) Algorithm-Centric Sandbox Paths (_native_outputs/<cur_algorithm_name>/)
+        algorithm_folder_path = self.io.get_algorithm_output_folder(self.algorithm_instance, "detector_native_folder")
+        self.algorithm_folder = str(algorithm_folder_path)
+        algorithm_out_folder_path = self.io.get_algorithm_output_folder(self.algorithm_instance, "output")
+        self.algorithm_out_folder = str(algorithm_out_folder_path)
+        native_viz_folder = self.io.get_algorithm_output_folder(self.algorithm_instance, "native_visualization")
+        self.native_viz_folder = str(native_viz_folder)
 
-        # (4) Flatten config for subprocess
+        self.runtime = self._initialize_detector()  # Overloaded by child detectors
+
+        # (5) Flatten config for subprocess
         inference_config = flatten_inference_config(self.detector_config, self.runtime)
 
-        # Pre-map single component out_folder and viz_folder for backward compatibility... TODO
-        if len(self.components) == 1:
-            comp = self.components[0]
-            self.out_folder = self.out_folders[comp]
-            self.viz_folder = self.viz_folders[comp]
-            inference_config["out_folder"] = self.out_folder
-            inference_config["viz_folder"] = self.viz_folder
-
-        # (5) Save config for subprocess for each component
-        folder = self.io.get_detector_output_folder(self.components[0], self.algorithm_instance, "run_config")
-        self.config_path = folder / "run_config.toml"
+        # (6) Save config for subprocess ONCE under algorithm sandbox (_native_outputs/)
+        config_folder = self.io.get_algorithm_output_folder(self.algorithm_instance, "run_config")
+        self.config_path = config_folder / "run_config.toml"
         save_config(inference_config, self.config_path)
-        for comp in self.components[1:]:
-            dup = self.io.get_detector_output_folder(comp, self.algorithm_instance, "run_config") / "run_config.toml"
-            save_config(inference_config, dup)
 
         logging.info("Inference preparation completed.\n")
 
@@ -121,7 +116,9 @@ class BaseMethod(BaseDetector):
         return MethodDetectorRuntime(
             nicetoolbox_root=str(self.io.code_folder),
             result_folders=self.result_folders,
-            out_folders=self.out_folders,
+            algorithm_folder=self.algorithm_folder,
+            algorithm_out_folder=self.algorithm_out_folder,
+            native_viz_folder=self.native_viz_folder,
             viz_folders=self.viz_folders,
             algorithm=self.algorithm_instance,
             visualize=self.visualize,

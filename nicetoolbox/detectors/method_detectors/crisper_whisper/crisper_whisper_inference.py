@@ -61,7 +61,7 @@ def crisper_whisper_inference(config: dict) -> None:
     logging.info("Starting CrisperWhisper Inference Pipeline.")
 
     # (1) Unpack config fields
-    out_folder = config["out_folders"]["audio_transcription"]
+    out_folder = config["algorithm_out_folder"]
 
     batch_size = config["batch_size"]
     chunk_length_s = config["chunk_length_s"]

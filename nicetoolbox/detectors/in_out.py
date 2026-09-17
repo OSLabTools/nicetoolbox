@@ -140,8 +140,20 @@ class SequenceIO:
         Args:
             component: Component name (e.g., 'body_joints')
             algorithm: Algorithm name (e.g., 'hrnetw48')
-            token: Folder type - 'output', 'visualization', 'additional', 'run_config', 'result'
+            token: Folder type - 'output', 'visualization', 'native_visualization', 'run_config', 'result'
         """
         path = self._subsequence_context.get_detector_folder(component, algorithm, token)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def get_algorithm_output_folder(self, algorithm: str, token: str) -> Path:
+        """
+        Get algorithm-centric output folder (e.g., under _native_outputs/<cur_algorithm_name>/).
+
+        Args:
+            algorithm: Algorithm instance name (e.g., 'motionbert')
+            token: Folder type - 'detector_native_folder', 'output', 'native_visualization', 'run_config'
+        """
+        path = self._subsequence_context.get_detector_folder("", algorithm, token)
         os.makedirs(path, exist_ok=True)
         return path

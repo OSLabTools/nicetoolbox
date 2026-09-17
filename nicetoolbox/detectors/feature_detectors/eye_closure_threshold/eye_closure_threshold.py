@@ -129,7 +129,7 @@ class EyeClosureThreshold(BaseFeature):
         for array_key in ("per_camera_state", "global_state"):
             state = out.get("eye_closed_state", array_key)
             threshold_utils.plot_eye_closed_states(
-                viz_folder=self.viz_folder,
+                viz_folder=self.viz_folders["eye_closed_state"],
                 eye_closed=state.data,
                 subjects_descr=self.subjects_descr,
                 camera_names=state.axes.cameras,
@@ -158,7 +158,7 @@ class EyeClosureThreshold(BaseFeature):
         dataloader = ImagePathsByFrameIndexLoader(config=self.data.get_input_recipes(), expected_cameras=cameras)
 
         threshold_utils.visualize_eye_closed_videos(
-            viz_folder=self.viz_folder,
+            viz_folder=self.viz_folders["eye_closed_state"],
             dataloader=dataloader,
             camera_names=cameras,
             subjects_descr=self.subjects_descr,

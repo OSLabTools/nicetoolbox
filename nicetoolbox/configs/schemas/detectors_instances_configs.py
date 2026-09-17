@@ -61,7 +61,6 @@ class BaseDetectorRuntime(BaseModel):
 
     # Output paths
     result_folders: Dict[str, str]
-    out_folders: Dict[str, str] = Field(default_factory=dict)
     viz_folders: Dict[str, str] = Field(default_factory=dict)
 
     # Algorithm identity (the user-defined instance name from TOML)
@@ -79,6 +78,10 @@ class MethodDetectorRuntime(BaseDetectorRuntime):
     Runtime fields specific to method detectors.
     Extends BaseDetectorRuntime with subprocess and inference requirements.
     """
+
+    algorithm_folder: str
+    algorithm_out_folder: str
+    native_viz_folder: str
 
     # Root folder of NICE Toolbox installation (cwd)
     # Used to find submodules paths

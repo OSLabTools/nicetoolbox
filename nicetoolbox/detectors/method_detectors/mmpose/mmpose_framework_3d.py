@@ -57,9 +57,15 @@ class MMPose3D(BaseMMPose):
         Post-inference processing for 3D pose estimation.
         """
         for _component, result_folder in self.result_folders.items():
+            raw_prediction_file = os.path.join(self.algorithm_out_folder, _component, f"{self.algorithm_instance}.npz")
+            prediction = np.load(raw_prediction_file, allow_pickle=True)
             prediction_file = os.path.join(result_folder, f"{self.algorithm_instance}.npz")
-            prediction = np.load(prediction_file, allow_pickle=True)
             data_description = prediction["data_description"].item()
+            # Raw entries carry csv_skip so the native file is not exported to CSV.
+            # The final file we save below is meant for CSV export, so clear the flag.
+            for entry in data_description.values():
+                if isinstance(entry, dict):
+                    entry.pop("csv_skip", None)
 
             results_2d = prediction["2d"]
             results_bbox_2d = prediction["bbox_2d"]
@@ -157,10 +163,10 @@ class MotionBERT(MMPose3D):
         return None
 
     def visualization(self, _):
-        for _, result_folder in self.result_folders.items():
-            viz_dir = os.path.join(result_folder, self.algorithm_instance, "visualization")
+        for _, viz_dir in self.viz_folders.items():
+            os.makedirs(viz_dir, exist_ok=True)
             for camera_name in self.camera_names:
-                cam_frames_dir = os.path.join(viz_dir, camera_name)
+                cam_frames_dir = os.path.join(self.native_viz_folder, camera_name)
                 out_mp4 = os.path.join(viz_dir, f"{camera_name}.mp4")
                 rc = vd.frames_to_video(cam_frames_dir, out_mp4, int(self.fps), start_frame=int(self.video_start))
                 if rc == 0:

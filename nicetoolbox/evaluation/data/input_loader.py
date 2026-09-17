@@ -144,7 +144,7 @@ def _resolve_experiment_source(
                     subsequence_meta = dict_to_model(load_raw_config(meta_path), ResolvedSubsequenceConfig)
 
                     # get npz path with detectors results
-                    result_folder: Path = resolve_placeholders(run_file.io.detector_final_result_folder, ctx)
+                    result_folder: Path = resolve_placeholders(run_file.io.detector_result_folder, ctx)
                     npz_path = result_folder / f"{algorithm_name}.npz"
                     if not npz_path.exists():
                         raise FileNotFoundError(

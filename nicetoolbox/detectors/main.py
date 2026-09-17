@@ -159,6 +159,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
                     logging.info(f"FINISHED '{algorithm_instance}' in {time.time() - start_time}s.\n\n")
 
             # Convert results to .csv
+            # TODO: skip native outputs folder
             if config.save_csv:
                 csv.results_to_csv(io.out_sub_folder, io.csv_folder)
                 logging.info("Converting current sequence results to CSV successful.")

@@ -173,7 +173,7 @@ def main(config: dict) -> None:
 
     assert faces_once is not None
     camera_bundle = _bundle_calib_for_npz(calibration, camera_names)
-    out_path = os.path.join(config["out_folders"]["body_joints_local"], RAW_INFERENCE_NPZ_NAME)
+    out_path = os.path.join(config["algorithm_out_folder"], RAW_INFERENCE_NPZ_NAME)
 
     # Object-array pickle is fine when sam_3d_body and main nicetoolbox both use NumPy 1.x
     # (see install script / sam_3d_body_pip_requirements numpy pin).

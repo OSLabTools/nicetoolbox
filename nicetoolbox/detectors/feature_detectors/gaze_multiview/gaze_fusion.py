@@ -382,14 +382,14 @@ class GazeFusion(BaseFeature):
                         tipLength=0.2,
                     )
 
-                out_dir = os.path.join(self.viz_folder, cam_name)
+                out_dir = os.path.join(self.viz_folders["gaze_multiview"], cam_name)
                 os.makedirs(out_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(out_dir, f"{real_idx:09d}.jpg"), img)
 
         for cam in cameras:
             vd.frames_to_video(
-                os.path.join(self.viz_folder, cam),
-                os.path.join(self.viz_folder, f"{cam}.mp4"),
+                os.path.join(self.viz_folders["gaze_multiview"], cam),
+                os.path.join(self.viz_folders["gaze_multiview"], f"{cam}.mp4"),
                 fps=self.data.fps,
                 start_frame=int(dataloader.start),
             )

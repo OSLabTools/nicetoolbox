@@ -79,7 +79,7 @@ class InsightFace(BaseMethod):
     def post_inference(self) -> DetectorOutput:
         out = DetectorOutput()
         # read raw prediction from native side
-        raw_path = os.path.join(self.out_folders[self.components[0]], RAW_INFERENCE_PICKLE_NAME)
+        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PICKLE_NAME)
         with open(raw_path, "rb") as raw_file:
             per_frame_outputs = pickle.load(raw_file)
 

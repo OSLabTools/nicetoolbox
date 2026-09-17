@@ -6,6 +6,7 @@
 **/__pycache__
 **.egg-info
 CLAUDE.md
+agents.md
 
 docs/_build/
 docs/_autosummary/

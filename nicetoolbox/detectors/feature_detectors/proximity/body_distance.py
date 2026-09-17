@@ -113,7 +113,7 @@ class BodyDistance(BaseFeature):
 
     def visualization(self, out: DetectorOutput):
         distance = out.get("proximity", f"body_distance_{self.dim}")
-        pro_utils.visualize_proximity_score(distance, self.viz_folder, self.used_keypoints)
+        pro_utils.visualize_proximity_score(distance, self.viz_folders["proximity"], self.used_keypoints)
 
 
 class BodyDistance2D(BodyDistance):
