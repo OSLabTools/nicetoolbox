@@ -159,8 +159,7 @@ def _visualize_camera_frame(config, camera_name, image, gaze_rays_2d, real_frame
         end_point = tuple(gaze_ray_2d[1].astype(int))
         cv2.arrowedLine(image, start_point, end_point, (0, 255, 0), 3, cv2.LINE_AA, tipLength=0.2)
 
-    # Match the method-detector convention: detector_output/images/<camera_name>/.
-    out_dir = os.path.join(config["out_folder"], "images", camera_name)
+    out_dir = os.path.join(config["native_viz_folder"], camera_name)
     os.makedirs(out_dir, exist_ok=True)
     cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), image)
 
@@ -341,7 +340,7 @@ def unigaze_inference(config):
         "per_frame_outputs": np.asarray(per_frame_outputs, dtype=object),
     }
 
-    save_file_name = os.path.join(config["out_folders"]["gaze_individual"], "unigaze_inference_raw.npz")
+    save_file_name = os.path.join(config["algorithm_out_folder"], "unigaze_inference_raw.npz")
     np.savez_compressed(save_file_name, **out_dict)
 
     logging.info("Gaze detection 'UniGaze' COMPLETED!\n")

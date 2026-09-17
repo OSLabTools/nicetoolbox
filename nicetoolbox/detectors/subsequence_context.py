@@ -122,17 +122,18 @@ class SubsequenceContext(BaseModel):
         Args:
             component: Component name (e.g., 'body_joints')
             algorithm: Algorithm name (e.g., 'hrnetw48')
-            folder_type: One of 'output', 'visualization', 'additional', 'run_config', 'result'
+            folder_type: One of 'output', 'visualization', 'native_visualization', 'run_config', 'result'
 
         Returns:
             Resolved Path to the requested folder
         """
         template_map = {
-            "output": self.io.detector_out_folder,
+            "detector_native_folder": self.io.detector_native_folder,
+            "output": self.io.detector_native_out_folder,
             "visualization": self.io.detector_visualization_folder,
-            "additional": self.io.detector_additional_output_folder,
+            "native_visualization": self.io.detector_native_visualization_folder,
             "run_config": self.io.detector_run_config_path,
-            "result": self.io.detector_final_result_folder,
+            "result": self.io.detector_result_folder,
         }
 
         if folder_type not in template_map:

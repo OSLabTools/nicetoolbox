@@ -104,7 +104,7 @@ class VelocityBody(BaseFeature):
         kinematics_utils.visualize_mean_of_motion_magnitude_by_bodypart(
             bodypart_motion.data[..., 0],
             self.bodyparts_list,
-            self.viz_folder,
+            self.viz_folders["kinematics"],
             self.subjects_descr,
             bodypart_motion.axes.cameras,
         )

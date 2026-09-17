@@ -129,7 +129,7 @@ class FakeDatasetConfig:
 class FakeRunIO(BaseModel):
     # Pydantic so resolve_placeholders can walk into it.
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    detector_final_result_folder: Path = Path("")
+    detector_result_folder: Path = Path("")
     out_sub_folder: Path = Path("")
 
 
@@ -233,7 +233,7 @@ def make_experiment_config(tmp_path: Path, datasets: dict, algo_component_mappin
     run_file = FakeRunFile(
         run=run_datasets,
         algorithms=list(algo_component_mapping.keys()),
-        io=FakeRunIO(detector_final_result_folder=result_template, out_sub_folder=sub_folder_template),
+        io=FakeRunIO(detector_result_folder=result_template, out_sub_folder=sub_folder_template),
     )
 
     cfg = MagicMock()

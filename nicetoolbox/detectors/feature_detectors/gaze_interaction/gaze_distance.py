@@ -150,7 +150,12 @@ class BaseGazeDistance(BaseFeature):
         look_at = out.get("gaze_interaction", f"gaze_look_at_{self.dim}").data
         mutual = out.get("gaze_interaction", f"gaze_mutual_{self.dim}").data
         gaze_interaction_utils.visualize_gaze_interaction(
-            distance_array.data, look_at, mutual, self.viz_folder, self.subjects_descr, distance_array.axes.cameras
+            distance_array.data,
+            look_at,
+            mutual,
+            self.viz_folders["gaze_interaction"],
+            self.subjects_descr,
+            distance_array.axes.cameras,
         )
 
         head_array = out.get("gaze_interaction", f"head_position_{self.dim}")
@@ -186,7 +191,7 @@ class BaseGazeDistance(BaseFeature):
             dataloader_config=self.data.get_input_recipes(),
             camera_names=cameras,
             subjects_descr=self.subjects_descr,
-            output_folder=self.viz_folder,
+            output_folder=self.viz_folders["gaze_interaction"],
             fps=self.data.fps,
         )
         logging.info(f"Visualization of feature detector {self.components} completed.")

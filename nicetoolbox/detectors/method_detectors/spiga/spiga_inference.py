@@ -18,7 +18,7 @@ from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 RAW_INFERENCE_PICKLE_NAME = "spiga_inference_raw.pkl"
 
 
-def _visulize(image_bgr, features, bboxes, plotter, out_folder, camera_name, real_frame_idx):
+def _visulize(image_bgr, features, bboxes, plotter, native_viz_folder, camera_name, real_frame_idx):
     canvas = image_bgr.copy()
     for i, (x0, y0, bw, bh) in enumerate(bboxes):
         headpose = np.array(features["headpose"][i])
@@ -31,7 +31,7 @@ def _visulize(image_bgr, features, bboxes, plotter, out_folder, camera_name, rea
             euler=True,
         )
 
-    out_dir = os.path.join(out_folder, "images", camera_name)
+    out_dir = os.path.join(native_viz_folder, camera_name)
     os.makedirs(out_dir, exist_ok=True)
     cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), canvas)
 
@@ -46,7 +46,8 @@ def spiga_inference(config: dict) -> None:
     # (1) Access config parameters
     camera_names = config["camera_names"]
     visualize_native = config["visualize_native"]
-    out_folder = config["out_folders"]["head_orientation"]
+    out_folder = config["algorithm_out_folder"]
+    native_viz_folder = config["native_viz_folder"]
 
     # (2) Prepare data loader
     dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
@@ -122,7 +123,7 @@ def spiga_inference(config: dict) -> None:
                     features=features,
                     bboxes=bboxes,
                     plotter=plotter,
-                    out_folder=out_folder,
+                    native_viz_folder=native_viz_folder,
                     camera_name=camera_name,
                     real_frame_idx=real_frame_idx,
                 )

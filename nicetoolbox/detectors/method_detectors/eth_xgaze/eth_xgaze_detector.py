@@ -81,8 +81,11 @@ class EthXgaze(BaseMethod):
         # Sanity checks
         # ETH-XGaze needs per-camera calibration: intrinsics for the head-pose/normalization at inference
         self.calibration = self.data.calibration
-        if not self.calibration:  # TODO: fake it?
-            raise ValueError(f"UniGaze '{self.algorithm_instance}' requires camera calibration, but none is available.")
+        if not self.calibration:
+            raise ValueError(
+                f"ETH-XGaze '{self.algorithm_instance}' requires camera calibration, but none is available "
+                f"for this sequence."
+            )
 
         # SVG window cannot exceed the number of frames to smooth.
         if self.filtered and self.filter_window_length > len(self.frame_names):
@@ -101,7 +104,7 @@ class EthXgaze(BaseMethod):
         Returns the produced DetectorOutput; BaseMethod.run() validates + saves it (and passes
         it to visualization()).
         """
-        raw_path = os.path.join(self.out_folders[self.components[0]], RAW_INFERENCE_NPZ_NAME)
+        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_NPZ_NAME)
         raw = np.load(raw_path, allow_pickle=True)
 
         # dense camera-local gaze + landmarks (typed with axes), faces assigned to slots.
@@ -152,7 +155,7 @@ class EthXgaze(BaseMethod):
         gaze_key = "gaze_2d_filtered" if self.filtered else "gaze_2d"
         gaze_2d = out.get("gaze_individual", gaze_key)
         gaze_origin_2d = out.get("gaze_individual", "gaze_origin_2d")
-        draw_direction_vector(gaze_2d, gaze_origin_2d, self.render_context, self.viz_folder)
+        draw_direction_vector(gaze_2d, gaze_origin_2d, self.render_context, self.viz_folders["gaze_individual"])
 
     def _world_lift(self, gaze_cam: NpzArray) -> NpzArray:
         """Rotate each camera's local gaze direction into the shared world frame.

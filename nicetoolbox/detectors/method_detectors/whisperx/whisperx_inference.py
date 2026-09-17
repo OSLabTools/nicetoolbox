@@ -26,7 +26,7 @@ def whisperx_inference(config: dict) -> None:
     logging.info("Starting WhisperX Inference Pipeline.")
 
     subjects_description = config["subjects_descr"]
-    extra_detector_output_folder = config["out_folders"]["speaker_aligned_transcription"]  # additional detector results
+    extra_detector_output_folder = config["algorithm_out_folder"]  # additional detector results
 
     cache_raw = config["hf_weights_cache_dir"]
     assets_dir = str(Path(cache_raw).expanduser())
@@ -130,12 +130,12 @@ def whisperx_inference(config: dict) -> None:
 
     # Every component is written as a raw intermediate: post_inference converts them to their
     # schema models and the framework saves each component's final json.
-    for component, raw_name, out_dict in [
+    for _, raw_name, out_dict in [
         ("audio_transcription", RAW_TRANSCRIPTION_JSON_NAME, out_transcription),
         ("audio_diarization", RAW_DIARIZATION_JSON_NAME, out_diarization),
         ("speaker_aligned_transcription", RAW_SPEAKER_ALIGNED_JSON_NAME, out_speaker_aligned),
     ]:
-        out_dir = config["out_folders"][component]
+        out_dir = config["algorithm_out_folder"]
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, raw_name), "w") as f:
             json.dump(out_dict, f, indent=4)

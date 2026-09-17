@@ -82,9 +82,15 @@ class MMPose2D(BaseMMPose):
         See module docstring for the full description of steps and outputs.
         """
         for _component, result_folder in self.result_folders.items():
+            raw_prediction_file = os.path.join(self.algorithm_out_folder, _component, f"{self.algorithm_instance}.npz")
+            prediction = np.load(raw_prediction_file, allow_pickle=True)
             prediction_file = os.path.join(result_folder, f"{self.algorithm_instance}.npz")
-            prediction = np.load(prediction_file, allow_pickle=True)
             data_description = prediction["data_description"].item()
+            # Raw entries carry csv_skip so the native file is not exported to CSV.
+            # The final file we save below is meant for CSV export, so clear the flag.
+            for entry in data_description.values():
+                if isinstance(entry, dict):
+                    entry.pop("csv_skip", None)
             results_2d = prediction["2d"]
             results_2d_bbox = prediction["bbox_2d"]
 

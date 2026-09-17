@@ -45,7 +45,7 @@ class CrisperWhisper(BaseMethod):
         """
         # Timestamps are relative to the subsequence, since inference is handed sliced audio.
         # Recording where it starts lets a consumer place them back on the source timeline.
-        raw_path = os.path.join(self.out_folders["audio_transcription"], RAW_TRANSCRIPTION_JSON_NAME)
+        raw_path = os.path.join(self.algorithm_out_folder, RAW_TRANSCRIPTION_JSON_NAME)
         with open(raw_path) as f:
             raw_transcription = json.load(f)
 
@@ -57,7 +57,7 @@ class CrisperWhisper(BaseMethod):
         )
 
         # SRTs feed the subtitled-video visualization.
-        SrtWriter().write_tracks(transcription.tracks, self.out_folders["audio_transcription"])
+        SrtWriter().write_tracks(transcription.tracks, self.algorithm_out_folder)
 
         out = DetectorOutput()
         out.add_json("audio_transcription", transcription)
@@ -76,7 +76,7 @@ class CrisperWhisper(BaseMethod):
             info = self.audio_loader.get_stream_info(track_name)
 
             render_subtitled_track_video(
-                srt_path=os.path.join(self.out_folders["audio_transcription"], f"{track_name}.srt"),
+                srt_path=os.path.join(self.algorithm_out_folder, f"{track_name}.srt"),
                 audio_path=info["source_path"],
                 output_path=os.path.join(self.viz_folders["audio_transcription"], f"{track_name}.mp4"),
                 fps=self.data.fps,

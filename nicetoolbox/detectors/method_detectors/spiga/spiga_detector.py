@@ -130,9 +130,7 @@ class Spiga(BaseMethod):
     def post_inference(self) -> DetectorOutput:
         out = DetectorOutput()
 
-        # Parse output from the detector
-        output_folder = self.out_folders[self.components[0]]
-        raw_path = os.path.join(output_folder, RAW_INFERENCE_PICKLE_NAME)
+        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PICKLE_NAME)
         head_rot, landmarks_2d = self._parse_raw(raw_path)
 
         # keypoints post processing

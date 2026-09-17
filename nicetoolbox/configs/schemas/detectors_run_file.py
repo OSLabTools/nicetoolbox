@@ -39,11 +39,13 @@ class DetectorsRunIO(BaseModel):
     assets: Path
     asset_manifest: Path
 
-    detector_out_folder: Path
+    detector_result_folder: Path
     detector_visualization_folder: Path
-    detector_additional_output_folder: Path
+
+    detector_native_folder: Path
+    detector_native_out_folder: Path
+    detector_native_visualization_folder: Path
     detector_run_config_path: Path
-    detector_final_result_folder: Path
 
 
 class SubsequenceConfig(BaseModel):

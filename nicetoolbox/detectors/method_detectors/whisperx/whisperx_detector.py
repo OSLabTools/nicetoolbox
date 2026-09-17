@@ -38,9 +38,9 @@ class WhisperX(BaseMethod):
 
         return super()._initialize_detector()
 
-    def _load_raw(self, component: str, raw_name: str) -> dict:
-        """Load a component's raw inference pack from its out_folder."""
-        with open(os.path.join(self.out_folders[component], raw_name)) as f:
+    def _load_raw(self, raw_name: str) -> dict:
+        """Load a component's raw inference pack from algorithm_out_folder."""
+        with open(os.path.join(self.algorithm_out_folder, raw_name)) as f:
             return json.load(f)
 
     def post_inference(self) -> DetectorOutput:
@@ -50,7 +50,7 @@ class WhisperX(BaseMethod):
         start = self.audio_loader.offset_seconds
         length = self.audio_loader.duration_seconds
 
-        raw_transcription = self._load_raw("audio_transcription", RAW_TRANSCRIPTION_JSON_NAME)
+        raw_transcription = self._load_raw(RAW_TRANSCRIPTION_JSON_NAME)
         transcription = to_audio_transcription(
             raw_transcription,
             subsequence_start=start,
@@ -58,7 +58,7 @@ class WhisperX(BaseMethod):
             algorithm=self.algorithm_instance,
         )
 
-        raw_diarization = self._load_raw("audio_diarization", RAW_DIARIZATION_JSON_NAME)
+        raw_diarization = self._load_raw(RAW_DIARIZATION_JSON_NAME)
         diarization = to_audio_diarization(
             raw_diarization,
             subsequence_start=start,
@@ -66,7 +66,7 @@ class WhisperX(BaseMethod):
             algorithm=self.algorithm_instance,
         )
 
-        raw_speaker_aligned = self._load_raw("speaker_aligned_transcription", RAW_SPEAKER_ALIGNED_JSON_NAME)
+        raw_speaker_aligned = self._load_raw(RAW_SPEAKER_ALIGNED_JSON_NAME)
         speaker_aligned = to_speaker_aligned_transcription(
             raw_speaker_aligned,
             subsequence_start=start,
@@ -77,8 +77,8 @@ class WhisperX(BaseMethod):
         # SRTs feed the subtitled-video visualization. Both transcription components get one so
         # any difference introduced by speaker alignment is visible side by side.
         srt_writer = SrtWriter()
-        srt_writer.write_tracks(transcription.tracks, self.out_folders["audio_transcription"])
-        srt_writer.write_tracks(speaker_aligned.tracks, self.out_folders["speaker_aligned_transcription"])
+        srt_writer.write_tracks(transcription.tracks, self.result_folders["audio_transcription"])
+        srt_writer.write_tracks(speaker_aligned.tracks, self.result_folders["speaker_aligned_transcription"])
 
         out = DetectorOutput()
         out.add_json("audio_transcription", transcription)
@@ -110,7 +110,7 @@ class WhisperX(BaseMethod):
             info = self.audio_loader.get_stream_info(track_name)
 
             render_subtitled_track_video(
-                srt_path=os.path.join(self.out_folders[component], f"{track_name}.srt"),
+                srt_path=os.path.join(self.result_folders[component], f"{track_name}.srt"),
                 audio_path=info["source_path"],
                 output_path=os.path.join(self.viz_folders[component], f"{track_name}.mp4"),
                 fps=self.data.fps,

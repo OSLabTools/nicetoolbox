@@ -56,10 +56,11 @@ asset_manifest = "<code_folder>/configs/asset_manifest.toml" # this config is in
 dataset_properties = "<configs_folder_path>/dataset_properties.toml"
 detectors_config = "<configs_folder_path>/detectors_config.toml"
 predictions_mapping = "<configs_folder_path>/predictions_mapping.toml"
-# Below are output folders with placeholders for current component and algorithm names
-detector_folder = "<out_sub_folder>/<cur_component_name>/<cur_algorithm_name>"
-detector_out_folder = "<detector_folder>/detector_output"
-detector_visualization_folder = "<detector_folder>/visualization"
-detector_additional_output_folder = "<detector_folder>/additional_output"
-detector_run_config_path = "<detector_folder>"
-detector_final_result_folder = "<out_sub_folder>/<cur_component_name>"
+# Final results folder paths for all components and algorithms
+detector_result_folder = "<out_sub_folder>/<cur_component_name>"
+detector_visualization_folder = "<detector_result_folder>/<cur_algorithm_name>/visualization/"
+# Paths for method detectors native output (from external environments)
+detector_native_folder = "<out_sub_folder>/_native_outputs/<cur_algorithm_name>"
+detector_native_out_folder = "<detector_native_folder>/detector_output"
+detector_native_visualization_folder = "<detector_native_folder>/visualization"
+detector_run_config_path = "<detector_native_folder>"

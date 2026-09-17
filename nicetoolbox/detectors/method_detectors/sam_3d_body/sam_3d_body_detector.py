@@ -742,15 +742,11 @@ class Sam3dBody(BaseMethod):
         Initialize the Sam3d method detector.
         """
         self.viz_folder = self.viz_folders["body_joints"]
-        self.out_folder = self.out_folders["body_joints_local"]
 
         return super()._initialize_detector()
 
     def post_inference(self) -> None:
-        raw_path = (
-            Path(self.io.get_detector_output_folder("body_joints_local", self.algorithm_instance, "output"))
-            / RAW_INFERENCE_NPZ_NAME
-        )
+        raw_path = Path(self.algorithm_out_folder) / RAW_INFERENCE_NPZ_NAME
         if not raw_path.is_file():
             logging.error("SAM 3D Body raw inference result missing: %s", raw_path)
             return

@@ -60,14 +60,14 @@ def create_pyfeat_detector(assets_dir: str):
     )
 
 
-def save_native_visualization(fex, out_folder: str, camera_name: str, barplots: bool) -> None:
+def save_native_visualization(fex, native_viz_folder: str, camera_name: str, barplots: bool) -> None:
     # Disable matplotlib interactive visualization
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    out_dir = Path(out_folder) / "images" / camera_name
+    out_dir = Path(native_viz_folder) / camera_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Iterate frame by frame, rather than standard pyfeat all frames together.
@@ -114,7 +114,8 @@ def py_feat_inference(config: dict) -> None:
     visualize_native = config["visualize_native"]
     visualize_native_barplots = config["visualize_native_barplots"]
     assets_dir = config["hf_weights_cache_dir"]
-    out_folder = config["out_folders"]["emotion_individual"]
+    out_folder = config["algorithm_out_folder"]
+    native_viz_folder = config["native_viz_folder"]
     # Optional (width, height) to resize frames before detection. None = native resolution.
     output_size = config["output_size"] or None
 
@@ -159,7 +160,7 @@ def py_feat_inference(config: dict) -> None:
         per_camera.append(camera_table)
 
         if visualize_native:
-            save_native_visualization(fex, out_folder, camera_name, visualize_native_barplots)
+            save_native_visualization(fex, native_viz_folder, camera_name, visualize_native_barplots)
 
         torch.cuda.empty_cache()
 

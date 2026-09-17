@@ -61,7 +61,7 @@ class PyFeat(BaseMethod):
     def post_inference(self) -> DetectorOutput:
         out = DetectorOutput()
         # read raw prediction from native side
-        raw_path = os.path.join(self.out_folders["emotion_individual"], RAW_INFERENCE_PARQUET_NAME)
+        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PARQUET_NAME)
         # Which columns form each feature block. Written by the inference script, since Fex keeps
         # these groupings as python attributes that parquet cannot carry.
         meta_json = pq.read_schema(raw_path).metadata[FEATURE_COLUMNS_METADATA_KEY]
