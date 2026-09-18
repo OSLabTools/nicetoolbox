@@ -28,6 +28,7 @@ ifeq ($(OS), Windows_NT)
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/Scripts
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/Scripts
 	UNIGAZE_EXE_DIR = ./envs/unigaze/Scripts
+	MEDIAPIPE_EXE_DIR = ./envs/mediapipe/Scripts
 else
 	PYTHON_EXE = python3.10
 	CONDA_DIR := $(shell conda info --base)
@@ -41,6 +42,7 @@ else
 	SAM3D_BODY_EXE_DIR = $(VENV_ROOT_DIR)/sam_3d_body/bin
 	CRISPER_WHISPER_EXE_DIR = ./envs/crisper_whisper/bin
 	UNIGAZE_EXE_DIR = ./envs/unigaze/bin
+	MEDIAPIPE_EXE_DIR = ./envs/mediapipe/bin
 endif
 
 # Download data variables
@@ -219,6 +221,7 @@ install_all_detectors:
 	-@make install_unigaze
 	-@make install_spiga
 	-@make install_insight_face
+	-@make install_mediapipe
 	-@make install_whisperx
 	-@make install_sam3d_body
 	-@make install_crisper_whisper
@@ -305,6 +308,24 @@ install_insight_face:
 
 	@$(INSIGHT_FACE_EXE_DIR)/pip install -e ./nicetoolbox_core
 	@echo "'InsightFace' environment setup completed successfully."
+
+
+# Install the venv for MediaPipe Face Landmarker
+.PHONY: install_mediapipe
+install_mediapipe:
+	@make create_separator
+	@make clean_venv NAME=mediapipe
+	@echo "Installing virtual environment for algorithm 'MediaPipe'..."
+
+	@echo "Creating virtual environment..."
+	@$(PYTHON_EXE) -m venv ./envs/mediapipe
+	@$(MEDIAPIPE_EXE_DIR)/python -m pip install --upgrade pip
+	@echo "Virtual environment created in ./envs/mediapipe"
+
+	@echo "Installing requirements for 'MediaPipe'..."
+	@$(MEDIAPIPE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/mediapipe/mediapipe_requirements.txt
+	@$(MEDIAPIPE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@echo "'MediaPipe' environment setup completed successfully."
 
 
 # Install the venv for whisperx

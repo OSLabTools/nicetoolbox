@@ -268,3 +268,12 @@ source = "huggingface"
 access = "open"
 licence = "MIT License"
 licence_link = "https://opensource.org/license/MIT"
+
+# --- MediaPipe Face Landmarker ---
+["mediapipe/face_landmarker.task"]
+url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+source = "url"
+access = "open"
+licence = "Apache License 2.0"
+licence_link = "https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE"
+

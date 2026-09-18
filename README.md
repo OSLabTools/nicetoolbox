@@ -58,6 +58,7 @@ We acknowledge the following tools, methods, and frameworks:
 [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper),
 [Py-Feat](https://py-feat.org/), and
 [rerun.io](https://rerun.io/).
+[Mediapipe](https://developers.google.com/edge/mediapipe/solutions/guide)
 
 ## Authors
 

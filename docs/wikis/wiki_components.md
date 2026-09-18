@@ -28,6 +28,8 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 | hand_joints_local | 3d (camera-native) |
 | face_bounding_box | bbox_2d |
 | face_landmarks | 2d, 2d_filtered, 2d_interpolated, 2d_reprojected_from_3d, 3d |
+| face_landmarks_local | 2d, 2d_filtered, 2d_interpolated, 3d |
+| face_blendshapes | blendshapes |
 | gaze_individual | landmarks_2d, 3d |
 | gaze_multiview | gaze_2d, gaze_2d_filtered, gaze_fused, gaze_fused_filtered |
 | gaze_interaction | distance_gaze_2d/3d, gaze_look_at_2d/3d, gaze_mutual_2d/3d |
@@ -86,6 +88,8 @@ The `data_description` dictionary details the entries of all numpy files within 
 | 3d, gaze_fused, gaze_fused_filtered | coordinate_x, coordinate_y, coordinate_z | --
 | gaze_2d, gaze_2d_filtered | coordinate_u, coordinate_v | --
 | bbox_2d | full_body | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score |
+| bbox_2d (face) | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score | -- |
+| blendshapes | list of 52 blendshape names | coefficient |
 | landmarks_2d | list of all landmarks | coordinate_u, coordinate_v |
 | distance_gaze_3d | per subject: to_face_<subject_name> | -- |
 | gaze_look_at_3d | per subject: look_at_<subject_name> | -- |

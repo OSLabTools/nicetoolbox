@@ -24,6 +24,7 @@ class VideoInputRecipe(BaseModel):
     range_start: int
     range_end: int
     step: int = 1
+    fps: float
 
 
 # =============================================================================

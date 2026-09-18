@@ -14,19 +14,15 @@ from ....utils import video as vd
 def resolve_eye_indices(face_indices: dict, eye_key: str) -> list[int]:
     """
     Resolves eye keypoint indices within sliced face landmarks.
-    If keypoints are global whole-body IDs, maps them to their relative 0-indexed positions
-    in the sliced face landmark array. Otherwise returns the 0-indexed positions directly.
+    If keypoints are global whole-body IDs (e.g., COCO-WholeBody), maps them to their relative
+    0-indexed positions within the face_landmarks subset.
+    Otherwise returns the 0-indexed positions directly.
     """
     target_indices = face_indices[eye_key]
-    face_indices_all = []
-    for val in face_indices.values():
-        if isinstance(val, list):
-            face_indices_all.extend(val)
-        else:
-            face_indices_all.append(val)
-
-    if all(idx in face_indices_all for idx in target_indices):
-        return [face_indices_all.index(idx) for idx in target_indices]
+    if "face_landmarks" in face_indices:
+        face_landmarks_all = face_indices["face_landmarks"]
+        if all(idx in face_landmarks_all for idx in target_indices):
+            return [face_landmarks_all.index(idx) for idx in target_indices]
     return target_indices
 
 
