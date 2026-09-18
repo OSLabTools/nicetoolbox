@@ -19,6 +19,7 @@ This page is provided for convenience only and is not legal advice. Please conta
 | [face-alignment](https://github.com/1adrianb/face-alignment) | [BSD 3-Clause](https://github.com/1adrianb/face-alignment/blob/master/LICENSE) | [BSD 3-Clause](https://github.com/1adrianb/face-alignment/blob/master/LICENSE) |
 | [MoGe](https://github.com/microsoft/MoGe) | [MIT](https://github.com/microsoft/MoGe/blob/main/LICENSE) | [MIT](https://opensource.org/license/MIT) |
 | [Detectron2](https://github.com/facebookresearch/detectron2) | [Apache 2.0](https://github.com/facebookresearch/detectron2/blob/main/LICENSE) | [Apache 2.0](https://github.com/facebookresearch/detectron2/blob/main/LICENSE) |
+| [MediaPipe](https://github.com/google-ai-edge/mediapipe) | [Apache 2.0](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE) | [Apache 2.0](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE) |
 
 You can see full list of officially supported weights in [`asset_manifest.toml`](https://github.com/OSLabTools/nicetoolbox/blob/main/configs/asset_manifest.toml).
 

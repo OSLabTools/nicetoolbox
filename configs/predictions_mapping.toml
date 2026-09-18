@@ -337,3 +337,73 @@ horizontal_pair = [0, 4]
 "mouth" = [76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95]
 "iris_right" = [96]
 "iris_left" = [97]
+
+# MediaPipe Face Mesh dense landmarks (478 points, including 10 iris points)
+[human_pose.mediapipe_face]
+blendshapes = [
+    "_neutral",
+    "browDownLeft",
+    "browDownRight",
+    "browInnerUp",
+    "browOuterUpLeft",
+    "browOuterUpRight",
+    "cheekPuff",
+    "cheekSquintLeft",
+    "cheekSquintRight",
+    "eyeBlinkLeft",
+    "eyeBlinkRight",
+    "eyeLookDownLeft",
+    "eyeLookDownRight",
+    "eyeLookInLeft",
+    "eyeLookInRight",
+    "eyeLookOutLeft",
+    "eyeLookOutRight",
+    "eyeLookUpLeft",
+    "eyeLookUpRight",
+    "eyeSquintLeft",
+    "eyeSquintRight",
+    "eyeWideLeft",
+    "eyeWideRight",
+    "jawForward",
+    "jawLeft",
+    "jawOpen",
+    "jawRight",
+    "mouthClose",
+    "mouthDimpleLeft",
+    "mouthDimpleRight",
+    "mouthFrownLeft",
+    "mouthFrownRight",
+    "mouthFunnel",
+    "mouthLeft",
+    "mouthLowerDownLeft",
+    "mouthLowerDownRight",
+    "mouthPressLeft",
+    "mouthPressRight",
+    "mouthPucker",
+    "mouthRight",
+    "mouthRollLower",
+    "mouthRollUpper",
+    "mouthShrugLower",
+    "mouthShrugUpper",
+    "mouthSmileLeft",
+    "mouthSmileRight",
+    "mouthStretchLeft",
+    "mouthStretchRight",
+    "mouthUpperUpLeft",
+    "mouthUpperUpRight",
+    "noseSneerLeft",
+    "noseSneerRight",
+]
+
+[human_pose.mediapipe_face.eye_layout]
+upper_eyelid = [0, 1, 2, 3]
+lower_eyelid = [0, 5, 4, 3]
+vertical_pairs = [[1, 4], [2, 5]]
+horizontal_pair = [0, 3]
+
+[human_pose.mediapipe_face.connections]
+'face_landmarks' = []
+
+[human_pose.mediapipe_face.keypoints_index.face]
+"right_eye" = [33, 159, 158, 133, 153, 145]
+"left_eye" = [362, 385, 386, 263, 374, 380]

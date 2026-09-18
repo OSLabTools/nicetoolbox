@@ -127,6 +127,8 @@ class WflwKeypointsIndex(BaseModel):
 class Wflw(BaseModel):
     keypoints_index: WflwKeypointsIndex
     eye_layout: EyeLayout
+    connections: Optional[Dict[str, List[List[str]]]] = None
+    blendshapes: Optional[List[str]] = None
 
 
 class HumanPose(BaseModel):
@@ -137,6 +139,7 @@ class HumanPose(BaseModel):
     sam_3d_body_mhr_evaluation: Optional[Sam3dBodyMhrEvaluation] = None
     face_5pt: Face5pt
     wflw: Wflw
+    mediapipe_face: Wflw
     bodypart_names: Dict[str, List[str]]
     bone_dict: Dict[str, List[str]]
     joint_diameter_size: Dict[str, float]

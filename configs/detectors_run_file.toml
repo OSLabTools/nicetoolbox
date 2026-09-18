@@ -30,6 +30,7 @@ algorithms = [
    "whisperx", "crisper_whisper",                     # audio transcription
    "eye_closure_score_ear", "eye_state_ear",          # closed eyes detection (2d)
    "insight_face",                                    # face bounding box detection
+   "mediapipe_face_landmarks",                        # MediaPipe face landmarks and blendshapes
 ]
 
 # define which data to run on

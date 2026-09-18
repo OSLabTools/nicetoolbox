@@ -306,6 +306,24 @@ class InsightFaceConfig(BaseAlgorithmConfig):
     required_assets: Dict[str, str] = Field(default_factory=dict)
 
 
+@detector_config("mediapipe_face_landmarks")
+class MediapipeFaceLandmarksConfig(BaseAlgorithmConfig):
+    env_name: str
+    camera_names: str | list[str]
+    visualize: bool
+    visualize_native: bool
+    visualize_keypoints_npz_key: str
+    keypoint_mapping: str
+    filter_keypoints: FilterConfig
+    interpolate_keypoints: InterpolationConfig
+    num_faces: int
+    min_face_detection_confidence: float
+    min_face_presence_confidence: float
+    min_face_tracking_confidence: float
+
+    required_assets: Dict[str, str] = Field(default_factory=dict)
+
+
 @detector_config("py_feat")
 class PyFeatConfig(BaseAlgorithmConfig):
     camera_names: str | list[str]

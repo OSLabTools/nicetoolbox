@@ -409,6 +409,28 @@ model_weights_path = "<assets>/spiga/spiga_wflw.pt" # path to weights folder
 
 
 # ======================================================================
+#                        MediaPipe Face Landmarker
+# ======================================================================
+
+[algorithms.mediapipe_face_landmarks]
+algorithm_type = "mediapipe_face_landmarks"
+env_name = "venv:mediapipe"
+camera_names = ["view_left", "view_right"]
+keypoint_mapping = "mediapipe_face"
+visualize = true
+visualize_native = true
+visualize_keypoints_npz_key = "2d_interpolated"
+num_faces = 10
+min_face_detection_confidence = 0.5
+min_face_presence_confidence = 0.5
+min_face_tracking_confidence = 0.5
+filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
+interpolate_keypoints = {interpolated = true, max_gap = 10 }
+[algorithms.mediapipe_face_landmarks.required_assets]
+model_path = "<assets>/mediapipe/face_landmarker.task"
+
+
+# ======================================================================
 #                        Emotions Detection Py-Feat
 # ======================================================================
 

@@ -119,6 +119,16 @@ The default `buffalo_l` pack detects faces with **SCRFD-10GF**; the packs also b
 
 [Prados-Torreblanca et al., 2022](https://arxiv.org/abs/2210.07233)
 
+## MediaPipe Face Landmarker
+
+**MediaPipe Face Landmarker** is a real-time, lightweight facial landmark and expression analysis model developed by Google. It detects faces in the input frames, estimates 478 3D facial keypoints, and predicts 52 facial blendshape coefficients (coefficients of facial muscles representing expressions like eye blink, smile, etc.).
+
+In the NICE Toolbox, it runs as the **`mediapipe_face_landmarks`** algorithm and populates the following output components:
+- **`face_landmarks_local`**: 2D keypoints on the image plane plane (`2d`, `2d_filtered`, `2d_interpolated`) and 3D keypoint coordinates in pixel-scale space (`3d`), relative to the center of the face.
+- **`face_blendshapes`**: 52 facial blendshape coefficients (`blendshapes`).
+
+[Kartynnik et al., 2019](https://arxiv.org/abs/1907.06724)
+
 ## Eye Closure
 
 Two algorithms support tracking blink/closure states and dynamics from facial landmark outputs:
