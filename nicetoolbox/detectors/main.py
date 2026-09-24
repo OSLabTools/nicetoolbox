@@ -144,9 +144,10 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
             # ======================
             # PHASE 3: RUN DETECTORS
             # ======================
-            for algorithm_instance in ordered_detectors:  # for each detector instance
+            total_detectors = len(ordered_detectors)
+            for idx, algorithm_instance in enumerate(ordered_detectors, start=1):  # for each detector instance
                 with manage_error_scope(error_level, ErrorLevel.DETECTOR, algorithm_instance):
-                    log_ut.log_with_underscore(f"STARTING '{algorithm_instance}'.")
+                    log_ut.log_with_underscore(f"STARTING [{idx}/{total_detectors}] '{algorithm_instance}'.")
                     start_time = time.time()
 
                     cfg = sequence_context.detectors_config.algorithms[algorithm_instance]
@@ -158,7 +159,8 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
                     if config.visualize and detector.visualize:
                         detector.visualization(result_data)
 
-                    logging.info(f"FINISHED '{algorithm_instance}' in {time.time() - start_time}s.\n\n")
+                    elapsed = time.time() - start_time
+                    logging.info(f"FINISHED [{idx}/{total_detectors}] '{algorithm_instance}' in {elapsed:.2f}s.\n\n")
 
             # Convert results to .csv
             # TODO: skip native outputs folder

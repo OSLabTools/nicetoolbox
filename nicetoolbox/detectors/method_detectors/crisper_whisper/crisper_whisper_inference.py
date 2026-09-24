@@ -12,7 +12,7 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 
 # Raw pack read back by crisper_whisper_detector.post_inference (kept in sync manually; importing
 # the detector module here would pull main-env deps into the crisper_whisper-only venv).
@@ -113,7 +113,7 @@ def crisper_whisper_inference(config: dict) -> None:
 
     # (4) Process each track
     out_transcription = {}
-    for track_name, path, offset, duration in audio_loader:
+    for track_name, path, offset, duration in audio_loader.with_progress(desc="CrisperWhisper"):
         logging.info(f"Processing track: {track_name}")
 
         # (4.1) Load and slice audio track
@@ -126,10 +126,11 @@ def crisper_whisper_inference(config: dict) -> None:
         # (4.3) Adjust crisper whisper timesteps
         out_transcription[track_name] = adjust_pauses_for_hf_pipeline_output(pipeline_results)
 
-    # (5) Save the raw intermediate; post_inference converts it to its schema model and the
-    # framework saves the component's final json.
+    out_file = os.path.join(out_folder, RAW_TRANSCRIPTION_JSON_NAME)
     os.makedirs(out_folder, exist_ok=True)
-    with open(os.path.join(out_folder, RAW_TRANSCRIPTION_JSON_NAME), "w") as f:
+    with open(out_file, "w") as f:
         json.dump(out_transcription, f, indent=4)
 
     logging.info("CrisperWhisper processing complete.")
+
+    return SubprocessResult.from_artifacts(raw_output=out_file)

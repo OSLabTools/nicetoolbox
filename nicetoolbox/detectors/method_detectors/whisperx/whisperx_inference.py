@@ -13,7 +13,7 @@ import torch
 import whisperx
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 
 # Raw packs read back by whisperx_detector.post_inference
 RAW_TRANSCRIPTION_JSON_NAME = "whisperx_transcription_raw.json"
@@ -22,7 +22,7 @@ RAW_SPEAKER_ALIGNED_JSON_NAME = "whisperx_speaker_aligned_raw.json"
 
 
 @run_inference_entrypoint
-def whisperx_inference(config: dict) -> None:
+def whisperx_inference(config: dict) -> SubprocessResult:
     logging.info("Starting WhisperX Inference Pipeline.")
 
     subjects_description = config["subjects_descr"]
@@ -76,7 +76,7 @@ def whisperx_inference(config: dict) -> None:
     out_diarization = {}
     out_speaker_aligned = {}
 
-    for track_name, path, offset, duration in audio_loader:
+    for track_name, path, offset, duration in audio_loader.with_progress(desc="WhisperX"):
         logging.info(f"Processing track: {track_name}")
 
         # (1) Load and slice audio track
@@ -130,14 +130,19 @@ def whisperx_inference(config: dict) -> None:
 
     # Every component is written as a raw intermediate: post_inference converts them to their
     # schema models and the framework saves each component's final json.
-    for _, raw_name, out_dict in [
+    artifacts = {}
+    for component, raw_name, out_dict in [
         ("audio_transcription", RAW_TRANSCRIPTION_JSON_NAME, out_transcription),
         ("audio_diarization", RAW_DIARIZATION_JSON_NAME, out_diarization),
         ("speaker_aligned_transcription", RAW_SPEAKER_ALIGNED_JSON_NAME, out_speaker_aligned),
     ]:
         out_dir = config["algorithm_out_folder"]
         os.makedirs(out_dir, exist_ok=True)
-        with open(os.path.join(out_dir, raw_name), "w") as f:
+        save_file = os.path.join(out_dir, raw_name)
+        with open(save_file, "w") as f:
             json.dump(out_dict, f, indent=4)
+        artifacts[f"{component}_json"] = save_file
 
     logging.info("WhisperX processing complete.")
+
+    return SubprocessResult.from_artifacts(**artifacts)

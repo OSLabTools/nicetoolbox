@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 import numpy as np
 
+from nicetoolbox_core.entrypoint import SubprocessResult
+
 from ....configs.schemas.detectors_instances_configs import MotionbertAlgorithmConfig
 from ....utils import video as vd
 from ... import config_handler as confh
@@ -52,20 +54,15 @@ class MMPose3D(BaseMMPose):
     in the lifter's root-relative frame (no PnP or camera alignment).
     """
 
-    def post_inference(self):
+    def post_inference(self, result_manifest: SubprocessResult):
         """
         Post-inference processing for 3D pose estimation.
         """
-        for _component, result_folder in self.result_folders.items():
-            raw_prediction_file = os.path.join(self.algorithm_out_folder, _component, f"{self.algorithm_instance}.npz")
-            prediction = np.load(raw_prediction_file, allow_pickle=True)
-            prediction_file = os.path.join(result_folder, f"{self.algorithm_instance}.npz")
+        raw_output_file = result_manifest.get_raw_output()
+        for _component in self.result_folders:
+            prediction_file = raw_output_file
+            prediction = np.load(prediction_file, allow_pickle=True)
             data_description = prediction["data_description"].item()
-            # Raw entries carry csv_skip so the native file is not exported to CSV.
-            # The final file we save below is meant for CSV export, so clear the flag.
-            for entry in data_description.values():
-                if isinstance(entry, dict):
-                    entry.pop("csv_skip", None)
 
             results_2d = prediction["2d"]
             results_bbox_2d = prediction["bbox_2d"]
@@ -154,9 +151,6 @@ class MotionBERT(MMPose3D):
     algorithm_type = "motionbert"
     components = ["body_joints_local"]
 
-    def get_inference_script(self) -> str:
-        return "motionbert_inference.py"
-
     def compute_viz_folder(self, _visualize: bool) -> Optional[str]:
         """Return None so base __init__ does not mkdir the visualization folder.
 
@@ -166,10 +160,10 @@ class MotionBERT(MMPose3D):
         return None
 
     def visualization(self, _):
-        for _, viz_dir in self.viz_folders.items():
-            os.makedirs(viz_dir, exist_ok=True)
+        for _, result_folder in self.result_folders.items():
+            viz_dir = os.path.join(result_folder, self.algorithm_instance, "visualization")
             for camera_name in self.camera_names:
-                cam_frames_dir = os.path.join(self.native_viz_folder, camera_name)
+                cam_frames_dir = os.path.join(viz_dir, camera_name)
                 out_mp4 = os.path.join(viz_dir, f"{camera_name}.mp4")
                 rc = vd.frames_to_video(cam_frames_dir, out_mp4, int(self.fps), start_frame=int(self.video_start))
                 if rc == 0:

@@ -20,7 +20,7 @@ import cv2
 import numpy as np
 import torch
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 # Launched as ``python …/sam_3d_body_inference.py`` (no package context). Load sibling
@@ -141,6 +141,7 @@ def main(config: dict) -> None:
     inference_type = config.get("inference_type", "body")
     save_vertices = bool(config.get("save_vertices", False))
 
+    # TODO: work with dataloader directly
     for fi in range(n_frames):
         if mode == "multi":
             frame_bundle: dict = {}
@@ -195,3 +196,5 @@ def main(config: dict) -> None:
         ),
     )
     logging.info("SAM 3D Body wrote %s", out_path)
+
+    return SubprocessResult.from_artifacts(raw_output=out_path)

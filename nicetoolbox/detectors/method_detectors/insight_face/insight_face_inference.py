@@ -10,7 +10,7 @@ import pickle
 
 import cv2
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 RAW_INFERENCE_PICKLE_NAME = "insight_face_inference_raw.pkl"
@@ -66,7 +66,7 @@ def insight_face_inference(config: dict) -> None:
 
     # (4) Run InsighFace for each frame
     per_frame_outputs = []
-    for real_frame_idx, frame_paths_per_camera in dataloader:
+    for real_frame_idx, frame_paths_per_camera in dataloader.with_progress(desc="InsightFace"):
         frame_bundle = {}
         for camera_name, frame_path in frame_paths_per_camera.items():
             image = cv2.imread(frame_path)
@@ -94,3 +94,5 @@ def insight_face_inference(config: dict) -> None:
     with open(save_file_name, "wb") as raw_file:
         pickle.dump(per_frame_outputs, raw_file)
     logging.info(f"Face detection 'InsightFace' raw pack COMPLETED! Wrote '{save_file_name}'.\n")
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)

@@ -11,9 +11,13 @@ model (in-process) or a raw dict (subprocess config).
 """
 
 import logging
+import os
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+
+from tqdm import tqdm
 
 from .input_recipes import AudioInputRecipe, AudioStreamRecipe, InputRecipes
 
@@ -41,13 +45,26 @@ def _resolve_audio_recipe(config: Union[InputRecipes, dict]) -> AudioInputRecipe
     return recipes.audio_input_recipe
 
 
+def get_console_stream():
+    """Returns a stream writing directly to the active terminal screen."""
+    try:
+        console_path = "CONOUT$" if os.name == "nt" else "/dev/tty"
+        return open(console_path, "w", encoding="utf-8")
+    except Exception:
+        return sys.stdout
+
+
 class AudioDataLoader(ABC):
     """
     Abstract Base Class for loading audio data based on a recipe.
 
     Handles configuration parsing, track filtering, and timing logic.
-    Subclasses must implement __iter__ to define how data is yielded.
+    Subclasses must implement __iter__ to define how data is yielded, and
+    should override `progress_unit` with the name of the unit yielded (used
+    as the default progress-bar unit in `with_progress`).
     """
+
+    progress_unit: str = "it"
 
     def __init__(
         self,
@@ -87,6 +104,29 @@ class AudioDataLoader(ABC):
                 )
         else:
             self.tracks = available_tracks
+
+    def with_progress(self, desc: Optional[str] = None):
+        """
+        Enable CLI progress bar for this audio data loader using tqdm.
+
+        Args:
+            desc (str, optional): Description displayed in progress bar.
+
+        Returns:
+            tqdm: A tqdm iterator wrapping this audio data loader.
+        """
+        desc = desc or self.__class__.__name__
+        return tqdm(
+            self,
+            desc=desc,
+            unit=self.progress_unit,
+            file=get_console_stream(),
+            bar_format=(
+                "[PROGRESS] {desc}: {percentage:3.0f}%|{bar}| "
+                "{n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+            ),
+            dynamic_ncols=True,
+        )
 
     @property
     def offset_seconds(self) -> float:
@@ -162,6 +202,8 @@ class AudioStreamLoader(AudioDataLoader):
             audio, sr = librosa.load(path, sr=None, offset=offset, duration=duration)
     """
 
+    progress_unit = "tracks"
+
     def __iter__(self) -> Iterator[AUDIO_STREAM_WITH_TIMING]:
         """Yields (track_name, file_path, offset_seconds, duration_seconds)."""
         for track_name in self.tracks:
@@ -186,6 +228,8 @@ class AudioChunkLoader(AudioDataLoader):
         for track_name, path, chunk_offset, chunk_dur in loader:
             audio, sr = librosa.load(path, sr=None, offset=chunk_offset, duration=chunk_dur)
     """
+
+    progress_unit = "chunks"
 
     def __init__(
         self,

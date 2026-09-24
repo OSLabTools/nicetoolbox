@@ -12,7 +12,13 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import final
 
-from nicetoolbox_core.entrypoint import SubprocessError, get_subprocess_error_path
+from nicetoolbox_core.entrypoint import (
+    SUBPROCESS_MANIFEST_ADAPTER,
+    SubprocessFail,
+    SubprocessManifest,
+    SubprocessResult,
+    get_subprocess_result_path,
+)
 
 from ...configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ...utils.base_detectors import flatten_inference_config
@@ -88,6 +94,7 @@ class BaseMethod(BaseDetector):
         self.algorithm_out_folder = str(algorithm_out_folder_path)
         native_viz_folder = self.io.get_algorithm_output_folder(self.algorithm_instance, "native_visualization")
         self.native_viz_folder = str(native_viz_folder)
+        self.subprocess_log_path = algorithm_folder_path / "subprocess.log"
 
         self.runtime = self._initialize_detector()  # Overloaded by child detectors
 
@@ -123,7 +130,6 @@ class BaseMethod(BaseDetector):
             algorithm=self.algorithm_instance,
             visualize=self.visualize,
             subjects_descr=self.data.subjects_descr,
-            log_file=str(self.subsequence_context.log_file),
             log_level=self.subsequence_context.log_level,
             calibration=self.data.calibration,
             cam_sees_subjects=self.data.cam_sees_subjects,
@@ -220,10 +226,17 @@ class BaseMethod(BaseDetector):
     def _subprocess_env(self) -> dict:
         """Copy os.environ and set HF_TOKEN from machine_specific_paths.toml when configured."""
         env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         tok = effective_hf_hub_token(self.subsequence_context.machine)
         if tok:
             env["HF_TOKEN"] = tok
         return env
+
+    def _load_result_manifest(self) -> SubprocessManifest:
+        """Load and validate result.json written by entrypoint. Raises if missing or unparsable."""
+        result_file = get_subprocess_result_path(self.config_path)
+        with open(result_file) as f:
+            return SUBPROCESS_MANIFEST_ADAPTER.validate_python(json.load(f))
 
     # -------------------------------------------------------------------------
     # BaseDetector Interface Implementation
@@ -249,43 +262,47 @@ class BaseMethod(BaseDetector):
             result.save(self.io, self.algorithm_instance)
         return result
 
-    def _run_inference(self) -> None:
+    def _run_inference(self) -> DetectorOutput | None:
         """Run the inference subprocess."""
         logging.info(f"INFERENCE: Launching {self.algorithm_instance} subprocess...")
+
         # debugging shortcut
         if self.subsequence_context.run.skip_inference:
             logging.warning(
                 f"INFERENCE: skip_inference is set - reusing existing {self.algorithm_instance} "
                 "inference output and running post-processing only."
             )
-            return self.post_inference()
+            result_manifest = self._load_result_manifest()
+            return self.post_inference(result_manifest)
 
         command = self._create_command()
 
-        # delete error from previois runs, before starting processing
-        error_file = get_subprocess_error_path(self.config_path)
-        error_file.unlink(missing_ok=True)
+        # delete result manifest from previous runs, before starting processing
+        result_file = get_subprocess_result_path(self.config_path)
+        result_file.unlink(missing_ok=True)
 
         sub_env = self._subprocess_env()
         if self.os_type == "windows":
-            cmd_result = subprocess.run(command, capture_output=True, text=True, shell=True, check=False, env=sub_env)
+            popen_kwargs = {"shell": True, "env": sub_env}
         else:
-            cmd_result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                shell=True,
-                executable="/bin/bash",
-                check=False,
-                env=sub_env,
-            )
+            popen_kwargs = {"shell": True, "executable": "/bin/bash", "env": sub_env}
 
-        if cmd_result.returncode == 0:
+        with open(self.subprocess_log_path, "w", encoding="utf-8") as f_log:
+            process = subprocess.Popen(
+                command,
+                stdout=f_log,
+                stderr=f_log,
+                **popen_kwargs,
+            )
+            returncode = process.wait()
+
+        if returncode == 0:
             logging.info(f"INFERENCE: {self.algorithm_instance} finished successfully (Exit 0).")
-            return self.post_inference()
+            result_manifest = self._load_result_manifest()
+            return self.post_inference(result_manifest)
 
         logging.error(f"INFERENCE: {self.algorithm_instance} subprocess failed (Exit 1).")
-        self._handle_subprocess_error(cmd_result)
+        self._handle_subprocess_error()
         return None
 
     def _create_command(self) -> str:
@@ -309,27 +326,28 @@ class BaseMethod(BaseDetector):
             raise ValueError(f"Unknown venv type '{self.venv}'. Expected 'conda' or 'venv'.")
         return command
 
-    def _handle_subprocess_error(self, cmd_result) -> None:
-        """Handle subprocess failure by checking for error.json."""
-        error_file = get_subprocess_error_path(self.config_path)
-
-        if error_file.exists():
-            try:
-                with open(error_file) as file:
-                    remote_exc_json = json.load(file)
-                remote_exc = SubprocessError(**remote_exc_json)
+    def _handle_subprocess_error(self) -> None:
+        """Handle subprocess failure by checking result.json for error report."""
+        if get_subprocess_result_path(self.config_path).exists():
+            manifest = self._load_result_manifest()
+            if isinstance(manifest, SubprocessFail):
+                remote_exc = manifest.error
                 raise RuntimeError(
                     f"Subprocess raised {remote_exc.exception_type}: {remote_exc.message}\n\n"
                     f"--- Remote Traceback ---\n\n{remote_exc.traceback}"
                 )
-            except (json.JSONDecodeError, KeyError) as err:
-                raise RuntimeError(
-                    f"Subprocess failed and error report is corrupt: {err}\n" f"Stderr: {cmd_result.stderr}"
-                ) from err
-        else:
-            raise RuntimeError(f"Subprocess Hard Crash (No Error Report):\n{cmd_result.stderr}")
+
+        # In the case of a hard crash (out of memory, segFault, etc.),
+        # the subprocess may not have written a result.json file.
+        # In that case, we try to read the last 30 lines of the log file for clues.
+        try:
+            log_text = self.subprocess_log_path.read_text(encoding="utf-8")
+            stderr = "\n".join(log_text.splitlines()[-30:])
+        except Exception:
+            pass
+        raise RuntimeError(f"Subprocess Hard Crash (No Error Report):\n{stderr}")
 
     @abstractmethod
-    def post_inference(self) -> None:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput | None:
         """Post-processing after inference completes."""
         pass

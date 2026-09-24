@@ -4,7 +4,6 @@ Py-feat method detector class.
 
 import json
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -12,6 +11,7 @@ import pyarrow.parquet as pq
 
 from nicetoolbox_core.data.array_schema import BBOX_2D_CONF, BoundedSchema
 from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
@@ -19,7 +19,6 @@ from ...detector_outputs import DetectorOutput, NpzDetectorOutput
 from ...utils.draw_2d import RenderContext, draw_bounding_boxes, draw_emotions
 from ..base_method import BaseMethod
 
-RAW_INFERENCE_PARQUET_NAME = "py_feat_inference_raw.parquet"
 FEATURE_COLUMNS_METADATA_KEY = b"feature_columns"
 
 # Circumplex affect: valence is pleasantness, arousal is activation, both in [-1, 1].
@@ -58,10 +57,10 @@ class PyFeat(BaseMethod):
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         out = DetectorOutput()
         # read raw prediction from native side
-        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PARQUET_NAME)
+        raw_path = result_manifest.get_raw_output()
         # Which columns form each feature block. Written by the inference script, since Fex keeps
         # these groupings as python attributes that parquet cannot carry.
         meta_json = pq.read_schema(raw_path).metadata[FEATURE_COLUMNS_METADATA_KEY]

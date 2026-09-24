@@ -2,37 +2,79 @@ import json
 import logging
 import sys
 import traceback
-from dataclasses import asdict, dataclass
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Callable, Dict, Optional, Union
 
 import toml
+from pydantic import BaseModel, Field, TypeAdapter
+from typing_extensions import Annotated, Literal
+
+# =============================================================================
+# Subprocess results schemas
+# =============================================================================
 
 
-def get_subprocess_error_path(config_path: Path) -> Path:
-    return config_path.parent / "error.json"
+class SubprocessResult(BaseModel):
+    status: Literal["success"] = "success"
+    artifacts: Dict[str, str] = Field(default_factory=dict)
+
+    @classmethod
+    def from_artifacts(cls, **artifacts: str) -> "SubprocessResult":
+        return cls(artifacts=artifacts)
+
+    def get_raw_output(self) -> Optional[str]:
+        """Convenience accessor for the conventional single-file artifact."""
+        return self.artifacts.get("raw_output")
 
 
-@dataclass
-class SubprocessError:
-    """
-    A safe-to-json wrapper for exceptions raised in subprocesses.
-    """
+class SubprocessError(BaseModel):
+    """A safe-to-json wrapper for exceptions raised in subprocesses."""
 
     exception_type: str
     message: str
     traceback: str
 
 
-def run_inference_entrypoint(main_function: Callable[[Dict[str, Any]], None]) -> None:
+class SubprocessFail(BaseModel):
+    status: Literal["error"] = "error"
+    error: SubprocessError
+
+
+SubprocessManifest = Annotated[
+    Union[SubprocessResult, SubprocessFail],
+    Field(discriminator="status"),
+]
+
+SUBPROCESS_MANIFEST_ADAPTER = TypeAdapter(SubprocessManifest)
+
+# =============================================================================
+# Entry point functions
+# =============================================================================
+
+
+def get_subprocess_result_path(config_path: Path) -> Path:
+    return config_path.parent / "result.json"
+
+
+def _save_result_manifest(config_path: Path, manifest: dict) -> None:
+    result_file = get_subprocess_result_path(config_path)
+    try:
+        with open(result_file, "w") as file:
+            json.dump(manifest, file, indent=4)
+    except Exception as io_err:
+        print(f"CRITICAL: Failed to write result manifest to json: {io_err}", file=sys.stderr)
+        raise
+
+
+def run_inference_entrypoint(main_function: Callable) -> None:
     """
     Decorator for the main inference function.
 
     Handles CLI args, Config loading, Logging, and Error Pickling.
 
     Args:
-        main_function (Callable[[Dict[str, Any]], None]): The main inference function.
+        main_function (Callable): The main inference function.
 
     Raises:
         SystemExit: Exits with code 0 on success, 1 on failure.
@@ -62,38 +104,33 @@ def run_inference_entrypoint(main_function: Callable[[Dict[str, Any]], None]) ->
 
             # 2. Setup Logging
             logging.basicConfig(
-                filename=config.get("log_file"),
                 level=config.get("log_level", "INFO"),
                 format="%(asctime)s [%(levelname)s] %(module)s.%(funcName)s: %(message)s",
             )
 
             # 3. Execute
-            main_function(config)
+            subprocess_result = main_function(config)
 
+            _save_result_manifest(config_path, subprocess_result.model_dump(exclude_none=True))
             sys.exit(0)
 
         except Exception as e:
             # 1. Log locally
             logging.critical("Inference Failed", exc_info=True)
 
-            # 2. Wrap in dataclass
+            # 2. Wrap in Pydantic error model
             safe_error = SubprocessError(
                 exception_type=type(e).__name__,
                 message=str(e),
                 traceback=traceback.format_exc(),
             )
 
-            # Save error.json next to the config file (standard detector output location)
-            error_file = get_subprocess_error_path(config_path)
+            # 3. Save error manifest inside result.json
+            error_manifest = SubprocessFail(error=safe_error)
             try:
-                with open(error_file, "w") as file:
-                    json.dump(asdict(safe_error), file, indent=4)
+                _save_result_manifest(config_path, error_manifest.model_dump(exclude_none=True))
             except Exception as io_err:
-                print(
-                    f"CRITICAL: Failed to write error to json: {io_err}",
-                    file=sys.stderr,
-                )
-
+                print(f"CRITICAL: Failed to write error manifest to json: {io_err}", file=sys.stderr)
             sys.exit(1)
 
     return wrapper()

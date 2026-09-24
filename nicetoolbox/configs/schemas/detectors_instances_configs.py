@@ -87,8 +87,7 @@ class MethodDetectorRuntime(BaseDetectorRuntime):
     # Used to find submodules paths
     nicetoolbox_root: str
 
-    # Logging (needed for subprocess)
-    log_file: str
+    # Subprocess log level (inherited from NICE Toolbox config)
     log_level: str
 
     # Data context for inference

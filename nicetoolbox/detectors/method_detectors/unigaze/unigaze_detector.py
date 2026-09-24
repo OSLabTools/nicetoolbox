@@ -3,12 +3,12 @@ UniGaze method detector class.
 """
 
 import logging
-import os
 
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
 from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
@@ -79,12 +79,12 @@ class UniGaze(BaseMethod):
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         """
         Post-processing after inference completes. Loads raw results, applies SG filtering,
         projects to 2D camera views, and builds a DetectorOutput object.
         """
-        raw_path = os.path.join(self.algorithm_out_folder, "unigaze_inference_raw.npz")
+        raw_path = result_manifest.get_raw_output()
         try:
             raw = np.load(raw_path, allow_pickle=True)
         except FileNotFoundError:

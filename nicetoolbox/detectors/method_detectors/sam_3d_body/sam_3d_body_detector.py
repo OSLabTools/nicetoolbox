@@ -13,6 +13,7 @@ from typing import Any
 import cv2
 import numpy as np
 
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime, Sam3dBodyConfig
@@ -23,7 +24,7 @@ from ...utils.keypoints_triangualation import apply_stereo_triangulation_to_body
 from ..base_method import BaseMethod
 from . import sam_3d_body_mesh_viz as mesh_viz
 from .sam_3d_body_export_tensors import build_body_joints_npz_payload, build_body_mesh_npz_payload, frame_person_list
-from .sam_3d_body_paths import RAW_INFERENCE_NPZ_NAME, SAM3D_BODY_LOCAL_NPZ_STEM, SAM3D_BODY_OUTPUT_NPZ_STEM
+from .sam_3d_body_paths import SAM3D_BODY_LOCAL_NPZ_STEM, SAM3D_BODY_OUTPUT_NPZ_STEM
 
 
 def _calibration_usable_for_world_alignment(calibration: dict[str, Any] | None, camera_names: list[str]) -> bool:
@@ -742,11 +743,12 @@ class Sam3dBody(BaseMethod):
         Initialize the Sam3d method detector.
         """
         self.viz_folder = self.viz_folders["body_joints"]
+        self.out_folder = self.result_folders["body_joints_local"]
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> None:
-        raw_path = Path(self.algorithm_out_folder) / RAW_INFERENCE_NPZ_NAME
+    def post_inference(self, result_manifest: SubprocessResult) -> None:
+        raw_path = Path(result_manifest.get_raw_output())
         if not raw_path.is_file():
             logging.error("SAM 3D Body raw inference result missing: %s", raw_path)
             return

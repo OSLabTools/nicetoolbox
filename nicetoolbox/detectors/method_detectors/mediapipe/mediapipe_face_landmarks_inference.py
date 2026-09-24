@@ -8,7 +8,7 @@ from mediapipe.framework.formats import landmark_pb2
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 RAW_INFERENCE_PICKLE_NAME = "mediapipe_face_landmarks_inference_raw.pkl"
@@ -48,7 +48,7 @@ def _visualize_frame(image_bgr, detection_result, native_viz_folder, camera_name
 
 
 @run_inference_entrypoint
-def mediapipe_face_landmarks_inference(config: dict) -> None:
+def mediapipe_face_landmarks_inference(config: dict) -> SubprocessResult:
     logging.info("RUNNING face landmarker 'MediaPipe' (raw native save)!")
 
     # (1) Access config parameters
@@ -87,7 +87,7 @@ def mediapipe_face_landmarks_inference(config: dict) -> None:
 
     # (5) Process frames
     per_frame_outputs = []
-    for frame_idx, frame_paths_per_camera in dataloader:
+    for frame_idx, frame_paths_per_camera in dataloader.with_progress(desc="MediaPipe"):
         timestamp_ms = int(frame_idx * 1000.0 / fps)
         frame_bundle = {}
         for camera_name, frame_path in frame_paths_per_camera.items():
@@ -127,3 +127,5 @@ def mediapipe_face_landmarks_inference(config: dict) -> None:
     with open(save_file_name, "wb") as raw_file:
         pickle.dump(per_frame_outputs, raw_file)
     logging.info(f"Face landmarker 'MediaPipe' raw pack COMPLETED! Wrote '{save_file_name}'.\n")
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)
