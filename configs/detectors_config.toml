@@ -30,7 +30,9 @@ save_detector_predictions = true
 # 3d triangulation
 [templates.mmpose_2d_template.triangulation]
 triangulate = true
-triangulation_cameras = ["view_top", "view_center"] 
+triangulation_cameras = ["view_top", "view_center"]
+[templates.mmpose_2d_template.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 
 # HRNetW48 full body model
 [algorithms.hrnetw48]
@@ -132,6 +134,8 @@ save_detector_predictions = true
 [templates.motionbert_template.required_assets]
 pose3d_config_file = "<assets>/mmpose/configs/motionbert_dstformer-243frm_8xb32-240e_h36m.py"
 pose3d_checkpoint = "<assets>/mmpose/configs/motionbert_h36m-f554954f_20230531.pth"
+[templates.motionbert_template.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 
 # motionbert for vitpose
 [algorithms.motionbert]
@@ -181,6 +185,8 @@ keypoint_mapping = "sam_3d_body_mhr"
 [algorithms.sam_3d_body.triangulation]
 triangulate = true
 triangulation_cameras = ["view_top", "view_center"]  # cameras that will be used for 3d triangulation
+[algorithms.sam_3d_body.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 
 [algorithms.sam_3d_body.required_assets]
 sam_3d_body_model = "<assets>/sam_3d_body/models--facebook--sam-3d-body-dinov3"
@@ -255,6 +261,8 @@ polyorder = 2
 visualize = true
 visualize_native = false  # if true, inference subprocess also writes per-frame debug overlays
 face_alignment_cache_dir = "<assets>/face_alignment"
+[algorithms.eth_xgaze.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 [algorithms.eth_xgaze.required_assets]
 face_model_filename = "<assets>/eth_xgaze/face_model.txt"
 pretrained_model_filename = "<assets>/eth_xgaze/epoch_24_ckpt.pth.tar"
@@ -277,6 +285,8 @@ polyorder = 2
 visualize = true
 visualize_native = true  # if true, inference subprocess also writes per-frame debug overlays
 face_alignment_cache_dir = "<assets>/face_alignment"
+[algorithms.unigaze.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 [algorithms.unigaze.required_assets]
 face_alignment_detector = "<assets>/face_alignment/hub/checkpoints/s3fd-619a316812.pth"
 face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938726ad.zip"
@@ -378,7 +388,9 @@ filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
 # fill short detection dropouts (linear)
 interpolate_keypoints = {interpolated = true, max_gap = 10 }
 # triangulate to 3d
-triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}  
+triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}
+[algorithms.insight_face.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 [algorithms.insight_face.required_assets]
 model_pack_path = "<assets>/insight_face/models/<model_pack>"
 
@@ -426,6 +438,8 @@ min_face_presence_confidence = 0.5
 min_face_tracking_confidence = 0.5
 filter_keypoints = {filtered = true, window_length = 11, polyorder = 2 }
 interpolate_keypoints = {interpolated = true, max_gap = 10 }
+[algorithms.mediapipe_face_landmarks.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 [algorithms.mediapipe_face_landmarks.required_assets]
 model_path = "<assets>/mediapipe/face_landmarker.task"
 
@@ -450,6 +464,8 @@ output_size = []  # Optional (width, height) to resize frames before detection. 
 num_workers = 0  # CPU workers for the preprocessing DataLoader (0 = load in the main process).
 save_face_mesh = false  # Keep the 3d face mesh?
 hf_weights_cache_dir = "<assets>/py_feat"
+[algorithms.py_feat.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
 [algorithms.py_feat.required_assets]
 multitask_model = "<assets>/py_feat/models--py-feat--face_multitask_v2"
 face_detector_model = "<assets>/py_feat/models--py-feat--retinaface_r34"
@@ -519,7 +535,7 @@ landmarks_2d = { component = "face_landmarks", algorithm = "rtmpose_l_wholebody"
 algorithm_type = "eye_closure_threshold"
 camera_names = ["view_right", "view_left"]
 visualize = true
-threshold = 0.1  # max ratio for closed eye
+threshold = 0.12  # max ratio for closed eye
 [algorithms.eye_state_ear.inputs]
 score = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "score" }
 eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "eye_landmarks_2d" }
@@ -529,7 +545,7 @@ eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_s
 algorithm_type = "eye_closure_threshold"
 camera_names = ["view_right", "view_left"]
 visualize = true
-threshold = 0.1
+threshold = 0.12
 # define min and max time for eye to be considered blinked
 min_duration = 0.05
 max_duration = 0.5
@@ -537,3 +553,17 @@ max_duration = 0.5
 score = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "score" }
 eye_landmarks_2d = { component = "eye_closure_score", algorithm = "eye_closure_score_ear", npz_key = "eye_landmarks_2d" }
 
+# ======================================================================
+#                           Subject System
+# ======================================================================
+
+# Parameters for subjects identity system that assign all detectors predictions
+# to a specific subject definition from dataset properties
+[subject_assignment.video]
+min_overlap = 0.35  # discard any detection with geometric score smaller than threshold
+confidence_weight = 0.1  # how important confidence comparing to geometric score
+
+# Service feature detector for video stream
+[algorithms.video_subject_detector]
+algorithm_type = "video_subject_detector"
+visualize = true  # draw subject regions?

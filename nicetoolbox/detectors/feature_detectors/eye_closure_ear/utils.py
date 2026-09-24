@@ -64,7 +64,6 @@ def visualize_eye_closure_scores(
     dataloader,
     camera_names,
     subjects_descr,
-    cam_sees_subjects,
     landmarks,
     landmarks_axes,
     eye_closure_score,
@@ -104,8 +103,6 @@ def visualize_eye_closure_scores(
 
             for subject_idx in range(n_subj):
                 subject_name = subjects_descr[subject_idx]
-                if subject_idx not in cam_sees_subjects.get(camera_name, []):
-                    continue
                 if subject_name not in landmarks_subject_names:
                     continue
                 landmarks_subject_idx = landmarks_subject_names.index(subject_name)
@@ -157,13 +154,13 @@ def visualize_eye_closure_scores(
             ax = axes[subject_idx, 0]
             subject_name = subjects_descr[subject_idx]
 
-            if subject_idx not in cam_sees_subjects.get(camera_name, []):
+            left_scores = eye_closure_score[subject_idx, cam_idx, :, 0]
+            right_scores = eye_closure_score[subject_idx, cam_idx, :, 1]
+
+            if np.isnan(left_scores).all() and np.isnan(right_scores).all():
                 ax.set_title(f"EAR Score over Time - {subject_name} ({camera_name}) - Not visible")
                 ax.grid(True, linestyle="--", alpha=0.5)
                 continue
-
-            left_scores = eye_closure_score[subject_idx, cam_idx, :, 0]
-            right_scores = eye_closure_score[subject_idx, cam_idx, :, 1]
 
             ax.plot(range(len(left_scores)), left_scores, label="Left Eye", color="blue")
             ax.plot(range(len(right_scores)), right_scores, label="Right Eye", color="green")

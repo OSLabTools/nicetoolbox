@@ -61,11 +61,12 @@ class RenderContext:
 
     This is per-subsequence, so a detector builds it once in _initialize_detector() and passes
     it to every overlay it draws. The subject and camera axes are not here: they come from the
-    NpzArray, so they always describe the data actually being rendered.
+    NpzArray, so they always describe the data actually being rendered. Per-subject skipping is
+    driven by NaN slots on the array itself, so no explicit "who does this camera see" list is
+    carried here.
     """
 
     dataloader: object  # yields (real_frame_idx, {camera_name: frame_path})
-    cam_sees_subjects: dict[str, list[int]]
     fps: int
     video_start: int
 
@@ -94,8 +95,6 @@ def render_per_camera_videos(
             image = cv2.imread(frame_paths_per_camera[camera_name])
 
             for subject_idx in range(len(axes.subjects)):
-                if subject_idx not in context.cam_sees_subjects[camera_name]:
-                    continue
                 draw_subject(image, subject_idx, cam_idx, frame_idx)
 
             cv2.imwrite(os.path.join(viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"), image)
@@ -192,15 +191,17 @@ def draw_bounding_boxes(bbox_2d: NpzArray, context: RenderContext, viz_folder: s
     Frames where no detection was assigned to the subject's slot (NaN box) are skipped.
 
     Args:
-        bbox_2d (NpzArray): (subjects, cameras, frames, x0/y0/x1/y1/conf).
+        bbox_2d (NpzArray): (subjects, cameras, frames, x0/y0/x1/y1[/conf]). The
+            confidence column is optional - when present it is appended to the label.
         context (RenderContext): Frame source and timing for this subsequence.
         viz_folder (str): Visualization folder of the component being rendered.
     """
     data = bbox_2d.data
     subjects = bbox_2d.axes.subjects
+    has_confidence = data.shape[-1] >= 5
 
     def draw_subject(image, subject_idx, cam_idx, frame_idx):
-        # x0, y0, x1, y1, confidence; NaN whenever no detection was assigned to this slot.
+        # x0, y0, x1, y1[, confidence]; NaN whenever no detection was assigned to this slot.
         box = data[subject_idx, cam_idx, frame_idx]
         if np.isnan(box[:4]).any():
             return
@@ -209,10 +210,16 @@ def draw_bounding_boxes(bbox_2d: NpzArray, context: RenderContext, viz_folder: s
         bottom_right = np.round(box[2:4]).astype(np.int32)
         color = subject_color(subject_idx)
         cv2.rectangle(image, top_left, bottom_right, color, thickness=2)
+        label = f"{subjects[subject_idx]} {box[4]:.2f}" if has_confidence else subjects[subject_idx]
+        (_, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        # Prefer above the box; drop inside when the top edge would clip the label.
+        text_y = int(top_left[1]) - 5
+        if text_y - text_h < 0:
+            text_y = int(top_left[1]) + text_h + 5
         cv2.putText(
             image,
-            f"{subjects[subject_idx]} {box[4]:.2f}",
-            (int(top_left[0]), int(top_left[1]) - 5),
+            label,
+            (int(top_left[0]), text_y),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,
             color,

@@ -121,7 +121,6 @@ class EyeClosureEar(BaseFeature):
             dataloader=dataloader,
             camera_names=cameras,
             subjects_descr=self.subjects_descr,
-            cam_sees_subjects=self.data.cam_sees_subjects,
             landmarks=landmarks.data,
             landmarks_axes=landmarks.axes,
             eye_closure_score=score.data,

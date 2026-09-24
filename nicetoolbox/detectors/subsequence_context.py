@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from ..configs.models.video_timestamp import VideoTimestamp
 from ..configs.placeholders import resolve_placeholders
 from ..configs.schemas.dataset_properties import SequenceConfig
-from ..configs.schemas.detectors_config import DetectorsConfig
+from ..configs.schemas.detectors_config import DetectorsConfig, VideoSubjectAssignmentConfig
 from ..configs.schemas.detectors_run_file import DetectorsRunFile, DetectorsRunIO, LoggingLevelEnum, SubsequenceConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
@@ -76,12 +76,16 @@ class SubsequenceContext(BaseModel):
 
     @property
     def subjects_descr(self) -> List[str]:
-        return self.sequence_properties.subjects_descr
+        return self.sequence_properties.subjects
 
     @property
     def calibration_path(self) -> Optional[Path]:
         path = self.sequence_properties.path_to_calibrations
         return Path(path) if path else None
+
+    @property
+    def video_subject_assignment(self) -> VideoSubjectAssignmentConfig:
+        return self.detectors_config.subject_assignment.video
 
     # -------------------------------------------------------------------------
     # Config Access (no resolution needed - already resolved)

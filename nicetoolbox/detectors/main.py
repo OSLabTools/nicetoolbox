@@ -27,6 +27,7 @@ from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance2D, Ga
 from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
 from .feature_detectors.kinematics.velocity_body import VelocityBody2D, VelocityBody3D
 from .feature_detectors.proximity.body_distance import BodyDistance2D, BodyDistance3D
+from .feature_detectors.subject_system.video_subject_detector import VideoSubjectDetector
 from .in_out import SequenceIO
 from .method_detectors.crisper_whisper.crisper_whisper_detector import CrisperWhisper
 from .method_detectors.eth_xgaze.eth_xgaze_detector import EthXgaze
@@ -63,6 +64,7 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     GazeFusion,
     EyeClosureEar,
     EyeClosureThreshold,
+    VideoSubjectDetector,
 }
 ALL_DETECTORS = {cls.algorithm_type: cls for cls in DETECTOR_CLASSES}
 

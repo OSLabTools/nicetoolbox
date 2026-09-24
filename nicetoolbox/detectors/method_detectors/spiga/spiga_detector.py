@@ -83,7 +83,6 @@ class Spiga(BaseMethod):
         self.subjects_descr = self.data.subjects_descr
         self.frame_names = self.data.frame_labels
         self.camera_names = self.detector_config.camera_names
-        self.cam_sees_subjects = self.data.cam_sees_subjects
         self.video_start = self.data.video_start_frame_index
 
         # Used by visualization() to walk the source frames; inference has its own loader.
@@ -91,7 +90,6 @@ class Spiga(BaseMethod):
             dataloader=ImagePathsByFrameIndexLoader(
                 config=self.data.get_input_recipes(), expected_cameras=self.camera_names
             ),
-            cam_sees_subjects=self.cam_sees_subjects,
             fps=self.data.fps,
             video_start=self.video_start,
         )
@@ -154,7 +152,6 @@ class Spiga(BaseMethod):
                 landmarks_2d,
                 triangulation_config,
                 calibration=self.data.calibration,
-                cam_sees_subjects=self.cam_sees_subjects,
             )
             out.add_array("face_landmarks", "3d", landmarks_3d)
             # also add back projection for debugging/evaluation

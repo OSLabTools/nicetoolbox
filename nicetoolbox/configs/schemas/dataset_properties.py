@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -6,19 +7,32 @@ from pydantic import BaseModel, Field, NonNegativeInt, PrivateAttr, ValidationEr
 from ..models.dict_model import DictModel
 from ..named_wildcards import discover_sequences_for_dataset
 from ..placeholders import PLACEHOLDERS_TYPE, get_placeholders_str, resolve_placeholders_dict, resolve_placeholders_str
+from .subject_rules import VIDEO_SUBJECT_RULES_REGISTRY, BaseRuleConfig
 
 
 class VideoTrackConfig(BaseModel):
     """
     Configuration for a single video track (camera).
-
-    A track has an arbitrary user-defined name, a path to its video file, and
-    declares which subjects it sees. The path may contain a `*` wildcard and
-    is expected to resolve to exactly one file (zero or multiple matches raise).
     """
 
     path: Path
-    sees_subjects: List[int] = Field(min_length=1)
+    subjects: BaseRuleConfig
+
+    @model_validator(mode="before")
+    @classmethod
+    def _parse_subjects_rule(cls, values):
+        # check if subjects already parsed
+        raw = values.get("subjects")
+        if raw is None or isinstance(raw, BaseRuleConfig):
+            return values
+        # get rule id
+        if not isinstance(raw, dict) or "rule" not in raw:
+            raise KeyError("Missing 'rule' key in dataset property assignment rule")
+        rule = raw["rule"]
+        # parse raw dict into subject assignment rule
+        values = deepcopy(values)
+        values["subjects"] = VIDEO_SUBJECT_RULES_REGISTRY.parse(rule, raw)
+        return values
 
 
 class SequenceVideo(BaseModel):
@@ -115,7 +129,7 @@ class SequenceConfig(BaseModel):
 
     sequence_id: str
 
-    subjects_descr: List[str]
+    subjects: List[str]
     path_to_calibrations: Optional[Path] = None
 
     annotation: SequenceAnnotation = Field(default_factory=SequenceAnnotation)

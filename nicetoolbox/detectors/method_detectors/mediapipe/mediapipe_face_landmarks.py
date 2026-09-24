@@ -8,12 +8,14 @@ import pickle
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import BBOX_2D_CONF, FLOAT, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL
-from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.data.loaded_array import NpzArray, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
+from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...subjects import assign_detections
 from ...utils.draw_2d import RenderContext, draw_keypoints
 from ...utils.keypoints_post_processing import filter_keypoints, interpolate_keypoints
 from ..base_method import BaseMethod
@@ -26,6 +28,10 @@ class MediapipeFaceLandmarks(BaseMethod):
 
     components = ["face_blendshapes", "face_landmarks_local"]
     algorithm_type = "mediapipe_face_landmarks"
+
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
 
     def resolve_outputs(self) -> list[NpzDetectorOutput]:
         outputs = [
@@ -47,7 +53,7 @@ class MediapipeFaceLandmarks(BaseMethod):
         self.subjects = self.data.subjects_descr
         self.frame_names = self.data.frame_labels
         self.cameras = self.detector_config.camera_names
-        self.cam_sees_subjects = self.data.cam_sees_subjects
+        self.subject_regions = select_array(self.loaded_inputs["subjects"].array, cameras=self.cameras)
         self.video_start = self.data.video_start_frame_index
 
         # Used by visualization() to walk the source frames
@@ -55,7 +61,6 @@ class MediapipeFaceLandmarks(BaseMethod):
             dataloader=ImagePathsByFrameIndexLoader(
                 config=self.data.get_input_recipes(), expected_cameras=self.cameras
             ),
-            cam_sees_subjects=self.cam_sees_subjects,
             fps=self.data.fps,
             video_start=self.video_start,
         )
@@ -138,12 +143,17 @@ class MediapipeFaceLandmarks(BaseMethod):
         )
         blendshapes_data = np.full((n_subjects, n_cams, n_frames, len(blendshape_names), 1), np.nan, dtype=float)
 
+        regions = self.subject_regions.data
+        assignment_config = self.subsequence_context.video_subject_assignment
+
         for frame_idx, frame_bundle in enumerate(per_frame_outputs):
             for cam_idx, cam_name in enumerate(self.cameras):
                 detections = frame_bundle.get(cam_name, [])
-                subjects_by_cam = self.cam_sees_subjects[cam_name]
-                n_seen = len(subjects_by_cam)
+                if not detections:
+                    continue
 
+                # Normalize each detection: cache keypoints and derive a bbox from them when
+                # MediaPipe didn't attach one directly.
                 for det in detections:
                     kps = np.array(det.get("keypoints", det.get("keypoints_3d", [])))
                     det["_kps"] = kps
@@ -155,40 +165,28 @@ class MediapipeFaceLandmarks(BaseMethod):
                             float(kps[:, 1].max()),
                         ]
 
-                if len(detections) < n_seen:
-                    # Missing a face: cannot know which subject, so leave all NaN for this frame.
-                    if detections:
-                        logging.debug(
-                            f"MediapipeFaceLandmarks: camera '{cam_name}' frame {frame_idx} detected "
-                            f"{len(detections)} face(s) < {n_seen} expected; marking all missing."
-                        )
-                    continue
+                boxes = np.array([det["bbox"] for det in detections], dtype=float).reshape(-1, 4)
+                scores = np.array([det.get("det_score", 1.0) for det in detections], dtype=float)
+                subject_regions_frame = regions[:, cam_idx, frame_idx, :4]
+                assigned = assign_detections(boxes, scores, subject_regions_frame, assignment_config)
 
-                if len(detections) > n_seen:
-                    # Too many faces: keep the largest ones by bounding box area, because we don't have confidence score
-                    areas = [
-                        (det["bbox"][2] - det["bbox"][0]) * (det["bbox"][3] - det["bbox"][1]) for det in detections
-                    ]
-                    keep = np.argsort(areas)[-n_seen:]
-                    detections = [detections[i] for i in keep]
-
-                # Sort left-to-right by bbox x0, then assign onto the subject slots this camera sees.
-                detections = sorted(detections, key=lambda det: det["bbox"][0])
-
-                for subject_index, det in zip(subjects_by_cam, detections):
+                for det_idx, subj_idx in enumerate(assigned):
+                    if subj_idx < 0:
+                        continue
+                    det = detections[det_idx]
                     score = det.get("det_score", 1.0)
-                    bbox_2d[subject_index, cam_idx, frame_idx, :4] = det["bbox"]
-                    bbox_2d[subject_index, cam_idx, frame_idx, 4] = score
+                    bbox_2d[subj_idx, cam_idx, frame_idx, :4] = det["bbox"]
+                    bbox_2d[subj_idx, cam_idx, frame_idx, 4] = score
 
                     kps = det["_kps"]
-                    keypoints_2d[subject_index, cam_idx, frame_idx, :, :2] = kps[:, :2]
-                    keypoints_2d[subject_index, cam_idx, frame_idx, :, 2] = score
+                    keypoints_2d[subj_idx, cam_idx, frame_idx, :, :2] = kps[:, :2]
+                    keypoints_2d[subj_idx, cam_idx, frame_idx, :, 2] = score
 
-                    keypoints_3d[subject_index, cam_idx, frame_idx, :, :3] = kps
-                    keypoints_3d[subject_index, cam_idx, frame_idx, :, 3] = score
+                    keypoints_3d[subj_idx, cam_idx, frame_idx, :, :3] = kps
+                    keypoints_3d[subj_idx, cam_idx, frame_idx, :, 3] = score
 
                     coeffs = [det["blendshapes"].get(name, np.nan) for name in blendshape_names]
-                    blendshapes_data[subject_index, cam_idx, frame_idx, :, 0] = coeffs
+                    blendshapes_data[subj_idx, cam_idx, frame_idx, :, 0] = coeffs
 
                     # TODO: we skip face transform matrix, read it from native format
                     # get head direction component from there?

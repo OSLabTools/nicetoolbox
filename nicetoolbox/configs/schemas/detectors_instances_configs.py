@@ -92,7 +92,6 @@ class MethodDetectorRuntime(BaseDetectorRuntime):
 
     # Data context for inference
     calibration: Optional[Dict[str, Any]] = None
-    cam_sees_subjects: Dict[str, List[int]]
 
     # Input recipes for dataloaders in subprocess
     input_recipes: InputRecipes
@@ -222,6 +221,9 @@ class MMPoseAlgorithmConfig(BaseAlgorithmConfig):
         keypoints_description: Dict[str, List[str]]
         # Video / subprocess (explicit in run_config.toml — no guessed defaults in inference scripts).
         fps: int
+        # Per-camera subject-index lists, derived from the subject_regions input; consumed by the
+        # inference subprocess as config["cam_sees_subjects"].
+        cam_sees_subjects: Dict[str, List[int]]
 
 
 @detector_config("motionbert")
@@ -495,6 +497,13 @@ class GazeFusionConfig(BaseAlgorithmConfig):
 
 
 # === Add Feature detectors HERE ===
+
+
+@detector_config("video_subject_detector")
+class VideoSubjectSystemConfig(BaseAlgorithmConfig):
+    """Config for the VideoSubjectDetector; behavior comes entirely from dataset rules."""
+
+    visualize: bool = False
 
 
 @detector_config("eye_closure_ear")
