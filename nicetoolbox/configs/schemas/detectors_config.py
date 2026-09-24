@@ -48,12 +48,25 @@ def _resolve_templates(algos: Dict[str, Any], templates: Dict[str, Any]) -> Dict
     return resolved
 
 
+class VideoSubjectAssignmentConfig(BaseModel):
+    """Video subjects assignments parameters."""
+
+    min_overlap: float
+    confidence_weight: float
+
+
+class SubjectAssignmentConfig(BaseModel):
+    """Per-modality parameters for the subject-assignment algorithm."""
+
+    video: VideoSubjectAssignmentConfig
+
+
 # Top-level config in detectors_config.toml
 class DetectorsConfig(BaseModel):
     """
     Contains all detector configurations. The TOML key under [algorithms.*]
     is a user-defined instance name; the schema class is selected via the
-    `algorithm_type` field (mirrors EvaluationConfig.metrics).
+    `algorithm_type` field.
 
     Optional [template.*] sections define shared field sets that algorithm
     entries can inherit via `template = "<name>"`. Algorithm fields override
@@ -62,6 +75,7 @@ class DetectorsConfig(BaseModel):
 
     algorithms: dict[str, BaseAlgorithmConfig] = {}
     templates: dict[str, Any] = {}
+    subject_assignment: SubjectAssignmentConfig
 
     @model_validator(mode="before")
     @classmethod

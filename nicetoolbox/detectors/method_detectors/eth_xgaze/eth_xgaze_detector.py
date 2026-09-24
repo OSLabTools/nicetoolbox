@@ -1,16 +1,17 @@
-import logging
 import warnings
 
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
-from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.data.loaded_array import NpzArray, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils import visual_utils as vis_ut
+from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...subjects import assign_detections, bboxes_from_landmarks
 from ...utils.draw_2d import RenderContext, draw_direction_vector
 from ...utils.filters import SGFilter
 from ..base_method import BaseMethod
@@ -30,6 +31,10 @@ class EthXgaze(BaseMethod):
 
     components = ["gaze_individual"]
     algorithm_type = "eth_xgaze"
+
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
 
     # Outputs
     def resolve_outputs(self) -> list:
@@ -56,7 +61,7 @@ class EthXgaze(BaseMethod):
         self.frame_names = self.data.frame_labels
         self.cameras = self.detector_config.camera_names
         self.video_start = self.data.video_start_frame_index
-        self.cam_sees_subjects = self.data.cam_sees_subjects
+        self.subject_regions = select_array(self.loaded_inputs["subjects"].array, cameras=self.cameras)
         self.results_folder = self.result_folders[self.components[0]]
         self.filtered = self.detector_config.filtered
         if self.filtered:
@@ -70,7 +75,6 @@ class EthXgaze(BaseMethod):
         # Used by visualization() to walk the source frames via the shared 2d renderer.
         self.render_context = RenderContext(
             dataloader=self.dataloader,
-            cam_sees_subjects=self.cam_sees_subjects,
             fps=self.data.fps,
             video_start=self.video_start,
         )
@@ -197,18 +201,7 @@ class EthXgaze(BaseMethod):
         return NpzArray(projected, axes)
 
     def _assign_subjects(self, raw):
-        """Assign the raw pack's ragged per-camera detections to dense subject-indexed arrays.
-
-          - Too many faces for a camera: keep the N highest mean-confidence faces (N = subjects
-            this camera sees), then restore their left-to-right order.
-          - Too few faces: cannot tell which subject is missing, so mark all of this camera's
-            subjects missing (NaN) for that frame.
-          - Otherwise: assign faces left-to-right onto the subject slots this camera sees.
-
-        Returns:
-            gaze_cam (NpzArray): camera-local gaze, (subjects, cameras, frames, x/y/z/conf).
-            landmarks_2d (NpzArray): face landmarks, (subjects, cameras, frames, 6, x/y/conf).
-        """
+        """Assign the raw pack's ragged per-camera detections to dense subject-indexed arrays."""
         per_frame_outputs = raw["per_frame_outputs"]
         n_subjects = len(self.subjects)
         n_cams = len(self.cameras)
@@ -222,30 +215,31 @@ class EthXgaze(BaseMethod):
         for frame_idx, frame_bundle in enumerate(per_frame_outputs):
             for cam_idx, cam_name in enumerate(self.cameras):
                 detections = frame_bundle.get(cam_name, []) if frame_bundle else []
-                subjects_by_cam = self.cam_sees_subjects[cam_name]
-                n_seen = len(subjects_by_cam)
-
-                if len(detections) < n_seen:
-                    # Missing a face: cannot know which subject, so leave all NaN for this frame.
-                    if detections:
-                        logging.debug(
-                            f"ETH-XGaze: camera '{cam_name}' frame {frame_idx} detected "
-                            f"{len(detections)} face(s) < {n_seen} expected; marking all missing."
-                        )
+                if not detections:
                     continue
 
-                if len(detections) > n_seen:
-                    # Too many faces: keep the N highest mean-confidence, restore left-to-right order.
-                    mean_scores = [float(np.nanmean(det["landmark_scores"])) for det in detections]
-                    keep = sorted(np.argsort(mean_scores)[-n_seen:])
-                    detections = [detections[i] for i in keep]
+                # get raw landmarks and their mean scores
+                landmarks_stack = np.array([det["landmarks_2d"] for det in detections], dtype=float)
+                mean_scores = np.array([float(np.nanmean(det["landmark_scores"])) for det in detections], dtype=float)
 
-                # Assign left-to-right onto the subject slots this camera sees.
-                for subject_index, det in zip(subjects_by_cam, detections):
-                    gaze_cam[subject_index, cam_idx, frame_idx, :3] = det["gaze_cam"]
-                    gaze_cam[subject_index, cam_idx, frame_idx, 3] = float(np.nanmean(det["landmark_scores"]))
-                    landmarks_2d[subject_index, cam_idx, frame_idx, :, :2] = det["landmarks_2d"]
-                    landmarks_2d[subject_index, cam_idx, frame_idx, :, 2] = det["landmark_scores"]
+                # convert them to bboxes to compare
+                boxes = bboxes_from_landmarks(landmarks_stack)
+
+                # do standard subject assignment
+                regions = self.subject_regions.data
+                assignment_config = self.subsequence_context.video_subject_assignment
+                subject_regions_frame = regions[:, cam_idx, frame_idx, :4]
+                assigned = assign_detections(boxes, mean_scores, subject_regions_frame, assignment_config)
+
+                # apply subject assignment
+                for det_idx, subj_idx in enumerate(assigned):
+                    if subj_idx < 0:
+                        continue
+                    det = detections[det_idx]
+                    gaze_cam[subj_idx, cam_idx, frame_idx, :3] = det["gaze_cam"]
+                    gaze_cam[subj_idx, cam_idx, frame_idx, 3] = mean_scores[det_idx]
+                    landmarks_2d[subj_idx, cam_idx, frame_idx, :, :2] = det["landmarks_2d"]
+                    landmarks_2d[subj_idx, cam_idx, frame_idx, :, 2] = det["landmark_scores"]
 
         gaze_axes = VECTOR_3D_CONF.make_axes(self.subjects, self.cameras, self.frame_names)
         landmarks_axes = VECTOR_2D_CONF_PER_LABEL.make_axes(

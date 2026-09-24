@@ -61,8 +61,12 @@ class VideoDataHandler(BaseModalityHandler):
         # Resolve one video file per camera from its configured path.
         self.camera_video_paths = self._resolve_video_paths()
 
-        # Probe all videos, check cross-camera consistency, then validate against config
-        self.fps, self.length_frames = self._resolve_fps_and_length()
+        # Probe each camera video once and expose per-camera resolution.
+        infos = self._resolve_video_meta_info()
+        self.resolutions = {cam: [info.width, info.height] for cam, info in infos.items()}
+
+        # Check cross-camera consistency and validate against config
+        self.fps, self.length_frames = self._resolve_fps_and_length(infos)
         self.start_frame = timestamp_to_frame_index(self.subsequence_context.video_start, self.fps)
 
         # Save all frames str names for data serialization
@@ -114,10 +118,20 @@ class VideoDataHandler(BaseModalityHandler):
             result[cam] = resolve_single_file(Path(track.path), label=f"Video track '{cam}'")
         return result
 
-    def _resolve_fps_and_length(self) -> tuple[int, int]:
+    def _resolve_video_meta_info(self) -> Dict[str, vid.VideoInfo]:
         """
-        Probe all camera videos, assert cross-camera consistency of FPS and
-        frame count, then validate FPS against config.
+        Probe each resolved camera video once via ffprobe.
+        """
+        infos: Dict[str, vid.VideoInfo] = {}
+        for cam, path in self.camera_video_paths.items():
+            raw = vid.probe_video(str(path))
+            infos[cam] = vid.json_to_video_info(raw)
+        return infos
+
+    def _resolve_fps_and_length(self, infos: Dict[str, vid.VideoInfo]) -> tuple[int, int]:
+        """
+        Assert cross-camera consistency of FPS and frame count on the probed
+        video infos, then validate FPS against config.
 
         Returns:
             (fps, length_frames) — fps detected from videos, length in frames
@@ -127,11 +141,6 @@ class VideoDataHandler(BaseModalityHandler):
             ValueError: If cameras disagree on FPS or frame count, or if
                 video_start is beyond the end of the video.
         """
-        infos = {}
-        for cam, path in self.camera_video_paths.items():
-            raw = vid.probe_video(str(path))
-            infos[cam] = vid.json_to_video_info(raw)
-
         # TODO: warn user that we are rounding fps. Or better, support float fps.
         # Cross-camera consistency: every probed camera must agree on fps and frame count.
         fps_values = {cam: round(info.fps) for cam, info in infos.items() if info.fps is not None}

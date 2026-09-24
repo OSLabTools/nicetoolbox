@@ -146,6 +146,12 @@ VECTOR_3D_CONF_PER_LABEL = ArraySchema(
     dtype=np.floating,
 )
 
+# 2d bounding box
+BBOX_2D = ArraySchema(
+    labels_columns=("top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y"),
+    dtype=np.floating,
+)
+
 # 2d bounding box + confidence
 BBOX_2D_CONF = ArraySchema(
     labels_columns=("top_left_x", "top_left_y", "bottom_right_x", "bottom_right_y", "confidence_score"),

@@ -12,30 +12,40 @@ sequences = [ {sequence_id = "sequence_xyz"} ]  # sequence_id need to be unique
 dataset_root = "<datasets_folder_path>/communication_multiview"  # Optional root folder of the dataset (usually a subfolder of datasets path)
 data_input_folder = "<dataset_root>/<sequence_id>"               # Folder where to look for specific sequences data (containing audio, video, etc.)
 path_to_calibrations = "<dataset_root>/calibrations.npz"         # Path to camera calibration file, set to "" if you don't have calibration parameters
-subjects_descr = ["person_left", "person_right"]                 # Define an identifier for the subjects in each video or frame (list of str)
+subjects = ["person_left", "person_right"]                       # Named subjects
 
 # ======== Video configuration ========
 # Define available video tracks (cameras). Each track has a user-defined name,
-# a path to its video file, and declares which subjects it sees. 
+# a path to its video file, and a subject-identity rule declaring how the
+# camera's detections map back to the sequence's named subjects.
 [communication_multiview.template.video.cameras]
-view_center = {path = "<data_input_folder>/view_center.mp4", sees_subjects = [0, 1]}
-view_top    = {path = "<data_input_folder>/view_top.mp4",    sees_subjects = [0, 1]}
-view_left   = {path = "<data_input_folder>/view_left.mp4",   sees_subjects = [0]}
-view_right  = {path = "<data_input_folder>/view_right.mp4",  sees_subjects = [1]}
+view_center.path = "<data_input_folder>/view_center.mp4"  # where to find video file for central camera
+view_center.subjects.rule = "vsplit"  # split frame vertically in two halves
+view_center.subjects.order = ["person_left", "person_right"]  # left to right assign identites
+
+view_top.path = "<data_input_folder>/view_top.mp4"
+view_top.subjects.rule = "vsplit"
+view_top.subjects.order = ["person_left", "person_right"]
+
+view_left.path = "<data_input_folder>/view_left.mp4"
+view_left.subjects.rule = "assign"  # assign the whole frame to one subject
+view_left.subjects.subject = "person_left"  # assigned subject name
+
+view_right.path = "<data_input_folder>/view_right.mp4"
+view_right.subjects.rule = "assign"
+view_right.subjects.subject = "person_right"
+
 # Paths may contain a * wildcard and are expected to resolve to exactly one file.
-# camera_0 = {path = "<data_input_folder>/camera_0/*.avi",  sees_subjects = [1]}
+# camera_0.path = "<data_input_folder>/camera_0/*.avi"
 # Will find something like "<data_input_folder>/camera_0/2022_03_04_test_recording.avi"
 
 # ======== Audio configuration ========
 # Define available audio tracks. Audio tracks can be extracted from video files (i.e. mp4, avi)
 # or from separate audio files (i.e. wav, mp3)
 [communication_multiview.template.audio.tracks]
-room      = {path = "<data_input_folder>/audio_combined.wav", hears_subjects = [0, 1]}  # wav file placed inside each sequence folder (contains session or sequence ids placeholders)
-left_mic  = {camera = "view_left",  hears_subjects = [0]}                               # audio extracted from the left camera video, only left subject can be heard
-right_mic = {camera = "view_right", hears_subjects = [1]}                               # audio extracted from the right camera video, only right subject can be heard
-# You can also specify which stream or channel index to extract:
-# left_track = {camera = "view_center", stream = 1, hears_subjects = [0]}  # view_center has three tracks: mixed, left and right tracks
-# right_channel = {path = "<data_input_folder>/audio_combined_stereo.wav", channel = 1, hears_subjects = [1]}  # in stereo audio 0 is left, 1 is right channel
+room      = {path = "<data_input_folder>/audio_combined.wav", hears_subjects = [0, 1]}
+left_mic  = {camera = "view_left",  hears_subjects = [0]}
+right_mic = {camera = "view_right", hears_subjects = [1]}
 
 # ======== Evaluation configuration ========
 [communication_multiview.template.annotation]

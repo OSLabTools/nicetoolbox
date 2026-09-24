@@ -564,13 +564,13 @@ class GazeFusionComponent(Component):
                         continue
                     cam_idx = self.camera_names.index(cam_name)
                     for subject_idx, subject in enumerate(self.subject_names):
-                        cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
-                        if subject_idx not in cam["sees_subjects"]:
-                            continue
                         origin = origins[subject_idx, cam_idx, frame_idx, :2]
                         # gaze_2d carries [x, y, conf]; drop conf. It is a unit direction, so
                         # scale it to a pixel arrow for this camera's image width.
                         gaze_2d = projected[subject_idx, cam_idx, frame_idx, :2] * self._arrow_length(cam_name)
+                        # NaN marks a frame where no face was assigned to this subject slot.
+                        if np.isnan(origin).any() or np.isnan(gaze_2d).any():
+                            continue
                         entity_path = self.logger.generate_component_entity_path(
                             self.component_name,
                             is_3d=False,
@@ -810,10 +810,6 @@ class EyeClosureComponent(Component):
                 left_indices, right_indices = self.eye_indices_per_alg[alg_idx]
 
                 for subject_idx, subject in enumerate(self.subject_names):
-                    cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
-                    if subject_idx not in cam["sees_subjects"]:
-                        continue
-
                     entity_path = self.logger.generate_component_entity_path(
                         self.component_name,
                         is_3d=False,
@@ -824,7 +820,8 @@ class EyeClosureComponent(Component):
 
                     for eye_name, indices in (("left_eye", left_indices), ("right_eye", right_indices)):
                         eye_points = landmarks[subject_idx, camera_index, frame_idx][indices, :2]
-                        # Drop missing points; a partially tracked eye still draws.
+                        # Drop missing points; a partially tracked eye still draws, an absent
+                        # subject collapses to zero points and is skipped by the len guard below.
                         eye_points = eye_points[~np.isnan(eye_points).any(axis=1)]
                         if len(eye_points) < 2:
                             continue
@@ -1071,9 +1068,6 @@ class FaceBoundingBoxComponent(Component):
                 color = self._parse_alg_color(alg_idx)
 
                 for subject_idx, subject in enumerate(self.subject_names):
-                    subjs = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]["sees_subjects"]
-                    if subject_idx not in subjs:
-                        continue
                     box = alg_data[subject_idx, camera_index, frame_idx]
                     # NaN marks a frame where no face was assigned to this subject slot.
                     if np.isnan(box[:4]).any():
@@ -1267,10 +1261,6 @@ class EmotionIndividualComponent(Component):
                 bbox_camera_index = bbox_camera_names.index(cam_name)
 
                 for subject_idx, subject in enumerate(self.subject_names):
-                    subjs = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]["sees_subjects"]
-                    if subject_idx not in subjs:
-                        continue
-
                     box = boxes[subject_idx, bbox_camera_index, frame_idx]
                     scores = alg_data[subject_idx, camera_index, frame_idx]
                     # NaN marks a frame where no face was assigned to this subject slot.
@@ -1429,24 +1419,21 @@ class HeadOrientationComponent(Component):
                 alg_name = self.algorithm_list[alg_idx]
                 origins = self.origins_per_alg[alg_idx]
                 for subject_idx, subject in enumerate(self.subject_names):
-                    cam = self.visualizer_config["dataset_properties"]["video"]["cameras"][cam_name]
-                    subjs = cam["sees_subjects"]
-                    if subject_idx in subjs:
-                        direction = alg_data[subject_idx, camera_index, frame_idx]
-                        origin = origins[subject_idx, camera_index, frame_idx]
-                        # NaN marks a frame where no face was assigned to this subject slot.
-                        if np.isnan(origin).any() or np.isnan(direction[:2]).any():
-                            continue
-                        entity_path = self.logger.generate_component_entity_path(
-                            self.component_name,
-                            is_3d=False,
-                            alg_name=alg_name,
-                            subject_name=subject,
-                            cam_name=cam_name,
-                        )
+                    direction = alg_data[subject_idx, camera_index, frame_idx]
+                    origin = origins[subject_idx, camera_index, frame_idx]
+                    # NaN marks a frame where no face was assigned to this subject slot.
+                    if np.isnan(origin).any() or np.isnan(direction[:2]).any():
+                        continue
+                    entity_path = self.logger.generate_component_entity_path(
+                        self.component_name,
+                        is_3d=False,
+                        alg_name=alg_name,
+                        subject_name=subject,
+                        cam_name=cam_name,
+                    )
 
-                        color = self.visualizer_config["media"][self.component_name]["appearance"]["colors"][alg_idx]
-                        self._log_data(entity_path, origin, direction, color, "2d")
+                    color = self.visualizer_config["media"][self.component_name]["appearance"]["colors"][alg_idx]
+                    self._log_data(entity_path, origin, direction, color, "2d")
 
 
 class ProximityComponent(Component):

@@ -10,10 +10,13 @@ from typing import Dict, List, Tuple
 import cv2
 import numpy as np
 
+from nicetoolbox_core.data.loaded_array import select_array
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 from ....configs.schemas.detectors_instances_configs import MMPoseAlgorithmConfig
 from ....utils import video as vd
+from ...detector_inputs import NpzDetectorInput
+from ...subjects import cam_sees_subjects_from_regions
 from ..base_method import BaseMethod
 
 
@@ -29,6 +32,11 @@ class BaseMMPose(BaseMethod):
     # body_joints/mmpose_3d_inference.py).
     inference_package_name = "body_joints"
 
+    # TODO: migrate to a new identuty system after refactoring
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
+
     def _initialize_detector(self) -> MMPoseAlgorithmConfig.RuntimeConfig:
         """
         Initializes the MMPose class with extra configuration settings.
@@ -38,10 +46,12 @@ class BaseMMPose(BaseMethod):
         self.video_start = self.data.video_start_frame_index
         self.calibration = self.data.calibration
         self.subjects_descr = self.data.subjects_descr
-        self.cam_sees_subjects = self.data.cam_sees_subjects
         self.min_detection_confidence = self.detector_config.min_detection_confidence
 
         self.camera_names = self.detector_config.camera_names
+        self.subject_regions = select_array(self.loaded_inputs["subjects"].array, cameras=self.camera_names)
+        self.cam_sees_subjects = cam_sees_subjects_from_regions(self.subject_regions)
+
         self.filtered = self.detector_config.filtered
         if self.filtered:
             self.filter_window_length = self.detector_config.window_length
@@ -68,6 +78,7 @@ class BaseMMPose(BaseMethod):
             keypoints_indices=self._kp_indices,
             keypoints_description=self._kp_description,
             fps=int(self.fps),
+            cam_sees_subjects=self.cam_sees_subjects,
         )
 
     @abstractmethod

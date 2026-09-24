@@ -1,8 +1,16 @@
 import pytest
 
-from nicetoolbox.configs.schemas.detectors_config import DetectorsConfig
+from nicetoolbox.configs.schemas.detectors_config import (
+    DetectorsConfig,
+    SubjectAssignmentConfig,
+    VideoSubjectAssignmentConfig,
+)
 from nicetoolbox.configs.schemas.detectors_instances_configs import BaseAlgorithmConfig, DetectorInputConfig
 from nicetoolbox.utils.dependency_sort import sort_detectors_order, topological_sort
+
+_DEFAULT_SUBJECT_ASSIGNMENT = SubjectAssignmentConfig(
+    video=VideoSubjectAssignmentConfig(min_overlap=0.35, confidence_weight=0.1),
+)
 
 
 def test_no_dependencies():
@@ -101,7 +109,7 @@ def test_single_node():
 
 
 def _config(**algorithms) -> DetectorsConfig:
-    return DetectorsConfig(algorithms=algorithms)
+    return DetectorsConfig(algorithms=algorithms, subject_assignment=_DEFAULT_SUBJECT_ASSIGNMENT)
 
 
 def test_order_from_inputs_table():

@@ -59,9 +59,6 @@ class SequenceData:
         self.annotation_interval = 2.0  # Keep? Hardcoded - No access via config yet
 
         sequence_properties = subsequence_context.sequence_properties
-        cameras = sequence_properties.video.cameras
-        # TODO: remove cam_sees_subjects?
-        self.cam_sees_subjects = {name: t.sees_subjects for name, t in cameras.items()}
         # --- END: Config Parameters / Meta data used by detectors ---
         # (1) Always prepare video data (main source)
         self._video_handler = VideoDataHandler(io, subsequence_context)
@@ -75,6 +72,7 @@ class SequenceData:
         self.frame_labels = self._video_handler.frame_labels
         self.video_start_ms = timestamp_to_ms(subsequence_context.video_start, self.fps)
         self.video_length_ms = timestamp_to_ms(subsequence_context.video_length, self.fps)
+        self.video_resolutions = self._video_handler.resolutions
 
         # if need full video - take resolved video length in frames
         if self.video_length_ms < 0:
@@ -101,9 +99,7 @@ class SequenceData:
     @property
     def calibration(self) -> Optional[Dict[str, Any]]:
         """Camera calibration data (video-specific)."""
-        if self._video_handler:
-            return self._video_handler.calibration
-        return None
+        return self._video_handler.calibration
 
     @property
     def canonical_axes(self) -> Tuple[List[str], List[str], List[str]]:

@@ -13,12 +13,15 @@ from typing import Any
 import cv2
 import numpy as np
 
+from nicetoolbox_core.data.loaded_array import select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime, Sam3dBodyConfig
 from ....configs.schemas.predictions_mapping import Sam3dBodyMhr
 from ....utils import video as vd
+from ...detector_inputs import NpzDetectorInput
+from ...subjects import cam_sees_subjects_from_regions
 from ...utils.filters import adaptive_savgol_filter
 from ...utils.keypoints_triangualation import apply_stereo_triangulation_to_body_joints_payload
 from ..base_method import BaseMethod
@@ -397,7 +400,6 @@ def _run_sam3d_post_process(
             camera_names=camera_names,
             triangulation_cameras=triangulation_cameras,
             mode=mode,
-            cam_sees_subjects=cam_sees_subjects,
             video_start_frame_index=video_start_frame_index,
             enabled=triangulate,
             min_confidence=triangulation_min_detection_confidence,
@@ -738,12 +740,22 @@ class Sam3dBody(BaseMethod):
     algorithm_type = "sam_3d_body"
     inference_config = Sam3dBodyConfig
 
+    # TODO: migrate to a new identity system after refactoring
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
+
     def _initialize_detector(self) -> MethodDetectorRuntime:
         """
         Initialize the Sam3d method detector.
         """
         self.viz_folder = self.viz_folders["body_joints"]
         self.out_folder = self.result_folders["body_joints_local"]
+
+        self.subject_regions = select_array(
+            self.loaded_inputs["subjects"].array, cameras=self.detector_config.camera_names
+        )
+        self.cam_sees_subjects = cam_sees_subjects_from_regions(self.subject_regions)
 
         return super()._initialize_detector()
 
@@ -779,7 +791,7 @@ class Sam3dBody(BaseMethod):
             bbox_sort=cfg.bbox_sort_left_to_right,
             mhr_mapping=self.predictions_mapping.human_pose.sam_3d_body_mhr,
             subjects_descr=list(self.data.subjects_descr),
-            cam_sees_subjects=dict(self.data.cam_sees_subjects),
+            cam_sees_subjects=self.cam_sees_subjects,
             video_start_frame_index=int(self.data.video_start_frame_index),
             save_vertices=cfg.save_vertices,
             write_body_joints_world=calib_ok,
@@ -873,14 +885,14 @@ class Sam3dBody(BaseMethod):
             world_body_npz,
             mesh_npz,
             camera_names=list(cfg.camera_names),
-            cam_sees_subjects=dict(self.data.cam_sees_subjects),
+            cam_sees_subjects=self.cam_sees_subjects,
             mode=mode,
         )
         per_frame_local, faces_local = _per_frame_lists_from_body_mesh_npz(
             local_body_npz,
             mesh_npz,
             camera_names=list(cfg.camera_names),
-            cam_sees_subjects=dict(self.data.cam_sees_subjects),
+            cam_sees_subjects=self.cam_sees_subjects,
             mode=mode,
         )
         viz_targets: list[tuple[str, str, str | None, list[Any], np.ndarray]] = [

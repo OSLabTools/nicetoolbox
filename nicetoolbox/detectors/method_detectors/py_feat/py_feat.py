@@ -3,19 +3,20 @@ Py-feat method detector class.
 """
 
 import json
-import logging
 
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
 from nicetoolbox_core.data.array_schema import BBOX_2D_CONF, BoundedSchema
-from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes
+from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
+from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...subjects import assign_detections
 from ...utils.draw_2d import RenderContext, draw_bounding_boxes, draw_emotions
 from ..base_method import BaseMethod
 
@@ -34,6 +35,10 @@ class PyFeat(BaseMethod):
     algorithm_type = "py_feat"
     components = ["emotion_individual", "face_bounding_box"]
 
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
+
     outputs = [
         NpzDetectorOutput("face_bounding_box", "bbox_2d", schema=BBOX_2D_CONF),
         NpzDetectorOutput("emotion_individual", "emotions"),
@@ -44,13 +49,12 @@ class PyFeat(BaseMethod):
         self.subjects = self.data.subjects_descr
         self.frame_names = self.data.frame_labels
         self.cameras = self.detector_config.camera_names
-        self.cam_sees_subjects = self.data.cam_sees_subjects
+        self.subject_regions = select_array(self.loaded_inputs["subjects"].array, cameras=self.cameras)
 
         self.render_context = RenderContext(
             dataloader=ImagePathsByFrameIndexLoader(
                 config=self.data.get_input_recipes(), expected_cameras=self.cameras
             ),
-            cam_sees_subjects=self.cam_sees_subjects,
             fps=self.data.fps,
             video_start=self.data.video_start_frame_index,
         )
@@ -65,8 +69,7 @@ class PyFeat(BaseMethod):
         # these groupings as python attributes that parquet cannot carry.
         meta_json = pq.read_schema(raw_path).metadata[FEATURE_COLUMNS_METADATA_KEY]
         self.feature_columns = json.loads(meta_json)
-        # Sorted left-to-right, which is the order faces are handed to the subject slots.
-        raw_table = pd.read_parquet(raw_path).sort_values("FaceRectX").reset_index(drop=True)
+        raw_table = pd.read_parquet(raw_path).reset_index(drop=True)
 
         # Identity is resolved once and written onto the table, so every component below reads
         # the same assignment - they only differ in which columns they pull out.
@@ -109,26 +112,7 @@ class PyFeat(BaseMethod):
         return NpzArray(self._select_columns(table, columns), axes)
 
     def _assign_subjects(self, raw_table: pd.DataFrame) -> pd.DataFrame:
-        """
-        Add a 'subject' column telling which subject each detected face belongs to.
-
-        Py-Feat has no tracker and detection is stateless per frame, so faces carry no
-        identity. The same slot policy as the other face detectors is used:
-
-          - Too many faces for a camera: keep the N highest-confidence faces (N = subjects this
-            camera sees), then restore their left-to-right order.
-          - Too few faces: cannot tell which subject is missing, so mark all of this camera's
-            subjects missing for that frame.
-          - Otherwise: assign faces left-to-right onto the subject slots this camera sees.
-
-        Args:
-            raw_table (pd.DataFrame): One row per detected face, keyed by 'frame' and 'camera',
-                sorted left-to-right by box x.
-
-        Returns:
-            pd.DataFrame: The same table with a 'subject' column holding the subject index,
-                or -1 for faces that could not be assigned.
-        """
+        """Add a subject column telling which subject each detected face belongs to."""
         n_frames = len(self.frame_names)
 
         n_raw_frames = raw_table["frame"].max() + 1 if len(raw_table) else 0
@@ -140,27 +124,24 @@ class PyFeat(BaseMethod):
 
         # -1 marks faces that stay unassigned, so they drop out when reshaping to the grid.
         subject = np.full(len(raw_table), -1, dtype=int)
+        regions = self.subject_regions.data
+        assignment_config = self.subsequence_context.video_subject_assignment
 
         for (cam_name, frame_idx), detections in raw_table.groupby(["camera", "frame"], sort=False):
             if cam_name not in self.cameras:
                 continue
-            subjects_by_cam = self.cam_sees_subjects[cam_name]
-            n_seen = len(subjects_by_cam)
+            cam_idx = self.cameras.index(cam_name)
 
-            if len(detections) < n_seen:
-                # Missing a face: cannot know which subject, so leave all unassigned for this frame.
-                logging.debug(
-                    f"Py-Feat: camera '{cam_name}' frame {frame_idx} detected "
-                    f"{len(detections)} face(s) < {n_seen} expected; marking all missing."
-                )
-                continue
+            x = detections["FaceRectX"].to_numpy(dtype=float)
+            y = detections["FaceRectY"].to_numpy(dtype=float)
+            w = detections["FaceRectWidth"].to_numpy(dtype=float)
+            h = detections["FaceRectHeight"].to_numpy(dtype=float)
+            boxes = np.stack([x, y, x + w, y + h], axis=-1)
+            scores = detections["FaceScore"].to_numpy(dtype=float)
 
-            if len(detections) > n_seen:
-                # Too many faces: keep the N highest-confidence ones, then restore left-to-right.
-                detections = detections.nlargest(n_seen, "FaceScore").sort_index()
-
-            # The table is sorted left-to-right, so groupby hands the faces over in that order.
-            subject[detections.index] = subjects_by_cam
+            subject_regions_frame = regions[:, cam_idx, frame_idx, :4]
+            assigned = assign_detections(boxes, scores, subject_regions_frame, assignment_config)
+            subject[detections.index] = assigned
 
         return raw_table.assign(subject=subject)
 

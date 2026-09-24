@@ -17,6 +17,7 @@ skip_gated_models_errors = true
 
 # algorithms to run on the data
 algorithms = [
+   "video_subject_detector",                          # subjects identity system
    "hrnetw48", "vitpose_huge",                        # body keypoints (multi-camera 2d => 3d)
    "motionbert",                                      # lifted keypoints (single camera 2d => 3d)
    "velocity_body_2d", "velocity_body_3d",            # body velocity

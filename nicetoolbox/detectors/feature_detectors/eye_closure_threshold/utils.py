@@ -17,7 +17,6 @@ def plot_eye_closed_states(
     eye_closed,
     subjects_descr,
     camera_names,
-    cam_sees_subjects,
     threshold=None,
 ) -> None:
     n_subj = len(subjects_descr)
@@ -29,8 +28,9 @@ def plot_eye_closed_states(
             ax = axes[subject_idx, 0]
             subject_name = subjects_descr[subject_idx]
 
-            # If it is a camera view, check visibility. Skip for pseudo-camera "3d"
-            if camera_name != "3d" and subject_idx not in cam_sees_subjects.get(camera_name, []):
+            # For real cameras, if every frame is NaN the subject was never observed here
+            # the pseudo-camera "3d" holds the fused global state and always plots.
+            if camera_name != "3d" and np.isnan(eye_closed[subject_idx, cam_idx, :, :]).all():
                 ax.set_title(f"Eye Closed State - {subject_name} ({camera_name}) - Not visible")
                 ax.grid(True, linestyle="--", alpha=0.5)
                 continue
@@ -79,7 +79,6 @@ def visualize_eye_closed_videos(
     dataloader,
     camera_names,
     subjects_descr,
-    cam_sees_subjects,
     landmarks,
     landmarks_axes,
     eye_closure_score,
@@ -120,8 +119,6 @@ def visualize_eye_closed_videos(
 
             for subject_idx in range(n_subj):
                 subject_name = subjects_descr[subject_idx]
-                if subject_idx not in cam_sees_subjects.get(camera_name, []):
-                    continue
                 if subject_name not in landmarks_subject_names:
                     continue
                 landmarks_subject_idx = landmarks_subject_names.index(subject_name)

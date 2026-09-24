@@ -71,7 +71,8 @@ def make_sequence_context(
     ctx.subjects_descr = ["subject_1"]
     ctx.sequence_properties = MagicMock()
     ctx.sequence_properties.video.cameras = {
-        name: VideoTrackConfig(path=path, sees_subjects=[0]) for name, path in tracks.items()
+        name: VideoTrackConfig(path=path, subjects={"rule": "assign", "subject": "subject_1"})
+        for name, path in tracks.items()
     }
     return ctx
 

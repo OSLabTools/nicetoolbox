@@ -133,7 +133,6 @@ class EyeClosureThreshold(BaseFeature):
                 eye_closed=state.data,
                 subjects_descr=self.subjects_descr,
                 camera_names=state.axes.cameras,
-                cam_sees_subjects=self.data.cam_sees_subjects,
                 threshold=self.threshold,
             )
 
@@ -162,7 +161,6 @@ class EyeClosureThreshold(BaseFeature):
             dataloader=dataloader,
             camera_names=cameras,
             subjects_descr=self.subjects_descr,
-            cam_sees_subjects=self.data.cam_sees_subjects,
             landmarks=landmarks.data,
             landmarks_axes=landmarks.axes,
             eye_closure_score=score.data,

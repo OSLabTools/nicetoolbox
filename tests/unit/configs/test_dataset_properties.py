@@ -48,9 +48,9 @@ def dataset_tree(tmp_path):
 
 def test_template_fields_merged_into_each_sequence(load_dataset_props):
     """
-    Given: A template supplying `subjects_descr` and sequences that omit it.
+    Given: A template supplying `subjects` and sequences that omit it.
     When:  DatasetProperties is loaded.
-    Then:  Every sequence carries the template's `subjects_descr`.
+    Then:  Every sequence carries the template's `subjects`.
     """
     result = load_dataset_props(
         {
@@ -59,17 +59,17 @@ def test_template_fields_merged_into_each_sequence(load_dataset_props):
                     {"sequence_id": "s1", "path_to_calibrations": "/tmp/s1"},
                     {"sequence_id": "s2", "path_to_calibrations": "/tmp/s2"},
                 ],
-                "template": {"subjects_descr": ["alice", "bob"]},
+                "template": {"subjects": ["alice", "bob"]},
             }
         }
     )
     seqs = result["ds"].sequences
-    assert [s.subjects_descr for s in seqs] == [["alice", "bob"], ["alice", "bob"]]
+    assert [s.subjects for s in seqs] == [["alice", "bob"], ["alice", "bob"]]
 
 
 def test_sequence_value_overrides_template_value(load_dataset_props):
     """
-    Given: Template and sequence both define `subjects_descr`.
+    Given: Template and sequence both define `subjects`.
     When:  DatasetProperties is loaded.
     Then:  The sequence-level value wins on a per-key basis.
     """
@@ -80,14 +80,14 @@ def test_sequence_value_overrides_template_value(load_dataset_props):
                     {
                         "sequence_id": "s1",
                         "path_to_calibrations": "/tmp/s1",
-                        "subjects_descr": ["only_me"],
+                        "subjects": ["only_me"],
                     },
                 ],
-                "template": {"subjects_descr": ["alice", "bob"]},
+                "template": {"subjects": ["alice", "bob"]},
             }
         }
     )
-    assert result["ds"].sequences[0].subjects_descr == ["only_me"]
+    assert result["ds"].sequences[0].subjects == ["only_me"]
 
 
 def test_video_block_replaces_not_deep_merged(load_dataset_props):
@@ -104,10 +104,13 @@ def test_video_block_replaces_not_deep_merged(load_dataset_props):
                     {
                         "sequence_id": "s1",
                         "path_to_calibrations": "/tmp/s1",
-                        "subjects_descr": ["a"],
+                        "subjects": ["a"],
                         "video": {
                             "cameras": {
-                                "only_cam": {"path": "/tmp/s1/only.mp4", "sees_subjects": [0]},
+                                "only_cam": {
+                                    "path": "/tmp/s1/only.mp4",
+                                    "subjects": {"rule": "assign", "subject": "a"},
+                                },
                             },
                         },
                     },
@@ -115,8 +118,14 @@ def test_video_block_replaces_not_deep_merged(load_dataset_props):
                 "template": {
                     "video": {
                         "cameras": {
-                            "cam_a": {"path": "/tmp/s1/a.mp4", "sees_subjects": [0]},
-                            "cam_b": {"path": "/tmp/s1/b.mp4", "sees_subjects": [0]},
+                            "cam_a": {
+                                "path": "/tmp/s1/a.mp4",
+                                "subjects": {"rule": "assign", "subject": "a"},
+                            },
+                            "cam_b": {
+                                "path": "/tmp/s1/b.mp4",
+                                "subjects": {"rule": "assign", "subject": "a"},
+                            },
                         },
                     },
                 },
@@ -144,7 +153,7 @@ def test_template_sibling_placeholders_resolve_per_sequence(load_dataset_props):
                 "template": {
                     "dataset_root": "/data/ds",
                     "path_to_calibrations": "<dataset_root>/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -173,7 +182,7 @@ def test_discovery_appends_to_explicit_sequences(load_dataset_props, dataset_tre
                 ],
                 "template": {
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -198,7 +207,7 @@ def test_discovery_uses_root_level_placeholders(load_dataset_props, dataset_tree
                 "sequences": [],
                 "template": {
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         },
@@ -224,13 +233,13 @@ def test_discovered_sequences_get_template_merged(load_dataset_props, dataset_tr
                 "sequences": [],
                 "template": {
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a", "b"],
+                    "subjects": ["a", "b"],
                 },
             }
         }
     )
     for seq in result["ds"].sequences:
-        assert seq.subjects_descr == ["a", "b"]
+        assert seq.subjects == ["a", "b"]
         assert seq.sequence_id in str(seq.path_to_calibrations)
 
 
@@ -250,7 +259,7 @@ def test_discovery_with_sequence_id_capture_needs_no_template_sequence_id(load_d
                 "discover_sequences": f"{root.as_posix()}/[sequence_id]",
                 "sequences": [],
                 "template": {
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                     # Note: no `sequence_id` here — capture supplies it.
                 },
             }
@@ -291,7 +300,7 @@ def test_template_sequence_id_referencing_outer_scope_breaks_override_match(load
                     ],
                     "template": {
                         "sequence_id": "<dataset_root>_PIS_ID_<pis_id>",
-                        "subjects_descr": ["a"],
+                        "subjects": ["a"],
                     },
                 }
             }
@@ -315,7 +324,7 @@ def test_discovery_without_sequence_id_capture_or_template_composition_raises(lo
                     "discover_sequences": f"{root.as_posix()}/PIS_ID_[pis_id]",
                     "sequences": [],
                     "template": {
-                        "subjects_descr": ["a"],
+                        "subjects": ["a"],
                     },
                 }
             }
@@ -339,7 +348,7 @@ def test_discovery_multi_capture_composed_via_template(load_dataset_props, datas
                 "template": {
                     "sequence_id": "<session>_<recording>",
                     "path_to_calibrations": "/tmp/<session>/<recording>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -365,7 +374,7 @@ def test_discovery_capture_overrides_template_value(load_dataset_props, dataset_
                 "template": {
                     "sequence_id": "template_default",
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -402,7 +411,7 @@ def test_explicit_sequence_overrides_discovered_by_id(load_dataset_props, datase
                 "template": {
                     "sequence_id": "PIS_ID_<pis_id>",
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -434,7 +443,7 @@ def test_explicit_sequence_no_match_still_appended(load_dataset_props, dataset_t
                 "template": {
                     "sequence_id": "PIS_ID_<pis_id>",
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         }
@@ -459,7 +468,7 @@ def test_duplicate_explicit_sequence_ids_raise(load_dataset_props):
                         {"sequence_id": "s1", "path_to_calibrations": "/tmp/s1"},
                         {"sequence_id": "s1", "path_to_calibrations": "/tmp/other"},
                     ],
-                    "template": {"subjects_descr": ["a"]},
+                    "template": {"subjects": ["a"]},
                 }
             }
         )
@@ -482,7 +491,7 @@ def test_discovery_zero_matches_raises(load_dataset_props, tmp_path):
                     "sequences": [],
                     "template": {
                         "path_to_calibrations": "/tmp/<sequence_id>",
-                        "subjects_descr": ["a"],
+                        "subjects": ["a"],
                     },
                 }
             }
@@ -508,7 +517,7 @@ def test_dataset_root_sibling_placeholders_resolve_before_discovery(load_dataset
                 "sequences": [],
                 "template": {
                     "path_to_calibrations": "/tmp/<sequence_id>",
-                    "subjects_descr": ["x"],
+                    "subjects": ["x"],
                 },
             }
         }
@@ -533,7 +542,7 @@ def test_runtime_placeholder_in_dataset_root_sibling_raises(load_dataset_props):
                 "ds": {
                     "dataset_root": "/data/<cur_thing>",
                     "sequences": [{"sequence_id": "s1", "path_to_calibrations": "/tmp/s1"}],
-                    "template": {"subjects_descr": ["a"]},
+                    "template": {"subjects": ["a"]},
                 }
             },
             runtime={"cur_thing"},
@@ -554,7 +563,7 @@ def test_runtime_placeholder_inside_template_is_deferred(load_dataset_props):
                 "sequences": [{"sequence_id": "s1"}],
                 "template": {
                     "path_to_calibrations": "/tmp/<cur_thing>/s1",
-                    "subjects_descr": ["a"],
+                    "subjects": ["a"],
                 },
             }
         },
@@ -577,7 +586,7 @@ def test_runtime_placeholder_inside_sequence_is_deferred(load_dataset_props):
                     {
                         "sequence_id": "s1",
                         "path_to_calibrations": "/tmp/<cur_thing>/s1",
-                        "subjects_descr": ["a"],
+                        "subjects": ["a"],
                     },
                 ],
             }
@@ -612,12 +621,12 @@ def test_sequences_wrong_type_raises_with_dataset_name(load_dataset_props):
 
 def test_missing_required_field_after_merge_raises(load_dataset_props):
     """
-    Given: Neither template nor sequence supplies `subjects_descr`.
+    Given: Neither template nor sequence supplies `subjects`.
     When:  DatasetProperties is loaded.
     Then:  Pydantic validation fails — the merge doesn't invent fields, so
            gaps between template and sequence surface as schema errors.
     """
-    with pytest.raises(Exception, match="subjects_descr"):
+    with pytest.raises(Exception, match="subjects"):
         load_dataset_props(
             {
                 "ds": {
@@ -640,13 +649,13 @@ def test_templates_do_not_leak_across_datasets(load_dataset_props):
         {
             "ds_a": {
                 "sequences": [{"sequence_id": "a1", "path_to_calibrations": "/tmp/a1"}],
-                "template": {"subjects_descr": ["alice"]},
+                "template": {"subjects": ["alice"]},
             },
             "ds_b": {
                 "sequences": [{"sequence_id": "b1", "path_to_calibrations": "/tmp/b1"}],
-                "template": {"subjects_descr": ["bob"]},
+                "template": {"subjects": ["bob"]},
             },
         }
     )
-    assert result["ds_a"].sequences[0].subjects_descr == ["alice"]
-    assert result["ds_b"].sequences[0].subjects_descr == ["bob"]
+    assert result["ds_a"].sequences[0].subjects == ["alice"]
+    assert result["ds_b"].sequences[0].subjects == ["bob"]

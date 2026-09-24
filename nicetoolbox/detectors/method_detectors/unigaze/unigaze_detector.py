@@ -7,13 +7,15 @@ import logging
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
-from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.data.loaded_array import NpzArray, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils import visual_utils as vis_ut
+from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...subjects import assign_detections, bboxes_from_landmarks
 from ...utils.draw_2d import RenderContext, draw_direction_vector
 from ...utils.filters import SGFilter
 from ..base_method import BaseMethod
@@ -29,6 +31,10 @@ class UniGaze(BaseMethod):
 
     components = ["gaze_individual"]
     algorithm_type = "unigaze"
+
+    inputs = [
+        NpzDetectorInput("subject_regions", "subjects"),
+    ]
 
     # Outputs
     def resolve_outputs(self) -> list:
@@ -52,7 +58,7 @@ class UniGaze(BaseMethod):
         self.subjects = self.data.subjects_descr
         self.cameras = self.detector_config.camera_names
         self.video_start = self.data.video_start_frame_index
-        self.cam_sees_subjects = self.data.cam_sees_subjects
+        self.subject_regions = select_array(self.loaded_inputs["subjects"].array, cameras=self.cameras)
         self.results_folder = self.result_folders[self.components[0]]
         self.calibration = self.data.calibration
         if not self.calibration:  # TODO: fake it?
@@ -72,7 +78,6 @@ class UniGaze(BaseMethod):
         # Used by visualization() to walk the source frames via the shared 2d renderer.
         self.render_context = RenderContext(
             dataloader=self.dataloader,
-            cam_sees_subjects=self.cam_sees_subjects,
             fps=self.data.fps,
             video_start=self.video_start,
         )
@@ -131,19 +136,7 @@ class UniGaze(BaseMethod):
         return out
 
     def _assign_subjects(self, raw):
-        """Assign the raw pack's ragged per-camera detections to dense subject-indexed arrays.
-
-          - Too many faces for a camera: keep the N ones that are leftmost, or simply sort
-            left-to-right and keep the first N (N = subjects this camera sees).
-          - Too few faces: cannot tell which subject is missing, so mark all of this camera's
-            subjects missing (NaN) for that frame.
-          - Otherwise: assign faces left-to-right onto the subject slots this camera sees.
-
-        Returns:
-            gaze_cam (NpzArray): camera-local gaze, (subjects, cameras, frames, x/y/z/conf).
-            landmarks_2d (NpzArray): face landmarks, (subjects, cameras, frames, 68, x/y/conf).
-            gaze_origin_2d (NpzArray): gaze origin, (subjects, cameras, frames, x/y/conf).
-        """
+        """Assign the raw pack's ragged per-camera detections to dense subject-indexed arrays."""
         per_frame_outputs = raw["per_frame_outputs"]
         n_subjects = len(self.subjects)
         n_cams = len(self.cameras)
@@ -153,34 +146,31 @@ class UniGaze(BaseMethod):
         landmarks_2d = np.full((n_subjects, n_cams, n_frames, 68, 3), np.nan, dtype=float)
         gaze_origin_2d = np.full((n_subjects, n_cams, n_frames, 3), np.nan, dtype=float)
 
+        regions = self.subject_regions.data
+        assignment_config = self.subsequence_context.video_subject_assignment
+
         for frame_idx, frame_bundle in enumerate(per_frame_outputs):
             for cam_idx, cam_name in enumerate(self.cameras):
                 detections = frame_bundle.get(cam_name, []) if frame_bundle else []
-                subjects_by_cam = self.cam_sees_subjects[cam_name]
-                n_seen = len(subjects_by_cam)
-
-                if len(detections) < n_seen:
-                    if detections:
-                        logging.debug(
-                            f"UniGaze: camera '{cam_name}' frame {frame_idx} detected "
-                            f"{len(detections)} face(s) < {n_seen} expected; marking all missing."
-                        )
+                if not detections:
                     continue
 
-                # Sort detections left-to-right by x-coordinate of the landmarks
-                detections_sorted = sorted(detections, key=lambda det: det["landmarks_2d"][:, 0].min())
+                landmarks_stack = np.array([det["landmarks_2d"] for det in detections], dtype=float)
+                boxes = bboxes_from_landmarks(landmarks_stack)
+                subject_regions_frame = regions[:, cam_idx, frame_idx, :4]
+                assigned = assign_detections(boxes, None, subject_regions_frame, assignment_config)
 
-                if len(detections_sorted) > n_seen:
-                    detections_sorted = detections_sorted[:n_seen]
-
-                # Assign left-to-right onto the subject slots this camera sees.
-                for subject_index, det in zip(subjects_by_cam, detections_sorted):
-                    gaze_cam[subject_index, cam_idx, frame_idx, :3] = det["gaze_cam"]
-                    gaze_cam[subject_index, cam_idx, frame_idx, 3] = 1.0
-                    landmarks_2d[subject_index, cam_idx, frame_idx, :, :2] = det["landmarks_2d"]
-                    landmarks_2d[subject_index, cam_idx, frame_idx, :, 2] = 1.0
-                    gaze_origin_2d[subject_index, cam_idx, frame_idx, :2] = det["gaze_origin_2d"]
-                    gaze_origin_2d[subject_index, cam_idx, frame_idx, 2] = 1.0
+                # UniGaze doesn't emit per-detection confidence, so all populated slots get 1.0.
+                for det_idx, subj_idx in enumerate(assigned):
+                    if subj_idx < 0:
+                        continue
+                    det = detections[det_idx]
+                    gaze_cam[subj_idx, cam_idx, frame_idx, :3] = det["gaze_cam"]
+                    gaze_cam[subj_idx, cam_idx, frame_idx, 3] = 1.0
+                    landmarks_2d[subj_idx, cam_idx, frame_idx, :, :2] = det["landmarks_2d"]
+                    landmarks_2d[subj_idx, cam_idx, frame_idx, :, 2] = 1.0
+                    gaze_origin_2d[subj_idx, cam_idx, frame_idx, :2] = det["gaze_origin_2d"]
+                    gaze_origin_2d[subj_idx, cam_idx, frame_idx, 2] = 1.0
 
         gaze_axes = VECTOR_3D_CONF.make_axes(self.subjects, self.cameras, self.frame_names)
         landmarks_axes = VECTOR_2D_CONF_PER_LABEL.make_axes(

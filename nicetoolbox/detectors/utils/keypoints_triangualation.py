@@ -1,6 +1,5 @@
 """Two-view stereo triangulation for SAM 3D Body body_joints exports."""
 
-import logging
 from typing import Any
 
 import numpy as np
@@ -54,7 +53,6 @@ def triangulate_stereo_body_joints_from_two_cameras(
     calibration: dict[str, Any],
     camera_names: list[str],
     triangulation_cameras: list[str],
-    cam_sees_subjects: dict[str, list[int]],
 ) -> np.ndarray | None:
     """Stereo 3d column (n_sub, 1, n_frames, n_kp, 4); NaN when subject missing in either camera."""
     c0, c1 = triangulation_cameras
@@ -65,14 +63,6 @@ def triangulate_stereo_body_joints_from_two_cameras(
         )
     cam0_idx = camera_names.index(c0)
     cam1_idx = camera_names.index(c1)
-    common = sorted(set(cam_sees_subjects.get(c0, [])) & set(cam_sees_subjects.get(c1, [])))
-    if not common:
-        logging.info(
-            "SAM 3D Body stereo triangulation: no subjects shared between %s and %s; skipping 3d fill.",
-            c0,
-            c1,
-        )
-        return None
 
     cal0 = calibration[c0]
     cal1 = calibration[c1]
@@ -88,7 +78,7 @@ def triangulate_stereo_body_joints_from_two_cameras(
         return None
     out = np.full((n_sub, 1, n_frames, n_kp, 4), np.nan, dtype=np.float64)
 
-    for subj in common:
+    for subj in range(n_sub):
         person_cam1 = arr_2d_interpolated[subj, cam0_idx, :, :, :]
         person_cam2 = arr_2d_interpolated[subj, cam1_idx, :, :, :]
 
@@ -135,7 +125,6 @@ def apply_stereo_triangulation_to_body_joints_payload(
     camera_names: list[str],
     triangulation_cameras: list[str],
     mode: str,
-    cam_sees_subjects: dict[str, list[int]],
     video_start_frame_index: int,
     enabled: bool,
     min_confidence: float,
@@ -157,7 +146,6 @@ def apply_stereo_triangulation_to_body_joints_payload(
         calibration=calibration,
         camera_names=camera_names,
         triangulation_cameras=triangulation_cameras,
-        cam_sees_subjects=cam_sees_subjects,
     )
     if arr_3d is None:
         return False
@@ -194,7 +182,6 @@ def triangulate_keypoints(
     keypoints_2d: NpzArray,
     triangulation_config,
     calibration: dict,
-    cam_sees_subjects: dict[str, list[int]],
 ) -> NpzArray:
     # TODO: create reusable triangulation, not reuse sam3d
     axes = keypoints_2d.axes
@@ -204,14 +191,13 @@ def triangulate_keypoints(
         calibration=calibration,
         camera_names=axes.cameras,
         triangulation_cameras=triangulation_cameras,
-        cam_sees_subjects=cam_sees_subjects,
     )
-    # The helper only returns None when the two cameras have no subject in common, which
-    # makes the configured triangulation unsatisfiable rather than merely empty.
+    # None means no valid 2d in either camera across every subject and frame — the
+    # configured triangulation is unsatisfiable rather than merely empty.
     if data_3d is None:
         raise ValueError(
-            f"triangulation.triangulation_cameras {triangulation_cameras} share no subjects "
-            f"(cam_sees_subjects: {cam_sees_subjects}); cannot triangulate 3d keypoints."
+            f"triangulation.triangulation_cameras {triangulation_cameras} produced no valid 3d "
+            "points (no subject has valid 2d in both views); cannot triangulate 3d keypoints."
         )
 
     # The result is view-independent, so the camera axis collapses to a single pseudo-camera.

@@ -132,7 +132,6 @@ class BaseMethod(BaseDetector):
             subjects_descr=self.data.subjects_descr,
             log_level=self.subsequence_context.log_level,
             calibration=self.data.calibration,
-            cam_sees_subjects=self.data.cam_sees_subjects,
             input_recipes=self.data.get_input_recipes(),
         )
 
