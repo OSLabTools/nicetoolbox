@@ -112,7 +112,7 @@ Automated open-source signal measurement tools usually cover only one specific c
 pixel change as a proxy for body movement and has been widely used to study
 interpersonal synchrony in psychotherapy. `OpenFace` [@Baltrusaitis2018] and
 `Py-Feat` [@cheong2023py] are open-source libraries for facial analysis used in
-psychological research. `CrisperWhisper` [@wagner2024] and `WhisperX` [@whisperx] are widely used for audio transcription. Combining these tools into a multimodal
+psychological research. `CrisperWhisper` [@zusag2024] and `WhisperX` [@whisperx] are widely used for audio transcription. Combining these tools into a multimodal
 analysis pipeline is done by the researcher, who must adapt output formats,
 coordinate systems, and sampling rates using custom post-processing scripts.
 
