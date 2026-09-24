@@ -9,9 +9,10 @@ config and whose keypoint mapping logic dispatches on the requested components.
 """
 
 import logging
-import os
 
 import numpy as np
+
+from nicetoolbox_core.entrypoint import SubprocessResult
 
 from ....utils import check_and_exception as check
 from ....utils import triangulation as tri
@@ -74,23 +75,17 @@ class MMPose2D(BaseMMPose):
 
         return indices, description
 
-    def post_inference(self):
+    def post_inference(self, result_manifest: SubprocessResult):
         """
         Post-inference processing for pose estimation components such as body_joints,
         hand_joints, and face_landmarks.
 
         See module docstring for the full description of steps and outputs.
         """
-        for _component, result_folder in self.result_folders.items():
-            raw_prediction_file = os.path.join(self.algorithm_out_folder, _component, f"{self.algorithm_instance}.npz")
-            prediction = np.load(raw_prediction_file, allow_pickle=True)
-            prediction_file = os.path.join(result_folder, f"{self.algorithm_instance}.npz")
+        for component in self.result_folders:
+            prediction_file = result_manifest.artifacts[component]
+            prediction = np.load(prediction_file, allow_pickle=True)
             data_description = prediction["data_description"].item()
-            # Raw entries carry csv_skip so the native file is not exported to CSV.
-            # The final file we save below is meant for CSV export, so clear the flag.
-            for entry in data_description.values():
-                if isinstance(entry, dict):
-                    entry.pop("csv_skip", None)
             results_2d = prediction["2d"]
             results_2d_bbox = prediction["bbox_2d"]
 

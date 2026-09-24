@@ -3,9 +3,13 @@ Data loaders that generate input file paths based on a recipe pattern.
 """
 
 import logging
+import os
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple, Union
+
+from tqdm import tqdm
 
 from .input_recipes import InputRecipes, VideoInputRecipe
 
@@ -41,13 +45,26 @@ def _resolve_video_recipe(config: Union[InputRecipes, dict]) -> VideoInputRecipe
     return recipes.video_input_recipe
 
 
+def get_console_stream():
+    """Returns a stream writing directly to the active terminal screen."""
+    try:
+        console_path = "CONOUT$" if os.name == "nt" else "/dev/tty"
+        return open(console_path, "w", encoding="utf-8")
+    except Exception:
+        return sys.stdout
+
+
 class VideoDataLoader(ABC):
     """
     Abstract Base Class for loading input data based on a recipe.
 
     Handles configuration parsing, validation, and path generation logic.
-    Subclasses must implement __iter__ to define how data is yielded.
+    Subclasses must implement __iter__ to define how data is yielded, and
+    should override `progress_unit` with the name of the unit yielded (used
+    as the default progress-bar unit in `with_progress`).
     """
+
+    progress_unit: str = "it"
 
     def __init__(self, config: dict, expected_cameras: List[str]):
         """
@@ -85,6 +102,28 @@ class VideoDataLoader(ABC):
                 f" Expected: {expected_cameras}, Available: {available_cameras}"
             )
             raise ValueError("Camera mismatch between detector and input recipe.")
+
+    def with_progress(self, desc: Optional[str] = None):
+        """
+        Enable CLI progress bar for this data loader using tqdm.
+
+        Args:
+            desc (str, optional): Description displayed in progress bar (e.g., 'InsightFace').
+
+        Returns:
+            tqdm: A tqdm iterator wrapping this data loader.
+        """
+        desc = desc or self.__class__.__name__
+        return tqdm(
+            self,
+            desc=desc,
+            unit=self.progress_unit,
+            file=get_console_stream(),
+            bar_format=(
+                "[PROGRESS] {desc}: {percentage:3.0f}%|{bar}| "
+                "{n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+            ),
+        )
 
     def __len__(self) -> int:
         """Returns total number of frames to be processed per camera."""
@@ -126,6 +165,8 @@ class ImagePathsByFrameIndexLoader(VideoDataLoader):
         (e.g., SPIGA, ETH-XGaze).
     """
 
+    progress_unit = "frames"
+
     def __iter__(self) -> Iterator[IMAGE_PATHS_BY_FRAMES_INDEX]:
         """Yields (frame_idx, {camera_name: file_path_str})."""
         for idx in range(self.start, self.end, self.step):
@@ -150,6 +191,8 @@ class ImagePathsBatchByFrameIndexLoader(VideoDataLoader):
         (e.g., Py-Feat).
     """
 
+    progress_unit = "batches"
+
     def __init__(self, config: dict, expected_cameras: List[str], batch_size: int):
         """
         Initializes the batch data loader.
@@ -167,6 +210,11 @@ class ImagePathsBatchByFrameIndexLoader(VideoDataLoader):
         if not isinstance(batch_size, int) or batch_size <= 0:
             raise ValueError(f"Invalid batch_size: {batch_size}. Must be positive integer.")
         self.batch_size = batch_size
+
+    def __len__(self) -> int:
+        """Returns total number of batches to be processed."""
+        batch_indices = range(self.start, self.end, self.step)
+        return (len(batch_indices) + self.batch_size - 1) // self.batch_size if batch_indices else 0
 
     def __iter__(self) -> Iterator[IMAGE_PATHS_BATCHED_BY_FRAMES_INDICES]:
         """Yields ([frame_indices], {camera_name: [file_path_strs]})."""
@@ -198,6 +246,12 @@ class ImagePathsByCameraLoader(VideoDataLoader):
         handle their own internal batching (e.g., MMPose).
     """
 
+    progress_unit = "cams"
+
+    def __len__(self) -> int:
+        """Returns total number of cameras to be processed."""
+        return len(self.cameras)
+
     def __iter__(self) -> Iterator[IMAGE_PATHS_BY_CAMERAS]:
         """Yields (camera_name, [all_file_paths_for_sequence])."""
         for cam in self.cameras:
@@ -221,4 +275,4 @@ class MP4VideoPathsByCameraLoader(VideoDataLoader):
         Ideal for detectors that process video files directly.
     """
 
-    pass
+    progress_unit = "cams"

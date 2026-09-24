@@ -3,7 +3,6 @@ SPIGA method detector class.
 """
 
 import logging
-import os
 import pickle
 
 import numpy as np
@@ -18,6 +17,7 @@ from nicetoolbox_core.data.array_schema import (
     ArraySchema,
 )
 from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import SpigaConfig
@@ -32,8 +32,6 @@ from ...utils.keypoints_post_processing import (
 )
 from ...utils.keypoints_triangualation import triangulate_keypoints
 from ..base_method import BaseMethod
-
-RAW_INFERENCE_PICKLE_NAME = "spiga_inference_raw.pkl"
 
 # Native spiga axes for head position rotation
 # Rotation is degree euler angles (rotation order is yaw * pitch * roll)
@@ -127,10 +125,11 @@ class Spiga(BaseMethod):
             face_bbox_npz_key=face_bbox_key,
         )
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         out = DetectorOutput()
 
-        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PICKLE_NAME)
+        # Parse output from the detector
+        raw_path = result_manifest.get_raw_output()
         head_rot, landmarks_2d = self._parse_raw(raw_path)
 
         # keypoints post processing

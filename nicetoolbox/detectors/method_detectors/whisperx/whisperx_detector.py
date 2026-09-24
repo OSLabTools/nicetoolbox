@@ -3,6 +3,7 @@ import os
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
 from nicetoolbox_core.data.json_schema import AudioDiarization, AudioTranscription, SpeakerAlignedTranscription
+from nicetoolbox_core.entrypoint import SubprocessResult
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils.srt import SrtWriter
@@ -10,11 +11,6 @@ from ....utils.video import render_subtitled_track_video
 from ...detector_outputs import DetectorOutput, JsonDetectorOutput
 from ..base_method import BaseMethod
 from .whisperx_utils import to_audio_diarization, to_audio_transcription, to_speaker_aligned_transcription
-
-# Raw packs written by whisperx_inference.py
-RAW_TRANSCRIPTION_JSON_NAME = "whisperx_transcription_raw.json"
-RAW_DIARIZATION_JSON_NAME = "whisperx_diarization_raw.json"
-RAW_SPEAKER_ALIGNED_JSON_NAME = "whisperx_speaker_aligned_raw.json"
 
 
 class WhisperX(BaseMethod):
@@ -31,26 +27,26 @@ class WhisperX(BaseMethod):
         if not self.data.has_audio():
             raise RuntimeError("WhisperX requires audio data but no audio was prepared.")
 
-        # Initialize audio loader for visualization and post-processing
         self.audio_loader = AudioStreamLoader(
             config=self.data.get_input_recipes(), expected_tracks=self.detector_config.track_names
         )
 
         return super()._initialize_detector()
 
-    def _load_raw(self, raw_name: str) -> dict:
-        """Load a component's raw inference pack from algorithm_out_folder."""
-        with open(os.path.join(self.algorithm_out_folder, raw_name)) as f:
+    def _load_raw(self, component: str, result_manifest: SubprocessResult) -> dict:
+        """Load a component's raw inference pack from its out_folder."""
+        raw_path = result_manifest.artifacts[f"{component}_json"]
+        with open(raw_path) as f:
             return json.load(f)
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         """Convert the raw inference packs into this detector's component outputs."""
         # Timestamps are relative to the subsequence, since inference is handed sliced audio.
         # Recording where it starts lets a consumer place them back on the source timeline.
         start = self.audio_loader.offset_seconds
         length = self.audio_loader.duration_seconds
 
-        raw_transcription = self._load_raw(RAW_TRANSCRIPTION_JSON_NAME)
+        raw_transcription = self._load_raw("audio_transcription", result_manifest)
         transcription = to_audio_transcription(
             raw_transcription,
             subsequence_start=start,
@@ -58,7 +54,7 @@ class WhisperX(BaseMethod):
             algorithm=self.algorithm_instance,
         )
 
-        raw_diarization = self._load_raw(RAW_DIARIZATION_JSON_NAME)
+        raw_diarization = self._load_raw("audio_diarization", result_manifest)
         diarization = to_audio_diarization(
             raw_diarization,
             subsequence_start=start,
@@ -66,7 +62,7 @@ class WhisperX(BaseMethod):
             algorithm=self.algorithm_instance,
         )
 
-        raw_speaker_aligned = self._load_raw(RAW_SPEAKER_ALIGNED_JSON_NAME)
+        raw_speaker_aligned = self._load_raw("speaker_aligned_transcription", result_manifest)
         speaker_aligned = to_speaker_aligned_transcription(
             raw_speaker_aligned,
             subsequence_start=start,

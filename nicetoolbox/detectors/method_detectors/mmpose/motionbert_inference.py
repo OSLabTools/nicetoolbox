@@ -15,7 +15,7 @@ from mmpose.apis.inferencers.pose3d_inferencer import Pose3DInferencer
 from mmpose.structures import PoseDataSample, merge_data_samples, split_instances
 from mmpose_pose3d_visualizer_patch import apply_pose3d_visualizer_rgb_reshape_fix
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 
@@ -356,7 +356,7 @@ def main(config: dict[str, Any]) -> None:
     height, width = _read_image_size_from_dataloader(config)
     dataloader = ImagePathsByCameraLoader(config=config, expected_cameras=config["camera_names"])
     start_frame, end_frame = dataloader.get_frames_range()
-    camera_paths = list(dataloader)
+    _camera_paths = list(dataloader)
 
     subjects_in_any_camera_view = [
         s
@@ -411,7 +411,7 @@ def main(config: dict[str, Any]) -> None:
         "kpt_thr": 0.3,
     }
 
-    for camera_name, image_paths in camera_paths:
+    for camera_name, image_paths in dataloader.with_progress(desc="MotionBERT"):
         logging.info("Camera - %s (3D lift from 2D NPZ)", camera_name)
         if camera_name not in source_camera_names:
             raise ValueError(
@@ -551,3 +551,5 @@ def main(config: dict[str, Any]) -> None:
         np.savez_compressed(save_file_name, **out_dict)
 
     logging.info(f'3D pose lift from 2D NPZ — {config["algorithm"]} COMPLETED!\n')
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)

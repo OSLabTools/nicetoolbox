@@ -8,9 +8,10 @@ import logging
 import os
 
 import numpy as np
+from mmengine.logging import MMLogger
 from mmpose.apis import MMPoseInferencer
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 
@@ -309,6 +310,14 @@ def main(config):
         device=config["device"],
     )
 
+    # Silence MMLogger per-frame log noise from mmengine/mmpose inferencer
+    try:
+        MMLogger.get_instance("current").setLevel(logging.WARNING)
+        for lg in MMLogger._instance_dict.values():
+            lg.setLevel(logging.WARNING)
+    except Exception:
+        pass
+
     # Prepare to collect outputs
     camera_keypoints_output = []
     camera_bbox_output = []
@@ -323,7 +332,7 @@ def main(config):
             fallback_num_keypoints = max(fallback_num_keypoints, max(indices) + 1)
 
     # Inference per camera
-    for camera_name, image_paths in dataloader:
+    for camera_name, image_paths in dataloader.with_progress(desc="MMPose2D"):
         logging.info(f"Camera - {camera_name}")
 
         kwargs = {
@@ -353,9 +362,9 @@ def main(config):
     start_frame, end_frame = dataloader.get_frames_range()
     frame_indices = [f"{idx:09d}" for idx in range(start_frame, end_frame)]
 
-    #  save as npz files in algorithm_out_folder
-    # TODO: don't save file per component?
-    for component in config["keypoints_indices"]:
+    #  save as npz files
+    save_files = {}
+    for component, result_folder in config["result_folders"].items():
         indices = config["keypoints_indices"][component]
 
         data_desc = {
@@ -365,7 +374,6 @@ def main(config):
                 "axis2": frame_indices,
                 "axis3": config["keypoints_description"][component],
                 "axis4": estimations_data_descr["2d"],
-                "csv_skip": True,
             },
             "bbox_2d": {
                 "axis0": subjects_in_any_camera_view,
@@ -373,7 +381,6 @@ def main(config):
                 "axis2": frame_indices,
                 "axis3": ["full_body"],
                 "axis4": estimations_data_descr["bbox_2d"],
-                "csv_skip": True,
             },
         }
         out_dict = {
@@ -381,8 +388,10 @@ def main(config):
             "bbox_2d": np.stack(camera_bbox_output, axis=1),
             "data_description": data_desc,
         }
-        save_file_name = os.path.join(config["algorithm_out_folder"], component, f"{config['algorithm']}.npz")
-        os.makedirs(os.path.dirname(save_file_name), exist_ok=True)
+        save_file_name = os.path.join(result_folder, f"{config['algorithm']}.npz")
         np.savez_compressed(save_file_name, **out_dict)
+        save_files[component] = save_file_name
 
     logging.info(f'MMPOSE - {config["algorithm"]} COMPLETED!\n')
+
+    return SubprocessResult.from_artifacts(**save_files)

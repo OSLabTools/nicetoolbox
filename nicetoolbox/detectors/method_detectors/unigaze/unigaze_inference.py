@@ -13,7 +13,7 @@ import torch
 import torchvision.transforms as transforms
 from unigaze.loader import MODEL_INDEX, build_unigaze_model
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 # The 6 selected landmarks from the generic 3D face model
@@ -225,7 +225,7 @@ def unigaze_inference(config):
     facePts = FACE_MODEL_6.reshape(6, 1, 3)
 
     # (5) Inference loop
-    for real_frame_idx, frame_paths_per_camera in dataloader:
+    for real_frame_idx, frame_paths_per_camera in dataloader.with_progress(desc="UniGaze"):
         frame_bundle = {}
 
         for camera_name in camera_names:
@@ -344,3 +344,5 @@ def unigaze_inference(config):
     np.savez_compressed(save_file_name, **out_dict)
 
     logging.info("Gaze detection 'UniGaze' COMPLETED!\n")
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)

@@ -12,7 +12,7 @@ from multiview_eth_xgaze.eth_xgaze.utils import vector_to_pitchyaw
 from multiview_eth_xgaze.gaze_estimator import GazeEstimator
 from multiview_eth_xgaze.xgaze_utils import draw_gaze, get_cam_para_studio
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 # Filename of the raw, native inference pack (distinct from the structured {algorithm}.npz
@@ -78,8 +78,7 @@ def eth_xgaze_inference(config, debug=False):
 
     # (4) Inference loop — accumulate ragged per-detection records (no dense toolbox arrays).
     per_frame_outputs = []
-
-    for real_frame_idx, frame_paths_per_camera in dataloader:
+    for real_frame_idx, frame_paths_per_camera in dataloader.with_progress(desc="ETH-XGaze"):
         images = {}  # {camera_name: image}, cached for gaze estimation + viz
 
         # (A) Face + landmark detection per camera
@@ -132,3 +131,5 @@ def eth_xgaze_inference(config, debug=False):
     save_file_name = os.path.join(config["algorithm_out_folder"], RAW_INFERENCE_NPZ_NAME)
     np.savez_compressed(save_file_name, **out_dict)
     logging.info(f"Gaze detection 'ETH-XGaze' raw pack COMPLETED! Wrote '{save_file_name}'.\n")
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)

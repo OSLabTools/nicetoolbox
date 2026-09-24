@@ -1,11 +1,11 @@
 import logging
-import os
 import warnings
 
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF
 from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
@@ -15,9 +15,6 @@ from ...utils.draw_2d import RenderContext, draw_direction_vector
 from ...utils.filters import SGFilter
 from ..base_method import BaseMethod
 
-# Raw native pack written by eth_xgaze_inference.py (kept in sync manually; importing the
-# inference module here would pull its eth_xgaze-venv-only deps into the main toolbox env).
-RAW_INFERENCE_NPZ_NAME = "eth_xgaze_inference_raw.npz"
 LANDMARK_NAMES = ["right_eye_0", "right_eye_1", "left_eye_0", "left_eye_1", "mouth_0", "mouth_1"]
 
 
@@ -81,11 +78,8 @@ class EthXgaze(BaseMethod):
         # Sanity checks
         # ETH-XGaze needs per-camera calibration: intrinsics for the head-pose/normalization at inference
         self.calibration = self.data.calibration
-        if not self.calibration:
-            raise ValueError(
-                f"ETH-XGaze '{self.algorithm_instance}' requires camera calibration, but none is available "
-                f"for this sequence."
-            )
+        if not self.calibration:  # TODO: fake it?
+            raise ValueError(f"UniGaze '{self.algorithm_instance}' requires camera calibration, but none is available.")
 
         # SVG window cannot exceed the number of frames to smooth.
         if self.filtered and self.filter_window_length > len(self.frame_names):
@@ -97,14 +91,14 @@ class EthXgaze(BaseMethod):
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         """
         Structure the raw ETH-XGaze pack into the toolbox's dense component arrays.
 
         Returns the produced DetectorOutput; BaseMethod.run() validates + saves it (and passes
         it to visualization()).
         """
-        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_NPZ_NAME)
+        raw_path = result_manifest.get_raw_output()
         raw = np.load(raw_path, allow_pickle=True)
 
         # dense camera-local gaze + landmarks (typed with axes), faces assigned to slots.

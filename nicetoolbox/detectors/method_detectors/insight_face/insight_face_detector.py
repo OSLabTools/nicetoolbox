@@ -3,7 +3,6 @@ InsightFace method detector class.
 """
 
 import logging
-import os
 import pickle
 
 import numpy as np
@@ -15,6 +14,7 @@ from nicetoolbox_core.data.array_schema import (
     VECTOR_3D_CONF_PER_LABEL,
 )
 from nicetoolbox_core.data.loaded_array import NpzArray
+from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
@@ -24,9 +24,7 @@ from ...utils.keypoints_post_processing import filter_keypoints, interpolate_key
 from ...utils.keypoints_triangualation import triangulate_keypoints
 from ..base_method import BaseMethod
 
-# SCRFD emits the box plus these 5 keypoints per face, in this order
 FACE_5PT_LABELS = ["eye_right", "eye_left", "nose", "mouth_right", "mouth_left"]
-RAW_INFERENCE_PICKLE_NAME = "insight_face_inference_raw.pkl"
 
 
 class InsightFace(BaseMethod):
@@ -76,10 +74,11 @@ class InsightFace(BaseMethod):
 
         return super()._initialize_detector()
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         out = DetectorOutput()
         # read raw prediction from native side
-        raw_path = os.path.join(self.algorithm_out_folder, RAW_INFERENCE_PICKLE_NAME)
+        raw_path = result_manifest.get_raw_output()
+
         with open(raw_path, "rb") as raw_file:
             per_frame_outputs = pickle.load(raw_file)
 

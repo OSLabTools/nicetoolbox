@@ -7,6 +7,7 @@ import os
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
 from nicetoolbox_core.data.json_schema import AudioTranscription
+from nicetoolbox_core.entrypoint import SubprocessResult
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils.srt import SrtWriter
@@ -15,16 +16,14 @@ from ...detector_outputs import DetectorOutput, JsonDetectorOutput
 from ..base_method import BaseMethod
 from .crisper_whisper_utils import to_audio_transcription
 
-# Raw pack written by crisper_whisper_inference.py (kept in sync manually; importing the inference
-# module here would pull its crisper_whisper-venv-only deps into the main toolbox env).
-RAW_TRANSCRIPTION_JSON_NAME = "crisper_whisper_transcription_raw.json"
-
 
 class CrisperWhisper(BaseMethod):
     algorithm_type = "crisper_whisper"
     components = ["audio_transcription"]
 
-    outputs = [JsonDetectorOutput("audio_transcription", schema=AudioTranscription)]
+    outputs = [
+        JsonDetectorOutput("audio_transcription", schema=AudioTranscription),
+    ]
 
     def _initialize_detector(self) -> MethodDetectorRuntime:
         if not self.data.has_audio():
@@ -36,7 +35,7 @@ class CrisperWhisper(BaseMethod):
         )
         return super()._initialize_detector()
 
-    def post_inference(self) -> DetectorOutput:
+    def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
         """Convert the raw inference pack into this detector's component output.
 
         CrisperWhisper produces only word-level chunks, so the segments of the standardized
@@ -45,7 +44,8 @@ class CrisperWhisper(BaseMethod):
         """
         # Timestamps are relative to the subsequence, since inference is handed sliced audio.
         # Recording where it starts lets a consumer place them back on the source timeline.
-        raw_path = os.path.join(self.algorithm_out_folder, RAW_TRANSCRIPTION_JSON_NAME)
+        raw_path = result_manifest.get_raw_output()
+
         with open(raw_path) as f:
             raw_transcription = json.load(f)
 

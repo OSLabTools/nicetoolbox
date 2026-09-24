@@ -11,7 +11,7 @@ from spiga.inference.config import ModelConfig
 from spiga.inference.framework import SPIGAFramework
 
 from nicetoolbox_core.data.loaded_array import load_array_from_path, select_array
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 # Constants
@@ -73,7 +73,8 @@ def spiga_inference(config: dict) -> None:
 
     # (6) Inference loop
     per_frame_outputs = []
-    for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(dataloader):  # for each frame
+    iterator = dataloader.with_progress(desc="SPIGA")
+    for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(iterator):  # for each frame
         detections_per_camera = {}  # store detections per camera
         for camera_name, image_path in frame_paths_per_camera.items():  # for each camera
             cam_idx = camera_names.index(camera_name)
@@ -136,3 +137,5 @@ def spiga_inference(config: dict) -> None:
     with open(raw_path, "wb") as raw_file:
         pickle.dump(per_frame_outputs, raw_file)
     logging.info("SPIGA raw inference output saved successfully.")
+
+    return SubprocessResult.from_artifacts(raw_output=raw_path)

@@ -18,7 +18,7 @@ import torch
 from feat.multitask import MESH_COLUMNS_V2, VA_COLUMNS_V2
 from huggingface_hub import hf_hub_download
 
-from nicetoolbox_core.entrypoint import run_inference_entrypoint
+from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
 
 RAW_INFERENCE_PARQUET_NAME = "py_feat_inference_raw.parquet"
@@ -125,7 +125,7 @@ def py_feat_inference(config: dict) -> None:
     detector = create_pyfeat_detector(assets_dir)
 
     per_camera, columns = [], {}
-    for camera_name, frame_paths in dataloader:
+    for camera_name, frame_paths in dataloader.with_progress(desc="Py-Feat"):
         logging.info(f"Processing camera {camera_name} ({len(frame_paths)} frames).")
 
         fex = detector.detect(
@@ -134,6 +134,7 @@ def py_feat_inference(config: dict) -> None:
             batch_size=batch_size,
             num_workers=num_workers,
             face_detection_threshold=face_detection_threshold,
+            progress_bar=False,
         )
 
         # Which columns form each feature block. Identical for every camera, and the
@@ -174,3 +175,5 @@ def py_feat_inference(config: dict) -> None:
     pq.write_table(table.replace_schema_metadata(metadata), result_path)
 
     logging.info(f"Py-Feat processing complete. Results saved to {result_path}.")
+
+    return SubprocessResult.from_artifacts(raw_output=result_path)
