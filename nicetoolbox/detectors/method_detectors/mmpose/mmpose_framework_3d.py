@@ -160,16 +160,15 @@ class MotionBERT(MMPose3D):
         return None
 
     def visualization(self, _):
-        for _, result_folder in self.result_folders.items():
-            viz_dir = os.path.join(result_folder, self.algorithm_instance, "visualization")
-            for camera_name in self.camera_names:
-                cam_frames_dir = os.path.join(viz_dir, camera_name)
-                out_mp4 = os.path.join(viz_dir, f"{camera_name}.mp4")
-                rc = vd.frames_to_video(cam_frames_dir, out_mp4, int(self.fps), start_frame=int(self.video_start))
-                if rc == 0:
-                    logging.info("MotionBERT visualization video -> %s", out_mp4)
-                else:
-                    logging.warning("frames_to_video failed (code %s) for %s", rc, out_mp4)
+        viz_dir = self.native_viz_folder
+        for camera_name in self.camera_names:
+            cam_frames_dir = os.path.join(viz_dir, camera_name)
+            out_mp4 = os.path.join(viz_dir, f"{camera_name}.mp4")
+            rc = vd.frames_to_video(cam_frames_dir, out_mp4, int(self.fps), start_frame=int(self.video_start))
+            if rc == 0:
+                logging.info("MotionBERT visualization video -> %s", out_mp4)
+            else:
+                logging.warning("frames_to_video failed (code %s) for %s", rc, out_mp4)
 
     def _initialize_detector(self) -> MotionbertAlgorithmConfig.RuntimeConfig:
         runtime = super()._initialize_detector()

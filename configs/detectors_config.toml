@@ -16,7 +16,7 @@
 algorithm_type = "mmpose_2d"  # name of the detector
 camera_names = "*"  # cameras used in inference, "*" means all cameras
 keypoint_mapping = "coco_wholebody"  # default body joitns mapping format
-env_name = "conda:openmmlab"
+env_name = "openmmlab"
 device = "cuda:0"
 # SGF filtering
 filtered = true
@@ -119,7 +119,7 @@ detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_2020
 algorithm_type = "motionbert"
 camera_names = ["view_top", "view_center"]
 keypoint_mapping = "human36m"
-env_name = "conda:openmmlab"
+env_name = "openmmlab"
 device = "cuda:0"
 # SGF filtering
 filtered = true
@@ -151,7 +151,7 @@ input_detector_names = [["body_joints", "vitpose_huge"]]
 [algorithms.sam_3d_body]
 algorithm_type = "sam_3d_body"
 camera_names = ["view_top", "view_center"]
-env_name = "venv:sam_3d_body"
+env_name = "sam_3d_body"
 device = "cuda:0"
 visualize = true
 # If empty, use the checkout cloned into the venv at envs/sam_3d_body/src/sam-3d-body
@@ -254,7 +254,7 @@ pose_3d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
 [algorithms.eth_xgaze]
 algorithm_type = "eth_xgaze"
 camera_names = "*"
-env_name = "venv:eth_xgaze"
+env_name = "eth_xgaze"
 filtered = true
 window_length = 11
 polyorder = 2
@@ -278,7 +278,7 @@ face_alignment_landmarks = "<assets>/face_alignment/hub/checkpoints/2DFAN4-cd938
 [algorithms.unigaze]
 algorithm_type = "unigaze"
 camera_names = "*"
-env_name = "venv:unigaze"
+env_name = "unigaze"
 filtered = false  # TODO: filtering is too aggressive with NaNs, disabled it
 window_length = 11
 polyorder = 2
@@ -371,7 +371,7 @@ gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_per_subject",
 # face detection model + five keypoints for face
 [algorithms.insight_face]
 algorithm_type = "insight_face"
-env_name = "venv:insight_face"
+env_name = "insight_face"
 camera_names = "*"
 # visualization settings
 visualize = true
@@ -402,7 +402,7 @@ model_pack_path = "<assets>/insight_face/models/<model_pack>"
 # head_orientation + facial landmarks
 [algorithms.spiga]
 algorithm_type = "spiga"
-env_name = "venv:spiga"
+env_name = "spiga"
 camera_names = "*"
 keypoint_mapping = "wflw"
 batch_size = 32
@@ -426,7 +426,7 @@ model_weights_path = "<assets>/spiga/spiga_wflw.pt" # path to weights folder
 
 [algorithms.mediapipe_face_landmarks]
 algorithm_type = "mediapipe_face_landmarks"
-env_name = "venv:mediapipe"
+env_name = "mediapipe"
 camera_names = ["view_left", "view_right"]
 keypoint_mapping = "mediapipe_face"
 visualize = true
@@ -451,7 +451,7 @@ model_path = "<assets>/mediapipe/face_landmarker.task"
 # emotion_individual
 [algorithms.py_feat]
 algorithm_type = "py_feat"
-env_name = "conda:py_feat"
+env_name = "py_feat"
 camera_names = ["view_left", "view_right"]
 # visualization
 visualize = true
@@ -478,7 +478,7 @@ face_detector_model = "<assets>/py_feat/models--py-feat--retinaface_r34"
 algorithm_type = "whisperx"
 track_names = "*"
 fallback_camera = "view_center"
-env_name = "venv:whisperx"
+env_name = "whisperx"
 model_size = "large-v3"
 compute_type = "float16"
 batch_size = 16
@@ -500,7 +500,7 @@ alignment_model = "<assets>/whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60
 algorithm_type = "crisper_whisper"
 track_names = "*"
 fallback_camera = "view_center"
-env_name = "venv:crisper_whisper"
+env_name = "crisper_whisper"
 batch_size = 1
 chunk_length_s = 30
 stride_length_s = 5

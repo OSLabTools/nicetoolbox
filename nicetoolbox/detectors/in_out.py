@@ -29,7 +29,6 @@ class SequenceIO:
     code_folder: Path
     nice_input_folder: Path
     calibration_file: Optional[Path]
-    conda_path: Path
     _subsequence_context: SubsequenceContext
 
     def __init__(
@@ -55,9 +54,6 @@ class SequenceIO:
         # Dataset properties
         self.calibration_file = subsequence_context.calibration_path
 
-        # Machine config
-        self.conda_path = subsequence_context.machine.conda_path
-
         # Create folders
         self._create_folders()
 
@@ -79,15 +75,6 @@ class SequenceIO:
             str: The path of the calibration file.
         """
         return self.calibration_file
-
-    def get_conda_path(self):
-        """
-        Returns the path to the Conda installation directory.
-
-        Returns:
-            str: The path to the Conda installation directory.
-        """
-        return self.conda_path
 
     def get_inference_path(self, component_name, detector_name):
         """

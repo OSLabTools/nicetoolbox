@@ -1,6 +1,5 @@
-# Makefile
-
 # Define variables
+export UV_INDEX_STRATEGY = unsafe-best-match
 TOOL_NAME = nicetoolbox
 VENV = nicetoolbox
 VENV_ROOT_DIR = ./envs
@@ -17,8 +16,9 @@ PROJECT_CONFIG = nice_project.toml
 # Define variables for third party venvs
 ifeq ($(OS), Windows_NT)
 	PYTHON_EXE = python
-	CONDA_DIR := $(shell conda info --base | tr '\\\\' '/')
-	MMPOSE = ./nicetoolbox/detectors/method_detectors/mmpose/install_openmmlab_conda.bat
+	PYTHON_SUFFIX = .exe
+	VENV_PYTHON = $(VENV_DIR)/Scripts/python.exe
+	MMPOSE = ./nicetoolbox/detectors/method_detectors/mmpose/install_openmmlab.bat
 	VENV_EXE_DIR = $(VENV_DIR)/Scripts
 	ETH_XGAZE_EXE_DIR = ./envs/eth_xgaze/Scripts
 	PYFEAT_EXE_DIR = ./envs/py_feat/Scripts
@@ -31,8 +31,9 @@ ifeq ($(OS), Windows_NT)
 	MEDIAPIPE_EXE_DIR = ./envs/mediapipe/Scripts
 else
 	PYTHON_EXE = python3.10
-	CONDA_DIR := $(shell conda info --base)
-	MMPOSE = ./nicetoolbox/detectors/method_detectors/mmpose/install_openmmlab_conda.sh
+	PYTHON_SUFFIX =
+	VENV_PYTHON = $(VENV_DIR)/bin/python
+	MMPOSE = ./nicetoolbox/detectors/method_detectors/mmpose/install_openmmlab.sh
 	VENV_EXE_DIR = $(VENV_DIR)/bin
 	ETH_XGAZE_EXE_DIR = ./envs/eth_xgaze/bin
 	PYFEAT_EXE_DIR = ./envs/py_feat/bin
@@ -101,31 +102,9 @@ create_machine_specifics: $(MACHINE_SPECIFICS)
 
 $(MACHINE_SPECIFICS):
 	@make create_separator
-	@touch $(MACHINE_SPECIFICS)
-ifeq ($(OS), Windows_NT)
-	@echo "# Where to find your conda (miniconda or anaconda) installation as absolute path (str)" > $(MACHINE_SPECIFICS)
-	@echo "conda_path = '$(CONDA_DIR)'" >> $(MACHINE_SPECIFICS)
-	@echo "" >> $(MACHINE_SPECIFICS)
-	@echo "# Optional Hugging Face token for gated Hub models (e.g. sam_3d_body). Leave empty if unused." >> $(MACHINE_SPECIFICS)
+	@echo "# Optional Hugging Face token for gated Hub models (e.g. sam_3d_body). Leave empty if unused." > $(MACHINE_SPECIFICS)
 	@echo "hugging_face_token = ''" >> $(MACHINE_SPECIFICS)
 	@echo "Created machine specifics paths file"
-else
-	@echo "Looking for valid conda envs_dirs..."
-	@VALID_CONDA_PATH=$$(conda config --show envs_dirs | grep -v '\.conda/envs' | grep -E '/envs$$' | head -n 1 | tr -d ' -'); \
-	if [ -z "$$VALID_CONDA_PATH" ]; then \
-		echo "Error: Only **/.conda/ installation found. Nicetoolbox requires a visible conda installation (e.g., /home/<user>/miniconda)."; \
-		echo "Please reconfigure conda with:"; \
-		echo "  conda config --add envs_dirs /path/to/visible/conda/installation/"; \
-		exit 1; \
-	fi; \
-	echo "# Where to find your conda (miniconda or anaconda) installation as absolute path (str)" > $(MACHINE_SPECIFICS); \
-	echo "conda_path = '$$(realpath $$VALID_CONDA_PATH/..)'">> $(MACHINE_SPECIFICS); \
-	echo "" >> $(MACHINE_SPECIFICS); \
-	echo "# Optional Hugging Face token for gated Hub models (e.g. sam_3d_body). Leave empty if unused." >> $(MACHINE_SPECIFICS); \
-	echo "hugging_face_token = ''" >> $(MACHINE_SPECIFICS); \
-	echo "Using conda installation at: $$VALID_CONDA_PATH"; \
-	echo "Created machine specifics paths file"
-endif
 
 # --------------------
 # Create project config
@@ -190,20 +169,20 @@ install_nicetoolbox_venv:
 	@make clean_venv NAME=$(VENV)
 
 	@echo "Creating virtual environment in $(VENV_DIR)..."
-	@$(PYTHON_EXE) -m venv $(VENV_DIR)
+	@uv venv $(VENV_DIR) --python 3.10
 
 #	install nicetoolbox-core
 	@echo "Installing nicetoolbox-core dependencies..."
-	@$(VENV_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(VENV_PYTHON) -e ./nicetoolbox_core
 
 ifeq ($(DEV), false)
 #	basic installation
 	@echo "Installing $(TOOL_NAME)..."
-	@$(VENV_EXE_DIR)/pip install .
+	@uv pip install --python $(VENV_PYTHON) .
 else
 #	developer installation
 	@echo "Installing $(TOOL_NAME) editable for developers..."
-	@$(VENV_EXE_DIR)/pip install -e ".[dev]"
+	@uv pip install --python $(VENV_PYTHON) -e ".[dev]"
 endif
 	@echo "$(TOOL_NAME) installed in $(VENV_DIR) successfully."
 
@@ -216,7 +195,6 @@ endif
 # -----------------------------------
 .PHONY: install_all_detectors
 install_all_detectors:
-# 	detectors venv installations
 	-@make install_eth_xgaze
 	-@make install_unigaze
 	-@make install_spiga
@@ -225,7 +203,6 @@ install_all_detectors:
 	-@make install_whisperx
 	-@make install_sam3d_body
 	-@make install_crisper_whisper
-# 	detectors conda installations
 	-@make install_pyfeat
 	-@make install_mmpose
 	@make create_separator
@@ -237,34 +214,30 @@ install_eth_xgaze:
 	@make create_separator
 	@make clean_venv NAME=eth_xgaze
 	@echo "Creating virtual environment for submodule 'ETH-XGaze'..."
-	@$(PYTHON_EXE) -m venv ./envs/eth_xgaze
+	@uv venv ./envs/eth_xgaze --python 3.10
 	@echo "Virtual environment created in ./envs/eth_xgaze"
 
 	@echo "Installing requirements for 'ETH-XGaze'..."
-	@$(ETH_XGAZE_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
-	@$(ETH_XGAZE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/eth_xgaze/eth_xgaze_requirements.txt
-	@$(ETH_XGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(ETH_XGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.1.0+cu118 torchvision==0.16.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(ETH_XGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/eth_xgaze/eth_xgaze_requirements.txt
+	@uv pip install --python $(ETH_XGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 
-	@echo "ETH-XGaze' environment setup completed successfully."
+	@echo "'ETH-XGaze' environment setup completed successfully."
 
-# Install the conda env for pyfeat
+# Install the venv for pyfeat
 .PHONY: install_pyfeat
 install_pyfeat:
 	@make create_separator
 	@make clean_venv NAME=py_feat
-	@echo "Installing conda environment for algorithm 'Py-Feat'..."
-# Py-Feat v2 requires Python 3.11+, so we use conda
-	@echo "Creating conda environment..."
-	@conda create -p ./envs/py_feat python=3.11 -y
-	@echo "Conda environment created in ./envs/py_feat"
+	@echo "Installing virtual environment for algorithm 'Py-Feat'..."
+	@uv venv ./envs/py_feat --python 3.11
+	@echo "Virtual environment created in ./envs/py_feat"
 
 	@echo "Installing requirements for 'Py-Feat'..."
-	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location torch==2.11.0+cu126 torchvision==0.26.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
-# py-feat requires torchcodec>=0.11 and its linux wheels link against CUDA 13
-# but we are still CUDA 12 and we don't even use it, so lets fix it to cpu
-	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location torchcodec==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-	@$(PYFEAT_EXE_DIR)/pip install --no-warn-script-location -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
-	@$(PYFEAT_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(PYFEAT_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.11.0+cu126 torchvision==0.26.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(PYFEAT_EXE_DIR)/python$(PYTHON_SUFFIX) torchcodec==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(PYFEAT_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/py_feat/py_feat_requirements.txt
+	@uv pip install --python $(PYFEAT_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'Py-Feat' environment setup completed successfully."
 
 .PHONY: install_spiga
@@ -274,13 +247,13 @@ install_spiga:
 	@echo "Installing virtual environment for algorithm 'SPIGA'..."
 
 	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/spiga
+	@uv venv ./envs/spiga --python 3.10
 	@echo "Virtual environment created in ./envs/spiga"
 
 	@echo "Installing requirements for 'SPIGA'..."
-	@$(SPIGA_EXE_DIR)/pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
-	@$(SPIGA_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/spiga/spiga_requirements.txt
-	@$(SPIGA_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(SPIGA_EXE_DIR)/python$(PYTHON_SUFFIX) "setuptools<82" torch==2.1.0+cu118 torchvision==0.16.0+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(SPIGA_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/spiga/spiga_requirements.txt
+	@uv pip install --python $(SPIGA_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'SPIGA' environment setup completed successfully."
 
 
@@ -292,21 +265,16 @@ install_insight_face:
 	@echo "Installing virtual environment for algorithm 'InsightFace'..."
 
 	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/insight_face
-	@$(INSIGHT_FACE_EXE_DIR)/python -m pip install --upgrade pip
+	@uv venv ./envs/insight_face --python 3.10
 	@echo "Virtual environment created in ./envs/insight_face"
 
-# 	need bundled cuda and cudnn for onnxruntime to use GPU
 	@echo "Installing Pytorch..."
-	@$(INSIGHT_FACE_EXE_DIR)/pip install torch==2.9.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(INSIGHT_FACE_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.9.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
 	@echo "Installing requirements for 'InsightFace'..."
-	@$(INSIGHT_FACE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/insight_face/insight_face_requirements.txt
+	@uv pip install --python $(INSIGHT_FACE_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/insight_face/insight_face_requirements.txt
+	@uv pip install --python $(INSIGHT_FACE_EXE_DIR)/python$(PYTHON_SUFFIX) --no-deps onnxruntime-gpu==1.23.2
 
-# 	need this hack to make gpu work - delete cpu version of onnx, keep only cuda
-	@$(INSIGHT_FACE_EXE_DIR)/pip uninstall -y onnxruntime
-	@$(INSIGHT_FACE_EXE_DIR)/pip install --no-cache-dir onnxruntime-gpu==1.23.2
-
-	@$(INSIGHT_FACE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(INSIGHT_FACE_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'InsightFace' environment setup completed successfully."
 
 
@@ -318,13 +286,12 @@ install_mediapipe:
 	@echo "Installing virtual environment for algorithm 'MediaPipe'..."
 
 	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/mediapipe
-	@$(MEDIAPIPE_EXE_DIR)/python -m pip install --upgrade pip
+	@uv venv ./envs/mediapipe --python 3.10
 	@echo "Virtual environment created in ./envs/mediapipe"
 
 	@echo "Installing requirements for 'MediaPipe'..."
-	@$(MEDIAPIPE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/mediapipe/mediapipe_requirements.txt
-	@$(MEDIAPIPE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(MEDIAPIPE_EXE_DIR)/python$(PYTHON_SUFFIX) "setuptools<82" -r ./nicetoolbox/detectors/method_detectors/mediapipe/mediapipe_requirements.txt
+	@uv pip install --python $(MEDIAPIPE_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'MediaPipe' environment setup completed successfully."
 
 
@@ -336,15 +303,15 @@ install_whisperx:
 	@echo "Installing virtual environment for algorithm 'WhisperX'..."
 
 	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/whisperx
+	@uv venv ./envs/whisperx --python 3.10
 	@echo "Virtual environment created in ./envs/whisperx"
 
 	@echo "Installing requirements for 'WhisperX'..."
-	@$(WHISPERX_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(WHISPERX_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(WHISPERX_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
 # 	whisperx alignment needs the nltk punkt tokenizer
-	@$(WHISPERX_EXE_DIR)/python -m nltk.downloader -d ./envs/whisperx/nltk_data punkt_tab
-	@$(WHISPERX_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/whisperx/whisperx_requirements.txt
-	@$(WHISPERX_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@$(WHISPERX_EXE_DIR)/python$(PYTHON_SUFFIX) -m nltk.downloader -d ./envs/whisperx/nltk_data punkt_tab
+	@uv pip install --python $(WHISPERX_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'WhisperX' environment setup completed successfully."
 
 # Install the venv for crisper-whisper
@@ -355,13 +322,14 @@ install_crisper_whisper:
 	@echo "Installing virtual environment for algorithm 'CrisperWhisper'..."
 
 	@echo "Creating virtual environment..."
-	@$(PYTHON_EXE) -m venv ./envs/crisper_whisper
+	@uv venv ./envs/crisper_whisper --python 3.10
 	@echo "Virtual environment created in ./envs/crisper_whisper"
 
 	@echo "Installing requirements for 'CrisperWhisper'..."
-	@$(CRISPER_WHISPER_EXE_DIR)/pip install torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
-	@$(CRISPER_WHISPER_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/crisper_whisper/crisper_whisper_requirements.txt
-	@$(CRISPER_WHISPER_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(CRISPER_WHISPER_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.8.0+cu126 torchvision==0.23.0+cu126 torchaudio==2.8.0+cu126 --index-url https://download.pytorch.org/whl/cu126 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(CRISPER_WHISPER_EXE_DIR)/python$(PYTHON_SUFFIX) "onnxruntime<1.24.0"
+	@uv pip install --python $(CRISPER_WHISPER_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/crisper_whisper/crisper_whisper_requirements.txt
+	@uv pip install --python $(CRISPER_WHISPER_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'CrisperWhisper' environment setup completed successfully."
 
 
@@ -370,7 +338,7 @@ install_crisper_whisper:
 install_mmpose:
 	@make create_separator
 	@make clean_venv NAME=openmmlab
-	@echo "Installing Conda environment for submodule 'MMPose'..."
+	@echo "Installing environment for submodule 'MMPose'..."
 ifeq ($(OS), Windows_NT)
 	@bash -c "$(MMPOSE)"
 else
@@ -386,17 +354,19 @@ install_sam3d_body:
 	@make create_separator
 	@make clean_venv NAME=sam_3d_body
 	@echo "Creating SAM 3D Body venv at sam_3d_body ..."
-	@$(PYTHON_EXE) -m venv ./envs/sam_3d_body
-	@echo "Cloning SAM 3D Body fork..."
-	@git clone https://github.com/OSLabTools/sam-3d-body $(SAM3D_BODY_REPO_DIR)
-	@git -C $(SAM3D_BODY_REPO_DIR) checkout --detach b5c765a0d89d789985e186d396315e7590887b94
+	@uv venv ./envs/sam_3d_body --python 3.10
+	@if [ ! -d "$(SAM3D_BODY_REPO_DIR)" ]; then \
+		echo "Cloning SAM 3D Body fork..."; \
+		git clone https://github.com/OSLabTools/sam-3d-body $(SAM3D_BODY_REPO_DIR); \
+		git -C $(SAM3D_BODY_REPO_DIR) checkout --detach b5c765a0d89d789985e186d396315e7590887b94; \
+	fi
 	@echo "Installing PyTorch (2.8.0, cu129)..."
-	@$(SAM3D_BODY_EXE_DIR)/pip install torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(SAM3D_BODY_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129 --index-url https://download.pytorch.org/whl/cu129 --extra-index-url https://pypi.org/simple
 	@echo "Installing SAM 3D Body dependencies..."
-	@$(SAM3D_BODY_EXE_DIR)/pip install -r nicetoolbox/detectors/method_detectors/sam_3d_body/sam_3d_body_pip_requirements.txt
+	@uv pip install --python $(SAM3D_BODY_EXE_DIR)/python$(PYTHON_SUFFIX) -r nicetoolbox/detectors/method_detectors/sam_3d_body/sam_3d_body_pip_requirements.txt
 	@echo "Installing Detectron2..."
-	@$(SAM3D_BODY_EXE_DIR)/pip install "detectron2==0.6+fd27788pt2.8.0cu129" --extra-index-url https://miropsota.github.io/torch_packages_builder --no-deps
-	@$(SAM3D_BODY_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(SAM3D_BODY_EXE_DIR)/python$(PYTHON_SUFFIX) "detectron2==0.6+fd27788pt2.8.0cu129" --extra-index-url https://miropsota.github.io/torch_packages_builder --no-deps
+	@uv pip install --python $(SAM3D_BODY_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 	@echo "'SAM 3D Body' environment setup completed successfully."
 
 # Install the venv for UniGaze
@@ -405,12 +375,12 @@ install_unigaze:
 	@make create_separator
 	@make clean_venv NAME=unigaze
 	@echo "Creating virtual environment for algorithm 'UniGaze'..."
-	@$(PYTHON_EXE) -m venv ./envs/unigaze
+	@uv venv ./envs/unigaze --python 3.10
 	@echo "Virtual environment created in ./envs/unigaze"
 
 	@echo "Installing requirements for 'UniGaze'..."
-	@$(UNIGAZE_EXE_DIR)/pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
-	@$(UNIGAZE_EXE_DIR)/pip install -r ./nicetoolbox/detectors/method_detectors/unigaze/unigaze_requirements.txt
-	@$(UNIGAZE_EXE_DIR)/pip install -e ./nicetoolbox_core
+	@uv pip install --python $(UNIGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) torch==2.0.1+cu118 torchvision==0.15.2+cu118 --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
+	@uv pip install --python $(UNIGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) -r ./nicetoolbox/detectors/method_detectors/unigaze/unigaze_requirements.txt
+	@uv pip install --python $(UNIGAZE_EXE_DIR)/python$(PYTHON_SUFFIX) -e ./nicetoolbox_core
 
 	@echo "UniGaze environment setup completed successfully."
