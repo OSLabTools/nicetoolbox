@@ -350,7 +350,7 @@ pose_config = "td-hm_ViTPose-huge_8xb64-210e_coco-256x192"
 [algorithms.eth_xgaze]
 algorithm_type = "eth_xgaze"
 camera_names = ["view_left", "view_right"]   # or use `"*"` to bind to every camera the sequence declares
-env_name = "venv:eth_xgaze"
+env_name = "eth_xgaze"
 ...
 
 [algorithms.gaze_fusion]

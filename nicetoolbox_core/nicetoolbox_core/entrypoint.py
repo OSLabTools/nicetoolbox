@@ -85,7 +85,7 @@ def run_inference_entrypoint(main_function: Callable) -> None:
         if main_function.__module__ != "__main__":
             logging.warning(
                 "You are accidentally importing an inference script inside the nicetoolbox code. "
-                "It should always be run in its own venv/conda"
+                "It should always be run in its own virtual environment"
             )
             return
 

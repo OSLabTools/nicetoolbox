@@ -20,7 +20,7 @@ NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/n
 
 ## Docker 
 
-You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites (like Python, CUDA, Conda, FFmpeg), so you do not have to set any of them up yourself.
+You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites (like Python, CUDA, uv, FFmpeg), so you do not have to set any of them up yourself.
 
 The third-party detectors are not part of the image. You can choose which of them to install:
 
@@ -47,47 +47,28 @@ When finished, follow [getting started](https://nicetoolbox.readthedocs.io/en/st
 
 ## Prerequisites
 
-### Python 3.10
+### uv
 
-Please find the download links under the [official python](https://www.python.org/downloads/) pages. The latest installer of a stable release of Python 3.10.10 can be downloaded [from here](https://www.python.org/downloads/release/python-31011/).
+NICE Toolbox requires [uv](https://docs.astral.sh/uv/) to manage virtual environments and Python installations. `uv` will automatically download and manage Python for you. No separate Python installation is required.
 
-If you are a Windows user, please add python to your `PATH` variable as explained on [educative.io](https://www.educative.io/answers/how-to-add-python-to-path-variable-in-windows).
+**Windows:**
 
-For Windows users, we also recommend clicking **"Disable path length limit"** on the final screen of the Python installer. This removes the default 260-character path limit that can cause failures with long dataset or sequences names. 
+1. Open the **Start** menu, type `PowerShell`, and click **Windows PowerShell**.
+2. Write the following command:
+   ```powershell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+3. After installation complete, close and reopen PowerShell.
 
-![python_windows_path_limit.png](graphics/python_windows_path_limit.png)
+**Linux:**
 
-You can always disable or enable line limit manually. See [Enable long path support](#on-windows-enable-long-path-support) for more details.
+1. Open the terminal. Write the following command:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+2. After installation complete, restart your terminal.
 
-### Conda
-
-We recommend installing Conda via [Miniforge](https://github.com/conda-forge/miniforge), which uses the open-source [conda-forge](https://conda-forge.org/) channel. Please follow the instructions on their [official website](https://github.com/conda-forge/miniforge).
-
-If you installed Conda through Anaconda, you can switch to the free conda-forge channel following these steps:
-
-```bash
-# check what is currently set
-conda config --show channels
-
-# remove all channels other than conda-forge
-conda config --remove channels defaults
-
-# add conda-forge if not already present
-conda config --add channels conda-forge
-```
-
-```{important}
-During the installation of Conda, it is **crucial not to select** the option to register Conda's Python as the default Python interpreter.
-This is because the Nice Toolbox requires **Python version 3.10** to be set as the default.
-
-![miniforge_default_python.png](graphics/miniforge_default_python.png)
-
-Selecting this option during installation may result in errors or conflicts, as Conda's Python version may differ from the required version for NiceToolbox. To ensure proper functionality, make sure Python 3.10 remains your default version.
-```
-
-```{important}
-On Windows, after installing Conda, ensure that the Conda paths are added to the SYSTEM environment variables. See [here for more details](https://saturncloud.io/blog/solving-the-conda-command-not-recognized-issue-on-windows-10/#step-2-add-conda-to-the-path)
-```
+For more information about `uv` installation, please refer to [official documentation](https://docs.astral.sh/uv/getting-started/installation/).
 
 ### Cuda 11.8
 
