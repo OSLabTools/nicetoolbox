@@ -57,6 +57,7 @@ class PyFeat(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.data.video_start_frame_index,
+            save_frames=self.save_frames,
         )
 
         return super()._initialize_detector()

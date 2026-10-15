@@ -92,6 +92,7 @@ class Spiga(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.video_start,
+            save_frames=self.save_frames,
         )
 
         # Labels for the face_landmarks axis3, in the order SPIGA emits them.

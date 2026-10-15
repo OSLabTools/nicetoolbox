@@ -16,10 +16,10 @@ class UrlAssetMetadata(BaseAssetMetadata):
     source: Literal["url"]
 
 
-class ZipAssetMetadata(BaseAssetMetadata):
-    """A zip archive fetched over HTTP and extracted into the asset folder."""
+class ArchiveAssetMetadata(BaseAssetMetadata):
+    """A zip or tar archive fetched over HTTP and extracted into the asset folder."""
 
-    source: Literal["zip"]
+    source: Literal["archive"]
     flatten_single_root: bool = False
 
 
@@ -31,7 +31,7 @@ class HuggingFaceAssetMetadata(BaseAssetMetadata):
 
 # Discriminated on `source`, so each backend only accepts the fields that apply to it.
 AssetMetadata = Annotated[
-    Union[UrlAssetMetadata, ZipAssetMetadata, HuggingFaceAssetMetadata],
+    Union[UrlAssetMetadata, ArchiveAssetMetadata, HuggingFaceAssetMetadata],
     Field(discriminator="source"),
 ]
 

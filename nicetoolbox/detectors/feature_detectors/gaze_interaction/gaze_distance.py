@@ -193,6 +193,7 @@ class BaseGazeDistance(BaseFeature):
             subjects_descr=self.subjects_descr,
             output_folder=self.viz_folders["gaze_interaction"],
             fps=self.data.fps,
+            save_frames=self.save_frames,
         )
         logging.info(f"Visualization of feature detector {self.components} completed.")
 

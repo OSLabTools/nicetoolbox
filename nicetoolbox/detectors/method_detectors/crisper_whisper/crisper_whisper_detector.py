@@ -10,8 +10,8 @@ from nicetoolbox_core.data.json_schema import AudioTranscription
 from nicetoolbox_core.entrypoint import SubprocessResult
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
+from ....utils import video as vd
 from ....utils.srt import SrtWriter
-from ....utils.video import render_subtitled_track_video
 from ...detector_outputs import DetectorOutput, JsonDetectorOutput
 from ..base_method import BaseMethod
 from .crisper_whisper_utils import to_audio_transcription
@@ -57,7 +57,7 @@ class CrisperWhisper(BaseMethod):
         )
 
         # SRTs feed the subtitled-video visualization.
-        SrtWriter().write_tracks(transcription.tracks, self.algorithm_out_folder)
+        SrtWriter().write_tracks(transcription.tracks, self.result_folders["audio_transcription"])
 
         out = DetectorOutput()
         out.add_json("audio_transcription", transcription)
@@ -75,8 +75,8 @@ class CrisperWhisper(BaseMethod):
         for track_name in self.audio_loader.tracks:
             info = self.audio_loader.get_stream_info(track_name)
 
-            render_subtitled_track_video(
-                srt_path=os.path.join(self.algorithm_out_folder, f"{track_name}.srt"),
+            vd.render_subtitled_track(
+                srt_path=os.path.join(self.result_folders["audio_transcription"], f"{track_name}.srt"),
                 audio_path=info["source_path"],
                 output_path=os.path.join(self.viz_folders["audio_transcription"], f"{track_name}.mp4"),
                 fps=self.data.fps,

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from nicetoolbox_core.input_recipes import AudioInputRecipe, AudioStreamRecipe
 
 from ...configs.schemas.dataset_properties import AudioTrackConfig
+from ...utils.ffmpeg import get_ffmpeg_path, get_ffprobe_path
 from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
 from ..in_out import SequenceIO
@@ -189,11 +190,11 @@ class AudioDataHandler(BaseModalityHandler):
         )
 
     # -------------------------------------------------------------------------
-    # FFmpeg / FFprobe helpers
+    # FFmpeg helpers
     # -------------------------------------------------------------------------
 
     def _dump_probe_json(self, path: Path, streams: List[Dict[str, Any]], suffix: str = "_audio_meta") -> None:
-        """Dump ffprobe stream data to a JSON file in the audio output folder for debugging."""
+        """Dump audio stream data to a JSON file in the audio output folder for debugging."""
         dump_path = self.audio_output_folder / f"{path.stem}{suffix}.json"
         with open(dump_path, "w") as f:
             json.dump(streams, f, indent=4)
@@ -224,7 +225,7 @@ class AudioDataHandler(BaseModalityHandler):
         """Probe a file and return all audio streams as a list of dicts. Raises on failure."""
         # fmt: off
         cmd = [
-            "ffprobe",
+            get_ffprobe_path(),
             "-v", "quiet",
             "-print_format", "json",
             "-show_streams",
@@ -238,6 +239,8 @@ class AudioDataHandler(BaseModalityHandler):
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"ffprobe failed for {path}: {e.stderr}") from None
+        except Exception as e:
+            raise RuntimeError(f"ffprobe execution failed for {path}: {e}") from None
 
         # try to parse it
         try:
@@ -245,7 +248,6 @@ class AudioDataHandler(BaseModalityHandler):
         except json.JSONDecodeError as e:
             raise RuntimeError(f"ffprobe returned invalid JSON for {path}: {e}") from None
 
-        # let's validate that we have relevant fields
         streams = data.get("streams", [])
         return streams
 
@@ -255,7 +257,7 @@ class AudioDataHandler(BaseModalityHandler):
         """Extract full-length audio stream to WAV"""
         # fmt: off
         cmd = [
-            "ffmpeg",
+            get_ffmpeg_path(),
             "-y",
             "-hide_banner",
             "-loglevel", "warning",

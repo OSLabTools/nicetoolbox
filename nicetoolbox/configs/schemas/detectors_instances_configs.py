@@ -39,6 +39,7 @@ class BaseAlgorithmConfig(BaseModel):
 
     algorithm_type: str
     template: Optional[str] = None
+    save_frames: Optional[bool] = None
     inputs: Dict[str, DetectorInputConfig] = Field(default_factory=dict)
 
     _instance_name: str = PrivateAttr()

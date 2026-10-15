@@ -6,8 +6,8 @@ from nicetoolbox_core.data.json_schema import AudioDiarization, AudioTranscripti
 from nicetoolbox_core.entrypoint import SubprocessResult
 
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
+from ....utils import video as vd
 from ....utils.srt import SrtWriter
-from ....utils.video import render_subtitled_track_video
 from ...detector_outputs import DetectorOutput, JsonDetectorOutput
 from ..base_method import BaseMethod
 from .whisperx_utils import to_audio_diarization, to_audio_transcription, to_speaker_aligned_transcription
@@ -105,7 +105,7 @@ class WhisperX(BaseMethod):
         for track_name in self.audio_loader.tracks:
             info = self.audio_loader.get_stream_info(track_name)
 
-            render_subtitled_track_video(
+            vd.render_subtitled_track(
                 srt_path=os.path.join(self.result_folders[component], f"{track_name}.srt"),
                 audio_path=info["source_path"],
                 output_path=os.path.join(self.viz_folders[component], f"{track_name}.mp4"),

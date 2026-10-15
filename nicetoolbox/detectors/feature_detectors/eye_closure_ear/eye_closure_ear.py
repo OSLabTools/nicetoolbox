@@ -119,7 +119,6 @@ class EyeClosureEar(BaseFeature):
         ear_utils.visualize_eye_closure_scores(
             viz_folder=self.viz_folders["eye_closure_score"],
             dataloader=dataloader,
-            camera_names=cameras,
             subjects_descr=self.subjects_descr,
             landmarks=landmarks.data,
             landmarks_axes=landmarks.axes,
@@ -128,6 +127,7 @@ class EyeClosureEar(BaseFeature):
             right_eye_indices=self.right_eye_indices,
             fps=self.data.fps,
             video_start_frame_index=self.data.video_start_frame_index,
+            save_frames=self.save_frames,
         )
 
         logging.info(f"Visualization of feature detector {self.components} completed.")

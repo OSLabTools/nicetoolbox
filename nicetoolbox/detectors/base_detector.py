@@ -50,6 +50,7 @@ class BaseDetector(ABC):
 
     # Additional attributes
     visualize: bool
+    save_frames: bool
 
     def __init__(
         self,
@@ -69,6 +70,10 @@ class BaseDetector(ABC):
         self.algorithm_instance = algorithm_instance
         self.detector_config = subsequence_context.get_detector_config(algorithm_instance)
         self.visualize = getattr(self.detector_config, "visualize", False)
+        save_frames_cfg = getattr(self.detector_config, "save_frames", None)
+        if save_frames_cfg is None:
+            save_frames_cfg = getattr(self.subsequence_context.run, "save_frames", False)
+        self.save_frames = bool(save_frames_cfg)
         # Allow detector configs (e.g. MMPose 2D) to declare components per-instance.
         # Falls back to the subclass's class-level `components` attribute.
         config_components = getattr(self.detector_config, "components", None)

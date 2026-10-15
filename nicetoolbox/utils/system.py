@@ -72,6 +72,32 @@ def detect_os_type() -> str:
     return os_type
 
 
+def detect_arch() -> str:
+    """
+    Detects the system architecture.
+
+    Returns:
+        str: A string representing the architecture type.
+            It can be either 'x64' or 'arm64'.
+
+    Raises:
+        RuntimeError: If the architecture is not supported.
+
+    Notes:
+        This function uses platform.machine() to determine the architecture.
+        Supported architectures:
+        - x64: x86_64, AMD64
+        - arm64: aarch64, arm64, armv7l
+    """
+    machine = platform.machine().lower()
+
+    if machine in ("x86_64", "amd64"):
+        return "x64"
+    if machine in ("aarch64", "arm64", "armv7l"):
+        return "arm64"
+    raise RuntimeError(f"Unsupported architecture: {machine}. Only x64 and arm64 are supported.")
+
+
 def normalize_ffmpeg_filter_path_in_windows(path: str) -> str:
     os_type = detect_os_type()
     if os_type == "windows":  # Windows

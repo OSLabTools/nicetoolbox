@@ -50,6 +50,7 @@ Two interval labels are recognized:
 
 ```toml
 export_csv = true
+assets = "<pwd>/nicetoolbox/detectors/assets"
 
 [run.sequence_xyz]
 input  = "<dataset_folder>/annotations_raw/gaze_elan/sequence_xyz_gaze.txt"
@@ -71,6 +72,7 @@ therapist = "person_right"
 | `start` / `end` | Frame range to extract, as a frame index or `"HH:MM:SS"`; `end = -1` means to the end |
 | `reset_frames` | If `true`, output frame numbering starts at `000000000`; if `false` (default), original video frame numbers are kept |
 | `export_csv` | Also write the result as CSV alongside the `.npz` |
+| `assets` | Assets folder containing the bundled ffmpeg/ffprobe, used to read the video; same as `assets` in `detectors_run_file.toml` |
 
 `reset_frames` matters when the annotated clip is a subsequence of a longer recording — leave it `false` so imported frames line up with detector output covering the same frames.
 

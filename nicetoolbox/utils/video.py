@@ -14,27 +14,24 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Optional
 
+import cv2
+
 from ..configs.models.video_timestamp import timestamp_to_ms
+from .ffmpeg import get_ffmpeg_path, get_ffprobe_path
 from .system import normalize_ffmpeg_filter_path_in_windows
 
 
 def get_ffmpeg_base_args(video_file: str) -> list:
     """
     Constructs the base argument list for running ffmpeg.
-
-    Args:
-        video_file (str): The path to the video file.
-
-    Returns:
-        list: The ffmpeg base arguments as a list of strings.
     """
     # fmt: off
     return [
-        "ffmpeg",
+        get_ffmpeg_path(),
         "-i", video_file,
         "-loglevel", "error",
-        "-vsync", "passthrough",
-        "-bsf:v", "setts=pts=N:dts=N"
+        "-fps_mode", "passthrough",
+        "-bsf:v", "setts=pts=N:dts=N",
     ]
     # fmt: on
 
@@ -44,35 +41,16 @@ def split_into_frames(
 ) -> None:
     """
     Split a video into individual frames using ffmpeg.
-
-    Args:
-        video_file (str): Path to the input video file.
-        output_base (str): Base directory where the frames will be saved.
-        n_frames_expected(Optional[int]): Expected number of frames
-        keep_indices (bool, optional): Whether to keep the original frame indices
-            or convert them to sequential numbers. Defaults to True.
-
-    Raises:
-        AssertionError: If splitting the video into frames fails.
-
-    Note:
-        This function uses ffmpeg to split the video into frames. Make sure ffmpeg
-            is installed and accessible in the system's PATH.
     """
     output_pattern = os.path.join(output_base, "%09d_tmp.png")
-
-    # Construct the command with the modern flag
     cmd = get_ffmpeg_base_args(video_file) + [output_pattern]
 
-    # Split the video
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
         logging.error(f"FFmpeg failed to process {video_file}.")
-        logging.error("Please update FFmpeg to version >= 5.1.")
         raise AssertionError("Splitting video into frames failed. See log for details.") from None
 
-    # Verify extraction count
     frames_list_tmp = glob.glob(os.path.join(output_base, "*_tmp.png"))
     n_frames_extracted = len(frames_list_tmp)
 
@@ -82,7 +60,6 @@ def split_into_frames(
         )
         raise AssertionError("Splitting video into frames failed (frame count mismatch). See log for details.")
 
-    # Convert continuous file numbers (1-based from ffmpeg) to 0-based frame indices.
     for file in sorted(frames_list_tmp):
         old_idx = int(os.path.basename(file)[:9])
         if keep_indices:
@@ -91,206 +68,42 @@ def split_into_frames(
             shutil.move(file, new_filename)
 
 
-def frames_to_video(
-    input_folder: Optional[str],
-    out_filename: str,
-    fps: float = 30.0,
-    start_frame: int = 0,  # TODO: support ms timestamps for super-accurate audio
-    audio_path: Optional[str] = None,
-    srt_path: Optional[str] = None,
-    frame_limit: Optional[int] = None,  # TODO: support ms timestamps for super-accurate audio
-) -> int:
-    """
-    Convert a folder of frames to a video using ffmpeg.
-
-    Args:
-        input_folder (Optional[str]): Path to the folder containing the frames.
-            If None, a black fallback video is generated.
-        out_filename (str): Path to the output video file.
-        fps (float, optional): Frames per second of the output video. Defaults to 30.0.
-        start_frame (int, optional): The starting frame number. Defaults to 0.
-        audio_path (Optional[str], optional): Path to an audio file to include. Defaults to None.
-        srt_path (Optional[str], optional): Path to a subtitle (SRT) file to include. Defaults to None.
-        frame_limit (int, optional): Limit on how many frames to compose. Defaults to None.
-
-    Returns:
-        int: Return code of the ffmpeg command.
-    """
-    # fmt: off
-    cmd = [
-        "ffmpeg", "-y", "-loglevel", "error",
-    ]
-    out_format = os.path.basename(out_filename).rsplit(".")[-1]
-
-    if input_folder:
-        if os.path.isdir(input_folder):
-            if os.listdir(input_folder) == []:
-                logging.error("Image folder is empty")
-                return 1
-            num, file_format = os.listdir(input_folder)[0].split(".")
-            input_folder = os.path.join(input_folder, f"%0{len(num)}d.{file_format}")
-        cmd.extend([
-            "-framerate", str(fps), "-start_number", str(start_frame),
-            "-i", input_folder,
-        ])
-    else:  # black screen
-        cmd.extend([
-            "-f", "lavfi", "-i", f"color=c=black:s=1280x720:r={fps}",
-        ])
-
-    if audio_path:
-        start_frame_ts_sec = timestamp_to_ms(start_frame, fps) / 1000
-        cmd.extend(["-ss", str(start_frame_ts_sec)])
-        if frame_limit:
-            end_frame_ts_sec = timestamp_to_ms(frame_limit, fps) / 1000
-            cmd.extend(["-t", str(end_frame_ts_sec)])
-        cmd.extend(["-i", audio_path])
-
-    vf_filters = []
-    if srt_path:
-        srt_escape = normalize_ffmpeg_filter_path_in_windows(srt_path)
-        vf_filters.append(f"subtitles={srt_escape}")
-
-    if out_format != "gif":
-        # Even width/height required for yuv420p; odd sizes cause green lines / broken files.
-        vf_filters.append("crop=trunc(iw/2)*2:trunc(ih/2)*2")
-        cmd.extend([
-            "-codec:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart",
-        ])
-
-    if vf_filters:
-        cmd.extend(["-vf", ",".join(vf_filters)])
-
-    if audio_path:
-        cmd.extend(["-c:a", "aac", "-shortest"])
-
-    if frame_limit:
-        cmd.extend(["-vframes", str(frame_limit)])
-
-    cmd.append(out_filename)
-    # fmt: on
-    output = subprocess.run(cmd, check=False)
-    return output.returncode
-
-
-def render_subtitled_track_video(
-    srt_path: str,
-    audio_path: str,
-    output_path: str,
-    fps: float,
-    default_start_frame: int = 0,
-    video_recipe=None,
-    camera: Optional[str] = None,
-    fallback_camera: Optional[str] = None,
-) -> bool:
-    """
-    Render a single subtitled video for one transcription track.
-
-    Encapsulates the per-track work shared by transcription detectors: it skips missing or empty
-    SRT files, resolves the frame folder from the video recipe for the track's own ``camera``
-    (or renders a black background when unavailable), and bakes the subtitles into the video
-    via :func:`frames_to_video`. Callers only need to provide the per-track paths
-    inside their own track loop.
-
-    Args:
-        srt_path (str): Path to the SRT subtitle file for this track.
-        audio_path (str): Path to the track's audio source.
-        out_filename (str): Path to the output ``.mp4`` (its directory is created if missing).
-        fps (float): Default frames per second (overridden by the recipe range when available).
-        default_start_frame (int, optional): Start frame used when no video recipe is given.
-        video_recipe (optional): Video input recipe exposing ``root_path``, ``camera_names``,
-            ``range_start`` and ``range_end``. When ``None`` a black background video is produced.
-        camera (Optional[str]): Camera to overlay subtitles on. ``None`` or a name not present
-            in the recipe falls back to ``fallback_camera``; if that is also unavailable a black
-            background video is produced.
-        fallback_camera (Optional[str]): Camera to use when ``camera`` is unavailable.
-
-    Returns:
-        bool: ``True`` if a video was rendered, ``False`` if the track was skipped.
-    """
-    if not os.path.exists(srt_path):
-        logging.warning(f"No SRT found at {srt_path}, skipping visualization.")
-        return False
-
-    if os.path.getsize(srt_path) == 0:
-        logging.warning(
-            f"SRT file {srt_path} is empty. This probably means no speech was detected "
-            "for this track. Skipping visualization."
-        )
-        return False
-
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-    frame_folder = None
-    start_frame = default_start_frame
-    frame_limit = None
-
-    if video_recipe:
-        chosen = None
-        if camera and camera in video_recipe.camera_names:
-            chosen = camera
-        elif fallback_camera and fallback_camera in video_recipe.camera_names:
-            chosen = fallback_camera
-        if chosen:
-            frame_folder = os.path.join(video_recipe.root_path, chosen, "frames")
-        start_frame = video_recipe.range_start
-        frame_limit = video_recipe.range_end - video_recipe.range_start
-
-    logging.info(f"Baking subtitles into {output_path}")
-    logging.info(f"Using frame folder: {frame_folder}" if frame_folder else "Using black background fallback.")
-
-    frames_to_video(
-        input_folder=frame_folder,
-        audio_path=audio_path,
-        srt_path=srt_path,
-        out_filename=output_path,
-        fps=fps,
-        start_frame=start_frame,
-        frame_limit=frame_limit,
-    )
-    return True
-
-
 def probe_video(video_path: str) -> dict:
     """
-    Parse video information using ffprobe.
+    Parse video information using native ffprobe subprocess.
     The collected information: codec, fps, number_of_frames, width, height, duration
 
     Args:
         video_path (str): Path to the video file.
 
     Returns:
-        dict: Return the dictionary holds the video information.
+        dict: Dictionary with 'format' and 'streams' keys matching ffprobe JSON output,
+              compatible with json_to_video_info().
+
+    Raises:
+        RuntimeError: If ffprobe returns a non-zero exit code.
     """
     # fmt: off
     cmd = [
-        "ffprobe",
+        get_ffprobe_path(),
         "-v", "error",
         "-print_format", "json",
-        "-show_format",
         "-show_streams",
+        "-show_format",
         video_path,
     ]
     # fmt: on
-
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, check=False)
     except Exception as e:
-        logging.error(f"Failed to execute ffprobe for {video_path}, error: {e}")
-        raise
-    if proc.returncode != 0:
-        logging.error(f"ffprobe failed while probing video {video_path}, stderr: {proc.stderr.strip()}")
+        logging.error(f"Failed to run ffprobe on {video_path}: {e}")
         raise
 
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        logging.error(f"Failed to parse ffprobe JSON output for video: {video_path}")
-        raise
+    if result.returncode != 0:
+        stderr_msg = result.stderr.decode(errors="replace").strip()
+        raise RuntimeError(f"ffprobe failed for '{video_path}' (exit {result.returncode}): {stderr_msg}")
 
-    return data
+    return json.loads(result.stdout.decode(errors="replace"))
 
 
 @dataclass
@@ -371,3 +184,255 @@ def json_to_video_info(data: dict) -> VideoInfo:
     logging.info(", ".join(f"{k}={v}" for k, v in video_info.items()))
 
     return VideoInfo(**video_info)
+
+
+def get_active_log_file() -> Optional[Path]:
+    """Find the active log file (e.g. nicetoolbox.log) from logging handlers, if configured."""
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.FileHandler):
+            return Path(handler.baseFilename)
+    return None
+
+
+class FFmpegPipeWriter:
+    """
+    Context manager for streaming NumPy frame arrays directly to FFmpeg via stdin pipe,
+    with optional image frame saving to disk.
+    """
+
+    def __init__(
+        self,
+        output_path: str,
+        size: tuple[int, int],  # (width, height)
+        fps: float = 30.0,
+        codec: str = "libx264",
+        pix_fmt_in: str = "bgr24",
+        pix_fmt_out: str = "yuv420p",
+        output_params: Optional[list[str]] = None,
+        save_frames_dir: Optional[str] = None,
+        log_file: Optional[Path | str] = None,
+    ):
+        out_dir = os.path.dirname(os.path.abspath(output_path))
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+
+        self.save_frames_dir = save_frames_dir
+        if self.save_frames_dir:
+            os.makedirs(self.save_frames_dir, exist_ok=True)
+        self._frame_count = 0
+
+        params = ["-vf", "crop=trunc(iw/2)*2:trunc(ih/2)*2", "-movflags", "+faststart"]
+        if output_params:
+            params.extend(output_params)
+
+        width, height = size
+        # fmt: off
+        cmd = [
+            get_ffmpeg_path(),
+            "-y",
+            "-loglevel", "error",
+            "-f", "rawvideo",
+            "-vcodec", "rawvideo",
+            "-s", f"{width}x{height}",
+            "-r", str(fps),
+            "-pix_fmt", pix_fmt_in,
+            "-i", "pipe:0",
+            "-vcodec", codec,
+            "-pix_fmt", pix_fmt_out,
+            *params,
+            output_path,
+        ]
+        # fmt: on
+
+        target_log = log_file or get_active_log_file()
+        self._log_handle = open(target_log, "a", encoding="utf-8") if target_log else None  # noqa: SIM115
+        stderr_dest = self._log_handle if self._log_handle else subprocess.DEVNULL
+
+        try:
+            self.proc: subprocess.Popen = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=stderr_dest)
+        except Exception:
+            if self._log_handle:
+                self._log_handle.close()
+                self._log_handle = None
+            raise
+
+    def write_frame(self, frame: Any, frame_idx: Optional[int] = None) -> None:
+        """Stream a single numpy frame array into the pipe and optionally write frame file to disk."""
+        if self.proc.poll() is not None:
+            raise RuntimeError(f"FFmpeg process exited prematurely with code {self.proc.returncode}.")
+
+        try:
+            self.proc.stdin.write(frame.tobytes())
+        except (BrokenPipeError, OSError, ValueError) as e:
+            raise RuntimeError(f"FFmpeg pipe broken (exit code {self.proc.returncode}).") from e
+
+        if self.save_frames_dir:
+            idx = frame_idx if frame_idx is not None else self._frame_count
+            cv2.imwrite(os.path.join(self.save_frames_dir, f"{idx:09d}.jpg"), frame)
+        self._frame_count += 1
+
+    def close(self) -> None:
+        """Flush buffer and terminate ffmpeg process."""
+        with suppress(BrokenPipeError, OSError):
+            self.proc.stdin.close()
+
+        ret = self.proc.wait()
+
+        if self._log_handle:
+            self._log_handle.close()
+            self._log_handle = None
+
+        if ret != 0:
+            raise RuntimeError(f"FFmpeg failed with exit code {ret}. Check log for details.")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+def encode_from_folder(
+    input_folder: Optional[str],
+    out_filename: str,
+    fps: float = 30.0,
+    start_frame: int = 0,
+    audio_path: Optional[str] = None,
+    srt_path: Optional[str] = None,
+    frame_limit: Optional[int] = None,
+) -> bool:
+    """Encode image folder/canvas + optional audio + optional subtitles to video using FFmpeg CLI."""
+    # fmt: off
+    cmd = [
+        get_ffmpeg_path(),
+        "-y",
+        "-loglevel", "error",
+    ]
+    # fmt: on
+    out_format = os.path.basename(out_filename).rsplit(".")[-1]
+
+    if input_folder:
+        if os.path.isdir(input_folder):
+            if os.listdir(input_folder) == []:
+                logging.error("Image folder is empty")
+                return False
+            num, file_format = os.listdir(input_folder)[0].split(".")
+            input_folder = os.path.join(input_folder, f"%0{len(num)}d.{file_format}")
+        # fmt: off
+        cmd.extend([
+            "-framerate", str(fps),
+            "-start_number", str(start_frame),
+            "-i", input_folder,
+        ])
+        # fmt: on
+    else:  # black screen
+        # fmt: off
+        cmd.extend([
+            "-f", "lavfi",
+            "-i", f"color=c=black:s=1280x720:r={fps}",
+        ])
+        # fmt: on
+
+    if audio_path:
+        start_frame_ts_sec = timestamp_to_ms(start_frame, fps) / 1000
+        cmd.extend(["-ss", str(start_frame_ts_sec)])
+        if frame_limit:
+            end_frame_ts_sec = timestamp_to_ms(frame_limit, fps) / 1000
+            cmd.extend(["-t", str(end_frame_ts_sec)])
+        cmd.extend(["-i", audio_path])
+
+    vf_filters = []
+    if srt_path:
+        srt_escape = normalize_ffmpeg_filter_path_in_windows(srt_path)
+        vf_filters.append(f"subtitles={srt_escape}")
+
+    if out_format != "gif":
+        vf_filters.append("crop=trunc(iw/2)*2:trunc(ih/2)*2")
+        # fmt: off
+        cmd.extend([
+            "-codec:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+        ])
+        # fmt: on
+
+    if vf_filters:
+        cmd.extend(["-vf", ",".join(vf_filters)])
+
+    if audio_path:
+        cmd.extend(["-c:a", "aac", "-shortest"])
+
+    if frame_limit:
+        cmd.extend(["-vframes", str(frame_limit)])
+
+    cmd.append(out_filename)
+    output = subprocess.run(cmd, check=False)
+    return output.returncode == 0
+
+
+def render_subtitled_track(
+    srt_path: str,
+    audio_path: str,
+    output_path: str,
+    fps: float,
+    default_start_frame: int = 0,
+    video_recipe: Optional[Any] = None,
+    camera: Optional[str] = None,
+    fallback_camera: Optional[str] = None,
+) -> bool:
+    """
+    Render a single subtitled video for one transcription track using FFmpeg.
+
+    Args:
+        srt_path (str): Path to the SRT subtitle file for this track.
+        audio_path (str): Path to the track's audio source.
+        output_path (str): Path to the output mp4 file.
+        fps (float): Frames per second.
+        default_start_frame (int): Default start frame when no recipe is provided.
+        video_recipe (Optional[Any]): Video recipe with frame folder and time range.
+        camera (Optional[str]): Target camera to pull video frames from.
+        fallback_camera (Optional[str]): Fallback camera if target camera is unavailable.
+
+    Returns:
+        bool: True if video rendering succeeded, False if skipped due to missing SRT.
+    """
+    if not os.path.exists(srt_path):
+        logging.warning(f"No SRT found at {srt_path}, skipping visualization.")
+        return False
+
+    if os.path.getsize(srt_path) == 0:
+        logging.warning(
+            f"SRT file {srt_path} is empty. This probably means no speech was detected "
+            "for this track. Skipping visualization."
+        )
+        return False
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    frame_folder = None
+    start_frame = default_start_frame
+    frame_limit = None
+
+    if video_recipe:
+        chosen = None
+        if camera and camera in video_recipe.camera_names:
+            chosen = camera
+        elif fallback_camera and fallback_camera in video_recipe.camera_names:
+            chosen = fallback_camera
+        if chosen:
+            frame_folder = os.path.join(video_recipe.root_path, chosen, "frames")
+        start_frame = video_recipe.range_start
+        frame_limit = video_recipe.range_end - video_recipe.range_start
+
+    logging.info(f"Baking subtitles into {output_path}")
+    logging.info(f"Using frame folder: {frame_folder}" if frame_folder else "Using black background fallback.")
+
+    return encode_from_folder(
+        input_folder=frame_folder,
+        out_filename=output_path,
+        fps=fps,
+        start_frame=start_frame,
+        audio_path=audio_path,
+        srt_path=srt_path,
+        frame_limit=frame_limit,
+    )

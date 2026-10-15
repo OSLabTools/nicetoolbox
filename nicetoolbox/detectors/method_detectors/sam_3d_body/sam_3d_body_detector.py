@@ -808,7 +808,7 @@ class Sam3dBody(BaseMethod):
         )
         cfg = self.detector_config
         fps = int(self.data.fps)
-        video_start = int(self.data.video_start_frame_index)
+        _video_start = int(self.data.video_start_frame_index)
         dataloader = ImagePathsByCameraLoader(
             config=self.data.get_input_recipes(), expected_cameras=list(cfg.camera_names)
         )
@@ -911,11 +911,10 @@ class Sam3dBody(BaseMethod):
             cal_cam = calibration.get(camera_name) if isinstance(calibration, dict) else None
 
             for _tag, vroot, v3root, per_frame, face_arr in viz_targets:
-                cam_out = os.path.join(vroot, camera_name)
-                os.makedirs(cam_out, exist_ok=True)
-                cam_out_3d = os.path.join(v3root, camera_name) if v3root is not None else None
-                if cam_out_3d is not None:
-                    os.makedirs(cam_out_3d, exist_ok=True)
+                out_2d_mp4 = os.path.join(vroot, f"{camera_name}.mp4")
+                out_3d_mp4 = os.path.join(v3root, f"{camera_name}.mp4") if v3root is not None else None
+                writer_2d = None
+                writer_3d = None
 
                 for frame_idx, image_file in enumerate(frames_list):
                     if frame_idx >= len(per_frame):
@@ -924,6 +923,13 @@ class Sam3dBody(BaseMethod):
                     if image is None:
                         logging.warning("Could not read image %s", image_file)
                         continue
+
+                    if writer_2d is None:
+                        height, width = image.shape[:2]
+                        writer_2d = vd.FFmpegPipeWriter(out_2d_mp4, size=(width, height), fps=fps)
+                        if out_3d_mp4 is not None:
+                            writer_3d = vd.FFmpegPipeWriter(out_3d_mp4, size=(width, height), fps=fps)
+
                     plist = frame_person_list(per_frame[frame_idx], camera_name, cam_idx, mode)
 
                     viz_2d = image.copy()
@@ -934,12 +940,9 @@ class Sam3dBody(BaseMethod):
                         jc, sc = person_colors[pid % len(person_colors)]
                         _draw_mhr_on_image(viz_2d, kp, vis_edges, jc, sc, RADIUS, THICKNESS)
 
-                    cv2.imwrite(
-                        os.path.join(cam_out, f"{frame_idx + video_start:09d}.jpg"),
-                        viz_2d,
-                    )
+                    writer_2d.write_frame(viz_2d)
 
-                    if cam_out_3d is not None:
+                    if writer_3d is not None:
                         viz_3d = image.copy()
                         h, w = image.shape[:2]
                         K, dist = mesh_viz._intrinsics_from_calibration_or_image(cal_cam, w, h)
@@ -969,24 +972,12 @@ class Sam3dBody(BaseMethod):
                                 mc,
                                 line_thickness=1,
                             )
-                        cv2.imwrite(
-                            os.path.join(cam_out_3d, f"{frame_idx + video_start:09d}.jpg"),
-                            viz_3d,
-                        )
+                        writer_3d.write_frame(viz_3d)
 
-                success *= vd.frames_to_video(
-                    cam_out,
-                    os.path.join(vroot, f"{camera_name}.mp4"),
-                    fps,
-                    start_frame=video_start,
-                )
-                if cam_out_3d is not None:
-                    success *= vd.frames_to_video(
-                        cam_out_3d,
-                        os.path.join(v3root, f"{camera_name}.mp4"),
-                        fps,
-                        start_frame=video_start,
-                    )
+                if writer_2d:
+                    writer_2d.close()
+                if writer_3d:
+                    writer_3d.close()
 
         mhr = self.predictions_mapping.human_pose.sam_3d_body_mhr
         for comp, npz_stem, chains in [
@@ -1007,23 +998,30 @@ class Sam3dBody(BaseMethod):
                 if camera_name not in cfg.camera_names:
                     continue
                 cam_idx = cfg.camera_names.index(camera_name)
-                cam_out = os.path.join(viz_comp_dir, camera_name)
-                os.makedirs(cam_out, exist_ok=True)
+                out_mp4 = os.path.join(viz_comp_dir, f"{camera_name}.mp4")
+                frames_dir = os.path.join(viz_comp_dir, "images", camera_name) if self.save_frames else None
+                writer = None
+
                 for frame_idx, image_file in enumerate(frames_list):
                     if frame_idx >= kp_data.shape[2]:
                         break
                     image = cv2.imread(image_file)
                     if image is None:
                         continue
+
+                    if writer is None:
+                        height, width = image.shape[:2]
+                        writer = vd.FFmpegPipeWriter(out_mp4, size=(width, height), fps=fps, save_frames_dir=frames_dir)
+
                     viz = image.copy()
                     for subj in range(n_sub):
                         jc, sc = person_colors[subj % len(person_colors)]
                         kp = kp_data[subj, cam_idx, frame_idx].astype(np.float64)
                         _draw_component_overlay(viz, kp, chains, name_to_pos, jc, sc, radius=1, thickness=1)
-                    cv2.imwrite(os.path.join(cam_out, f"{frame_idx + video_start:09d}.jpg"), viz)
-                vd.frames_to_video(
-                    cam_out, os.path.join(viz_comp_dir, f"{camera_name}.mp4"), fps, start_frame=video_start
-                )
+                    writer.write_frame(viz, frame_idx=frame_idx)
+
+                if writer:
+                    writer.close()
 
         if cfg.visualize_mesh_interactive and mesh_pred.is_file():
             out_inter = Path(self.result_folders["body_mesh"]) / "visualization_3d_interactive"

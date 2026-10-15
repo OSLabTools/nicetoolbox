@@ -18,6 +18,7 @@ from ..utils import logging_utils as log_ut
 from ..utils import to_csv as csv
 from ..utils.dependency_sort import sort_detectors_order
 from ..utils.error_handling import manage_error_scope
+from ..utils.ffmpeg import initialize_ffmpeg
 from ..utils.system import system_capability_check
 from . import config_handler as confh
 from .data import SequenceData
@@ -118,6 +119,9 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
     if not runnable_algorithms:
         log_ut.log_with_underscore("No valid algorithms remain after asset checks. Nothing to do.")
         return
+
+    # initialize ffmpeg/ffprobe binary paths from the resolved assets root
+    initialize_ffmpeg(manager.assets_root)
 
     # update config file
     config.run_config.algorithms = runnable_algorithms

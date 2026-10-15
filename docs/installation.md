@@ -74,22 +74,6 @@ For more information about `uv` installation, please refer to [official document
 
 Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and [Linux Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
 
-
-### FFmpeg
-
-On Linux Ubuntu, please find detailed instructions [here](https://phoenixnap.com/kb/install-ffmpeg-ubuntu).
-
-On Windows, you can follow [phoenixnap.com](https://phoenixnap.com/kb/ffmpeg-windows):
-
-1. Visit the official [FFmpeg website](https://ffmpeg.org/download.html) to get the latest version
-of the FFmpeg package and binary files.
-2. Hover over the Windows icon with your mouse and click on 'Windows builds from gyan.dev'
-3. This redirects you to a page having FFmpeg binaries. Install the latest git master branch build,
-e.g., ffmpeg-git-essentials.7z.
-4. Extract the downloaded files and rename the extracted folder as ffmpeg.
-5. Move the folder to the root of the C drive or the folder of your choice.
-6. Add FFmpeg to `PATH` in Windows SYSTEM environment variables.
-
 ### Git 
 
 Ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)

@@ -1,9 +1,10 @@
 import logging
 import shutil
+import tarfile
 import time
 import zipfile
 from pathlib import Path
-from typing import List
+from typing import Iterable, List, Optional
 
 import requests
 from huggingface_hub import hf_hub_download, parse_hf_uri, snapshot_download
@@ -14,6 +15,7 @@ from tqdm import tqdm
 
 from ..configs.schemas.asset_manifest import AssetManifest
 from ..utils import logging_utils as log_ut
+from ..utils.ffmpeg import get_ffmpeg_asset_key
 from ..utils.hf_token import effective_hf_hub_token
 
 # Silence Hugging Face Hub warnings/info and underlying httpx network logs
@@ -114,32 +116,54 @@ class AssetManager:
                     logging.error(f"Please check internet or manually place file at: {dest_path}")
                     raise
 
-    def download_and_extract_zip(self, url: str, dest_path: Path, desc: str, flatten_single_root: bool = False):
-        zip_path = dest_path.parent / (dest_path.name + ".zip")
+    def download_and_extract_archive(self, url: str, dest_path: Path, desc: str, flatten_single_root: bool = False):
+        """
+        Downloads a zip or tar archive (plain, gz, bz2 or xz) and extracts it into dest_path.
+        The format is detected from the file contents, since hosted URLs often carry no extension.
+        """
+        archive_path = dest_path.parent / (dest_path.name + ".archive")
         staging_path = dest_path.parent / (dest_path.name + ".incomplete")
 
-        self.download_file(url, zip_path, desc=desc)
+        self.download_file(url, archive_path, desc=desc)
 
         shutil.rmtree(staging_path, ignore_errors=True)
         try:
             staging_path.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(zip_path) as archive:
-                self._assert_safe_zip(archive, desc)
-                archive.extractall(staging_path)
+            if zipfile.is_zipfile(archive_path):
+                self._extract_zip(archive_path, staging_path, desc)
+            elif tarfile.is_tarfile(archive_path):
+                self._extract_tar(archive_path, staging_path, desc)
+            else:
+                raise RuntimeError(f"Downloaded archive for '{desc}' is neither a zip nor a tar file.")
             if flatten_single_root:
                 self._flatten_single_root(staging_path, desc)
             staging_path.rename(dest_path)
-        except zipfile.BadZipFile as err:
+        except (zipfile.BadZipFile, tarfile.TarError) as err:
             shutil.rmtree(staging_path, ignore_errors=True)
-            zip_path.unlink(missing_ok=True)
-            raise RuntimeError(f"Downloaded archive for '{desc}' is not a valid zip file.") from err
+            raise RuntimeError(f"Downloaded archive for '{desc}' is corrupted: {err}") from err
         except Exception:
             shutil.rmtree(staging_path, ignore_errors=True)
             raise
         finally:
-            zip_path.unlink(missing_ok=True)
+            archive_path.unlink(missing_ok=True)
 
         logging.info(f"Asset '{desc}' extracted to {dest_path}.")
+
+    @classmethod
+    def _extract_zip(cls, archive_path: Path, staging_path: Path, desc: str) -> None:
+        with zipfile.ZipFile(archive_path) as archive:
+            cls._assert_safe_zip(archive, desc)
+            archive.extractall(staging_path)
+
+    @classmethod
+    def _extract_tar(cls, archive_path: Path, staging_path: Path, desc: str) -> None:
+        # "r:*" picks the compression (gz/bz2/xz) from the file header.
+        with tarfile.open(archive_path, mode="r:*") as archive:
+            cls._assert_safe_tar(archive, desc)
+            if hasattr(tarfile, "data_filter"):
+                archive.extractall(staging_path, filter="data")
+            else:
+                archive.extractall(staging_path)
 
     @staticmethod
     def _flatten_single_root(folder: Path, desc: str) -> None:
@@ -171,6 +195,26 @@ class AssetManager:
             member_path = Path(member)
             if member_path.is_absolute() or ".." in member_path.parts:
                 raise RuntimeError(f"Archive for '{desc}' contains an unsafe path: '{member}'.")
+
+    @staticmethod
+    def _assert_safe_tar(archive: tarfile.TarFile, desc: str) -> None:
+        """
+        Tar counterpart of `_assert_safe_zip`. Tar members can also be links and device
+        nodes, so link targets must stay inside the archive and devices are refused.
+        """
+        for member in archive.getmembers():
+            member_path = Path(member.name)
+            if member_path.is_absolute() or ".." in member_path.parts:
+                raise RuntimeError(f"Archive for '{desc}' contains an unsafe path: '{member.name}'.")
+            if member.issym() or member.islnk():
+                link_path = Path(member.linkname)
+                if link_path.is_absolute() or ".." in link_path.parts:
+                    raise RuntimeError(
+                        f"Archive for '{desc}' contains a link escaping the archive: "
+                        f"'{member.name}' -> '{member.linkname}'."
+                    )
+            if member.isdev():
+                raise RuntimeError(f"Archive for '{desc}' contains a device file: '{member.name}'.")
 
     def download_hf_repo(self, repo_id: str, cache_dir: Path, desc: str):
         """
@@ -313,11 +357,11 @@ class AssetManager:
                 else:
                     logging.info(f"Asset '{key}' verified.")
 
-            elif source == "zip":
+            elif source == "archive":
                 if not dest_path.exists():
                     logging.info(f"Missing asset: {key}. Downloading and extracting...")
                     flatten = asset_info.get("flatten_single_root", False)
-                    self.download_and_extract_zip(url, dest_path, desc=key, flatten_single_root=flatten)
+                    self.download_and_extract_archive(url, dest_path, desc=key, flatten_single_root=flatten)
                 else:
                     logging.info(f"Asset '{key}' verified.")
             else:
@@ -364,13 +408,30 @@ class AssetManager:
                 skip.add(algo_name)
         return skip
 
-    def ensure_assets_for_config(self) -> set[str]:
+    def ensure_assets_for_config(self, algorithms: Optional[Iterable[str]] = None) -> set[str]:
         """
         Ensure assets for the configured algorithms, skipping gated ones when no HF token
         is available. Returns the set of algorithms that remain runnable.
+
+        Args:
+            algorithms: Algorithms to fetch assets for. Defaults to the run config's algorithms.
         """
+        # get selected algos from parameter or config
+        algos_dict = self.config.detectors_config.algorithms
+        if algorithms is None:
+            selected_algorithms = set(self.config.run_config.algorithms)
+        else:
+            selected_algorithms = set(algorithms)
+
+        # check if we have unknown algorithms
+        unknown = selected_algorithms - algos_dict.keys()
+        if unknown:
+            raise ValueError(
+                f"Algorithm(s) not found in detectors config: {', '.join(sorted(unknown))}. "
+                "Check the 'algorithms' list in the run file or the --algorithms argument."
+            )
+
         # check algos that can't be obtained
-        selected_algorithms = set(self.config.run_config.algorithms)
         unobtainable_algorithms = self.unobtainable_gated_algorithms()
         skipped = selected_algorithms & unobtainable_algorithms
         if skipped:
@@ -389,7 +450,6 @@ class AssetManager:
         logging.info(f"Active algorithms for this config: {', '.join(sorted(active_algos)) or '(none)'}")
 
         required_assets = []
-        algos_dict = self.config.detectors_config.algorithms
         for algo in active_algos:
             algo_model = algos_dict.get(algo)
             if algo_model and hasattr(algo_model, "required_assets"):
@@ -402,6 +462,10 @@ class AssetManager:
                         required_assets.append(clean_key)
                     except ValueError:
                         logging.warning(f"Path '{val}' is not inside the assets root!")
+
+        # ffmpeg is always required, so we always inject it into requirements
+        ffmpeg_key = get_ffmpeg_asset_key()
+        required_assets.append(ffmpeg_key)
 
         logging.info(f"AssetManager check: Found {len(required_assets)} required assets for this run.")
 
