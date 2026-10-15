@@ -7,6 +7,7 @@ import numpy as np
 from ...configs.models.video_timestamp import timestamp_to_frame_index
 from ...configs.utils import model_to_dict
 from ...utils import logging_utils as log_ut
+from ...utils.ffmpeg import initialize_ffmpeg
 from ...utils.srt import SrtWriter
 from ...utils.to_csv import convert_json_to_csv_files, convert_npz_to_csv_files
 from ...utils.video import json_to_video_info, probe_video
@@ -45,6 +46,9 @@ def import_gaze(
     logging.info(f"Project path: '{handler.project_folder}'")
     logging.info(f"Run config: '{connector_config}'")
     logging.info(f"Sequences: {list(cfg.run)}")
+
+    # probe_video needs the bundled ffprobe
+    initialize_ffmpeg(cfg.assets)
 
     for sequence_id, sequence in cfg.run.items():
         log_ut.log_banner(f"Sequence: {sequence_id}")

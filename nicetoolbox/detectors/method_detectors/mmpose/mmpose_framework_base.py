@@ -147,7 +147,7 @@ class BaseMMPose(BaseMethod):
         Generates a visualization video for each camera from the processed image frames.
 
         This method takes the processed image frames for each camera and compiles them
-        into a video file. It uses the frames_to_video() function from utils.video.py.
+        into a video file. It uses FFmpegPipeWriter from utils.video.py.
         The success of the video creation is tracked, and the method logs the outcome of
         the visualization process for each camera.
         Args:
@@ -189,7 +189,9 @@ class BaseMMPose(BaseMethod):
             success = True
             for camera_name, frames_list in dataloader:
                 cam_idx = self.camera_names.index(camera_name)
-                os.makedirs(os.path.join(viz_dir, camera_name), exist_ok=True)
+                out_mp4 = os.path.join(viz_dir, f"{camera_name}.mp4")
+                frames_dir = os.path.join(viz_dir, "images", camera_name) if self.save_frames else None
+                writer = None
 
                 for frame_idx, image_file in enumerate(frames_list):
                     image = cv2.imread(image_file)
@@ -197,6 +199,13 @@ class BaseMMPose(BaseMethod):
                         logging.warning("Visualization skipped missing image: %s", image_file)
                         continue
                     image = image.copy()
+
+                    if writer is None:
+                        height, width = image.shape[:2]
+                        writer = vd.FFmpegPipeWriter(
+                            out_mp4, size=(width, height), fps=int(self.fps), save_frames_dir=frames_dir
+                        )
+
                     for subject_idx in range(len(subject_names)):
                         # The predicted joints data is selected.
                         subject_2d_points = data[subject_idx, cam_idx, frame_idx][:, :2]
@@ -239,22 +248,10 @@ class BaseMMPose(BaseMethod):
                                 thickness=THICKNESS,
                             )
 
-                    cv2.imwrite(
-                        os.path.join(
-                            viz_dir,
-                            camera_name,
-                            f"{frame_idx + int(self.video_start):09d}.jpg",
-                        ),
-                        image,
-                    )
+                    writer.write_frame(image, frame_idx=frame_idx)
 
-                # Video is created and saved.
-                success *= vd.frames_to_video(
-                    os.path.join(viz_dir, camera_name),
-                    os.path.join(viz_dir, f"{camera_name}.mp4"),
-                    int(self.fps),
-                    start_frame=int(self.video_start),
-                )
+                if writer:
+                    writer.close()
 
         logging.info(f"Detector {self.components}: visualization finished with code " f"{success}.")
 

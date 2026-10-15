@@ -6,6 +6,7 @@
 visualize = true              # whether to save image/video visualizations of detectors
 skip_inference = false        # whether to skip native detectors inference and jump directly to post-processing/visualization
 save_csv = true               # whether to save all results to csv-files
+save_frames = false           # whether to save all frames with visualizations (if visualize is true)
 
 error_level = "DETECTOR"      # Options: "DETECTOR", "SEQUENCE", "STRICT" (from least to most strict)
 log_level = "INFO"            # Options: "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"

@@ -36,6 +36,7 @@ class ElanImportGazeConfig(BaseModel):
     log_level: str
     log_file_path: Path
     export_csv: bool
+    assets: Path
 
     run: dict[str, ElanSequenceConfig]
 

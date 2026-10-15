@@ -283,7 +283,7 @@ filtered = false  # TODO: filtering is too aggressive with NaNs, disabled it
 window_length = 11
 polyorder = 2
 visualize = true
-visualize_native = true  # if true, inference subprocess also writes per-frame debug overlays
+visualize_native = false  # if true, inference subprocess also writes per-frame debug overlays
 face_alignment_cache_dir = "<assets>/face_alignment"
 [algorithms.unigaze.inputs]
 subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
@@ -430,7 +430,7 @@ env_name = "mediapipe"
 camera_names = ["view_left", "view_right"]
 keypoint_mapping = "mediapipe_face"
 visualize = true
-visualize_native = true
+visualize_native = false
 visualize_keypoints_npz_key = "2d_interpolated"
 num_faces = 10
 min_face_detection_confidence = 0.5

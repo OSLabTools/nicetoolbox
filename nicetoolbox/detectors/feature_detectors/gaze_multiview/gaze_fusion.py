@@ -2,9 +2,6 @@
 Fuses per-camera world gaze vectors into a single world-space direction.
 """
 
-import os
-
-import cv2
 import numpy as np
 
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF, VECTOR_3D_CONF
@@ -12,10 +9,10 @@ from nicetoolbox_core.data.loaded_array import NpzArray
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 from ....configs.schemas.detectors_instances_configs import ClosedEyeFilterMode
-from ....utils import video as vd
 from ....utils import visual_utils as vis_ut
 from ...detector_inputs import NpzDetectorInput
 from ...detector_outputs import DetectorOutput, NpzDetectorOutput
+from ...utils import draw_2d
 from ...utils.filters import SGFilter
 from ..base_feature import BaseFeature
 from ..eye_closure_threshold.eye_closure_threshold import EYE_CLOSED_STATE
@@ -314,8 +311,9 @@ class GazeFusion(BaseFeature):
         origins = out.get("gaze_multiview", "gaze_origin_2d").data[..., :2]  # (S, C, F, 2)
         per_view_world = self.loaded_inputs["gaze_per_camera_3d"].data[..., :3]  # (S, V, F, 3)
 
-        cameras = out.get("gaze_multiview", gaze_key).axes.cameras
-        n_subjects, n_views = per_view_world.shape[0], per_view_world.shape[1]
+        gaze_array = out.get("gaze_multiview", gaze_key)
+        cameras = gaze_array.axes.cameras
+        n_views = per_view_world.shape[1]
 
         # Reproject every view's world gaze into every camera once: per_view_2d[cam][s, v, f] is
         # view v's direction as seen from camera cam.
@@ -328,68 +326,19 @@ class GazeFusion(BaseFeature):
         }
 
         dataloader = ImagePathsByFrameIndexLoader(self.data.get_input_recipes(), expected_cameras=cameras)
+        context = draw_2d.RenderContext(
+            dataloader=dataloader,
+            fps=int(self.data.fps),
+            video_start=self.data.video_start_frame_index,
+            save_frames=self.save_frames,
+        )
 
-        for frame_idx, (real_idx, files) in enumerate(dataloader):
-            for cam_name, path in files.items():
-                if cam_name not in cameras:
-                    continue
-                cam_idx = cameras.index(cam_name)
-
-                img = cv2.imread(str(path))
-                if img is None:
-                    continue
-
-                arrow_length = vis_ut.gaze_arrow_pixel_length(self.calibration[cam_name]["image_size"][0])
-
-                for sub_id in range(n_subjects):
-                    vec = gaze_2d[sub_id, cam_idx, frame_idx]
-                    if np.isnan(vec).any():
-                        continue
-
-                    origin = origins[sub_id, cam_idx, frame_idx]
-                    if np.isnan(origin).any():
-                        continue
-                    origin_i = np.round(origin).astype(np.int32)
-
-                    # Per-view arrows: thin yellow, half length, drawn first so the fused arrow
-                    # renders on top. Each is this camera's view of another camera's estimate.
-                    for view_idx in range(n_views):
-                        view_vec = per_view_2d[cam_name][sub_id, view_idx, frame_idx]
-                        if np.isnan(view_vec).any():
-                            continue
-                        view_end = np.round(origin + 0.5 * arrow_length * view_vec).astype(np.int32)
-                        cv2.arrowedLine(
-                            img,
-                            origin_i,
-                            view_end,
-                            color=(0, 255, 255),  # yellow (BGR)
-                            thickness=1,
-                            line_type=cv2.LINE_AA,
-                            tipLength=0.2,
-                        )
-
-                    # Fused arrow: red, full length.
-                    if np.isnan(vec).any():
-                        continue
-                    end_point = np.round(origin + arrow_length * vec).astype(np.int32)
-                    cv2.arrowedLine(
-                        img,
-                        origin_i,
-                        end_point,
-                        color=(0, 0, 255),
-                        thickness=2,
-                        line_type=cv2.LINE_AA,
-                        tipLength=0.2,
-                    )
-
-                out_dir = os.path.join(self.viz_folders["gaze_multiview"], cam_name)
-                os.makedirs(out_dir, exist_ok=True)
-                cv2.imwrite(os.path.join(out_dir, f"{real_idx:09d}.jpg"), img)
-
-        for cam in cameras:
-            vd.frames_to_video(
-                os.path.join(self.viz_folders["gaze_multiview"], cam),
-                os.path.join(self.viz_folders["gaze_multiview"], f"{cam}.mp4"),
-                fps=self.data.fps,
-                start_frame=int(dataloader.start),
-            )
+        draw_2d.draw_gaze_multiview_fusion(
+            gaze_2d=gaze_2d,
+            origins=origins,
+            per_view_2d=per_view_2d,
+            image_sizes={cam: self.calibration[cam]["image_size"] for cam in cameras},
+            axes=gaze_array.axes,
+            context=context,
+            viz_folder=self.viz_folders["gaze_multiview"],
+        )

@@ -6,14 +6,12 @@ import logging
 import os
 import warnings
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
-from ....utils import video as vd
-from ....utils import visual_utils as vis_ut
+from ...utils.draw_2d import RenderContext, draw_gaze_interaction_arrows
 
 # BGR colors for the per-subject gaze arrow.
 _COLOR_LOOK_AT = (0, 200, 0)  # green: this subject looks at someone this frame
@@ -31,6 +29,7 @@ def visualize_gaze_arrows(
     subjects_descr,
     output_folder,
     fps,
+    save_frames: bool = False,
 ) -> None:
     """Render a per-camera video overlaying each subject's gaze arrow on the source frames.
 
@@ -53,68 +52,30 @@ def visualize_gaze_arrows(
         subjects_descr (list): subject names on axis0 (only used for length here).
         output_folder (str): visualization folder; one <camera>/ subfolder + <camera>.mp4 each.
         fps (float): output video frame rate.
+        save_frames (bool): whether to save individual image frames to disk.
     """
     dataloader = ImagePathsByFrameIndexLoader(dataloader_config, expected_cameras=camera_names)
-    num_subjects = len(subjects_descr)
+    context = RenderContext(
+        dataloader=dataloader,
+        cam_sees_subjects={cam: list(range(len(subjects_descr))) for cam in camera_names},
+        fps=int(fps),
+        video_start=0,
+        save_frames=save_frames,
+    )
 
-    for frame_idx, (real_idx, files) in enumerate(dataloader):
-        for cam_name, path in files.items():
-            if cam_name not in camera_names:
-                continue
-            cam_idx = camera_names.index(cam_name)
+    class FakeAxes:
+        cameras = camera_names
+        subjects = subjects_descr
 
-            img = cv2.imread(str(path))
-            if img is None:
-                continue
-
-            # Gaze arrives as a unit direction; scale it to a visible arrow for this frame width.
-            arrow_length = vis_ut.gaze_arrow_pixel_length(img.shape[1])
-
-            for sub_id in range(num_subjects):
-                head = heads[sub_id, cam_idx, frame_idx]
-                vec = gaze[sub_id, cam_idx, frame_idx]
-                looks = looks_at_anyone[sub_id, cam_idx, frame_idx]
-                # Skip subjects with no head, no gaze, or no look_at result this frame.
-                if np.isnan(head).any() or np.isnan(vec).any() or np.isnan(looks):
-                    continue
-
-                color = _COLOR_LOOK_AT if looks == 1 else _COLOR_NO_LOOK
-                head_point = np.round(head).astype(np.int32)
-
-                # Target zone: gaze counts as a look-at if it passes within this pixel radius of a head.
-                radius = radii[sub_id, cam_idx, frame_idx]
-                if not np.isnan(radius):
-                    cv2.circle(
-                        img,
-                        tuple(head_point),
-                        max(1, int(round(radius))),
-                        color=_COLOR_TARGET,
-                        thickness=1,
-                        lineType=cv2.LINE_AA,
-                    )
-
-                end_point = np.round(head + arrow_length * vec).astype(np.int32)
-                cv2.arrowedLine(
-                    img,
-                    tuple(head_point),
-                    tuple(end_point),
-                    color=color,
-                    thickness=2,
-                    line_type=cv2.LINE_AA,
-                    tipLength=0.2,
-                )
-
-            out_dir = os.path.join(output_folder, cam_name)
-            os.makedirs(out_dir, exist_ok=True)
-            cv2.imwrite(os.path.join(out_dir, f"{real_idx:09d}.jpg"), img)
-
-    for cam_name in camera_names:
-        vd.frames_to_video(
-            os.path.join(output_folder, cam_name),
-            os.path.join(output_folder, f"{cam_name}.mp4"),
-            fps=fps,
-            start_frame=int(dataloader.start),
-        )
+    draw_gaze_interaction_arrows(
+        heads=heads,
+        gaze=gaze,
+        looks_at_anyone=looks_at_anyone,
+        radii=radii,
+        axes=FakeAxes(),
+        context=context,
+        viz_folder=output_folder,
+    )
     logging.info(f"Saved per-camera gaze arrow videos to '{output_folder}'.")
 
 

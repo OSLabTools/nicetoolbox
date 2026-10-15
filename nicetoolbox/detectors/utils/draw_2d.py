@@ -12,7 +12,7 @@ Bounding boxes and keypoints are common enough to be provided directly.
 import logging
 import os
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 import cv2
 import numpy as np
@@ -20,6 +20,7 @@ import numpy as np
 from nicetoolbox_core.data.loaded_array import NpzArray
 
 from ...utils import video as vd
+from ...utils import visual_utils as vis_ut
 
 # Per-subject BGR colours, cycled when there are more subjects than colours.
 SUBJECT_COLORS = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (0, 255, 255)]
@@ -63,12 +64,14 @@ class RenderContext:
     it to every overlay it draws. The subject and camera axes are not here: they come from the
     NpzArray, so they always describe the data actually being rendered. Per-subject skipping is
     driven by NaN slots on the array itself, so no explicit "who does this camera see" list is
-    carried here.
+    carried here unless optionally specified in cam_sees_subjects.
     """
 
     dataloader: object  # yields (real_frame_idx, {camera_name: frame_path})
     fps: int
     video_start: int
+    save_frames: bool = False
+    cam_sees_subjects: Optional[dict[str, list[int]]] = None
 
 
 def render_per_camera_videos(
@@ -80,7 +83,8 @@ def render_per_camera_videos(
     """
     Walk every camera/frame/visible-subject and let `draw_subject` paint the overlay.
 
-    Frames are written to <viz_folder>/<camera>/ and combined into <viz_folder>/<camera>.mp4.
+    Frames are streamed in memory directly into <viz_folder>/<camera>.mp4.
+    If context.save_frames is True, frames are also saved to <viz_folder>/images/<camera>/.
 
     Args:
         draw_subject (callable): Called as (image, subject_idx, cam_idx, frame_idx); draws in place.
@@ -88,26 +92,40 @@ def render_per_camera_videos(
         context (RenderContext): Frame source and timing for this subsequence.
         viz_folder (str): Visualization folder of the component being rendered.
     """
-    for cam_idx, camera_name in enumerate(axes.cameras):
-        os.makedirs(os.path.join(viz_folder, camera_name), exist_ok=True)
+    os.makedirs(viz_folder, exist_ok=True)
+    writers: dict[str, vd.FFmpegPipeWriter] = {}
 
+    try:
         for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(context.dataloader):
-            image = cv2.imread(frame_paths_per_camera[camera_name])
+            for cam_idx, camera_name in enumerate(axes.cameras):
+                frame_path = frame_paths_per_camera.get(camera_name)
+                if not frame_path:
+                    continue
 
-            for subject_idx in range(len(axes.subjects)):
-                draw_subject(image, subject_idx, cam_idx, frame_idx)
+                image = cv2.imread(frame_path)
+                if image is None:
+                    raise RuntimeError(f"Failed to read image from '{frame_path}'")
 
-            cv2.imwrite(os.path.join(viz_folder, camera_name, f"{real_frame_idx:09d}.jpg"), image)
+                if camera_name not in writers:
+                    out_mp4 = os.path.join(viz_folder, f"{camera_name}.mp4")
+                    frames_dir = os.path.join(viz_folder, "images", camera_name) if context.save_frames else None
+                    height, width = image.shape[:2]
+                    writers[camera_name] = vd.FFmpegPipeWriter(
+                        out_mp4, size=(width, height), fps=context.fps, save_frames_dir=frames_dir
+                    )
 
-        # create and save video. frames_to_video returns an ffmpeg exit code: 0 is success.
-        exit_code = vd.frames_to_video(
-            os.path.join(viz_folder, camera_name),
-            os.path.join(viz_folder, f"{camera_name}.mp4"),
-            fps=context.fps,
-            start_frame=context.video_start,
-        )
-        if exit_code != 0:
-            logging.error(f"Failed to encode '{camera_name}.mp4' in {viz_folder} (exit code {exit_code}).")
+                visible_subjects = (
+                    context.cam_sees_subjects.get(camera_name) if context.cam_sees_subjects is not None else None
+                )
+                for subject_idx in range(len(axes.subjects)):
+                    if visible_subjects is not None and subject_idx not in visible_subjects:
+                        continue
+                    draw_subject(image, subject_idx, cam_idx, frame_idx)
+
+                writers[camera_name].write_frame(image, frame_idx=real_frame_idx)
+    finally:
+        for writer in writers.values():
+            writer.close()
 
     logging.info(f"Visualization finished: {viz_folder}")
 
@@ -269,3 +287,214 @@ def draw_emotions(bbox_2d: NpzArray, emotions: NpzArray, context: RenderContext,
         )
 
     render_per_camera_videos(draw_subject, bbox_2d.axes, context, viz_folder)
+
+
+def draw_eye_closure_scores(
+    landmarks,
+    scores,
+    left_eye_indices: list[int],
+    right_eye_indices: list[int],
+    axes,
+    context: RenderContext,
+    viz_folder: str,
+) -> None:
+    """
+    Draw eye contours and EAR scores on frames and stitch videos per camera.
+    """
+    colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255)]
+    lm_data = np.asarray(landmarks.data if hasattr(landmarks, "data") else landmarks)
+    sc_data = np.asarray(scores.data if hasattr(scores, "data") else scores)
+    subjects = axes.subjects
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        subject_name = subjects[subject_idx]
+        if subject_name not in axes.subjects:
+            return
+        color = colors[subject_idx % len(colors)]
+
+        for eye_idx, indices in enumerate([left_eye_indices, right_eye_indices]):
+            eye_coords = lm_data[subject_idx, cam_idx, frame_idx, indices, :2]
+            valid_coords = eye_coords[~np.isnan(eye_coords).any(axis=1)]
+            if len(valid_coords) == 0:
+                continue
+
+            x_min, y_min = np.min(valid_coords, axis=0)
+            cv2.polylines(image, [valid_coords.astype(np.int32)], isClosed=True, color=color, thickness=1)
+            for pt in valid_coords:
+                cv2.circle(image, (int(pt[0]), int(pt[1])), 1, color, -1)
+
+            score = sc_data[subject_idx, cam_idx, frame_idx, eye_idx]
+            cv2.putText(
+                image,
+                f"{score:.2f}",
+                (int(x_min), int(y_min) - 3),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.35,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
+
+    render_per_camera_videos(draw_subject, axes, context, viz_folder)
+
+
+def draw_eye_closed_states(
+    landmarks,
+    scores,
+    eye_closed,
+    left_eye_indices: list[int],
+    right_eye_indices: list[int],
+    axes,
+    context: RenderContext,
+    viz_folder: str,
+) -> None:
+    """
+    Draw eye contours coloured open (green) / closed (red) with EAR scores and stitch videos per camera.
+    """
+    lm_data = np.asarray(landmarks.data if hasattr(landmarks, "data") else landmarks)
+    sc_data = np.asarray(scores.data if hasattr(scores, "data") else scores)
+    cl_data = np.asarray(eye_closed.data if hasattr(eye_closed, "data") else eye_closed)
+    subjects = axes.subjects
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        subject_name = subjects[subject_idx]
+        if subject_name not in axes.subjects:
+            return
+
+        for eye_idx, indices in enumerate([left_eye_indices, right_eye_indices]):
+            eye_coords = lm_data[subject_idx, cam_idx, frame_idx, indices, :2]
+            valid_coords = eye_coords[~np.isnan(eye_coords).any(axis=1)]
+            if len(valid_coords) == 0:
+                continue
+
+            x_min, y_min = np.min(valid_coords, axis=0)
+            closed_state = cl_data[subject_idx, cam_idx, frame_idx, eye_idx]
+            color = (0, 0, 255) if closed_state == 1 else (0, 255, 0)
+
+            cv2.polylines(image, [valid_coords.astype(np.int32)], isClosed=True, color=color, thickness=1)
+            for pt in valid_coords:
+                cv2.circle(image, (int(pt[0]), int(pt[1])), 1, color, -1)
+
+            score = sc_data[subject_idx, cam_idx, frame_idx, eye_idx]
+            if np.isnan(score):
+                continue
+            cv2.putText(
+                image,
+                f"{score:.2f}",
+                (int(x_min), int(y_min) - 3),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.35,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
+
+    render_per_camera_videos(draw_subject, axes, context, viz_folder)
+
+
+def draw_gaze_interaction_arrows(
+    heads: np.ndarray,
+    gaze: np.ndarray,
+    looks_at_anyone: np.ndarray,
+    radii: np.ndarray,
+    axes,
+    context: RenderContext,
+    viz_folder: str,
+) -> None:
+    """
+    Draw per-subject gaze interaction arrows (green for look-at, red for no-look) and target circles.
+    """
+    color_look_at = (0, 200, 0)
+    color_no_look = (0, 0, 255)
+    color_target = (0, 200, 200)
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        head = heads[subject_idx, cam_idx, frame_idx]
+        vec = gaze[subject_idx, cam_idx, frame_idx]
+        looks = looks_at_anyone[subject_idx, cam_idx, frame_idx]
+        if np.isnan(head).any() or np.isnan(vec).any() or np.isnan(looks):
+            return
+
+        arrow_length = vis_ut.gaze_arrow_pixel_length(image.shape[1])
+        color = color_look_at if looks == 1 else color_no_look
+        head_point = np.round(head).astype(np.int32)
+
+        radius = radii[subject_idx, cam_idx, frame_idx]
+        if not np.isnan(radius):
+            cv2.circle(
+                image,
+                tuple(head_point),
+                max(1, int(round(radius))),
+                color=color_target,
+                thickness=1,
+                lineType=cv2.LINE_AA,
+            )
+
+        end_point = np.round(head + arrow_length * vec).astype(np.int32)
+        cv2.arrowedLine(
+            image,
+            tuple(head_point),
+            tuple(end_point),
+            color=color,
+            thickness=2,
+            line_type=cv2.LINE_AA,
+            tipLength=0.2,
+        )
+
+    render_per_camera_videos(draw_subject, axes, context, viz_folder)
+
+
+def draw_gaze_multiview_fusion(
+    gaze_2d: np.ndarray,
+    origins: np.ndarray,
+    per_view_2d: dict[str, np.ndarray],
+    image_sizes: dict[str, tuple[int, int]],
+    axes,
+    context: RenderContext,
+    viz_folder: str,
+) -> None:
+    """
+    Draw per-view yellow gaze arrows and fused red gaze arrows per subject.
+    """
+    n_views = next(iter(per_view_2d.values())).shape[1] if per_view_2d else 0
+
+    def draw_subject(img, sub_id, cam_idx, frame_idx):
+        cam_name = axes.cameras[cam_idx]
+        arrow_length = vis_ut.gaze_arrow_pixel_length(image_sizes[cam_name][0])
+
+        vec = gaze_2d[sub_id, cam_idx, frame_idx]
+        if np.isnan(vec).any():
+            return
+
+        origin = origins[sub_id, cam_idx, frame_idx]
+        if np.isnan(origin).any():
+            return
+        origin_i = np.round(origin).astype(np.int32)
+
+        for view_idx in range(n_views):
+            view_vec = per_view_2d[cam_name][sub_id, view_idx, frame_idx]
+            if np.isnan(view_vec).any():
+                continue
+            view_end = np.round(origin + 0.5 * arrow_length * view_vec).astype(np.int32)
+            cv2.arrowedLine(
+                img,
+                origin_i,
+                view_end,
+                color=(0, 255, 255),
+                thickness=1,
+                line_type=cv2.LINE_AA,
+                tipLength=0.2,
+            )
+
+        end_point = np.round(origin + arrow_length * vec).astype(np.int32)
+        cv2.arrowedLine(
+            img,
+            origin_i,
+            end_point,
+            color=(0, 0, 255),
+            thickness=2,
+            line_type=cv2.LINE_AA,
+            tipLength=0.2,
+        )
+
+    render_per_camera_videos(draw_subject, axes, context, viz_folder)

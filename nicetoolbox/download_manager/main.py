@@ -50,21 +50,8 @@ def entry_point():
 
     if args.all:
         manager.verify_and_download(list(manager.manifest.keys()))
-
-    elif args.algorithms:
-        required_assets = []
-        algos_dict = config.detectors_config.algorithms
-        for algo in set(args.algorithms):
-            if algo in algos_dict and hasattr(algos_dict[algo], "required_assets"):
-                required_assets.extend(algos_dict[algo].required_assets.values())
-            else:
-                logging.warning(f"Algorithm '{algo}' not found in detectors config.")
-
-        manager.verify_and_download(required_assets)
-
-    else:
-        # Run the smart config extraction directly
-        manager.ensure_assets_for_config()
+    else:  # explicit algorithms or from config
+        manager.ensure_assets_for_config(args.algorithms)
 
 
 if __name__ == "__main__":

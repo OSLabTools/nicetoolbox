@@ -4,11 +4,10 @@ Utility functions for visualizing and calculating eye closure scores (EAR method
 
 import os
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ....utils import video as vd
+from ...utils.draw_2d import RenderContext, draw_eye_closure_scores
 
 
 def resolve_eye_indices(face_indices: dict, eye_key: str) -> list[int]:
@@ -62,7 +61,6 @@ def calculate_ear(eye_coords, eye_layout) -> np.ndarray:
 def visualize_eye_closure_scores(
     viz_folder,
     dataloader,
-    camera_names,
     subjects_descr,
     landmarks,
     landmarks_axes,
@@ -71,84 +69,32 @@ def visualize_eye_closure_scores(
     right_eye_indices,
     fps,
     video_start_frame_index,
+    save_frames,
 ) -> None:
     """Draw eye contours + EAR scores on each frame and stitch a per-camera video.
 
-    Args:
-        landmarks (np.ndarray): upstream 2D face landmarks, (subjects, cameras, frames, landmarks, 3).
-        landmarks_axes (NpzArrayAxes): the landmarks' named axes (subject/camera order).
+    Walks each frame per camera, extracts eye keypoints, computes left and right EAR,
+    and draws eye boundary polygons along with EAR text annotations on the frames.
     """
-    landmarks_camera_names = landmarks_axes.cameras
-    landmarks_subject_names = landmarks_axes.subjects
+    context = RenderContext(
+        dataloader=dataloader,
+        fps=int(fps),
+        video_start=video_start_frame_index,
+        save_frames=save_frames,
+    )
+    draw_eye_closure_scores(
+        landmarks=landmarks,
+        scores=eye_closure_score,
+        left_eye_indices=left_eye_indices,
+        right_eye_indices=right_eye_indices,
+        context=context,
+        viz_folder=viz_folder,
+        axes=landmarks_axes,
+    )
 
-    n_subj = len(subjects_descr)
-
-    for cam_idx, camera_name in enumerate(camera_names):
-        if camera_name not in landmarks_camera_names:
-            continue
-        landmarks_cam_idx = landmarks_camera_names.index(camera_name)
-
-        cam_viz_dir = os.path.join(viz_folder, camera_name)
-        os.makedirs(cam_viz_dir, exist_ok=True)
-
-        for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(dataloader):
-            image_path = frame_paths_per_camera.get(camera_name)
-            if not image_path:
-                continue
-            image = cv2.imread(image_path)
-            if image is None:
-                break
-
-            colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255)]  # Green, Blue, Red
-
-            for subject_idx in range(n_subj):
-                subject_name = subjects_descr[subject_idx]
-                if subject_name not in landmarks_subject_names:
-                    continue
-                landmarks_subject_idx = landmarks_subject_names.index(subject_name)
-
-                color = colors[subject_idx % len(colors)]
-
-                # Draw Left and Right eyes
-                for eye_idx, indices in enumerate([left_eye_indices, right_eye_indices]):
-                    eye_coords = landmarks[landmarks_subject_idx, landmarks_cam_idx, frame_idx, indices, :2]
-
-                    valid_coords = eye_coords[~np.isnan(eye_coords).any(axis=1)]
-                    if len(valid_coords) == 0:
-                        continue
-
-                    # Compute min coordinates for text positioning
-                    x_min, y_min = np.min(valid_coords, axis=0)
-
-                    # Draw eye landmarks contour and individual landmark points
-                    cv2.polylines(image, [valid_coords.astype(np.int32)], isClosed=True, color=color, thickness=1)
-                    for pt in valid_coords:
-                        cv2.circle(image, (int(pt[0]), int(pt[1])), 1, color, -1)
-
-                    # Write score on top of eye contour
-                    score = eye_closure_score[subject_idx, cam_idx, frame_idx, eye_idx]
-                    cv2.putText(
-                        image,
-                        f"{score:.2f}",
-                        (int(x_min), int(y_min) - 3),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.35,
-                        color,
-                        1,
-                        cv2.LINE_AA,
-                    )
-
-            cv2.imwrite(os.path.join(cam_viz_dir, f"{real_frame_idx:09d}.jpg"), image)
-
-        # Compile frames into video
-        vd.frames_to_video(
-            cam_viz_dir,
-            os.path.join(viz_folder, f"{camera_name}.mp4"),
-            fps=fps,
-            start_frame=int(video_start_frame_index),
-        )
-
-        # Generate EAR raw score line plot over time (subfigures for each subject in one figure per camera)
+    # Generate EAR raw score line plot over time (subfigures for each subject in one figure per camera)
+    n_subj = len(landmarks_axes.subjects)
+    for cam_idx, camera_name in enumerate(landmarks_axes.cameras):
         fig, axes = plt.subplots(n_subj, 1, figsize=(12, 3.5 * n_subj), sharex=True, squeeze=False)
         for subject_idx in range(n_subj):
             ax = axes[subject_idx, 0]
