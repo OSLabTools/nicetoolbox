@@ -6,7 +6,7 @@
 ```
 
 ```{attention}
-NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/nicetoolbox/blob/main/Makefile) during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 15, 16, 17 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
+NICE Toolbox requires third-party dependencies during installation. These are not maintained by the NICE Toolbox authors and are provided as-is by their respective owners, under their own separate license. We assume no liability for any issues arising from these dependencies. **Use at your own risk**. For more information, see [the Section 15, 16, 17 of the NICE Toolbox License](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE) and [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md).
 ```
 
 ## System Requirements
@@ -16,153 +16,120 @@ NICE Toolbox requires [third-party dependencies](https://github.com/OSLabTools/n
 | **OS** | Windows 11 or Ubuntu 22.04+ |
 | **RAM** | 32 GB or more |
 | **GPU** | NVIDIA GPU with 24 GB VRAM or more, CUDA 11.8+ compatible |
-| **Storage** | 80 GB SSD or more |
-
-## Docker 
-
-You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites (like Python, CUDA, uv, FFmpeg), so you do not have to set any of them up yourself.
-
-The third-party detectors are not part of the image. You can choose which of them to install:
-
-```shell
-# download the base container from Docker Hub
-docker pull mpioslab/nicetoolbox
-
-# start a base container
-docker run --name my-nice-toolbox --gpus all -it mpioslab/nicetoolbox 
-# inside the container, install the detectors you need
-make install_pyfeat install_mmpose
-# when finished, stop the container
-exit
-
-# start it again to do experiments
-docker start -ai my-nice-toolbox
-
-# or start it again with disconnected network access
-docker network disconnect bridge my-nice-toolbox
-docker start -ai my-nice-toolbox
-```
-
-When finished, follow [getting started](https://nicetoolbox.readthedocs.io/en/stable/getting_started.html) to enable a virtual environment and run detectors. For more information about installation options, see [Installing only the detectors you need](#installing-only-the-detectors-you-need).
+| **Storage** | 120 GB SSD or more |
 
 ## Prerequisites
 
-### uv
+### Git
 
-NICE Toolbox requires [uv](https://docs.astral.sh/uv/) to manage virtual environments and Python installations. `uv` will automatically download and manage Python for you. No separate Python installation is required.
+[Git](https://git-scm.com/) is a free tool for downloading, updating and managing source code. It can be used to download NICE Toolbox and required for some of its dependencies.
 
-**Windows:**
+**Windows**
 
-1. Open the **Start** menu, type `PowerShell`, and click **Windows PowerShell**.
-2. Write the following command:
-   ```powershell
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ```
-3. After installation complete, close and reopen PowerShell.
+1. Open the [Git for Windows download page](https://git-scm.com/downloads/win) and click **"Click here to download"** to get the latest 64-bit installer.
+2. Run the downloaded file. If Windows asks whether the app may make changes to your device, click **Yes**.
+3. Click **Next** through all pages to keep the default settings, then click **Install**.
 
-**Linux:**
+You can also install Git with the console command:
 
-1. Open the terminal. Write the following command:
-   ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-2. After installation complete, restart your terminal.
+```powershell
+winget install --id Git.Git -e --source winget
+```
 
-For more information about `uv` installation, please refer to [official documentation](https://docs.astral.sh/uv/getting-started/installation/).
+**Linux (Ubuntu)**
 
-### Cuda 11.8
+Run the following commands in your terminal and enter your password when asked:
 
-Please find installation instructions on the official websites: for [Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html) and [Linux Ubuntu](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html).
+```bash
+sudo apt update
+sudo apt install git
+```
 
-### Git 
+For other systems and more information, see the [official Git installation guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 
-Ensure that Git is installed on your system. You can find installation instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+### NVIDIA GPU Driver
 
-### On Windows: Microsoft Visual C++
+The NVIDIA GPU driver lets NICE Toolbox use your graphics card. Most likely your system already has a compatible driver. If you want to update it, see the official [NVIDIA driver downloads](https://www.nvidia.com/en-us/drivers/) (Windows) or the [Ubuntu NVIDIA driver guide](https://ubuntu.com/server/docs/how-to/graphics/install-nvidia-drivers/) (Linux).
 
-Microsoft Visual C++ 14.0 or greater is required for compiling some of the dependencies. Get it with [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
+### Enable Long Paths (Windows only)
 
-### On Windows: Make
+We recommend enabling long path support on Windows. It helps to avoid installation problems and errors when working with results stored in deeply nested folders. To enable it:
 
-Nice Toolbox uses Makefiles for simple installation process. Follow these steps to install `make` on Windows for use with **Git Bash**:
+1. Open Windows Settings: click **Start**, type `Settings`, and press **Enter**.
+2. Type `Enable long paths` into the search bar and click the first result.
+3. Switch **Enable long paths** on.
 
-**Step 1:** Download `make` for Windows
-- Go to the official **ezwinports** SourceForge page:  
-   🔗 [https://sourceforge.net/projects/ezwinports/files/](https://sourceforge.net/projects/ezwinports/files/)
-- Download the latest version of **make**:  
-   - Look for a file named:  `make-<latest_version>-without-guile-w32-bin.zip`
-
-**Step 2:** Extract the ZIP File
-- Unzip the downloaded `make-<latest_version>-without-guile-w32-bin.zip` file.
-
-**Step 3:** Copy the Files to Git Bash’s MinGW64 Folder
-- Navigate to: `C:\Program Files\Git\mingw64`
-- Copy the contents of the extracted folder (copy all folders) into `C:\Program Files\Git\mingw64`. 
-- **IMPORTANT:** Do NOT overwrite or replace any existing files.
-
-**Note:**  
-After copying the files, you must **restart Git Bash** for the changes to take effect.
-
-
-### On Windows: Disable path length limit
-
-We always recommend to enable long path support. If you did not click **"Disable path length limit"** during Python installation, you can enable long path support manually via **PowerShell** command line:
-
-1. Search for **PowerShell** in the Start menu, right-click it and select **Run as administrator**.
-2. Run the following command:
+Alternatively, open PowerShell as administrator and run:
 
 ```powershell
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1
 ```
 
-See [Microsoft documentation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation) for details.
+See [Microsoft documentation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation) for more details.
 
-## Clone the repository
+## Download
 
-Clone the NICE Toolbox repository and navigate to its directory:
+You can download the [latest NICE Toolbox release](https://github.com/OSLabTools/nicetoolbox/releases/latest) from GitHub by clicking **Source code (zip)** under **Assets**, and unzip the downloaded file to a folder of your choice.
 
-```bash
-git clone git@github.com:OSLabTools/nicetoolbox.git
-cd /path/to/nicetoolbox
-```
-
-## Makefile installation
-
-The NICE Toolbox includes a Makefile that handles the installation of all required libraries and dependencies. It also downloads assets and an example dataset, and generates configuration files. 
-
-Open a **terminal** (on Linux) or **Git Bash** (on Windows) and navigate to the directory of the repository, then run the command `make`:
+If you want to use a specific commit or older version, clone the repository with Git:
 
 ```bash
-cd /path/to/nicetoolbox/
-make        
+git clone https://github.com/OSLabTools/nicetoolbox.git
+cd nicetoolbox
 ```
 
-This is the full installation. It sets up the core toolbox and every third-party detector, and downloads their model weights.
+To learn more about using Git, check [the documentation here](https://git-scm.com/learn).
 
-Available commands include:
+## Installation Script
 
-- `make` or `make install_full`  - Full installation: core toolbox, all third-party detectors and their model weights.
-- `make install` - Core toolbox only, without any third-party detector.
-- `make install_all_detectors` - Install all third-party detectors.
-- `make install_<detector>` - Install a single detector, e.g. `make install_eth_xgaze`.
-- `make create_machine_specifics` - Generate the machine-specific configuration file.
-- `make create_project` - Generate the project configuration file.
-- `make download_assets` - Check and download the model weights needed by your run file.
-- `make download_all_assets` - Download every available model weight.
-- `make download_dataset` - Check and download the example dataset.
+NICE Toolbox comes with interactive installer scripts for Windows (`install_windows.bat`) and Linux (`install_linux.sh`). They install NICE Toolbox, its dependencies and the detectors you select, and download an example dataset. Depending on your internet connection and the number of detectors, the installation can take from several minutes to about an hour.
 
-In case of errors during the installation, you can run the failed command again. Installing a detector removes its existing virtual environment and recreates it, so `make install_<detector>` can be used to repair a single detector without touching the others.
+**Windows**
 
-### Installing only the detectors you need
+Open the NICE Toolbox folder and double-click `install_windows.bat`. A window opens and shows the installation progress.
 
-The full installation requires a considerable amount of disk space. The third-party detectors are also covered by their own licenses, some of which are more restrictive than the NICE Toolbox license itself (see [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md)).
+Alternatively, open a terminal in the NICE Toolbox folder (in File Explorer, right-click the folder and select **Open in Terminal**) and run:
 
-If you want to save disk space or if some of the detectors are not compatible with your intended use, you can install the core toolbox on its own and then add only the detectors you need:
+```powershell
+.\install_windows.bat
+```
+
+**Linux**
+
+Open a terminal and run:
 
 ```bash
-make install                                   # core NICE Toolbox
-make install_pyfeat install_mmpose             # add the detectors you need
+cd path/to/nicetoolbox
+bash install_linux.sh
 ```
+
+When the installation is finished, follow [getting started](getting_started.md) to activate a virtual environment and run detectors.
+
+### Installation Options
+
+You can pass options to the installation script when you start it from a terminal. The most useful ones are:
+
+| Option | Description |
+|--------|-------------|
+| `-y`, `--yes` | Non-interactive mode. Install all detectors without showing the menu |
+| `--detectors=a,b,c` | Install only the listed detectors, without showing the menu, e.g. `--detectors=spiga,py_feat` |
+| `--only-missing` | Don't reinstall detectors that are already installed |
+| `--core-only` | Install only the NICE Toolbox itself, without any detectors |
+
+For example, to add the SPIGA detector to an existing installation:
+
+```
+# Windows
+.\install_windows.bat --only-missing --detectors=spiga
+# Linux
+bash install_linux.sh --only-missing --detectors=spiga
+```
+
+To see all available options and detector names, run the script with `--help`.
+
+## Update to Newer Version
+
+To update NICE Toolbox, simply [download](#download) the new release into a new folder, [install](#installation-script) it as usual and delete the old NICE Toolbox folder.
 
 ## Hugging Face Access Token
 
@@ -182,15 +149,45 @@ To get access:
 hugging_face_token = "your_token_here"
 ```
 
-The model weights will be downloaded automatically on the first run and cached in the directory specified by `hf_weights_cache_dir` in `detectors_config.toml`.
+The model weights will be downloaded automatically on the first run and cached in the `assets` directory.
 
-## Additional notes
+## Docker
 
-Please check [rerun privacy policies](https://www.rerun.io/privacy).
-Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, activate the code environment in `env/` and then run:
+You can install NICE Toolbox using Docker. The image ships the core toolbox together with all the system prerequisites, so you do not have to set any of them up yourself.
 
-```bash
-rerun analytics config   ##to see current configuration
-rerun analytics disable
-rerun analytics config   ## to check if the change is applied
+To use it, install [Docker](https://docs.docker.com/get-started/get-docker/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), which lets Docker containers use your GPU. On Windows, use them inside [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+The third-party detectors are not part of the image. You can choose which of them to install:
+
+```shell
+# download the base container from Docker Hub
+docker pull mpioslab/nicetoolbox
+
+# start a base container
+docker run --name my-nice-toolbox --gpus all -it mpioslab/nicetoolbox
+# inside the container, install the detectors you need
+bash install_linux.sh --only-missing --detectors=py_feat,openmmlab
+# when finished, stop the container
+exit
+
+# start it again to do experiments
+docker start -ai my-nice-toolbox
+
+# or start it again with disconnected network access
+docker network disconnect bridge my-nice-toolbox
+docker start -ai my-nice-toolbox
+```
+
+When finished, follow [getting started](getting_started.md) to activate a virtual environment and run detectors. For more information about installation options, see [here](#installation-options).
+
+## Additional Notes
+
+Please check [Rerun's privacy policies](https://www.rerun.io/privacy).
+Although rerun.io is used in local mode, the application will be collecting user information. To disable these analytics, open a terminal in the NICE Toolbox folder and run:
+
+```
+# Windows
+envs\nicetoolbox\Scripts\rerun analytics disable
+# Linux
+envs/nicetoolbox/bin/rerun analytics disable
 ```

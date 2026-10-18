@@ -11,17 +11,15 @@ Follow the [installation instructions](installation.md) to set up the environmen
 
 Configuration is split across two files: one machine-specific and one project-specific.
 
-**`machine_specific_paths.toml`** — lives in the toolbox root, contains machine-level paths. Generate it with `make create_machine_specifics`:
+**`machine_specific_paths.toml`** — lives in the toolbox root, contains machine-level settings. It is created by the [installer](installation.md#installation):
 
 ```toml
-# Where to find your conda (miniconda or anaconda) installation as absolute path (str)
-conda_path = 'path/to/your/conda'
-
+# Optional Hugging Face token for gated Hub models (e.g. sam_3d_body). Leave empty if unused.
 hugging_face_token = ''
 ```
 Hugging Face token is empty by default. It's required for some of the gated models. Check [installation instructions](installation.md#hugging-face-access-token) for more info.
 
-**`nice_project.toml`** — lives in your project folder, contains project-level paths. It is generated with `make create_project`:
+**`nice_project.toml`** — lives in your project folder, contains project-level paths. It is created by the [installer](installation.md#installation):
 
 ```toml
 # Path to the directory in which all configuration files are stored

@@ -17,7 +17,7 @@ RAW_INFERENCE_NPZ_NAME = "sam_3d_body_inference_raw.npz"
 
 
 def default_sam3d_repo_path(nicetoolbox_root: Path) -> Path:
-    """Default checkout: <venv>/src/sam-3d-body, cloned by `make install_sam3d_body`.
+    """Default checkout: <venv>/src/sam-3d-body, cloned by the SAM 3D Body installer.
 
     The fork ships no packaging metadata, so it cannot be pip-installed. It is cloned
     into the venv instead, which keeps it tied to the environment's lifetime: removing
@@ -48,7 +48,8 @@ def ensure_sam3d_repo(repo: str | None, nicetoolbox_root: Path) -> Path:
         raise RuntimeError(
             f"SAM 3D Body upstream repo missing or incomplete at {target} (expected package dir "
             f"'{target / 'sam_3d_body'}'). Reinstall the environment with "
-            "`make install_sam3d_body`, or set `sam3d_repo_path` in "
+            "`install_windows.bat --detectors=sam_3d_body` / `install_linux.sh --detectors=sam_3d_body`, "
+            "or set `sam3d_repo_path` in "
             "`[algorithms.sam_3d_body]` to a local checkout that contains `sam_3d_body/`."
         )
     return target
