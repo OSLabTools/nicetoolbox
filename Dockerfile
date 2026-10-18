@@ -3,14 +3,14 @@
 
 FROM docker.io/nvidia/cuda:12.6.0-runtime-ubuntu24.04 AS base
 
-# install make, git, ffmpeg + some essential stuff
+# install git, curl and opencv deps
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 RUN apt update && \
     apt install -y build-essential \
-    unzip git-all ffmpeg wget curl
+    git curl libgl1 libglib2.0-0
 
-# install uv (manages its own Python installations)
+# install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 
@@ -18,9 +18,9 @@ ENV PATH="/root/.local/bin:${PATH}"
 COPY . /nicetoolbox
 WORKDIR /nicetoolbox
 
-# run minimalistic NICE Toolbox installation (only core environment)
+# run minimalistic NICE Toolbox installation (only core environment, configs, example dataset)
 ARG NICETOOLBOX_DEV
-RUN make install DEV=${NICETOOLBOX_DEV}
+RUN bash install_linux.sh -y --core-only $([ "$NICETOOLBOX_DEV" = "true" ] && echo --dev)
 
 # for version tracking we need to get git repository metadata 
 ARG NICETOOLBOX_GIT_HASH
@@ -41,8 +41,10 @@ FROM base AS full
 ARG HF_TOKEN_SUFFIX="none"
 
 # ! don't remove echo HF token echo, important for cache invalidation
-# ! NICETOOLBOX_DEV is lost here
+# -y installs all detectors without prompting, then downloads model assets.
+# --only-missing keeps the nicetoolbox venv from the base stage (including its dev mode).
+# --fail-fast stops the build at the first detector that fails to install.
 RUN --mount=type=secret,id=hf_token \
     export HF_TOKEN=$(cat /run/secrets/hf_token 2>/dev/null || true) && \
     echo "Optional HF token: ${HF_TOKEN_SUFFIX}" && \
-    make install_all_detectors download_assets
+    bash install_linux.sh -y --only-missing --fail-fast

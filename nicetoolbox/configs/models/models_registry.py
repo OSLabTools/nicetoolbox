@@ -31,7 +31,7 @@ class ModelsRegistry:
             raise ValueError(
                 f"Unknown schema for {name!r}. "
                 "If you added a new detector, reinstall nicetoolbox "
-                "(e.g. `pip install -e .` or `make install` with DEV=true). "
+                "(e.g. `pip install -e .` or re-run `install_windows.bat` / `install_linux.sh`). "
                 f"Registered keys: {known}"
             )
         return model.model_validate(data)

@@ -27,20 +27,18 @@ Some examples:
 
 ## Machine specifics
 
-The `./machine_specific_paths.toml` file configures paths specific to the machine running NICE Toolbox. It is part of `.gitignore` and must be created on each machine. Generate it with `make create_machine_specifics`.
+The `./machine_specific_paths.toml` file configures paths specific to the machine running NICE Toolbox. It is part of `.gitignore` and must be created on each machine. It is created by the [installer](../installation.md#installation).
 
 ```toml
-conda_path = ''
 # Optional; leave empty if you do not run detectors that need Hugging Face gated weights.
 hugging_face_token = ''
 ```
-- `conda_path` contains the absolute path to the conda installation on the machine (str).
 - `hugging_face_token` is an optional secret for Hugging Face Hub (e.g. **sam_3d_body**, **WhisperX** pyannote diarization). Hub-based detectors read only this field (not shell environment variables).
 
 
 ## Project config
 
-The `./nice_project.toml` file configures paths specific to a project (datasets, outputs, configs). It is gitignored and generated with `make create_project`. The `<project_folder_path>` placeholder is automatically set to the absolute path of the folder passed via `--project_folder_path`.
+The `./nice_project.toml` file configures paths specific to a project (datasets, outputs, configs). It is gitignored and created by the [installer](../installation.md#installation). The `<project_folder_path>` placeholder is automatically set to the absolute path of the folder passed via `--project_folder_path`.
 
 ```toml
 configs_folder_path = '<project_folder_path>/configs'

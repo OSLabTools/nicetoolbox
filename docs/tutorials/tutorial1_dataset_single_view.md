@@ -16,13 +16,13 @@ If you are running the NICE Toolbox for the first time, please note that there i
 
 Two config files need to be created before running the toolbox:
 
-- `./machine_specific_paths.toml` — machine-level paths (conda). Generate with `make create_machine_specifics`.
-- `./nice_project.toml` — project-level paths (datasets, outputs, configs). Generate with `make create_project`.
+- `./machine_specific_paths.toml` — machine-level settings (Hugging Face token). Created by the [installer](../installation.md#installation).
+- `./nice_project.toml` — project-level paths (datasets, outputs, configs). Created by the [installer](../installation.md#installation).
 
 For more information, see [machine-specific config](../getting_started.md#1-machine-specific-config).
 
 **Placeholders instead of absolute paths:** Note that it is best practice not to use absolute paths in any other files in the NICE Toolbox. Though absolute paths do not cause errors, they hinder collaboration and greatly decrease the readability of code.
-Instead, `datasets_folder_path`, `output_folder_path`, and `conda_path` are available in the other config files in `./configs/` as placeholders — use as `<datasets_folder_path>`, `<output_folder_path>`, and `<conda_path>` directly in strings.
+Instead, `datasets_folder_path` and `output_folder_path` are available in the other config files in `./configs/` as placeholders — use as `<datasets_folder_path>` and `<output_folder_path>` directly in strings.
 
 
 
