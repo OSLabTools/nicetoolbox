@@ -93,6 +93,7 @@ class VideoDataHandler(BaseModalityHandler):
             range_end=self.start_frame + self.length_frames,
             step=1,
             fps=self.fps,
+            resolutions=self.resolutions,
         )
 
     # -------------------------------------------------------------------------

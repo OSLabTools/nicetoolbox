@@ -189,7 +189,7 @@ The main config file to run a specific experiment is `./configs/detectors_run_fi
 visualize = false               # save image/video visualizations of detectors
 ...
 
-algorithms = ["hrnetw48", "eth_xgaze", "gaze_fusion", "gaze_distance", "velocity_body", "body_distance"]
+algorithms = ["rtmw_l_wholebody", "eth_xgaze", "gaze_fusion", "gaze_distance", "velocity_body", "body_distance"]
 
 [run.dataset_name]              # change 'dataset_name' to your dataset
 sequences = [

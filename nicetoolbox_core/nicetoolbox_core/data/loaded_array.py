@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -29,11 +31,11 @@ class NpzArrayAxes:
             dims.append(len(self.data))
         return tuple(dims)
 
-    def replace(self, **changes) -> "NpzArrayAxes":
+    def replace(self, **changes) -> NpzArrayAxes:
         """Return a copy with the given axis fields replaced."""
         return replace(self, **changes)
 
-    def make_4d(self) -> "NpzArrayAxes":
+    def make_4d(self) -> NpzArrayAxes:
         """Return a copy with the axis4 (data) labels dropped."""
         return replace(self, data=[])
 
@@ -54,11 +56,11 @@ class NpzArrayWithMeta:
     npz_meta: NpzMeta
 
     @classmethod
-    def create(cls, meta: NpzMeta, data: np.ndarray, axes: NpzArrayAxes) -> "NpzArrayWithMeta":
+    def create(cls, meta: NpzMeta, data: np.ndarray, axes: NpzArrayAxes) -> NpzArrayWithMeta:
         """Build meta array from flat parts"""
         return cls(array=NpzArray(data=data, axes=axes), npz_meta=meta)
 
-    def replace(self, *, data: np.ndarray | None = None, axes: NpzArrayAxes | None = None) -> "NpzArrayWithMeta":
+    def replace(self, *, data: np.ndarray | None = None, axes: NpzArrayAxes | None = None) -> NpzArrayWithMeta:
         """Return a copy with new data and/or axes, carrying the same meta forward."""
         return NpzArrayWithMeta(
             array=NpzArray(

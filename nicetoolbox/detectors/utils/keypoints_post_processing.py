@@ -8,7 +8,7 @@ detector class. All of them take and return NpzArray, so the axes travel with th
 
 import numpy as np
 
-from nicetoolbox_core.data.array_schema import VECTOR_2D_PER_LABEL
+from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL
 from nicetoolbox_core.data.loaded_array import NpzArray
 
 from ...utils import triangulation as tri
@@ -28,6 +28,14 @@ def filter_keypoints(keypoints_2d: NpzArray, filter_config) -> NpzArray:
     return NpzArray(data, keypoints_2d.axes)
 
 
+def mask_low_confidence_keypoints(keypoints: NpzArray, min_confidence: float) -> NpzArray:
+    data = keypoints.data.copy()
+    # confidence is the last dim
+    low_conf = data[..., -1] < min_confidence
+    data[low_conf, :-1] = np.nan
+    return NpzArray(data, keypoints.axes)
+
+
 def interpolate_keypoints(keypoints_2d: NpzArray, interpolation_config) -> NpzArray:
     # TODO: create reusable interpolation, not reuse mmpose
     data = keypoints_2d.data.copy()
@@ -41,14 +49,17 @@ def reproject_keypoints(keypoints_3d: NpzArray, calibration: dict, camera_names:
     axes = keypoints_3d.axes
     # Drop the pseudo-camera axis; the world point is the same for every view.
     world_xyz = keypoints_3d.data[:, 0, :, :, :3]
+    triangulation_conf = keypoints_3d.data[:, 0, :, :, 3]
     n_subjects, n_frames, n_keypoints, _ = world_xyz.shape
 
-    reprojected = np.full((n_subjects, len(camera_names), n_frames, n_keypoints, 2), np.nan)
+    reprojected = np.full((n_subjects, len(camera_names), n_frames, n_keypoints, 3), np.nan)
     for cam_idx, camera_name in enumerate(camera_names):
         projection_matrix = calibration[camera_name]["projection_matrix"]
-        reprojected[:, cam_idx] = tri.project_points_to_camera(world_xyz, projection_matrix)
+        reprojected[:, cam_idx, ..., :2] = tri.project_points_to_camera(world_xyz, projection_matrix)
+        # Same triangulation confidence broadcast to every view - it belongs to the 3d origin.
+        reprojected[:, cam_idx, ..., 2] = triangulation_conf
 
-    axes_2d = VECTOR_2D_PER_LABEL.make_axes(axes.subjects, camera_names, axes.frames, labels=axes.labels)
+    axes_2d = VECTOR_2D_CONF_PER_LABEL.make_axes(axes.subjects, camera_names, axes.frames, labels=axes.labels)
     return NpzArray(reprojected, axes_2d)
 
 

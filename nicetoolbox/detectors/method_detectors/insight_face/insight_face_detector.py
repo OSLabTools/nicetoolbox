@@ -7,12 +7,7 @@ import pickle
 
 import numpy as np
 
-from nicetoolbox_core.data.array_schema import (
-    BBOX_2D_CONF,
-    VECTOR_2D_CONF_PER_LABEL,
-    VECTOR_2D_PER_LABEL,
-    VECTOR_3D_CONF_PER_LABEL,
-)
+from nicetoolbox_core.data.array_schema import BBOX_2D_CONF, VECTOR_2D_CONF_PER_LABEL, VECTOR_3D_CONF_PER_LABEL
 from nicetoolbox_core.data.loaded_array import NpzArray, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
@@ -55,8 +50,12 @@ class InsightFace(BaseMethod):
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_interpolated", schema=VECTOR_2D_CONF_PER_LABEL))
         # triangulation also requires calibration
         if self.detector_config.triangulate_keypoints.triangulate and self.data.calibration:
-            outputs.append(NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL))
-            outputs.append(NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_PER_LABEL))
+            outputs.extend(
+                [
+                    NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL),
+                    NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_CONF_PER_LABEL),
+                ]
+            )
         return outputs
 
     def _initialize_detector(self) -> MethodDetectorRuntime:

@@ -106,13 +106,13 @@ summary_aggr = [
 ]
 ```
 
-Alternatevily, you can use other detectors predictions as the ground truth. For example, let's say we believe that `vitpose_huge` will be our ground truth and we want to compare it with `hrnetw48`:
+Alternatevily, you can use other detectors predictions as the ground truth. For example, let's say we believe that `vitpose_huge` will be our ground truth and we want to compare it with `rtmw_l_wholebody`:
 
 ```toml
-[metrics.body_pck_hrnet_vs_vitpose]
+[metrics.body_pck_rtmw_vs_vitpose]
 metric_type = "pck"
 threshold = 10
-predictions = { component = "body_joints", npz_key = "2d_interpolated", algorithm = "hrnetw48" }
+predictions = { component = "body_joints", npz_key = "2d_interpolated", algorithm = "rtmw_l_wholebody" }
 ground_truth = { component = "body_joints", npz_key = "2d_interpolated", algorithm = "vitpose_huge" }
 summary_group_by = ["label"]        # one row per joint name
 summary_aggr = [

@@ -89,6 +89,9 @@ class VideoDataLoader(ABC):
         self.end = recipe.range_end
         self.step = recipe.step
 
+        # Per-camera [width, height] probed by the video handler
+        self.resolutions = recipe.resolutions
+
         # (4) Camera Validation
         # The recipe tells us what exists on disk
         available_cameras = recipe.camera_names

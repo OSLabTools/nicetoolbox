@@ -25,6 +25,7 @@ class VideoInputRecipe(BaseModel):
     range_end: int
     step: int = 1
     fps: float
+    resolutions: Dict[str, List[int]] = Field(default_factory=dict)
 
 
 # =============================================================================

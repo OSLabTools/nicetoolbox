@@ -1,148 +1,161 @@
 # This config supports the use of placeholders.
-# options are, e.g., all keys from your local 'machine_specific_paths.toml'
+# options are, e.g., all keys from your local machine_specific_paths.toml
 #
 # Each [algorithms.<instance_name>] block declares a named algorithm instance.
-# The `algorithm_type` field selects the detector class; the TOML key is a
+# The algorithm_type field selects the detector class; the TOML key is a
 # user-defined instance name. The same algorithm_type can appear under
 # multiple instance names (with different parameters) within one run.
+
+# ======================================================================
+#                      MMDet Person Bounding Box
+# ======================================================================
+
+# generic template for person detector
+[templates.mmdet_template]
+algorithm_type = "mmdet"
+env_name = "openmmlab"
+camera_names = "*"
+# infernece settings
+batch_size = 32
+# post-processing settings
+det_thresh = 0.5  # discard bbox if lower than threshold
+iou_thresh = 0.8  # discard bbox if it intersects with any other subject
+# visualization
+visualize = true
+visualize_native = false
+save_raw_json_predictions = false  # native mmdet serialization to json (for debug)
+[templates.mmdet_template.inputs]
+subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
+
+# commonly used baseline for object detection
+[algorithms.faster_rcnn_person]
+template = "mmdet_template"
+detection_model_config = "faster-rcnn_r50_fpn_1x_coco"
+[algorithms.faster_rcnn_person.required_assets]
+det_checkpoint = "<assets>/mmdet/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+
+# YOLOX-small - fast modern alternative
+[algorithms.yolox_s_person]
+template = "mmdet_template"
+detection_model_config = "yolox_s_8x8_300e_coco"
+[algorithms.yolox_s_person.required_assets]
+det_checkpoint = "<assets>/mmdet/yolox_s_8x8_300e_coco_20211121_095711-4592a793.pth"
+
+# RTMDet-medium (only person detection fine-tuned weights)
+[algorithms.rtmdet_m_person]
+template = "mmdet_template"
+[algorithms.rtmdet_m_person.required_assets]
+det_config = "<assets>/mmdet/configs/rtmdet_m_640-8xb32_coco-person.py"
+det_checkpoint = "<assets>/mmdet/rtmdet_m_8xb32-100e_coco-obj365-person-235e8209.pth"
 
 # ======================================================================
 #                           MMPose Body Joints
 # ======================================================================
 
-# generic templage for all 2d mmpose body joints algorithms 
+# generic template for the standalone mmpose 2D pose detector
 # detects 2d points => triangulates 3d points from multiple cameras => post-processing
 [templates.mmpose_2d_template]
 algorithm_type = "mmpose_2d"  # name of the detector
+env_name = "openmmlab"
 camera_names = "*"  # cameras used in inference, "*" means all cameras
 keypoint_mapping = "coco_wholebody"  # default body joitns mapping format
-env_name = "openmmlab"
-device = "cuda:0"
-# SGF filtering
-filtered = true
-window_length = 11
-polyorder = 2
-min_detection_confidence = 0.5
+# inference settings
+decode_visibility = false  # try to decode "visibility" [0, 1] score (available for some models)
 # visualization
 visualize = true
-save_detector_images = true
-save_detector_predictions = true
-# 3d triangulation
-[templates.mmpose_2d_template.triangulation]
-triangulate = true
-triangulation_cameras = ["view_top", "view_center"]
+visualize_native = false
+visualize_keypoints_npz_key = "2d_interpolated"  # "2d", "2d_filtered", "2d_masked", "2d_interpolated", or "2d_reprojected_from_3d"
+save_raw_json_predictions = false  # native mmpose serialization to json (for debug)
+# post-processing
+min_detection_confidence = 0.5  # discard keypoints with low confidence
+filter_keypoints = {filtered = true, window_length = 11, polyorder = 2} 
+interpolate_keypoints = {interpolated = true, max_gap = 10}
+triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}
+# inputs from other detectors
 [templates.mmpose_2d_template.inputs]
-subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
+person_bboxes = { component = "person_bounding_box", algorithm = "rtmdet_m_person", npz_key = "bbox_2d" }
 
 # HRNetW48 full body model
 [algorithms.hrnetw48]
-template = "mmpose_2d_template" 
+template = "mmpose_2d_template"
 components = ["body_joints", "hand_joints", "face_landmarks"]
-pose_config = "td-hm_hrnet-w48_8xb32-210e_coco-wholebody-384x288"
+pose_config = "td-hm_hrnet-w48_dark-8xb32-210e_coco-wholebody-384x288"
 [algorithms.hrnetw48.required_assets]
-pose_checkpoint = "<assets>/mmpose/configs/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+pose_checkpoint = "<assets>/mmpose/hrnet_w48_coco_wholebody_384x288_dark-f5726563_20200918.pth"
 
 # ViTPose large
 [algorithms.vitpose_large]
 template = "mmpose_2d_template"
-components = ["body_joints"] 
+components = ["body_joints"]
 pose_config = "td-hm_ViTPose-large_8xb64-210e_coco-256x192"
 [algorithms.vitpose_large.required_assets]
-pose_checkpoint = "<assets>/mmpose/configs/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+pose_checkpoint = "<assets>/mmpose/td-hm_ViTPose-large_8xb64-210e_coco-256x192-53609f55_20230314.pth"
 
 # ViTPose huge (biggest model)
 [algorithms.vitpose_huge]
 template = "mmpose_2d_template"
-components = ["body_joints"] 
+components = ["body_joints"]
 pose_config = "td-hm_ViTPose-huge_8xb64-210e_coco-256x192"
 [algorithms.vitpose_huge.required_assets]
-pose_checkpoint = "<assets>/mmpose/configs/td-hm_ViTPose-huge_8xb64-210e_coco-256x192-e32adcd4_20230314.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+pose_checkpoint = "<assets>/mmpose/td-hm_ViTPose-huge_8xb64-210e_coco-256x192-e32adcd4_20230314.pth"
 
-# RTMPose basic
-# You can use multi-level inheritance for templates
-[templates.rtmpose_l_aic_template]
+# RTMPose body-only, coco-aic keypoints
+[algorithms.rtmpose_l_aic]
 template = "mmpose_2d_template"
-components = ["body_joints"] 
+components = ["body_joints"]
 pose_config = "rtmpose-l_8xb256-420e_aic-coco-384x288"
-[templates.rtmpose_l_aic_template.required_assets]
-pose_config_file = "<assets>/mmpose/configs/rtmpose-l_8xb256-420e_aic-coco-384x288.py"
-pose_checkpoint = "<assets>/mmpose/configs/rtmpose-l_simcc-aic-coco_pt-aic-coco_420e-384x288-97d6cb0f_20230228.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+[algorithms.rtmpose_l_aic.required_assets]
+pose_checkpoint = "<assets>/mmpose/rtmpose-l_simcc-aic-coco_pt-aic-coco_420e-384x288-97d6cb0f_20230228.pth"
 
-# very relaxed threshold for rtmppse
-[algorithms.rtmpose_l_aic_low_conf]
-template = "rtmpose_l_aic_template"
-min_detection_confidence = 0.1
-
-# strict threshold for rtmpose
-[algorithms.rtmpose_l_aic_high_conf]
-template = "rtmpose_l_aic_template"
-min_detection_confidence = 0.5
-
-# RTMPose full body
+# RTMPose full body (body + hand + face)
 [algorithms.rtmpose_l_wholebody]
 template = "mmpose_2d_template"
 components = ["body_joints", "hand_joints", "face_landmarks"]
-pose_config = "rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288"
+pose_config = "rtmpose-l_8xb32-270e_coco-wholebody-384x288"
+min_detection_confidence = 0.2  # less restrictive threshold for confidence
 [algorithms.rtmpose_l_wholebody.required_assets]
-pose_config_file = "<assets>/mmpose/configs/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py"
-pose_checkpoint = "<assets>/mmpose/configs/rtmpose-l_simcc-coco-wholebody_pt-aic-coco_270e-384x288-eaeb96c8_20230125.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+pose_checkpoint = "<assets>/mmpose/rtmpose-l_simcc-coco-wholebody_pt-aic-coco_270e-384x288-eaeb96c8_20230125.pth"
+
+# RTMW-l full body (body + hand + face)
+[algorithms.rtmw_l_wholebody]
+template = "mmpose_2d_template"
+components = ["body_joints", "hand_joints", "face_landmarks"]
+pose_config = "rtmw-l_8xb320-270e_cocktail14-384x288"
+decode_visibility = true
+min_detection_confidence = 0.5
+[algorithms.rtmw_l_wholebody.required_assets]
+pose_checkpoint = "<assets>/mmpose/rtmw-dw-x-l_simcc-cocktail14_270e-384x288-20231122.pth"
 
 # RTMPose MPII keypoints
 [algorithms.rtmpose_m_mpii]
 template = "mmpose_2d_template"
 components = ["body_joints"]
-pose_config = "rtmpose-m_8xb64-210e_mpii-256x256"
 keypoint_mapping = "mpii"
+pose_config = "rtmpose-m_8xb64-210e_mpii-256x256"
 [algorithms.rtmpose_m_mpii.required_assets]
-pose_config_file = "<assets>/mmpose/configs/rtmpose-m_8xb64-210e_mpii-256x256.py"
-pose_checkpoint = "<assets>/mmpose/configs/rtmpose-m_simcc-mpii_pt-aic-coco_210e-256x256-ec4dbec8_20230206.pth"
-detection_config = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_coco.py"
-detection_checkpoint = "<assets>/mmpose/configs/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth"
+pose_checkpoint = "<assets>/mmpose/rtmpose-m_simcc-mpii_pt-aic-coco_210e-256x256-ec4dbec8_20230206.pth"
 
 # ======================================================================
-#                           MMPose MotionBERT
+#                       MMPose 3D Lifter (MotionBERT)
 # ======================================================================
 
-# generic template for MotionBERT
-# existing 2d points => 3d points from single camera => post-processing
-[templates.motionbert_template]
-algorithm_type = "motionbert"
-camera_names = ["view_top", "view_center"]
-keypoint_mapping = "human36m"
+# MotionBERT 3D lift
+# consumes an existing body_joints 2D NPZ => lifts to 3D per camera
+[algorithms.motionbert]
+algorithm_type = "mmpose_lifter_3d"
 env_name = "openmmlab"
-device = "cuda:0"
-# SGF filtering
-filtered = true
-window_length = 11
-polyorder = 2
-min_detection_confidence = 0.5
+camera_names = ["view_center", "view_top"]
+keypoint_mapping = "human36m"
+pose_config = "motionbert_dstformer-ft-243frm_8xb32-120e_h36m"
 # visualization
 visualize = true
-save_detector_images = true
-save_detector_predictions = true
-# motionbert models
-[templates.motionbert_template.required_assets]
-pose3d_config_file = "<assets>/mmpose/configs/motionbert_dstformer-243frm_8xb32-240e_h36m.py"
-pose3d_checkpoint = "<assets>/mmpose/configs/motionbert_h36m-f554954f_20230531.pth"
-[templates.motionbert_template.inputs]
-subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
-
-# motionbert for vitpose
-[algorithms.motionbert]
-template = "motionbert_template"
-input_detector_names = [["body_joints", "vitpose_huge"]]
-
-# TODO: add motionbert support for other detectors
+visualize_native = false
+# inputs from other detectors
+[algorithms.motionbert.inputs]
+pose_2d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "2d_interpolated" }
+person_bboxes = { component = "person_bounding_box", algorithm = "rtmdet_m_person", npz_key = "bbox_2d" }
+[algorithms.motionbert.required_assets]
+pose_checkpoint = "<assets>/mmpose/motionbert_ft_h36m-d80af323_20230531.pth"
 
 # ======================================================================
 #                             SAM 3D Body
@@ -236,7 +249,7 @@ algorithm_type = "body_distance_2d"
 used_keypoints = ["nose"]  # if the list is more than one keypoint, the midpoint
 visualize = true
 [algorithms.body_distance_2d.inputs]
-pose_2d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "2d_filtered" }
+pose_2d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "2d_filtered" }
 
 # distance between subjects in world units (usually meters per second)
 [algorithms.body_distance_3d]
@@ -244,7 +257,7 @@ algorithm_type = "body_distance_3d"
 used_keypoints = ["nose"]
 visualize = true
 [algorithms.body_distance_3d.inputs]
-pose_3d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+pose_3d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "3d" }
 
 # ======================================================================
 #                               ETH XGaze 
@@ -348,7 +361,7 @@ used_keypoints = ["nose"]  # mean of these body joints
 threshold_look_at = 130  # in pixels
 visualize = true
 [algorithms.gaze_distance_2d.inputs]
-pose_2d = { component = "body_joints", algorithm = "hrnetw48", npz_key = "2d_filtered" }
+pose_2d = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "2d_filtered" }
 gaze_2d = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_2d" }
 
 # same, but do it using scene 3d
@@ -358,7 +371,7 @@ used_keypoints = ["nose"]   # mean of these body joints
 threshold_look_at = 0.4  # in absolute units (meters)
 visualize = true
 [algorithms.gaze_distance_3d.inputs]
-pose_3d        = { component = "body_joints", algorithm = "hrnetw48", npz_key = "3d" }
+pose_3d        = { component = "body_joints", algorithm = "vitpose_huge", npz_key = "3d" }
 gaze_3d        = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_3d" }
 gaze_2d        = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_2d" }
 gaze_origin_2d = { component = "gaze_multiview", algorithm = "gaze_per_subject", npz_key = "gaze_origin_2d" }
@@ -528,7 +541,7 @@ algorithm_type = "eye_closure_ear"
 camera_names = ["view_left", "view_right"]  # use only face cameras
 visualize = true
 [algorithms.eye_closure_score_ear_rtmpose.inputs]
-landmarks_2d = { component = "face_landmarks", algorithm = "rtmpose_l_wholebody", npz_key = "2d" }
+landmarks_2d = { component = "face_landmarks", algorithm = "rtmw_l_wholebody", npz_key = "2d" }
 
 # define that eye closed if aspect ration is less than threshold
 [algorithms.eye_state_ear]
