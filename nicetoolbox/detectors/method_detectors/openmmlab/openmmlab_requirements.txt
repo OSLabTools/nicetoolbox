@@ -1,0 +1,6 @@
+# mmcv insralled separately (compiled native wheels)
+# mmpose and mmdet forks pined by version tags
+mmdet @ git+https://github.com/open-mmlab/mmdetection.git@v3.3.0
+mmengine==0.10.7
+mmpose @ git+https://github.com/OSLabTools/mmpose.git@v1.3.2
+mmpretrain==1.2.0

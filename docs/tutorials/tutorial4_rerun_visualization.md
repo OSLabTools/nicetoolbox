@@ -73,7 +73,7 @@ The value lists define which canvases (rerun windows) will show the data
 ### Configuring algorithm display
 
 Under 'media.component', the algorithms parameter let you choose which algorithms to display.
-For example, if you have multiple algorithms (e.g., hrnetw48 and vitpose in the body_joints component),
+For example, if you have multiple algorithms (e.g., rtmw_l_wholebody and vitpose in the body_joints component),
 you can specify which algorithm’s results to show.
 If you want to see results from both algorithms, list both names.
 

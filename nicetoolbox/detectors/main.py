@@ -34,8 +34,9 @@ from .method_detectors.crisper_whisper.crisper_whisper_detector import CrisperWh
 from .method_detectors.eth_xgaze.eth_xgaze_detector import EthXgaze
 from .method_detectors.insight_face.insight_face_detector import InsightFace
 from .method_detectors.mediapipe.mediapipe_face_landmarks import MediapipeFaceLandmarks
-from .method_detectors.mmpose.mmpose_framework_2d import MMPose2D
-from .method_detectors.mmpose.mmpose_framework_3d import MotionBERT
+from .method_detectors.openmmlab.mmdet.mmdet_detector import MMDet
+from .method_detectors.openmmlab.mmpose.mmpose_2d_detector import MMPose2D
+from .method_detectors.openmmlab.mmpose.mmpose_lifter_3d_detector import MMPoseLifter3D
 from .method_detectors.py_feat.py_feat import PyFeat
 from .method_detectors.sam_3d_body.sam_3d_body_detector import Sam3dBody
 from .method_detectors.spiga.spiga_detector import Spiga
@@ -46,7 +47,8 @@ from .method_detectors.whisperx.whisperx_detector import WhisperX
 # put your detector class here to register it
 DETECTOR_CLASSES: set[BaseDetector] = {
     MMPose2D,
-    MotionBERT,
+    MMPoseLifter3D,
+    MMDet,
     EthXgaze,
     UniGaze,
     PyFeat,

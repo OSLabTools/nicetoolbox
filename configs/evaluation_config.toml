@@ -38,9 +38,9 @@ summary_group_by = ["subject", "sequence", "label"]
 summary_aggr = ["min", "mean", "max", "std", "cv"]
 
 # filter by two algorithms
-[metrics.bone_length_hrnet_vs_vitpose]
+[metrics.bone_length_rtmw_vs_vitpose]
 metric_type = "bone_length"
-predictions = { component = "body_joints", algorithm = ["hrnetw48", "vitpose_huge"], npz_key = "3d" }
+predictions = { component = "body_joints", algorithm = ["rtmw_l_wholebody", "vitpose_huge"], npz_key = "3d" }
 summary_group_by = ["subject", "sequence", "label"]
 summary_aggr = ["median", "std"]  # we can customize aggregation function
 

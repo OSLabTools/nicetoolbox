@@ -21,19 +21,6 @@ from .data import SequenceData
 from .subsequence_context import SubsequenceContext
 
 
-def flatten_list(input_list) -> list[Any]:
-    if isinstance(input_list, str):
-        return [input_list]
-    if isinstance(input_list, int):
-        return [input_list]
-    if isinstance(input_list, list):
-        output_list = []
-        for item in input_list:
-            output_list += flatten_list(item)
-        return output_list
-    raise NotImplementedError
-
-
 class Configuration(ProjectConfigHandler):
     """
     Handles loading and resolving all configurations required for detectors pipeline. This includes:

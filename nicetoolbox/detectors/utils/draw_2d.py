@@ -74,6 +74,26 @@ class RenderContext:
     cam_sees_subjects: Optional[dict[str, list[int]]] = None
 
 
+def open_video_writer(viz_folder: str, name: str, size: tuple[int, int], context: RenderContext) -> vd.FFmpegPipeWriter:
+    """
+    Open a pipe writer streaming BGR frames into <viz_folder>/<name>.mp4.
+
+    If context.save_frames is True, frames are also saved to <viz_folder>/images/<name>/.
+
+    Args:
+        viz_folder (str): Visualization folder of the component being rendered.
+        name (str): Video name relative to viz_folder, without extension (e.g. "view_top").
+        size (tuple[int, int]): Frame (width, height).
+        context (RenderContext): Supplies fps and the save_frames flag.
+
+    Returns:
+        vd.FFmpegPipeWriter: The open writer; the caller closes it.
+    """
+    out_mp4 = os.path.join(viz_folder, f"{name}.mp4")
+    frames_dir = os.path.join(viz_folder, "images", name) if context.save_frames else None
+    return vd.FFmpegPipeWriter(out_mp4, size=size, fps=context.fps, save_frames_dir=frames_dir)
+
+
 def render_per_camera_videos(
     draw_subject: Callable[[np.ndarray, int, int, int], None],
     axes,
@@ -107,12 +127,8 @@ def render_per_camera_videos(
                     raise RuntimeError(f"Failed to read image from '{frame_path}'")
 
                 if camera_name not in writers:
-                    out_mp4 = os.path.join(viz_folder, f"{camera_name}.mp4")
-                    frames_dir = os.path.join(viz_folder, "images", camera_name) if context.save_frames else None
                     height, width = image.shape[:2]
-                    writers[camera_name] = vd.FFmpegPipeWriter(
-                        out_mp4, size=(width, height), fps=context.fps, save_frames_dir=frames_dir
-                    )
+                    writers[camera_name] = open_video_writer(viz_folder, camera_name, (width, height), context)
 
                 visible_subjects = (
                     context.cam_sees_subjects.get(camera_name) if context.cam_sees_subjects is not None else None
@@ -153,6 +169,64 @@ def draw_keypoints(keypoints_2d: NpzArray, context: RenderContext, viz_folder: s
                 continue
             center = np.round(point[:2]).astype(np.int32)
             cv2.circle(image, center, radius=radius, color=color, thickness=-1, lineType=cv2.LINE_AA)
+
+    render_per_camera_videos(draw_subject, keypoints_2d.axes, context, viz_folder)
+
+
+def draw_skeleton(
+    keypoints_2d: NpzArray,
+    connections: list[list[str]],
+    context: RenderContext,
+    viz_folder: str,
+    radius: int = 2,
+    thickness: int = 2,
+) -> None:
+    """
+    Draw each subject's 2d keypoints and skeleton edges on the source frames.
+
+    Connections are polylines of label names as stored in predictions_mapping (e.g.
+    [["left_wrist", "left_elbow", "left_shoulder"], ...]); each consecutive pair becomes
+    an edge. Labels not present on the array's labels axis are skipped, and any edge with
+    a missing endpoint is skipped so partial data still renders.
+
+    Args:
+        keypoints_2d (NpzArray): (subjects, cameras, frames, keypoints, x/y[/conf]).
+        connections (list[list[str]]): Polylines of label names to connect.
+        context (RenderContext): Frame source and timing for this subsequence.
+        viz_folder (str): Visualization folder of the component being rendered.
+        radius (int): Point radius in pixels.
+        thickness (int): Edge line thickness in pixels.
+    """
+    data = keypoints_2d.data
+    label_to_idx = {label: i for i, label in enumerate(keypoints_2d.axes.labels)}
+    edges = [
+        (label_to_idx[a], label_to_idx[b])
+        for polyline in connections
+        for a, b in zip(polyline, polyline[1:])
+        if a in label_to_idx and b in label_to_idx
+    ]
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        color = subject_color(subject_idx)
+        points = data[subject_idx, cam_idx, frame_idx, :, :2]
+        for start_idx, end_idx in edges:
+            pa, pb = points[start_idx], points[end_idx]
+            if np.isnan(pa).any() or np.isnan(pb).any():
+                continue
+            cv2.line(
+                image,
+                tuple(np.round(pa).astype(np.int32)),
+                tuple(np.round(pb).astype(np.int32)),
+                color=color,
+                thickness=thickness,
+                lineType=cv2.LINE_AA,
+            )
+        for point in points:
+            if np.isnan(point).any():
+                continue
+            center = tuple(np.round(point).astype(np.int32))
+            cv2.circle(image, center, radius=radius, color=color, thickness=-1, lineType=cv2.LINE_AA)
+            cv2.circle(image, center, radius=radius + 1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
 
     render_per_camera_videos(draw_subject, keypoints_2d.axes, context, viz_folder)
 

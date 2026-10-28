@@ -11,7 +11,6 @@ from nicetoolbox_core.data.array_schema import (
     BBOX_2D_CONF,
     VECTOR_2D_CONF,
     VECTOR_2D_CONF_PER_LABEL,
-    VECTOR_2D_PER_LABEL,
     VECTOR_3D_CONF,
     VECTOR_3D_CONF_PER_LABEL,
     ArraySchema,
@@ -70,9 +69,13 @@ class Spiga(BaseMethod):
             outputs.append(NpzDetectorOutput("face_landmarks", "2d_interpolated", schema=VECTOR_2D_CONF_PER_LABEL))
         # triangulation also requires calibration
         if self.detector_config.triangulate_keypoints.triangulate and self.data.calibration:
-            outputs.append(NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL))
-            outputs.append(NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_PER_LABEL))
-            outputs.append(NpzDetectorOutput("head_orientation", "head_origin_3d", schema=VECTOR_3D_CONF))
+            outputs.extend(
+                [
+                    NpzDetectorOutput("face_landmarks", "3d", schema=VECTOR_3D_CONF_PER_LABEL),
+                    NpzDetectorOutput("face_landmarks", "2d_reprojected_from_3d", schema=VECTOR_2D_CONF_PER_LABEL),
+                    NpzDetectorOutput("head_orientation", "head_origin_3d", schema=VECTOR_3D_CONF),
+                ]
+            )
         return outputs
 
     def _initialize_detector(self) -> SpigaConfig.RuntimeConfig:

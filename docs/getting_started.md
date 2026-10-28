@@ -66,7 +66,7 @@ A detailed description of this file can be found in the wiki page on config file
 To run the NICE toolbox on the dataset, we need to specify what exactly we want to run in our experiment. Open `./configs/detectors_run_file.toml` and ensure that the `[run]` dictionary includes the following:
 
 ```toml
-algorithms = ["hrnetw48", "vitpose_huge", "velocity_body"]
+algorithms = ["rtmw_l_wholebody", "vitpose_huge", "velocity_body"]
 
 [run]
 [run.communication_multiview]

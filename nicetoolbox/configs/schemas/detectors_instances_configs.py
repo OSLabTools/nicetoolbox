@@ -181,84 +181,58 @@ class InterpolationConfig(BaseModel):
 # ================================================
 
 
-@detector_config("mmpose_2d")
-class MMPoseAlgorithmConfig(BaseAlgorithmConfig):
-    """
-    Static config for MMPose 2D pose estimators.
-    Previously six stacked decorators (hrnetw48, vitpose, vitpose_huge,
-    rtmpose_l_aic, rtmpose_l_wholebody, rtmpose_m_mpii) — now a single
-    schema; the specific model is picked by `pose_config` + `keypoint_mapping`,
-    and the produced components are declared via `components`.
-    """
-
-    camera_names: str | list[str]
-    triangulation: TriangulationConfig
+@detector_config("mmdet")
+class MMDetConfig(BaseAlgorithmConfig):
     env_name: str
-    save_detector_images: bool
-    save_detector_predictions: bool
-    device: str
-    filtered: bool
-    window_length: int
-    polyorder: int
+    detection_model_config: str | None = None
+    camera_names: str | list[str]
+    det_thresh: float
+    iou_thresh: float
+    batch_size: int
     visualize: bool
+    visualize_native: bool
+    save_raw_json_predictions: bool
+    required_assets: Dict[str, str] = Field(default_factory=dict)
 
+
+@detector_config("mmpose_2d")
+class MMPose2DAlgorithmConfig(BaseAlgorithmConfig):
+    env_name: str
+    camera_names: str | list[str]
     pose_config: str
     keypoint_mapping: str
-    min_detection_confidence: float
-    # Which components this instance produces (e.g. ["body_joints", "hand_joints", "face_landmarks"]
-    # for wholebody, ["body_joints"] for body-only models).
     components: List[str]
-    required_assets: Dict[str, str] = Field(default_factory=dict)
-    # Optional dependency edges for topological sort (same shape as feature detectors).
-    input_detector_names: Optional[List[List[str]]] = None
-
-    # Nested runtime config class - extends base with MMPose-specific fields
-    class RuntimeConfig(MethodDetectorRuntime):
-        """MMPose-specific runtime fields."""
-
-        prediction_folders: Dict[str, str]
-        image_folders: Dict[str, str]
-        keypoints_indices: Dict[str, List[int]]
-        keypoints_description: Dict[str, List[str]]
-        # Video / subprocess (explicit in run_config.toml — no guessed defaults in inference scripts).
-        fps: int
-        # Per-camera subject-index lists, derived from the subject_regions input; consumed by the
-        # inference subprocess as config["cam_sees_subjects"].
-        cam_sees_subjects: Dict[str, List[int]]
-
-
-@detector_config("motionbert")
-class MotionbertAlgorithmConfig(BaseAlgorithmConfig):
-    """Static config for MotionBERT 3D lifting (2D NPZ input); kept separate from 2D MMPose algorithms."""
-
-    camera_names: str | list[str]
-    env_name: str
-    save_detector_images: bool
-    save_detector_predictions: bool
-    device: str
-    filtered: bool
-    window_length: int
-    polyorder: int
-    visualize: bool
-
-    keypoint_mapping: str
+    decode_visibility: bool
     min_detection_confidence: float
-    # 3D lifter weights only; 2D detector assets are merged from input_detector_names at init.
+    filter_keypoints: FilterConfig
+    interpolate_keypoints: InterpolationConfig
+    triangulate_keypoints: TriangulationConfig
+    visualize: bool
+    visualize_native: bool
+    visualize_keypoints_npz_key: str
+    save_raw_json_predictions: bool
     required_assets: Dict[str, str] = Field(default_factory=dict)
-    # Must include exactly one upstream body_joints producer (NPZ path, 2D pose assets, etc.).
-    input_detector_names: List[List[str]]
-    # Optional MMPose 3D frame-export layout (serialized to run_config; read with strict keys in subprocess).
-    mmpose_3d_nice_multi_layout: bool = True
-    pelvis_sep_scale: float = 1.0
 
-    class RuntimeConfig(MMPoseAlgorithmConfig.RuntimeConfig):
-        """Runtime fields for MotionBERT (NPZ path, merged 2D+3D assets, derived 2D lifter inputs)."""
+    class RuntimeConfig(MethodDetectorRuntime):
+        person_bbox_npz: str
+        person_bbox_npz_key: str
 
-        pose_config: str
-        motionbert_2d_pose_det_dataset: str
-        motionbert_2d_coco_body_indices: List[int]
-        motionbert_2d_keypoints_npz: str
-        required_assets: Dict[str, str]
+
+@detector_config("mmpose_lifter_3d")
+class MMPoseLifter3DAlgorithmConfig(BaseAlgorithmConfig):
+    env_name: str
+    camera_names: str | list[str]
+    pose_config: str
+    keypoint_mapping: str
+    visualize: bool
+    visualize_native: bool
+    required_assets: Dict[str, str] = Field(default_factory=dict)
+
+    class RuntimeConfig(MethodDetectorRuntime):
+        pose_2d_npz: str
+        pose_2d_npz_key: str
+        person_bbox_npz: str
+        person_bbox_npz_key: str
 
 
 @detector_config("spiga")
