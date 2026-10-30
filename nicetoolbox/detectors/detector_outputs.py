@@ -29,6 +29,13 @@ class NpzDetectorOutput(BaseDetectorOutput):
 
 
 @dataclass(frozen=True)
+class NpzStaticDetectorOutput(BaseDetectorOutput):
+    """A declared per-component constant array with arbitrary shape."""
+
+    npz_key: str
+
+
+@dataclass(frozen=True)
 class JsonDetectorOutput(BaseDetectorOutput):
     """A declared JSON output, for components whose results are not dense arrays."""
 
@@ -47,6 +54,8 @@ class DetectorOutput:
     def __init__(self) -> None:
         # (component, npz_key) -> NpzArray
         self._arrays: dict[tuple[str, str], NpzArray] = {}
+        # (component, npz_key) -> plain array without canonical axes
+        self._statics: dict[tuple[str, str], np.ndarray] = {}
         # component -> pydantic model (one JSON per component)
         self._jsons: dict[str, BaseModel] = {}
 
@@ -57,9 +66,17 @@ class DetectorOutput:
     def add_array(self, component: str, npz_key: str, array: NpzArray) -> "DetectorOutput":
         """Add a ready-made NpzArray under (component, npz_key); returns self so calls can chain."""
         key = (component, npz_key)
-        if key in self._arrays:
+        if key in self._arrays or key in self._statics:
             raise ValueError(f"Output '{npz_key}' for component '{component}' added more than once.")
         self._arrays[key] = array
+        return self
+
+    def add_static(self, component: str, npz_key: str, data: np.ndarray) -> "DetectorOutput":
+        """Add a per-component constant numpy array of arbitrary shape; returns self so calls can chain."""
+        key = (component, npz_key)
+        if key in self._arrays or key in self._statics:
+            raise ValueError(f"Output '{npz_key}' for component '{component}' added more than once.")
+        self._statics[key] = np.asarray(data)
         return self
 
     def add_json(self, component: str, model: BaseModel) -> "DetectorOutput":
@@ -79,6 +96,15 @@ class DetectorOutput:
         if key not in self._arrays:
             raise KeyError(f"No output '{npz_key}' for component '{component}'. Produced: {list(self._arrays)}.")
         return self._arrays[key]
+
+    def get_static(self, component: str, npz_key: str) -> np.ndarray:
+        """Return the produced static array for (component, npz_key), raising if absent."""
+        key = (component, npz_key)
+        if key not in self._statics:
+            raise KeyError(
+                f"No static output '{npz_key}' for component '{component}'. Produced: {list(self._statics)}."
+            )
+        return self._statics[key]
 
     def get_json(self, component: str) -> BaseModel:
         """Return the produced JSON model for a component, raising if absent."""
@@ -103,10 +129,19 @@ class DetectorOutput:
         they are pydantic models, so they were validated when constructed.
         """
         declared_arrays = {(o.component, o.npz_key) for o in declared if isinstance(o, NpzDetectorOutput)}
+        declared_statics = {(o.component, o.npz_key) for o in declared if isinstance(o, NpzStaticDetectorOutput)}
         declared_jsons = {o.component for o in declared if isinstance(o, JsonDetectorOutput)}
 
-        missing = sorted(declared_arrays - set(self._arrays)) + sorted(declared_jsons - set(self._jsons))
-        extra = sorted(set(self._arrays) - declared_arrays) + sorted(set(self._jsons) - declared_jsons)
+        missing = (
+            sorted(declared_arrays - set(self._arrays))
+            + sorted(declared_statics - set(self._statics))
+            + sorted(declared_jsons - set(self._jsons))
+        )
+        extra = (
+            sorted(set(self._arrays) - declared_arrays)
+            + sorted(set(self._statics) - declared_statics)
+            + sorted(set(self._jsons) - declared_jsons)
+        )
         if missing or extra:
             raise ValueError(
                 f"Detector output mismatch. "
@@ -114,6 +149,7 @@ class DetectorOutput:
                 f"Undeclared produced outputs: {extra}."
             )
 
+        # validate schema (currently only for npz output)
         for spec in declared:
             if isinstance(spec, NpzDetectorOutput) and spec.schema is not None:
                 errors = spec.schema.validate(self._arrays[(spec.component, spec.npz_key)])
@@ -131,7 +167,7 @@ class DetectorOutput:
         (cameras) must be an ordered subset of the canonical cameras — a detector may cover a
         subset (e.g. inference on 2 of 4 cameras), but never reorder or invent cameras — with
         the fused 3D pseudo-camera ["3d"] allowed as a special case. axis3/axis4 are
-        detector-specific labels and not checked.
+        detector-specific labels and not checked. Static outputs have no such axes and are skipped.
 
         Raises ValueError on the first mismatch — a detector that reorders or drops a subjects/
         frames axis, or emits cameras out of canonical order, is a bug.
@@ -155,20 +191,25 @@ class DetectorOutput:
     def save(self, io: SequenceIO, algorithm_instance: str) -> None:
         """Save produced outputs under each component's result folder.
 
-        Array outputs are grouped into '<result_folder>/<algorithm_instance>.npz' (one NPZ per
-        component). JSON outputs are written to '<result_folder>/<algorithm_instance>.json' —
+        Array and static outputs are grouped into '<result_folder>/<algorithm_instance>.npz'
+        (one NPZ per component). JSON outputs are written to '<result_folder>/<algorithm_instance>.json' —
         saved as-is, so downstream consumers (ELAN connector, evaluation transcript loaders)
         keep reading the same on-disk format.
         """
         by_component: dict[str, dict[str, NpzArray]] = defaultdict(dict)
         for (component, npz_key), array in self._arrays.items():
             by_component[component][npz_key] = array
+        statics_by_component: dict[str, dict[str, np.ndarray]] = defaultdict(dict)
+        for (component, npz_key), data in self._statics.items():
+            statics_by_component[component][npz_key] = data
 
-        for component, arrays in by_component.items():
+        for component in sorted(set(by_component) | set(statics_by_component)):
+            arrays = by_component.get(component, {})
+            statics = statics_by_component.get(component, {})
             result_folder = io.get_detector_output_folder(component, algorithm_instance, "result")
             npz_path = result_folder / f"{algorithm_instance}.npz"
-            save_arrays(arrays, npz_path)
-            logging.info(f"Saved output for component '{component}' ({list(arrays)}) to '{npz_path}'.")
+            save_arrays(arrays, npz_path, static_arrays=statics)
+            logging.info(f"Saved output for component '{component}' ({[*arrays, *statics]}) to '{npz_path}'.")
 
         for component, model in self._jsons.items():
             result_folder = io.get_detector_output_folder(component, algorithm_instance, "result")

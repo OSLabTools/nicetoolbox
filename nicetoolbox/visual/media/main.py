@@ -172,7 +172,9 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
     )
 
     body_mesh_component = (
-        BodyMeshComponent(visualizer_config, io, viewer, "body_mesh", calib) if "body_mesh" in components else None
+        BodyMeshComponent(visualizer_config, io, viewer, "body_mesh_local", calib)
+        if "body_mesh_local" in components
+        else None
     )
 
     eye_closed_state_component = (

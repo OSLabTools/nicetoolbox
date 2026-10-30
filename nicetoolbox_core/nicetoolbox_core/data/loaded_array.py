@@ -13,6 +13,8 @@ from .npz_meta import NpzMeta, PathMeta
 class NpzArrayAxes:
     """Fixed named axes according to the NICE Toolbox convention."""
 
+    AXES_NAMES = {"axis0", "axis1", "axis2", "axis3", "axis4"}
+
     subjects: list[str]  # axis0
     cameras: list[str]  # axis1
     frames: list[str]  # axis2
@@ -42,10 +44,11 @@ class NpzArrayAxes:
 
 @dataclass
 class NpzArray:
-    """Array with named axes."""
+    """Array with named axes and named additional attributes."""
 
     data: np.ndarray
     axes: NpzArrayAxes
+    extra: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -66,6 +69,7 @@ class NpzArrayWithMeta:
             array=NpzArray(
                 data=self.data if data is None else data,
                 axes=self.axes if axes is None else axes,
+                extra=dict(self.array.extra),
             ),
             npz_meta=self.npz_meta,
         )
@@ -168,7 +172,9 @@ def load_array(meta: NpzMeta) -> NpzArrayWithMeta | None:
         labels=[str(v) for v in descr["axis3"]],
         data=[str(v) for v in descr["axis4"]] if "axis4" in descr else [],
     )
-    return NpzArrayWithMeta(array=NpzArray(data, axes), npz_meta=meta)
+    # everything besides the axis labels is per-array extra information
+    extra = {k: v for k, v in descr.items() if k not in NpzArrayAxes.AXES_NAMES}
+    return NpzArrayWithMeta(array=NpzArray(data, axes, extra), npz_meta=meta)
 
 
 def load_array_from_path(npz_path: Path, npz_key: str) -> NpzArray | None:
@@ -189,6 +195,22 @@ def load_array_from_path(npz_path: Path, npz_key: str) -> NpzArray | None:
     """
     loaded = load_array(PathMeta(npz_path=npz_path, npz_key=npz_key))
     return loaded.array if loaded is not None else None
+
+
+def load_static_array(npz_path: Path, npz_key: str) -> np.ndarray | None:
+    """Load a static NPZ entry (a per-component constant such as mesh faces) as a plain array.
+
+    Static entries live next to the canonical arrays of a component but have no
+    subject/camera/frame axes, so they are stored without a data_description entry.
+
+    Returns:
+        The array, or None if the key is not stored in the file.
+    """
+    with np.load(npz_path, allow_pickle=True) as f:
+        if npz_key not in f.files:
+            logging.warning(f"Key '{npz_key}' not found in '{npz_path}'. Available: {f.files}")
+            return None
+        return f[npz_key]
 
 
 # =============================================================================
@@ -277,7 +299,7 @@ def select_array(
         new_data = np.take(new_data, [available.index(name) for name in wanted], axis=axis)
         changes[axis_name] = list(wanted)
 
-    return NpzArray(new_data, array.axes.replace(**changes))
+    return NpzArray(new_data, array.axes.replace(**changes), dict(array.extra))
 
 
 def filter_array(array: NpzArray, filters: NpzAxisFilters, npz_path: Path | None = None) -> NpzArray | None:
@@ -316,7 +338,7 @@ def filter_array(array: NpzArray, filters: NpzAxisFilters, npz_path: Path | None
     if any(not lst for lst in axis_to_validate):
         return None
 
-    return NpzArray(data, NpzArrayAxes(subjects, cameras, frames, labels, data_axis))
+    return NpzArray(data, NpzArrayAxes(subjects, cameras, frames, labels, data_axis), dict(array.extra))
 
 
 def load_and_filter_array(meta: NpzMeta, filters: NpzAxisFilters) -> NpzArrayWithMeta | None:
@@ -344,7 +366,11 @@ def load_and_filter_array(meta: NpzMeta, filters: NpzAxisFilters) -> NpzArrayWit
 # =============================================================================
 
 
-def save_arrays(arrays: dict[str, NpzArray], npz_path: Path) -> None:
+def save_arrays(
+    arrays: dict[str, NpzArray],
+    npz_path: Path,
+    static_arrays: dict[str, np.ndarray] | None = None,
+) -> None:
     """Save named arrays to an NPZ file using the toolbox data_description convention.
 
     Each array's ArrayAxes is serialized to axis0..axis3 (and axis4 when the data
@@ -354,12 +380,21 @@ def save_arrays(arrays: dict[str, NpzArray], npz_path: Path) -> None:
     Args:
         arrays: Mapping of npz_key -> NpzArray to write.
         npz_path: Destination NPZ file path. Parent directories must already exist.
+        static_arrays: Mapping of npz_key -> plain array for per-component constants without
+            canonical axes (e.g. mesh faces). Stored without a data_description entry (so CSV
+            export skips them); read them back with load_static_array().
     """
+    static_arrays = static_arrays or {}
+    overlap = set(arrays) & set(static_arrays)
+    if overlap:
+        raise ValueError(f"Keys {sorted(overlap)} given both as canonical and static arrays.")
+
     data_arrays: dict[str, np.ndarray] = {}
     data_description: dict[str, dict] = {}
     for key, arr in arrays.items():
         data_arrays[key] = arr.data
         descr = {
+            **arr.extra,
             "axis0": arr.axes.subjects,
             "axis1": arr.axes.cameras,
             "axis2": arr.axes.frames,
@@ -369,5 +404,8 @@ def save_arrays(arrays: dict[str, NpzArray], npz_path: Path) -> None:
             descr["axis4"] = arr.axes.data
         data_description[key] = descr
 
+    # static arrays have no canonical axes, so they are not described
+    data_arrays.update(static_arrays)
+
     np.savez_compressed(npz_path, **data_arrays, data_description=data_description)
-    logging.info(f"Saved NPZ with keys {list(arrays)}: {npz_path}")
+    logging.info(f"Saved NPZ with keys {list(data_arrays)}: {npz_path}")

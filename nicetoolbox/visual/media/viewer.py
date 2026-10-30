@@ -54,6 +54,9 @@ class Viewer:
         rr.init(app_id, spawn=self.visualizer_config["spawn_viewer"])
         rr.set_time_seconds("time", 0)
         rr.send_blueprint(self._build_blueprint())
+        if "body_mesh_local" in self.components_list:
+            # mesh canvas is in camera coordinates: x right, y down, z forward
+            rr.log(self.MESH3D_ROOT, rr.ViewCoordinates.RDF, static=True)
 
     def _build_blueprint(self) -> rrb.BlueprintLike:
         top_views = [rrb.Spatial3DView(name="Main 3D", origin=self.ROOT3D)]
@@ -81,7 +84,7 @@ class Viewer:
             elif component == "kinematics":
                 kinematics_views.append(rrb.TimeSeriesView(name="Kinematics", origin="kinematics"))
 
-            elif component == "body_mesh":
+            elif component == "body_mesh_local":
                 origin = self.generate_component_entity_path(component, is_3d=True, blueprint_only=True)
                 top_views.append(rrb.Spatial3DView(name="Body Mesh", origin=origin))
 
@@ -259,7 +262,8 @@ class Viewer:
             else:
                 root = "kinematics"
                 full = f"{root}/{alg_name}_{subject_name}_{cam_name}/{bodypart}"
-        elif component == "body_mesh":
+        elif component == "body_mesh_local":
+            # separate canvas, meshes in the camera coordinates of a single camera
             if is_3d:
                 root = f"{self.MESH3D_ROOT}"
                 full = f"{root}/{component}/{alg_name}/{subject_name}"

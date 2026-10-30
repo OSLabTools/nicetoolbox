@@ -161,50 +161,43 @@ pose_checkpoint = "<assets>/mmpose/motionbert_ft_h36m-d80af323_20230531.pth"
 #                             SAM 3D Body
 # ======================================================================
 
-[algorithms.sam_3d_body]
+# generic template for SAM 3D Body
+[templates.sam_3d_body_template]
 algorithm_type = "sam_3d_body"
-camera_names = ["view_top", "view_center"]
 env_name = "sam_3d_body"
-device = "cuda:0"
-visualize = true
-# If empty, use the checkout cloned into the venv at envs/sam_3d_body/src/sam-3d-body
-sam3d_repo_path = ""
-detector_name = "vitdet"
-segmentor_name = "sam2"
-fov_name = "moge2"
-inference_type = "body"
-save_vertices = true
-visualize_mesh = false
-# Optional single-file 3D mesh viewer (Plotly HTML)
-# visualize_mesh_interactive = true
-# interactive_mesh_frame_stride = 5
-# interactive_mesh_camera_index = 0
-# interactive_mesh_prefer_world = true
-# Omit interactive_mesh_subject_spacing for auto spacing.
-# interactive_mesh_subject_spacing = 0
-# interactive_mesh_line_width = 1
-# interactive_mesh_max_edges = 12000
-# interactive_mesh_max_frames = 48
-# interactive_mesh_plotlyjs_cdn = true
-bbox_sort_left_to_right = true
-temporal_smooth = true
-smooth_window_length = 7
-smooth_polyorder = 2
-world_align_keypoints_3d = true
-cross_view_consistency = true
-triangulation_min_detection_confidence = 0.6
+camera_names = "*"
 keypoint_mapping = "sam_3d_body_mhr"
-# 3d triangulation (back to world space)
-[algorithms.sam_3d_body.triangulation]
-triangulate = true
-triangulation_cameras = ["view_top", "view_center"]  # cameras that will be used for 3d triangulation
-[algorithms.sam_3d_body.inputs]
-subjects = { component = "subject_regions", algorithm = "video_subject_detector", npz_key = "regions" }
+# inference settings
+cache_dir = "<assets>/sam_3d_body"
+inference_type = "body"  # "body" or "full"
+save_vertices = false  # use only for short sequences - space and RAM expensive
+# post-processing
+filter_keypoints = {filtered = true, window_length = 11, polyorder = 2}
+interpolate_keypoints = {interpolated = true, max_gap = 10}
+triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top", "view_center"]}
+# visualization
+visualize = true
+visualize_keypoints_npz_key = "2d_interpolated"  # "2d", "2d_filtered", "2d_interpolated" or "2d_reprojected_from_3d"
+visualize_native_2d = false  # native 2d skeleton visualization
+visualize_native_3d = false  # native 3d mesh render
+# inputs from other detectors
+[templates.sam_3d_body_template.inputs]
+person_bboxes = { component = "person_bounding_box", algorithm = "rtmdet_m_person", npz_key = "bbox_2d" }
 
-[algorithms.sam_3d_body.required_assets]
+# DINOv3-H+ image encoder
+[algorithms.sam_3d_body_dinov3]
+template = "sam_3d_body_template"
+hf_repo_id = "facebook/sam-3d-body-dinov3"
+[algorithms.sam_3d_body_dinov3.required_assets]
 sam_3d_body_model = "<assets>/sam_3d_body/models--facebook--sam-3d-body-dinov3"
-sam2_model = "<assets>/sam_3d_body/models--facebook--sam2-hiera-large"
-moge2_model = "<assets>/sam_3d_body/models--Ruicheng--moge-2-vitl-normal"
+dinov3_code = "<assets>/sam_3d_body/hub/facebookresearch_dinov3_main"
+
+# ViT-H image encoder
+[algorithms.sam_3d_body_vith]
+template = "sam_3d_body_template"
+hf_repo_id = "facebook/sam-3d-body-vith"
+[algorithms.sam_3d_body_vith.required_assets]
+sam_3d_body_model = "<assets>/sam_3d_body/models--facebook--sam-3d-body-vith"
 
 # ======================================================================
 #                          Kinematics (Body Velocity)
@@ -233,11 +226,11 @@ visualize = true
 pose_3d = { component = "body_joints_local", algorithm = "motionbert", npz_key = "3d" }
 
 # sam3d can directly predict 3d body joints from single camera view
-[algorithms.velocity_body_sam3d_local]
+[algorithms.velocity_body_sam_3d_local]
 algorithm_type = "velocity_body_3d"
 visualize = true
-[algorithms.velocity_body_sam3d_local.inputs]
-pose_3d = { component = "body_joints_local", algorithm = "sam_3d_body", npz_key = "3d" }
+[algorithms.velocity_body_sam_3d_local.inputs]
+pose_3d = { component = "body_joints_local", algorithm = "sam_3d_body_dinov3", npz_key = "3d_interpolated" }
 
 # ======================================================================
 #                          Proximity (Body Distance)

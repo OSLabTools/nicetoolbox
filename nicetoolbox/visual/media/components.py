@@ -1666,8 +1666,14 @@ class BodyMeshComponent(Component):
         self.subject_names = self.algorithms_results[0]["data_description"].item()["vertices"]["axis0"]
         self.camera_names = self.algorithms_results[0]["data_description"].item()["vertices"]["axis1"]
 
+        # mesh triangles, static array shared by all subjects, cameras and frames
         self.faces = self.algorithms_results[0]["faces"]  # (F, 3) int32
-        self._missing_world_warned = set()
+
+        # meshes are drawn in the camera coordinates of a single camera (separate mesh canvas)
+        if len(self.canvas_list) != 1:
+            raise ValueError(
+                f"{component_name}: select exactly one camera in the 'vertices' canvas, got {self.canvas_list}."
+            )
 
     def _get_algorithms_labels(self) -> List[List[str]]:
         """
@@ -1708,37 +1714,14 @@ class BodyMeshComponent(Component):
             camera_index = self.camera_names.index(cam_name)
 
             for alg_idx, alg_name in enumerate(self.algorithm_list):
-                # TODO: add support for single-view/no-calibration datasets
-                if "vertices_world" not in self.algorithms_results[alg_idx].files:
-                    if alg_name not in self._missing_world_warned:
-                        self._missing_world_warned.add(alg_name)
-                        print(
-                            f"[BodyMeshComponent] '{alg_name}' results do not contain 'vertices_world', "
-                            f"skipping 3D mesh visualization for this algorithm."
-                        )
-                    continue
+                # vertices are in the camera coordinates of the camera they were estimated from
+                vertices_camera = self.algorithms_results[alg_idx]["vertices"]
 
-                alg_data_world = self.algorithms_results[alg_idx]["vertices_world"]
-
-                if frame_idx >= alg_data_world.shape[2]:
+                if frame_idx >= vertices_camera.shape[2]:
                     continue
 
                 for subject_idx, subject in enumerate(self.subject_names):
-                    vertices_world = alg_data_world[subject_idx, camera_index, frame_idx]  # (N_v, 3)
-                    # get mesh head centroid — top ~5% of vertices by Z (or Y in rerun coords)
-                    vertices_finite = vertices_world[np.isfinite(vertices_world).all(axis=1)]
-
-                    # TODO: subjects vertices of sam3d located at 0,0,0.
-                    #  To separate subjects location during visualization we are using here
-                    #  a kind of fix unit based on mesh's size, so their distance does not
-                    # represent the real locations in 3D world.
-                    # Later we will fix it while post-processing body_mesh results
-                    mesh_height = vertices_finite[:, 0].max() - vertices_finite[:, 0].min()
-                    offset = np.array([subject_idx * mesh_height * 2, 0.0, 0.0])
-                    # shift mesh based on offset
-                    vertices_corrected = vertices_world + offset
-
-                    vertices_rr = self._to_rerun_coords(vertices_corrected)
+                    vertices = vertices_camera[subject_idx, camera_index, frame_idx]  # (N_v, 3)
                     entity_path_3d = self.logger.generate_component_entity_path(
                         self.component_name,
                         is_3d=True,
@@ -1746,16 +1729,7 @@ class BodyMeshComponent(Component):
                         subject_name=subject,
                         cam_name=cam_name,
                     )
-                    self._log_data(entity_path_3d, vertices_rr, alg_idx)
-
-    def _to_rerun_coords(self, vertices: np.ndarray) -> np.ndarray:
-        """Convert from Z-up (world) to Rerun's Y-up convention.
-
-        World:  X=right, Y=forward, Z=up
-        Rerun:  X=right, Y=up,      Z=backward
-        """
-        v = vertices.copy()
-        return np.stack([v[:, 0], v[:, 2], -v[:, 1]], axis=1)
+                    self._log_data(entity_path_3d, vertices, alg_idx)
 
     def _compute_vertex_normals(self, vertices: np.ndarray) -> np.ndarray:
         """Compute per-vertex normals for proper lighting/shading."""

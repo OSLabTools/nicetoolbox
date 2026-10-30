@@ -46,19 +46,18 @@ def install() -> None:
     print("Installing PyTorch (2.8.0, cu129)...")
     run(
         f'uv pip install --python "{py}"'
-        " setuptools<82 torch==2.8.0+cu129 torchvision==0.23.0+cu129 torchaudio==2.8.0+cu129"
+        " setuptools<82 torch==2.8.0+cu129 torchvision==0.23.0+cu129"
         " --index-url https://download.pytorch.org/whl/cu129"
         " --extra-index-url https://pypi.org/simple"
     )
     print("Installing SAM 3D Body dependencies...")
-    reqs = method_detector_file("sam_3d_body_pip_requirements.txt")
+    reqs = method_detector_file("sam_3d_body_requirements.txt")
     run(f'uv pip install --python "{py}" -r "{reqs}"')
     print("Installing Detectron2...")
     run(
         f'uv pip install --python "{py}"'
         " detectron2==0.6+fd27788pt2.8.0cu129"
         " --extra-index-url https://miropsota.github.io/torch_packages_builder"
-        " --no-deps"
     )
     run(f'uv pip install --python "{py}" -e "{NICETOOLBOX_CORE_DIR}"')
 

@@ -49,6 +49,7 @@ We acknowledge the following tools, methods, and frameworks:
 [SAM 2](https://github.com/facebookresearch/sam2),
 [MoGe](https://github.com/microsoft/MoGe),
 [Detectron2](https://github.com/facebookresearch/detectron2),
+[DINOv3](https://github.com/facebookresearch/dinov3),
 [ETH-XGaze](https://github.com/xucong-zhang/ETH-XGaze),
 [UniGaze](https://github.com/ut-vision/UniGaze),
 [SPIGA](https://github.com/andresprados/SPIGA),

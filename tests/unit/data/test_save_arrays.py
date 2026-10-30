@@ -1,6 +1,16 @@
 import numpy as np
+import pytest
 
-from nicetoolbox_core.data.loaded_array import NpzArray, NpzArrayAxes, load_array, save_arrays
+from nicetoolbox_core.data.loaded_array import (
+    NpzArray,
+    NpzArrayAxes,
+    NpzAxisFilters,
+    filter_array,
+    load_array,
+    load_static_array,
+    save_arrays,
+    select_array,
+)
 from nicetoolbox_core.data.npz_meta import PathMeta
 
 
@@ -77,3 +87,60 @@ class TestSaveArrays:
         assert loaded.axes.subjects == ["s1", "s2"]
         assert loaded.axes.labels == ["x", "y"]
         assert loaded.axes.data == []
+
+
+class TestExtra:
+    def _array(self, extra=None) -> NpzArray:
+        return NpzArray(np.zeros((1, 1, 2, 3)), _axes(("s1",), ("c1",), ("f0", "f1"), ("x", "y", "z")), extra or {})
+
+    def test_extra_written_next_to_axes(self, tmp_path):
+        out = tmp_path / "out.npz"
+        save_arrays({"vertices": self._array({"csv_skip": True, "space": "camera"})}, out)
+
+        with np.load(out, allow_pickle=True) as f:
+            descr = f["data_description"].item()["vertices"]
+            assert descr["csv_skip"] is True
+            assert descr["space"] == "camera"
+            assert descr["axis3"] == ["x", "y", "z"]
+
+    def test_extra_round_trip(self, tmp_path):
+        out = tmp_path / "out.npz"
+        save_arrays({"a": self._array({"csv_skip": True}), "b": self._array()}, out)
+
+        assert load_array(_meta(out, "a")).array.extra == {"csv_skip": True}
+        assert load_array(_meta(out, "b")).array.extra == {}
+
+    def test_extra_kept_by_select_and_filter(self):
+        arr = self._array({"csv_skip": True})
+        assert select_array(arr, labels=["x"]).extra == {"csv_skip": True}
+        filters = NpzAxisFilters(subject="*", camera="*", label=["y"], data="*")
+        assert filter_array(arr, filters).extra == {"csv_skip": True}
+
+
+class TestStaticArrays:
+    def _canonical(self) -> NpzArray:
+        return NpzArray(np.zeros((1, 1, 2, 3)), _axes(("s1",), ("c1",), ("f0", "f1"), ("v0", "v1", "v2")))
+
+    def test_static_array_stored_without_description(self, tmp_path):
+        faces = np.array([[0, 1, 2], [2, 1, 0]], dtype=np.int32)
+        out = tmp_path / "out.npz"
+        save_arrays({"vertices": self._canonical()}, out, static_arrays={"faces": faces})
+
+        with np.load(out, allow_pickle=True) as f:
+            assert set(f.files) == {"vertices", "faces", "data_description"}
+            assert set(f["data_description"].item()) == {"vertices"}
+        # not described, so it is invisible to the canonical loader
+        assert load_array(_meta(out, "faces")) is None
+
+    def test_static_round_trip(self, tmp_path):
+        faces = np.arange(6, dtype=np.int32).reshape(2, 3)
+        out = tmp_path / "out.npz"
+        save_arrays({}, out, static_arrays={"faces": faces})
+
+        np.testing.assert_array_equal(load_static_array(out, "faces"), faces)
+        assert load_static_array(out, "missing") is None
+
+    def test_rejects_key_both_canonical_and_static(self, tmp_path):
+        out = tmp_path / "out.npz"
+        with pytest.raises(ValueError, match="both"):
+            save_arrays({"a": self._canonical()}, out, static_arrays={"a": np.zeros(3)})

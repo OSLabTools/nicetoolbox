@@ -204,12 +204,12 @@ class FFmpegPipeWriter:
         self,
         output_path: str,
         size: tuple[int, int],  # (width, height)
+        save_frames_dir: Optional[str],  # None disables saving individual frames
         fps: float = 30.0,
         codec: str = "libx264",
         pix_fmt_in: str = "bgr24",
         pix_fmt_out: str = "yuv420p",
         output_params: Optional[list[str]] = None,
-        save_frames_dir: Optional[str] = None,
         log_file: Optional[Path | str] = None,
     ):
         out_dir = os.path.dirname(os.path.abspath(output_path))

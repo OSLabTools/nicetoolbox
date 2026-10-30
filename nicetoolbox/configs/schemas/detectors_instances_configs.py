@@ -2,7 +2,7 @@
 # new detectors should be added and registered here
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
@@ -364,42 +364,26 @@ class WhisperXConfig(BaseAlgorithmConfig):
 
 
 @detector_config("sam_3d_body")
-class Sam3dBodyConfig(BaseAlgorithmConfig):
-    """SAM 3D Body (Hugging Face weights; set hugging_face_token in machine_specific_paths.toml)."""
-
-    camera_names: str | list[str]
-    triangulation: TriangulationConfig
+class Sam3dBodyAlgorithmConfig(BaseAlgorithmConfig):
     env_name: str
-    device: str
+    camera_names: str | list[str]
+    inference_type: Literal["body", "full"]
+    save_vertices: bool
+    filter_keypoints: FilterConfig
+    interpolate_keypoints: InterpolationConfig
+    triangulate_keypoints: TriangulationConfig
     visualize: bool
-
-    hf_repo_id: str = "facebook/sam-3d-body-dinov3"
-    sam3d_repo_path: str = ""
-    detector_name: str = "vitdet"
-    segmentor_name: str = "sam2"
-    fov_name: str = "moge2"
-    inference_type: str = "body"
-    save_vertices: bool = True
-    visualize_mesh: bool = True
-    visualize_mesh_interactive: bool = False
-    interactive_mesh_frame_stride: int = 1
-    interactive_mesh_camera_index: int = 0
-    interactive_mesh_prefer_world: bool = True
-    interactive_mesh_subject_spacing: Optional[float] = None
-    interactive_mesh_line_width: int = 1
-    # Keep interactive HTML browser-sized (uncapped wire × frames can exceed ~500 MB).
-    interactive_mesh_max_edges: int = 12_000
-    interactive_mesh_max_frames: int = 48
-    interactive_mesh_plotlyjs_cdn: bool = False
-    bbox_sort_left_to_right: bool = True
-    temporal_smooth: bool = True
-    smooth_window_length: int = 7
-    smooth_polyorder: int = 2
-    world_align_keypoints_3d: bool = True
-    cross_view_consistency: bool = True
-    triangulation_min_detection_confidence: float = 0.6
-    keypoint_mapping: str = "sam_3d_body_mhr"
+    visualize_keypoints_npz_key: str
+    visualize_native_2d: bool
+    visualize_native_3d: bool
+    keypoint_mapping: str
+    hf_repo_id: str
+    cache_dir: str
     required_assets: Dict[str, str] = Field(default_factory=dict)
+
+    class RuntimeConfig(MethodDetectorRuntime):
+        person_bbox_npz: str
+        person_bbox_npz_key: str
 
 
 @detector_config("crisper_whisper")

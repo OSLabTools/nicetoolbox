@@ -19,6 +19,7 @@ import numpy as np
 
 from nicetoolbox_core.data.loaded_array import NpzArray
 
+from ...utils import triangulation as tri
 from ...utils import video as vd
 from ...utils import visual_utils as vis_ut
 
@@ -70,7 +71,7 @@ class RenderContext:
     dataloader: object  # yields (real_frame_idx, {camera_name: frame_path})
     fps: int
     video_start: int
-    save_frames: bool = False
+    save_frames: bool
     cam_sees_subjects: Optional[dict[str, list[int]]] = None
 
 
@@ -229,6 +230,53 @@ def draw_skeleton(
             cv2.circle(image, center, radius=radius + 1, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
 
     render_per_camera_videos(draw_subject, keypoints_2d.axes, context, viz_folder)
+
+
+def draw_mesh_wireframe(
+    vertices: NpzArray,
+    faces: np.ndarray,
+    projection_matrices: dict[str, np.ndarray],
+    context: RenderContext,
+    viz_folder: str,
+    thickness: int = 1,
+) -> None:
+    """
+    Project each subject's mesh into the camera and draw every triangle edge on the source frames.
+
+    Each camera's vertices are projected with that camera's 3x4 projection matrix (no distortion),
+    e.g. [K | 0] for vertices already in the camera coordinates. All triangles are drawn, including
+    the back side of the mesh; triangles with a vertex behind the camera are skipped.
+
+    Args:
+        vertices (NpzArray): (subjects, cameras, frames, vertices, x/y/z).
+        faces (np.ndarray): (num_faces, 3) vertex indices of each triangle.
+        projection_matrices (dict[str, np.ndarray]): (3, 4) projection matrix per camera name.
+        context (RenderContext): Frame source and timing for this subsequence.
+        viz_folder (str): Visualization folder of the component being rendered.
+        thickness (int): Edge line thickness in pixels.
+    """
+    data = vertices.data
+    cam_projections = [projection_matrices[cam] for cam in vertices.axes.cameras]
+
+    def draw_subject(image, subject_idx, cam_idx, frame_idx):
+        points = data[subject_idx, cam_idx, frame_idx]
+        if np.isnan(points).any():
+            return
+        uv = tri.project_points_to_camera(points, cam_projections[cam_idx])
+        triangles_uv = uv[faces]  # (num_faces, 3, 2)
+        # vertices behind the camera project to NaN
+        visible = ~np.isnan(triangles_uv).any(axis=(1, 2))
+        triangles = np.round(triangles_uv[visible]).astype(np.int32)
+        cv2.polylines(
+            image,
+            list(triangles),
+            isClosed=True,
+            color=subject_color(subject_idx),
+            thickness=thickness,
+            lineType=cv2.LINE_AA,
+        )
+
+    render_per_camera_videos(draw_subject, vertices.axes, context, viz_folder)
 
 
 def draw_direction_vector(

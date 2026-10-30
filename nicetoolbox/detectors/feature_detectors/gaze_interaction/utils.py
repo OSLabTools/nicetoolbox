@@ -29,7 +29,7 @@ def visualize_gaze_arrows(
     subjects_descr,
     output_folder,
     fps,
-    save_frames: bool = False,
+    save_frames: bool,
 ) -> None:
     """Render a per-camera video overlaying each subject's gaze arrow on the source frames.
 
