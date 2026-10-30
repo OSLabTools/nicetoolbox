@@ -195,7 +195,7 @@ def test_ffmpeg_pipe_writer_streams_video():
         out_video = os.path.join(tmpdir, "test_stream.mp4")
         width, height, fps, n_frames = 320, 240, 30, 15
 
-        with FFmpegPipeWriter(out_video, size=(width, height), fps=fps) as writer:
+        with FFmpegPipeWriter(out_video, size=(width, height), save_frames_dir=None, fps=fps) as writer:
             for i in range(n_frames):
                 frame = np.zeros((height, width, 3), dtype=np.uint8)
                 frame[:, :, 0] = (i * 10) % 256

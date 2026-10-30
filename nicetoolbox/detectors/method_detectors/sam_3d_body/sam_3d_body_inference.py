@@ -1,200 +1,203 @@
-"""
-Run SAM 3D Body inference (facebookresearch/sam-3d-body + Hugging Face weights).
-"""
-
-import importlib.util
 import logging
 import os
+import pickle
 import sys
 from pathlib import Path
-
-if os.name == "nt":
-    # upstream notebook/utils.py prints Unicode (✓) which cp1252 can't encode
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-    # renderer.py sets PYOPENGL_PLATFORM="egl" at import time if not already set;
-    # EGL is unavailable on Windows, pyglet uses standard WGL
-    os.environ.setdefault("PYOPENGL_PLATFORM", "pyglet")
 
 import cv2
 import numpy as np
 import torch
 
+from nicetoolbox_core.data.loaded_array import load_array_from_path, select_array
 from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
-from nicetoolbox_core.video_loaders import ImagePathsByCameraLoader
+from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
-# Launched as ``python …/sam_3d_body_inference.py`` (no package context). Load sibling
-# ``sam_3d_body_paths.py`` by path so we do not import ``nicetoolbox…sam_3d_body`` (that
-# would run ``__init__.py`` and pull the full detector stack into the subprocess).
-_paths_file = Path(__file__).resolve().parent / "sam_3d_body_paths.py"
-_spec = importlib.util.spec_from_file_location("_sam_3d_body_paths", _paths_file)
-_sam3d_paths = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
-_spec.loader.exec_module(_sam3d_paths)
-RAW_INFERENCE_NPZ_NAME = _sam3d_paths.RAW_INFERENCE_NPZ_NAME
-ensure_hf_hub_cache_env = _sam3d_paths.ensure_hf_hub_cache_env
-ensure_sam3d_repo = _sam3d_paths.ensure_sam3d_repo
+# ! keep this order
+# renderer.py sets PYOPENGL_PLATFORM="egl" at import time if not already set,
+# but EGL is unavailable on Windows. Block it here, unset it after the import (see below).
+if os.name == "nt":
+    os.environ.setdefault("PYOPENGL_PLATFORM", "pyglet")
 
+# TODO: find a better way to inject non pip-installable modules?
+# import sam3d modules from cloned repository
+SAM3D_VENV_ROOT = Path(sys.prefix)
+SAM3D_REPO_DIR = SAM3D_VENV_ROOT / "src" / "sam-3d-body"
+sys.path.insert(0, str(SAM3D_REPO_DIR))
+from sam_3d_body import SAM3DBodyEstimator, load_sam_3d_body_hf  # noqa: E402
+from sam_3d_body.metadata.mhr70 import pose_info as mhr70_pose_info  # noqa: E402
+from sam_3d_body.visualization.renderer import Renderer  # noqa: E402
+from sam_3d_body.visualization.skeleton_visualizer import SkeletonVisualizer  # noqa: E402
 
-def _bundle_calib_for_npz(calibration, camera_names):
-    if not calibration:
-        return {}
-    out = {}
-    for cam in camera_names:
-        if cam not in calibration:
-            continue
-        c = calibration[cam]
-        entry = {}
-        for key in ("intrinsic_matrix", "distortions", "projection_matrix", "image_size"):
-            if key in c and c[key] is not None:
-                entry[key] = np.asarray(c[key], dtype=np.float64)
-        if entry:
-            out[cam] = entry
-    return out
+# pyrender renders offscreen through pyglet (WGL) only when PYOPENGL_PLATFORM is unset
+if os.name == "nt" and os.environ.get("PYOPENGL_PLATFORM") == "pyglet":
+    del os.environ["PYOPENGL_PLATFORM"]
 
 
-def tensor_K(K: np.ndarray, device: str):
-    """Build camera intrinsics tensor for SAM 3D Body (must be B x 3 x 3, not 3 x 3)."""
-    t = torch.as_tensor(K, dtype=torch.float32, device=device)
-    # prepare_batch default cam_int is shape (1, 3, 3); get_ray_condition indexes batch dim 0.
-    if t.ndim == 2:
-        t = t.unsqueeze(0)
-    return t
+RAW_INFERENCE_PICKLE_NAME = "sam3d_inference_raw.pkl"
 
 
-def pack_person_output(person: dict, save_vertices: bool) -> dict:
-    d = {
-        "bbox": np.asarray(person["bbox"], np.float32),
-        "focal_length": np.float32(person["focal_length"]),
-        "pred_keypoints_2d": np.asarray(person["pred_keypoints_2d"], np.float32),
-        "pred_keypoints_3d": np.asarray(person["pred_keypoints_3d"], np.float32),
-        "pred_cam_t": np.asarray(person["pred_cam_t"], np.float32),
-        "global_rot": np.asarray(person["global_rot"], np.float32),
-        "body_pose_params": np.asarray(person["body_pose_params"], np.float32),
-        "hand_pose_params": np.asarray(person["hand_pose_params"], np.float32),
-        "shape_params": np.asarray(person["shape_params"], np.float32),
-        "scale_params": np.asarray(person["scale_params"], np.float32),
-        "expr_params": np.asarray(person["expr_params"], np.float32),
-        "pred_pose_raw": np.asarray(person["pred_pose_raw"], np.float32),
-        "mhr_model_params": np.asarray(person["mhr_model_params"], np.float32),
-    }
-    if save_vertices:
-        d["pred_vertices"] = np.asarray(person["pred_vertices"], np.float32)
-    return d
+def _intrinsics_tensor(calibration, camera_name, device):
+    # load calibration, get inrinsics
+    cam_calib = (calibration or {}).get(camera_name) or {}
+    if "intrinsic_matrix" not in cam_calib:
+        logging.warning(
+            f"No intrinsics for camera '{camera_name}', SAM 3D Body uses its default focal length "
+            "(image diagonal). Body placement (cam_t, depth) will be inaccurate."
+        )
+        return None
+    K = np.asarray(cam_calib["intrinsic_matrix"], dtype=np.float32).reshape(3, 3)
+    return torch.as_tensor(K, device=device).unsqueeze(0)
+
+
+def _render_meshes(image, outputs, faces, cam_int):
+    # place every body in the camera frame and merge them into one mesh
+    num_vertices = len(outputs[0]["pred_vertices"])
+    vertices = np.concatenate([o["pred_vertices"] + o["pred_cam_t"] for o in outputs])
+    all_faces = np.concatenate([faces + i * num_vertices for i in range(len(outputs))])
+
+    # same camera as used by the model (calibrated intrinsics or the model's default)
+    if cam_int is not None:
+        K = cam_int[0].cpu().numpy()
+        focal_length, camera_center = K[0, 0], (K[0, 2], K[1, 2])
+    else:
+        focal_length, camera_center = outputs[0]["focal_length"], None  # default: image center
+    renderer = Renderer(focal_length=focal_length, faces=all_faces)
+
+    mesh_color = (0.65098039, 0.74117647, 0.85882353)  # sam3d blue
+    rendered = renderer(
+        vertices,
+        np.zeros(3),
+        image.copy(),
+        mesh_base_color=mesh_color,
+        scene_bg_color=(1, 1, 1),
+        camera_center=camera_center,
+    )
+    return (rendered * 255).astype(np.uint8)
 
 
 @run_inference_entrypoint
 def main(config: dict) -> None:
-    logging.info("SAM 3D Body inference starting (algorithm=%s)", config.get("algorithm"))
+    logging.info("RUNNING SAM 3D Body inference!")
 
-    # TODO: unify loading non-pip installable submodules
-    nicetoolbox_root = Path(config["nicetoolbox_root"])
-
-    ensure_hf_hub_cache_env(nicetoolbox_root)
-    repo_cfg = (config.get("sam3d_repo_path") or os.environ.get("SAM3D_BODY_REPO", "")).strip()
-    repo_root = ensure_sam3d_repo(repo_cfg, nicetoolbox_root)
-
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-    from notebook.utils import setup_sam_3d_body
-
+    device = "cuda:0"
+    out_folder = config["algorithm_out_folder"]
     camera_names = config["camera_names"]
-    device = config["device"]
-    estimator = setup_sam_3d_body(
-        hf_repo_id=config.get("hf_repo_id", "facebook/sam-3d-body-dinov3"),
-        detector_name=config.get("detector_name", "vitdet"),
-        segmentor_name=config.get("segmentor_name", "sam2"),
-        fov_name=config.get("fov_name", "moge2"),
-        device=device,
+    calibration = config.get("calibration")
+    inference_type = config["inference_type"]
+    save_vertices = config["save_vertices"]
+    repo_id = config["hf_repo_id"]
+    visualize_native_2d = config["visualize_native_2d"]
+    visualize_native_3d = config["visualize_native_3d"]
+    native_viz_folder = config["native_viz_folder"]
+
+    # force both HF and torch to work in offline mode
+    cache_dir = config["cache_dir"]
+    os.environ["TORCH_HOME"] = cache_dir
+    os.environ["HF_HUB_CACHE"] = cache_dir
+    os.environ["HF_HOME"] = cache_dir
+    os.environ["HF_HUB_OFFLINE"] = "1"
+
+    # load SAM3D model
+    model, model_cfg = load_sam_3d_body_hf(repo_id)
+    estimator = SAM3DBodyEstimator(
+        sam_3d_body_model=model,
+        model_cfg=model_cfg,
+        human_detector=None,  # TODO: support detectron2 as a separate detector?
+        human_segmentor=None,  # TODO: support SAM2 segmentation masks?
+        fov_estimator=None,  # TODO: support MoGe2 when intrinsics not available?
     )
 
-    calibration = config.get("calibration") or {}
-    cam_int_map = {}
-    for cam in camera_names:
-        if cam in calibration and "intrinsic_matrix" in calibration[cam]:
-            K = np.asarray(calibration[cam]["intrinsic_matrix"], dtype=np.float64)
-            if K.shape == (3, 3):
-                cam_int_map[cam] = tensor_K(K, device)
+    # native 2d skeleton visualizer
+    visualizer = SkeletonVisualizer(line_width=2, radius=5)
+    visualizer.set_pose_meta(mhr70_pose_info)
 
-    dataloader = ImagePathsByCameraLoader(config=config, expected_cameras=camera_names)
-    paths_by_cam: dict[str, list] = {}
-    for cam, plist in dataloader:
-        paths_by_cam[cam] = plist
+    # nice bboxes: (subjects, cameras, frames, 5) [x1, y1, x2, y2, conf], only the cameras we need
+    bboxes = load_array_from_path(config["person_bbox_npz"], config["person_bbox_npz_key"])
+    bboxes_all = select_array(bboxes, cameras=camera_names).data
 
-    lengths = [len(paths_by_cam[c]) for c in camera_names if c in paths_by_cam]
-    if not lengths:
-        raise RuntimeError("No image paths found for SAM 3D Body.")
-    n_frames = min(lengths)
-    if min(lengths) != max(lengths):
-        logging.warning(
-            "Camera frame counts differ (min=%s max=%s); using first %s frames.",
-            min(lengths),
-            max(lengths),
-            n_frames,
-        )
+    # try to load intrinsics from NICE calibration (if available)
+    # if not, set them None; built once per camera (gpu tensors)
+    cam_ints = {}
+    for camera_name in camera_names:
+        cam_ints[camera_name] = _intrinsics_tensor(calibration, camera_name, device)
 
-    mode = "multi" if len(camera_names) > 1 else "single"
-    faces_once = None
-    frames_meta = []
-    per_frame: list = []
+    dataloader = ImagePathsByFrameIndexLoader(config=config, expected_cameras=camera_names)
+    per_frame_outputs = []
+    iterator = dataloader.with_progress(desc="SAM 3D Body")
+    for frame_idx, (real_frame_idx, frame_paths_per_camera) in enumerate(iterator):  # for each frame
+        persons_per_camera = {}  # store persons per camera
+        for camera_name, frame_path in frame_paths_per_camera.items():  # for each camera
+            cam_idx = camera_names.index(camera_name)
+            cam_int = cam_ints[camera_name]
 
-    inference_type = config.get("inference_type", "body")
-    save_vertices = bool(config.get("save_vertices", False))
+            # skip non-present subjects
+            frame_bboxes = bboxes_all[:, cam_idx, frame_idx, :4]
+            valid_mask = ~np.isnan(frame_bboxes).any(axis=1)
+            if not valid_mask.any():
+                logging.debug(f"No person boxes for frame {real_frame_idx}, camera {camera_name}")
+                outputs = []
+            else:
+                valid_subject_indices = np.where(valid_mask)[0]
 
-    # TODO: work with dataloader directly
-    for fi in range(n_frames):
-        if mode == "multi":
-            frame_bundle: dict = {}
-            for cam in camera_names:
-                path = paths_by_cam[cam][fi]
-                bgr = cv2.imread(path)
-                if bgr is None:
-                    raise RuntimeError(f"Failed to read image: {path}")
-                rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-                cam_int = cam_int_map.get(cam)
-                out = estimator.process_one_image(rgb, cam_int=cam_int, inference_type=inference_type)
-                frame_bundle[cam] = [pack_person_output(p, save_vertices) for p in out]
-                if faces_once is None:
-                    faces_once = np.asarray(estimator.faces, dtype=np.int32)
-            per_frame.append(frame_bundle)
-            frames_meta.append({"frame_index": fi, "cameras": list(camera_names)})
-        else:
-            cam = camera_names[0]
-            path = paths_by_cam[cam][fi]
-            bgr = cv2.imread(path)
-            if bgr is None:
-                raise RuntimeError(f"Failed to read image: {path}")
-            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            cam_int = cam_int_map.get(cam)
-            out = estimator.process_one_image(rgb, cam_int=cam_int, inference_type=inference_type)
-            per_frame.append([pack_person_output(p, save_vertices) for p in out])
-            frames_meta.append({"frame_index": fi, "num_persons": len(out)})
-            if faces_once is None:
-                faces_once = np.asarray(estimator.faces, dtype=np.int32)
+                # TODO: implement cross-frames batching?
+                # run model inference
+                outputs = estimator.process_one_image(
+                    frame_path,
+                    bboxes=frame_bboxes[valid_mask].astype(np.float32),
+                    masks=None,  # TODO: support masks
+                    cam_int=cam_int,
+                    inference_type=inference_type,  # TODO: support hand mode? need hands bboxes
+                )
 
-    assert faces_once is not None
-    camera_bundle = _bundle_calib_for_npz(calibration, camera_names)
-    out_path = os.path.join(config["algorithm_out_folder"], RAW_INFERENCE_NPZ_NAME)
+            # native results
+            persons = []
+            for pi, output in enumerate(outputs):
+                subject_idx = int(valid_subject_indices[pi])
+                person = {
+                    "subject_idx": subject_idx,
+                    "keypoints_2d": np.asarray(output["pred_keypoints_2d"], np.float32),  # (70, 2) pixels
+                    "keypoints_3d": np.asarray(output["pred_keypoints_3d"], np.float32),  # (70, 3) body-centred
+                    "cam_t": np.asarray(output["pred_cam_t"], np.float32),  # (3,) body position in camera frame
+                    "mhr_model_params": np.asarray(output["mhr_model_params"], np.float32),  # (204,) MHR pose + scales
+                    "shape_params": np.asarray(output["shape_params"], np.float32),  # (45,) MHR identity
+                }
+                if save_vertices:  # (18439, 3) body-centred
+                    person["vertices"] = np.asarray(output["pred_vertices"], np.float32)
+                persons.append(person)
 
-    # Object-array pickle is fine when sam_3d_body and main nicetoolbox both use NumPy 1.x
-    # (see install script / sam_3d_body_pip_requirements numpy pin).
-    np.savez_compressed(
-        out_path,
-        faces=faces_once,
-        frames_meta=np.asarray(frames_meta, dtype=object),
-        per_frame_outputs=np.asarray(per_frame, dtype=object),
-        mode=np.array(str(mode)),
-        camera_names_order=np.asarray([str(c) for c in camera_names], dtype=object),
-        hf_repo=np.array(str(config.get("hf_repo_id", ""))),
-        camera_params_bundle=np.asarray(camera_bundle, dtype=object),
-        data_description=np.asarray(
-            {
-                "note": "Raw SAM 3D Body pack; run Sam3dBody.post_inference for alignment/smoothing.",
-                "mhr_params": "Native outputs are MHR (Momentum Human Rig), not vanilla SMPL.",
-            },
-            dtype=object,
-        ),
-    )
-    logging.info("SAM 3D Body wrote %s", out_path)
+            persons_per_camera[camera_name] = persons
 
-    return SubprocessResult.from_artifacts(raw_output=out_path)
+            # run native 2d visualization
+            if visualize_native_2d:
+                image = cv2.imread(frame_path)
+                for output in outputs:
+                    # expects (K, 3) keypoints with a confidence column
+                    fake_conf = np.ones((len(output["pred_keypoints_2d"]), 1))
+                    kpts = np.concatenate([output["pred_keypoints_2d"], fake_conf], 1)
+                    image = visualizer.draw_skeleton(image, kpts)
+                out_dir = os.path.join(native_viz_folder, camera_name)
+                os.makedirs(out_dir, exist_ok=True)
+                cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), image)
+
+            # run native 3d mesh visualization
+            if visualize_native_3d:
+                image = cv2.imread(frame_path)
+                mesh_image = _render_meshes(image, outputs, estimator.faces, cam_int) if outputs else image
+                out_dir = os.path.join(native_viz_folder, f"{camera_name}_mesh")
+                os.makedirs(out_dir, exist_ok=True)
+                cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), mesh_image)
+
+        per_frame_outputs.append(persons_per_camera)
+
+    # frames: list over frames of {camera: persons}; a camera without persons is absent
+    raw_output = {"frames": per_frame_outputs}
+    if save_vertices:  # (36874, 3), shared by all meshes
+        raw_output["faces"] = np.asarray(estimator.faces, dtype=np.int32)
+
+    # save results to pkl
+    save_file_name = os.path.join(out_folder, RAW_INFERENCE_PICKLE_NAME)
+    with open(save_file_name, "wb") as raw_file:
+        pickle.dump(raw_output, raw_file)
+    logging.info(f"SAM 3D Body raw pack COMPLETED! Wrote '{save_file_name}'.\n")
+
+    return SubprocessResult.from_artifacts(raw_output=save_file_name)

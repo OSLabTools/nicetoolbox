@@ -118,66 +118,6 @@ def triangulate_stereo_body_joints_from_two_cameras(
     return out
 
 
-def apply_stereo_triangulation_to_body_joints_payload(
-    body_payload: dict[str, Any],
-    *,
-    calibration: dict[str, Any] | None,
-    camera_names: list[str],
-    triangulation_cameras: list[str],
-    mode: str,
-    video_start_frame_index: int,
-    enabled: bool,
-    min_confidence: float,
-) -> bool:
-    """Replace primary 3d with stereo triangulation when enabled. Returns True if applied."""
-    if (
-        not enabled
-        or mode != "multi"
-        or not calibration_usable_for_stereo_triangulation(calibration, triangulation_cameras)
-    ):
-        return False
-    assert calibration is not None
-
-    arr_2d = np.asarray(body_payload["2d"], dtype=np.float64)
-    work = prepare_2d_for_triangulation(arr_2d, min_confidence)
-
-    arr_3d = triangulate_stereo_body_joints_from_two_cameras(
-        work,
-        calibration=calibration,
-        camera_names=camera_names,
-        triangulation_cameras=triangulation_cameras,
-    )
-    if arr_3d is None:
-        return False
-
-    dd = body_payload["data_description"].item()
-    labels = list(dd.get("2d", {}).get("axis3", []))
-    if len(labels) != arr_2d.shape[3]:
-        labels = [f"mhr_{i}" for i in range(arr_2d.shape[3])]
-    frame_indices = [f"{video_start_frame_index + i:09d}" for i in range(arr_2d.shape[2])]
-    subj_names = list(dd.get("2d", {}).get("axis0", []))
-
-    axis_3d: dict[str, Any] = {
-        "axis0": subj_names,
-        "axis1": ["3d"],
-        "axis2": frame_indices,
-        "axis3": labels,
-        "axis4": ["coordinate_x", "coordinate_y", "coordinate_z", "confidence_score"],
-        "space": "world_from_two_view_triangulation",
-        "note": (
-            f"triangulation_cameras {list(triangulation_cameras)} undistorted and passed to "
-            "cv2.triangulatePoints. Rows NaN when subject not in both views."
-        ),
-    }
-
-    body_payload["3d"] = arr_3d
-    body_payload["2d_interpolated"] = work
-    dd["3d"] = axis_3d
-    dd["2d_interpolated"] = dict(dd["2d"])
-    body_payload["data_description"] = np.asarray(dd, dtype=object)
-    return True
-
-
 def triangulate_keypoints(
     keypoints_2d: NpzArray,
     triangulation_config,

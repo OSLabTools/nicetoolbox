@@ -113,11 +113,13 @@ def run(cmd: str, cwd: Path | None = None, check: bool = True) -> subprocess.Com
             stderr=subprocess.PIPE,
         )
     except subprocess.CalledProcessError as exc:
+        err_text = exc.stderr.decode(errors="replace")
         with LOG_FILE.open("a", encoding="utf-8") as f:
             f.write(f"{'=' * 60}\n")
             f.write(f"FAILED COMMAND: {cmd}\n")
             f.write(f"EXIT CODE: {exc.returncode}\n")
-            f.write(f"STDERR:\n{exc.stderr.decode(errors='replace')}\n")
+            f.write(f"STDERR:\n{err_text}\n")
+        print(err_text)
         raise
 
 

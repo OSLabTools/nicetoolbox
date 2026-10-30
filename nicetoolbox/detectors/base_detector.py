@@ -70,10 +70,11 @@ class BaseDetector(ABC):
         self.algorithm_instance = algorithm_instance
         self.detector_config = subsequence_context.get_detector_config(algorithm_instance)
         self.visualize = getattr(self.detector_config, "visualize", False)
-        save_frames_cfg = getattr(self.detector_config, "save_frames", None)
+        # per-algorithm save_frames overrides the run-wide one; None means not set
+        save_frames_cfg = self.detector_config.save_frames
         if save_frames_cfg is None:
-            save_frames_cfg = getattr(self.subsequence_context.run, "save_frames", False)
-        self.save_frames = bool(save_frames_cfg)
+            save_frames_cfg = self.subsequence_context.run.save_frames
+        self.save_frames = save_frames_cfg
         # Allow detector configs (e.g. MMPose 2D) to declare components per-instance.
         # Falls back to the subclass's class-level `components` attribute.
         config_components = getattr(self.detector_config, "components", None)

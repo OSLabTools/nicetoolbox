@@ -63,6 +63,7 @@ class MediapipeFaceLandmarks(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.video_start,
+            save_frames=self.save_frames,
         )
 
         keypoint_mapping = getattr(self.predictions_mapping.human_pose, self.detector_config.keypoint_mapping)

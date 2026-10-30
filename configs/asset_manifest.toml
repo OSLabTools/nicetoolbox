@@ -245,22 +245,21 @@ access = "gated"
 licence = "sam-licence"
 licence_link = "https://huggingface.co/facebook/sam-3d-body-dinov3/blob/main/LICENSE"
 
-["sam_3d_body/models--facebook--sam2-hiera-large"]
-url = "facebook/sam2-hiera-large"
-source = "huggingface"
+# DINOv3 backbone code for sam-3d-body-dinov3
+["sam_3d_body/hub/facebookresearch_dinov3_main"]
+url = "https://github.com/facebookresearch/dinov3/archive/6876159a11b4df116f30f667f8c9888617df0751.zip"
+source = "archive"
 access = "open"
-licence = "Apache 2.0 License"
-licence_link = "https://opensource.org/license/Apache-2.0"
+flatten_single_root = true
+licence = "DINOv3 License"
+licence_link = "https://github.com/facebookresearch/dinov3/blob/6876159a11b4df116f30f667f8c9888617df0751/LICENSE.md"
 
-# MoGE (Monocular Geometry Estimation) is a Microsoft Research project. The weights are hosted
-# by Ruicheng Feng (first author) on his personal HF profile — there is no official facebook/
-# or microsoft/ release on HuggingFace. This is the canonical source.
-["sam_3d_body/models--Ruicheng--moge-2-vitl-normal"]
-url = "Ruicheng/moge-2-vitl-normal"
+["sam_3d_body/models--facebook--sam-3d-body-vith"]
+url = "facebook/sam-3d-body-vith"
 source = "huggingface"
-access = "open"
-licence = "MIT License"
-licence_link = "https://opensource.org/license/MIT"
+access = "gated"
+licence = "sam-licence"
+licence_link = "https://huggingface.co/facebook/sam-3d-body-vith/blob/main/LICENSE"
 
 # --- MediaPipe Face Landmarker ---
 ["mediapipe/face_landmarker.task"]

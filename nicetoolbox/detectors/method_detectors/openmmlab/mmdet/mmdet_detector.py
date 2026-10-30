@@ -46,6 +46,7 @@ class MMDet(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.video_start,
+            save_frames=self.save_frames,
         )
 
         return super()._initialize_detector()

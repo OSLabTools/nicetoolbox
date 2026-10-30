@@ -1,0 +1,17 @@
+# torch/torchvision installed separately (CUDA wheels)
+# sam-3d-body fork is cloned by the Makefile, not pip installed
+braceexpand==0.1.7
+einops==0.8.2
+huggingface_hub==1.28.0
+numpy==1.26.4  # <2: raw output is unpickled by the main env (numpy 1.x)
+omegaconf==2.3.1
+opencv-python==4.11.0.86  # 4.12+ requires numpy>=2
+pyglet==2.1.16  # pyrender offscreen backend on Windows
+PyOpenGL==3.1.0  # pinned by pyrender
+pyrender==0.1.45  # native 3d mesh visualization
+pytorch-lightning==2.6.5
+roma==1.6.1
+termcolor==3.3.0  # imported by the DINOv3 torch.hub code
+timm==1.0.28  # only for the ViT-H checkpoint
+trimesh==5.1.0  # mesh container for pyrender
+yacs==0.1.8

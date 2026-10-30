@@ -51,6 +51,7 @@ class MMPoseLifter3D(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.data.video_start_frame_index,
+            save_frames=self.save_frames,
         )
 
         base_runtime = super()._initialize_detector()

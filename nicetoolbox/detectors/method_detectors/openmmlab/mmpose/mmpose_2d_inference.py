@@ -73,7 +73,7 @@ def main(config: dict) -> None:
             valid_mask = ~np.isnan(frame_bboxes).any(axis=1)
             if not valid_mask.any():
                 camera_frames.append([])
-                continue
+                continue  # TODO: we break native visualization and json continuity (skip empty frames)
             bboxes_ndarray = frame_bboxes[valid_mask].astype(np.float32)  # (N, 4)
             valid_subject_indices = np.where(valid_mask)[0]  # canonical subject slot per bbox row
 

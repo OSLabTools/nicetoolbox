@@ -24,7 +24,7 @@ algorithms = [
    "motionbert",                                      # lifted keypoints (single camera 2d => 3d)
    "velocity_body_2d", "velocity_body_3d",            # body velocity
    "body_distance_2d", "body_distance_3d",            # distance between subjects (per dimension)
-   "sam_3d_body",                                     # 3d body mesh
+   "sam_3d_body_dinov3",                              # 3d body mesh
    "eth_xgaze", "unigaze",                            # gaze direction
    "gaze_per_subject",                                # gaze directions fusion (select facial cameras)
    "gaze_distance_2d", "gaze_distance_3d",            # gaze interaction (for single camera and multi-camera)

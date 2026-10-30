@@ -65,6 +65,7 @@ class MMPose2D(BaseMethod):
             ),
             fps=self.data.fps,
             video_start=self.video_start,
+            save_frames=self.save_frames,
         )
 
         # need to send bboxes to native process

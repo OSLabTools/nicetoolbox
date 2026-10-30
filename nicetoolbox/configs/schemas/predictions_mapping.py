@@ -106,12 +106,6 @@ class Sam3dBodyMhr(BaseModel):
     connections: Sam3dBodyMhrConnections
 
 
-class Sam3dBodyMhrEvaluation(Sam3dBodyMhr):
-    """Optional evaluation-time MHR↔semantic mapping; duplicate or specialize vs sam_3d_body_mhr in TOML."""
-
-    pass
-
-
 class Face5ptKeypointsIndex(BaseModel):
     face: Dict[str, int]
 
@@ -136,7 +130,6 @@ class HumanPose(BaseModel):
     human36m: Human36m
     mpii: Mpii
     sam_3d_body_mhr: Sam3dBodyMhr
-    sam_3d_body_mhr_evaluation: Optional[Sam3dBodyMhrEvaluation] = None
     face_5pt: Face5pt
     wflw: Wflw
     mediapipe_face: Wflw

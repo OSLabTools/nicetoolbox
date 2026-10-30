@@ -18,7 +18,7 @@ components = [
     "face_bounding_box", "emotion_individual", 
     "kinematics", "proximity", 
     "eye_closure_score", "eye_closed_state",
-    # "body_mesh",  # uncomment for SAM-3D body mesh (slow)
+    # "body_mesh_local",  # uncomment for SAM 3D Body mesh (slow)
 ]
 
 start_frame = 0                                            # starting frame for the visualization
@@ -216,14 +216,14 @@ body_distance_2d = ["view_top", "view_center"] ## value options: [camera nanes]
 colors = [[153,50,204]]
 radii = {'3d'= 0.008, 'camera_view'= 3}
 
-# Component: body_mesh
-[media.body_mesh]
-algorithms = ['sam_3d_body']
+# Component: body_mesh_local
+[media.body_mesh_local]
+algorithms = ['sam_3d_body_dinov3']
 
-[media.body_mesh.canvas]
-vertices = ['view_center'] ## value options: camera name. The mesh from the selected view will be drawn inside the 3D space
+[media.body_mesh_local.canvas]
+vertices = ['view_center'] ## value options: exactly one camera name. The mesh estimated from this view is drawn in its camera coordinates, in a separate window
 
-[media.body_mesh.appearance]
+[media.body_mesh_local.appearance]
 colors = [[200, 230, 200]]
 radii = {}
 alpha = 80 # adjust 0-255 for transparency

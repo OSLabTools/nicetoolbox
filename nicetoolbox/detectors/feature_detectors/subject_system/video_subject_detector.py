@@ -70,5 +70,6 @@ class VideoSubjectDetector(BaseFeature):
             dataloader=ImagePathsByFrameIndexLoader(config=self.data.get_input_recipes(), expected_cameras=cameras),
             fps=self.data.fps,
             video_start=self.data.video_start_frame_index,
+            save_frames=self.save_frames,
         )
         draw_bounding_boxes(regions, render_context, self.viz_folders["subject_regions"])
