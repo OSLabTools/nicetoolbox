@@ -18,7 +18,7 @@ stride = 30  # distance between window starts
 dataset_sequence = "communication_multiview_sequence_xyz"
 subsequence_name = "<dataset_sequence>_s0_l-1"
 input   = "<experiment>/<subsequence_name>/body_joints/vitpose_huge.npz"
-frames_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>"
+camera_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>/<cur_camera_name>"  # same as detectors' nicetoolbox_camera_input_folder
 cameras = ["view_center", "view_top"]  # "*" for all cameras
 output  = "<napari_output>/vitpose_huge"
 
@@ -26,6 +26,6 @@ output  = "<napari_output>/vitpose_huge"
 dataset_sequence = "communication_multiview_sequence_xyz"
 subsequence_name = "<dataset_sequence>_s0_l-1"
 input   = "<experiment>/<subsequence_name>/body_joints/rtmw_l_wholebody.npz"
-frames_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>"
+camera_input_folder = "<output_folder_path>/nicetoolbox_input/<dataset_sequence>/<cur_camera_name>"
 cameras = ["view_center", "view_top"]
 output  = "<napari_output>/rtmw_l_wholebody"

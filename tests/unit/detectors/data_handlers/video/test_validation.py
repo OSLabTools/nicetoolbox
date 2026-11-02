@@ -129,7 +129,7 @@ def test_timestamp_video_start(tmp_path, default_vid_patches):
 
 def test_empty_camera_list_raises(tmp_path, default_vid_patches):
     ctx = make_sequence_context({}, video_length=100)
-    handler = VideoDataHandler(io=make_io(tmp_path), subsequence_context=ctx)
+    handler = VideoDataHandler(io=make_io(tmp_path, ctx), subsequence_context=ctx)
 
     with pytest.raises(ValueError, match="No camera names"):
         handler.prepare()

@@ -2,6 +2,7 @@ import glob
 import os
 from pathlib import Path
 
+from ..configs.placeholders import resolve_placeholders
 from ..configs.project_config_handler import ProjectConfigHandler
 from ..configs.schemas.detectors_run_file import ResolvedSubsequenceConfig
 from ..configs.schemas.experiment_config import DetectorsExperimentConfig
@@ -175,6 +176,23 @@ class Configuration(ProjectConfigHandler):
         video = self.visualizer_config["dataset_properties"].get("video", {})
         cameras = video.get("cameras", {})
         return list(cameras.keys())
+
+    def get_camera_input_folders(self) -> dict[str, Path]:
+        """
+        Resolve the per-camera input folders the experiment extracted its frames into.
+
+        Uses the experiment's own 'nicetoolbox_camera_input_folder' template, so the
+        visualizer reads frames from exactly where the detectors wrote them.
+        """
+        template = self.experiment_run_config["io"]["nicetoolbox_camera_input_folder"]
+        runtime_ctx = {
+            "cur_dataset_name": self.dataset_name,
+            "cur_sequence_id": self.visualizer_config["video"]["sequence_id"],
+        }
+        result: dict[str, Path] = {}
+        for cam in self.get_camera_names():
+            result[cam] = Path(resolve_placeholders(template, {**runtime_ctx, "cur_camera_name": cam}))
+        return result
 
     def _get_camera_placeholders(self):
         # No more <cur_cam_*> placeholders — return the real track names.

@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 from tqdm import tqdm
@@ -80,9 +79,8 @@ class VideoDataLoader(ABC):
         # (1) Extract recipe from config
         recipe = _resolve_video_recipe(config)
 
-        # (2) Root path and filename pattern for parsing files
-        self.root_path = Path(recipe.root_path)
-        self.pattern = recipe.filename_template
+        # (2) Recipe resolves frame file paths per camera
+        self.recipe = recipe
 
         # (3) Range logic
         self.start = recipe.range_start
@@ -141,8 +139,7 @@ class VideoDataLoader(ABC):
         Generates and validates a single file path.
         Returns the path string if it exists, otherwise logs error and returns None.
         """
-        rel_path = self.pattern.format(camera=cam, idx=idx)
-        full_path = self.root_path / rel_path
+        full_path = self.recipe.frame_path(cam, idx)
 
         if not full_path.exists():
             logging.error(f"Expected input file does not exist: {full_path}")

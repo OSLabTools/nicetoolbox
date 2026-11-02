@@ -5,7 +5,7 @@ IO module for the NICE toolbox.
 import logging
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from ..utils import check_and_exception as exc
 from .subsequence_context import SubsequenceContext
@@ -28,6 +28,7 @@ class SequenceIO:
     csv_folder: Path
     code_folder: Path
     nice_input_folder: Path
+    camera_input_folders: Dict[str, Path]
     calibration_file: Optional[Path]
     _subsequence_context: SubsequenceContext
 
@@ -50,6 +51,9 @@ class SequenceIO:
         self.csv_folder = io.csv_out_folder
         self.code_folder = io.code_folder
         self.nice_input_folder = io.nicetoolbox_input_folder
+
+        # Per-camera input folders, created lazily on frames extraction
+        self.camera_input_folders = subsequence_context.get_camera_input_folders()
 
         # Dataset properties
         self.calibration_file = subsequence_context.calibration_path

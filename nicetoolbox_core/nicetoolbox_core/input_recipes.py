@@ -6,6 +6,7 @@ They are created by the data preparation pipeline (nicetoolbox) and
 consumed by data loaders (nicetoolbox_core).
 """
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -18,14 +19,25 @@ from pydantic import BaseModel, Field
 class VideoInputRecipe(BaseModel):
     """Recipe for loading video frame sequences."""
 
-    root_path: str
-    camera_names: List[str]
-    filename_template: str
+    frames_folders: Dict[str, str]  # camera name -> resolved folder holding its frame files
+    filename_template: str  # frame file name inside frames folder, formatted with `idx`
     range_start: int
     range_end: int
     step: int = 1
     fps: float
     resolutions: Dict[str, List[int]] = Field(default_factory=dict)
+
+    @property
+    def camera_names(self) -> List[str]:
+        return list(self.frames_folders.keys())
+
+    def frames_dir(self, camera: str) -> Path:
+        """Folder holding the frame files of a camera."""
+        return Path(self.frames_folders[camera])
+
+    def frame_path(self, camera: str, idx: int) -> Path:
+        """Path of a single frame file of a camera."""
+        return self.frames_dir(camera) / self.filename_template.format(idx=idx)
 
 
 # =============================================================================

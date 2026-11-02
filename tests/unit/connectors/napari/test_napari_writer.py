@@ -64,7 +64,7 @@ def _sequence(tmp_path, **kwargs):
         "input": tmp_path / "body_joints.npz",
         "output": tmp_path / "project",
         "cameras": "*",
-        "frames_folder": tmp_path / "nicetoolbox_input",
+        "camera_input_folder": tmp_path / "nicetoolbox_input" / "<cur_camera_name>",
     }
     return NapariExportSequenceConfig(**{**fields, **kwargs})
 
@@ -237,9 +237,27 @@ def test_copies_frames_per_camera(tmp_path):
 
 def test_raises_when_frames_folder_missing(tmp_path):
     _write_npz(tmp_path)
-    seq = _sequence(tmp_path, cameras=["view_top"], frames_folder=tmp_path / "nope")
+    seq = _sequence(tmp_path, cameras=["view_top"], camera_input_folder=tmp_path / "nope" / "<cur_camera_name>")
     with pytest.raises(FileNotFoundError, match="Frames folder for camera"):
         body_joints_npz_to_napari(seq, _config())
+
+
+def test_copies_frames_from_per_camera_folders(tmp_path):
+    """Each camera's frames are read from its own resolved folder, not "<root>/<camera>"."""
+    _write_npz(tmp_path)
+    for camera in CAMERAS:
+        cam_folder = tmp_path / f"drive_{camera}" / "nice_input"
+        (cam_folder / "frames").mkdir(parents=True)
+        for frame in FRAMES:
+            (cam_folder / "frames" / f"{frame}.jpg").write_bytes(f"drive_{camera}:{frame}".encode())
+        save_frame_extraction(JPG_EXTRACTION, cam_folder)
+
+    seq = _sequence(tmp_path, camera_input_folder=tmp_path / "drive_<cur_camera_name>" / "nice_input")
+    body_joints_npz_to_napari(seq, _config())
+
+    for camera in CAMERAS:
+        copied = (_camera_dir(tmp_path, camera) / f"{FRAMES[0]}.jpg").read_bytes()
+        assert copied == f"drive_{camera}:{FRAMES[0]}".encode()
 
 
 def test_raises_when_a_referenced_frame_is_missing(tmp_path):

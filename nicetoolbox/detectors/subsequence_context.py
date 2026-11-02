@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -20,8 +20,8 @@ class SubsequenceContext(BaseModel):
     configuration needed for one subsequence (sequence with start/stop timestamps).
     Discarded after processing.
 
-    All placeholders (except <cur_component_name> and <cur_algorithm_name>
-    in IO paths) are fully resolved at construction time.
+    All placeholders (except <cur_component_name>, <cur_algorithm_name> and
+    <cur_camera_name> in IO paths) are fully resolved at construction time.
 
     Note: frozen=True only prevents reassignment of top-level attributes.
     Nested models are mutable but should be treated as immutable by convention.
@@ -146,3 +146,19 @@ class SubsequenceContext(BaseModel):
         path = template_map[folder_type]
         resolved = resolve_placeholders(path, {"cur_component_name": component, "cur_algorithm_name": algorithm})
         return resolved
+
+    def get_camera_input_folders(self) -> Dict[str, Path]:
+        """
+        Get resolved folders holding the preprocessed frame input data of each camera.
+
+        The IO path contains the <cur_camera_name> placeholder that is resolved here.
+
+        Returns:
+            Dict mapping camera name to its resolved input folder Path
+        """
+        result: Dict[str, Path] = {}
+        for cam in self.all_camera_names:
+            cam_placeholders = {"cur_camera_name": cam}
+            raw_input_folder = self.io.nicetoolbox_camera_input_folder
+            result[cam] = resolve_placeholders(raw_input_folder, cam_placeholders)
+        return result

@@ -81,11 +81,13 @@ def make_sequence_context(
     return ctx
 
 
-def make_io(tmp_path: Path, calibration_file: Path = None):
+def make_io(tmp_path: Path, ctx, calibration_file: Path = None):
     io = MagicMock()
     nice_input = tmp_path / "nice_input"
     nice_input.mkdir(parents=True, exist_ok=True)
     io.nice_input_folder = nice_input
+    # default layout "<nice_input>/<camera>"
+    io.camera_input_folders = {cam: nice_input / cam for cam in ctx.all_camera_names}
     io.get_calibration_file.return_value = calibration_file
     return io
 
@@ -96,11 +98,11 @@ def make_frames_cache(io, ctx, indices: Optional[range] = None, frame_extraction
         indices = range(ctx.video_start, ctx.video_start + ctx.video_length)
     filename_template = FRAME_LABEL_TEMPLATE + frame_extraction.frame_extension
     for cam in ctx.all_camera_names:
-        frames_dir = io.nice_input_folder / cam / "frames"
+        frames_dir = io.camera_input_folders[cam] / "frames"
         frames_dir.mkdir(parents=True, exist_ok=True)
         for idx in indices:
             (frames_dir / filename_template.format(idx=idx)).write_bytes(b"\x89PNG")
-        save_frame_extraction(frame_extraction, io.nice_input_folder / cam)
+        save_frame_extraction(frame_extraction, io.camera_input_folders[cam])
 
 
 def make_flat_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
@@ -113,7 +115,7 @@ def make_flat_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
         p.touch()
         tracks[cam] = p
     ctx = make_sequence_context(tracks, **ctx_kwargs)
-    io = make_io(tmp_path)
+    io = make_io(tmp_path, ctx)
     return VideoDataHandler(io=io, subsequence_context=ctx), ctx, io
 
 
@@ -145,7 +147,7 @@ def assert_handler_output(
 
     recipe = handler.get_recipe()
     assert recipe.camera_names == sorted(cameras)
-    assert "{camera}/frames/" in recipe.filename_template
+    assert recipe.filename_template == FRAME_LABEL_TEMPLATE + FRAME_EXTRACTION.frame_extension
     assert recipe.range_start == start_frame
     assert recipe.range_end == start_frame + length_frames
     assert recipe.step == 1
