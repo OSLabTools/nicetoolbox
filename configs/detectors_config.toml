@@ -178,8 +178,7 @@ triangulate_keypoints = {triangulate = true, triangulation_cameras = ["view_top"
 # visualization
 visualize = true
 visualize_keypoints_npz_key = "2d_interpolated"  # "2d", "2d_filtered", "2d_interpolated" or "2d_reprojected_from_3d"
-visualize_native_2d = false  # native 2d skeleton visualization
-visualize_native_3d = false  # native 3d mesh render
+visualize_native = false  # native 2d skeleton visualization
 # inputs from other detectors
 [templates.sam_3d_body_template.inputs]
 person_bboxes = { component = "person_bounding_box", algorithm = "rtmdet_m_person", npz_key = "bbox_2d" }
