@@ -17,6 +17,7 @@ from typing import Any, Optional
 import cv2
 
 from ..configs.models.video_timestamp import timestamp_to_ms
+from ..configs.schemas.detectors_run_file import FrameExtractionConfig
 from .ffmpeg import get_ffmpeg_path, get_ffprobe_path
 from .system import normalize_ffmpeg_filter_path_in_windows
 
@@ -28,6 +29,8 @@ def get_ffmpeg_base_args(video_file: str) -> list:
     # fmt: off
     return [
         get_ffmpeg_path(),
+        # falls back to cpu if no hw decoder found
+        "-hwaccel", "auto",
         "-i", video_file,
         "-loglevel", "error",
         "-fps_mode", "passthrough",
@@ -37,13 +40,18 @@ def get_ffmpeg_base_args(video_file: str) -> list:
 
 
 def split_into_frames(
-    video_file: str, output_base: str, n_frames_expected: Optional[int], keep_indices: bool = True
+    video_file: str,
+    output_base: str,
+    n_frames_expected: Optional[int],
+    frame_extraction: FrameExtractionConfig,
+    keep_indices: bool = True,
 ) -> None:
     """
     Split a video into individual frames using ffmpeg.
     """
-    output_pattern = os.path.join(output_base, "%09d_tmp.png")
-    cmd = get_ffmpeg_base_args(video_file) + [output_pattern]
+    ext = frame_extraction.frame_extension
+    output_pattern = os.path.join(output_base, f"%09d_tmp{ext}")
+    cmd = get_ffmpeg_base_args(video_file) + frame_extraction.ffmpeg_args() + [output_pattern]
 
     try:
         subprocess.run(cmd, check=True)
@@ -51,7 +59,7 @@ def split_into_frames(
         logging.error(f"FFmpeg failed to process {video_file}.")
         raise AssertionError("Splitting video into frames failed. See log for details.") from None
 
-    frames_list_tmp = glob.glob(os.path.join(output_base, "*_tmp.png"))
+    frames_list_tmp = glob.glob(os.path.join(output_base, f"*_tmp{ext}"))
     n_frames_extracted = len(frames_list_tmp)
 
     if n_frames_expected and n_frames_expected != n_frames_extracted:
@@ -64,7 +72,7 @@ def split_into_frames(
         old_idx = int(os.path.basename(file)[:9])
         if keep_indices:
             new_idx = old_idx - 1
-            new_filename = os.path.join(output_base, f"{new_idx:09d}.png")
+            new_filename = os.path.join(output_base, f"{new_idx:09d}{ext}")
             shutil.move(file, new_filename)
 
 

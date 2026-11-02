@@ -8,6 +8,7 @@ from pathlib import Path
 
 import cv2
 
+from ...configs.schemas.detectors_run_file import load_frame_extraction
 from ...utils import visual_utils as vis_utils
 from ...utils.system import check_long_path_support
 from .. import config_handler as vis_cfg
@@ -28,6 +29,16 @@ from .components import (
     ProximityComponent,
 )
 from .viewer import Viewer
+
+
+def get_frame_path_templates(nice_tool_input_folder: str, cameras: list[str]) -> dict[str, str]:
+    """Per-camera frame path template, formatted with `idx`, using the format the frames were extracted in."""
+    templates = {}
+    for camera in cameras:
+        cam_folder = Path(nice_tool_input_folder) / camera
+        ext = load_frame_extraction(cam_folder).frame_extension
+        templates[camera] = (cam_folder / "frames").as_posix() + "/{idx:09d}" + ext
+    return templates
 
 
 def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_config_file: Path):
@@ -220,9 +231,12 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
     # VISUALIZATION
     # initialize rerun visualizer
     viewer.spawn()
+    frame_path_templates = get_frame_path_templates(nice_tool_input_folder, all_cameras)
     for camera in all_cameras:
         # to get image width and height
-        example_image_path = os.path.join(nice_tool_input_folder, camera, "frames", f"{1:09}.png").replace("\\", "/")
+        example_image_path = frame_path_templates[camera].format(idx=viewer.get_video_start())
+        if not os.path.exists(example_image_path):
+            continue
         example_image = cv2.cvtColor(cv2.imread(example_image_path), cv2.COLOR_BGR2RGB)
         h, w = example_image.shape[:2]  # ← grab size from actual frame
         image_size = (w, h)
@@ -236,10 +250,9 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
             break
         viewer.go_to_timestamp(frame_idx)
         frame_no = viewer.get_video_start() + frame_idx
-        image_name = f"{frame_no:09}.png"
         for camera in all_cameras:
             # log camera into 3d canvas
-            image_path = os.path.join(nice_tool_input_folder, camera, "frames", image_name).replace("\\", "/")
+            image_path = frame_path_templates[camera].format(idx=frame_no)
             # TODO: we will stop if we will just stop when there is no frame exist
             # is it a good idea? probably not, but we can fix it latter
             if not os.path.exists(image_path):

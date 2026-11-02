@@ -40,7 +40,7 @@ class NapariExportSequenceConfig(BaseModel):
     input: Path  # body_joints NPZ
     output: Path  # napari project root; gets "labeled-data/<camera>/" with the .h5 and frames
     cameras: str | list[str]  # toolbox camera names to export; "*" means all
-    frames_folder: Path  # nicetoolbox_input folder holding "<camera>/frames/<frame>.png"
+    frames_folder: Path  # nicetoolbox_input folder holding "<camera>/frames/<frame>.<ext>"
 
 
 class NapariExportBodyJointsConfig(BaseModel):

@@ -4,6 +4,12 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
+from nicetoolbox.configs.schemas.detectors_run_file import (
+    FRAME_EXTRACTION_FILENAME,
+    JpegFrameExtraction,
+    PngFrameExtraction,
+    save_frame_extraction,
+)
 from nicetoolbox.connectors.napari.napari_configs import (
     NapariExportBodyJointsConfig,
     NapariExportSequenceConfig,
@@ -18,6 +24,7 @@ CAMERAS = ["view_top", "view_side"]
 FRAMES = ["000000000", "000000001", "000000002"]
 JOINTS = ["nose", "left_ear"]
 DATA = ["coordinate_x", "coordinate_y", "confidence_score"]
+JPG_EXTRACTION = JpegFrameExtraction(frame_extension=".jpg", compression_quality=2)
 
 
 def _write_npz(tmp_path, data=None, data_axis=DATA, key="2d", frames=FRAMES):
@@ -40,14 +47,15 @@ def _config(**kwargs):
     )
 
 
-def _write_frames(tmp_path, cameras=CAMERAS, frames=FRAMES):
-    """Create the nicetoolbox_input layout: "<root>/<camera>/frames/<frame>.png"."""
+def _write_frames(tmp_path, cameras=CAMERAS, frames=FRAMES, frame_extraction=JPG_EXTRACTION):
+    """Create the nicetoolbox_input layout: "<root>/<camera>/frames/<frame><ext>" plus saved settings."""
     root = tmp_path / "nicetoolbox_input"
     for camera in cameras:
         frames_dir = root / camera / "frames"
         frames_dir.mkdir(parents=True, exist_ok=True)
         for frame in frames:
-            (frames_dir / f"{frame}.png").write_bytes(f"{camera}:{frame}".encode())
+            (frames_dir / f"{frame}{frame_extraction.frame_extension}").write_bytes(f"{camera}:{frame}".encode())
+        save_frame_extraction(frame_extraction, root / camera)
     return root
 
 
@@ -110,7 +118,7 @@ def test_h5_sits_in_the_camera_image_folder(tmp_path):
     assert written == [_camera_dir(tmp_path, "view_top") / H5_FILENAME]
     assert written[0].name == "CollectedData_NICEToolbox.h5"
     # the frames it references are siblings of the .h5
-    assert (written[0].parent / f"{FRAMES[0]}.png").is_file()
+    assert (written[0].parent / f"{FRAMES[0]}.jpg").is_file()
 
 
 def test_rejects_unknown_requested_camera(tmp_path):
@@ -201,9 +209,9 @@ def test_copies_frames_next_to_the_h5(tmp_path):
     body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
 
     dest = _camera_dir(tmp_path, "view_top")
-    assert sorted(p.name for p in dest.glob("*.png")) == [f"{f}.png" for f in FRAMES]
+    assert sorted(p.name for p in dest.glob("*.jpg")) == [f"{f}.jpg" for f in FRAMES]
     # content copied verbatim from the matching source camera
-    assert (dest / f"{FRAMES[0]}.png").read_bytes() == f"view_top:{FRAMES[0]}".encode()
+    assert (dest / f"{FRAMES[0]}.jpg").read_bytes() == f"view_top:{FRAMES[0]}".encode()
 
 
 def test_copied_paths_match_the_annotation_index(tmp_path):
@@ -223,8 +231,8 @@ def test_copies_frames_per_camera(tmp_path):
 
     for camera in CAMERAS:
         dest = _camera_dir(tmp_path, camera)
-        assert sorted(p.name for p in dest.glob("*.png")) == [f"{f}.png" for f in FRAMES]
-        assert (dest / f"{FRAMES[0]}.png").read_bytes() == f"{camera}:{FRAMES[0]}".encode()
+        assert sorted(p.name for p in dest.glob("*.jpg")) == [f"{f}.jpg" for f in FRAMES]
+        assert (dest / f"{FRAMES[0]}.jpg").read_bytes() == f"{camera}:{FRAMES[0]}".encode()
 
 
 def test_raises_when_frames_folder_missing(tmp_path):
@@ -237,9 +245,47 @@ def test_raises_when_frames_folder_missing(tmp_path):
 def test_raises_when_a_referenced_frame_is_missing(tmp_path):
     """A frame in the NPZ with no image on disk must fail, not silently skip."""
     _write_npz(tmp_path)
-    (tmp_path / "nicetoolbox_input" / "view_top" / "frames" / f"{FRAMES[1]}.png").unlink()
+    (tmp_path / "nicetoolbox_input" / "view_top" / "frames" / f"{FRAMES[1]}.jpg").unlink()
 
     with pytest.raises(FileNotFoundError, match="missing from"):
+        body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
+
+
+# --- frame format ---
+
+
+def test_frame_format_follows_saved_settings(tmp_path):
+    """Frames extracted as png are copied and indexed as png, not the jpg default."""
+    _write_npz(tmp_path)
+    _write_frames(tmp_path, frame_extraction=PngFrameExtraction(frame_extension=".png", compression_level=2))
+
+    written = body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
+
+    dest = _camera_dir(tmp_path, "view_top")
+    assert sorted(p.name for p in dest.glob("*.png")) == [f"{f}.png" for f in FRAMES]
+    assert [name for _, _, name in load_napari_dataframe(written[0]).index] == [f"{f}.png" for f in FRAMES]
+
+
+def test_frame_format_per_camera(tmp_path):
+    _write_npz(tmp_path)
+    _write_frames(tmp_path, cameras=["view_top"])
+    _write_frames(
+        tmp_path,
+        cameras=["view_side"],
+        frame_extraction=JpegFrameExtraction(frame_extension=".jpeg", compression_quality=5),
+    )
+
+    body_joints_npz_to_napari(_sequence(tmp_path), _config())
+
+    assert (_camera_dir(tmp_path, "view_top") / f"{FRAMES[0]}.jpg").is_file()
+    assert (_camera_dir(tmp_path, "view_side") / f"{FRAMES[0]}.jpeg").is_file()
+
+
+def test_raises_without_frame_extraction_settings(tmp_path):
+    _write_npz(tmp_path)
+    (tmp_path / "nicetoolbox_input" / "view_top" / FRAME_EXTRACTION_FILENAME).unlink()
+
+    with pytest.raises(FileNotFoundError, match=FRAME_EXTRACTION_FILENAME):
         body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
 
 
@@ -252,14 +298,14 @@ def test_stale_frames_are_removed_on_re_export(tmp_path):
     body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
 
     dest = _camera_dir(tmp_path, "view_top")
-    stale = dest / "000000999.png"
+    stale = dest / "000000999.jpg"
     stale.write_bytes(b"stale")
     assert stale.is_file()
 
     body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
 
     assert not stale.exists()
-    assert sorted(p.name for p in dest.glob("*.png")) == [f"{f}.png" for f in FRAMES]
+    assert sorted(p.name for p in dest.glob("*.jpg")) == [f"{f}.jpg" for f in FRAMES]
     assert (dest / H5_FILENAME).is_file()
 
 
@@ -284,7 +330,7 @@ def test_existing_camera_folder_is_replaced(tmp_path):
     body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _config())
 
     assert not (dest / "leftover.txt").exists()
-    assert sorted(p.name for p in dest.glob("*.png")) == [f"{f}.png" for f in FRAMES]
+    assert sorted(p.name for p in dest.glob("*.jpg")) == [f"{f}.jpg" for f in FRAMES]
     assert (dest / H5_FILENAME).is_file()
 
 
@@ -324,7 +370,7 @@ def test_window_copies_only_sampled_frames(tmp_path):
     body_joints_npz_to_napari(_sequence(tmp_path, cameras=["view_top"]), _window(size=2, stride=5))
 
     dest = _camera_dir(tmp_path, "view_top")
-    assert sorted(p.stem for p in dest.glob("*.png")) == ["000000000", "000000001", "000000005", "000000006"]
+    assert sorted(p.stem for p in dest.glob("*.jpg")) == ["000000000", "000000001", "000000005", "000000006"]
 
 
 def test_trailing_window_is_truncated_not_dropped(tmp_path):
