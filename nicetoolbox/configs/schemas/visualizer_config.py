@@ -73,7 +73,6 @@ class VisualizerIO(BaseModel):
     dataset_folder: Path
     dataset_name: str
     video_name: str
-    nice_tool_input_folder: Path
     nice_tool_output_folder: Path
     experiment_folder: Path
     experiment_video_folder: Path

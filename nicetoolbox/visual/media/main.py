@@ -31,11 +31,10 @@ from .components import (
 from .viewer import Viewer
 
 
-def get_frame_path_templates(nice_tool_input_folder: str, cameras: list[str]) -> dict[str, str]:
+def get_frame_path_templates(camera_input_folders: dict[str, Path]) -> dict[str, str]:
     """Per-camera frame path template, formatted with `idx`, using the format the frames were extracted in."""
     templates = {}
-    for camera in cameras:
-        cam_folder = Path(nice_tool_input_folder) / camera
+    for camera, cam_folder in camera_input_folders.items():
         ext = load_frame_extraction(cam_folder).frame_extension
         templates[camera] = (cam_folder / "frames").as_posix() + "/{idx:09d}" + ext
     return templates
@@ -63,9 +62,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
 
     # IO
     io = IO(visualizer_config)
-    nice_tool_input_folder = io.get_component_nice_tool_input_folder(
-        visualizer_config["video"], visualizer_config["io"]["dataset_name"]
-    )
+    camera_input_folders = config_handler.get_camera_input_folders()
 
     # load calibration for the video
     calibration_file = io.get_calibration_file(visualizer_config["video"])
@@ -231,7 +228,7 @@ def main(project_folder_path: Path, machine_specifics_file: Path, visualizer_con
     # VISUALIZATION
     # initialize rerun visualizer
     viewer.spawn()
-    frame_path_templates = get_frame_path_templates(nice_tool_input_folder, all_cameras)
+    frame_path_templates = get_frame_path_templates(camera_input_folders)
     for camera in all_cameras:
         # to get image width and height
         example_image_path = frame_path_templates[camera].format(idx=viewer.get_video_start())

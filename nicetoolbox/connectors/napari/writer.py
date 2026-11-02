@@ -8,6 +8,7 @@ import pandas as pd
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL
 from nicetoolbox_core.data.loaded_array import NpzArray, load_array_from_path
 
+from ...configs.placeholders import resolve_placeholders
 from ...configs.schemas.detectors_run_file import load_frame_extraction
 from ...configs.utils import resolve_filter
 from .napari_configs import NapariExportBodyJointsConfig, NapariExportSequenceConfig, NapariWindowConfig
@@ -42,12 +43,16 @@ def load_body_joints_array(input_path: Path, npz_key: str) -> NpzArray:
     return array
 
 
-def _frame_extension(frames_folder: Path, camera: str) -> str:
-    """Extension of one camera's frames in the nicetoolbox_input folder, e.g. ".jpg".
+def _camera_input_folder(sequence: NapariExportSequenceConfig, camera: str) -> Path:
+    """Resolve the nicetoolbox_input folder of one camera from the <cur_camera_name> template."""
+    return resolve_placeholders(sequence.camera_input_folder, {"cur_camera_name": camera})
+
+
+def _frame_extension(cam_folder: Path, camera: str) -> str:
+    """Extension of one camera's frames in its nicetoolbox_input folder, e.g. ".jpg".
 
     Read from the frame extraction settings the detectors save next to the frames.
     """
-    cam_folder = frames_folder / camera
     src_dir = cam_folder / "frames"
     if not src_dir.is_dir():
         raise FileNotFoundError(f"Frames folder for camera '{camera}' not found: {src_dir}")
@@ -77,13 +82,13 @@ def _camera_dataframe(
     return pd.DataFrame(flat, index=index, columns=columns)
 
 
-def _copy_frames(frames_folder: Path, dest_dir: Path, camera: str, frames: list[str], image_ext: str) -> int:
+def _copy_frames(cam_folder: Path, dest_dir: Path, camera: str, frames: list[str], image_ext: str) -> int:
     """Copy the frames referenced by one camera's annotations next to its annotation file.
 
     An existing folder for this camera is deleted first, so frames left over from an earlier
     run (a wider frame range, a different NPZ) cannot linger beside the new annotations.
     """
-    src_dir = frames_folder / camera / "frames"
+    src_dir = cam_folder / "frames"
     if dest_dir.exists():
         shutil.rmtree(dest_dir)
         logging.info(f"Removed previous export for camera '{camera}': {dest_dir}")
@@ -163,11 +168,12 @@ def body_joints_npz_to_napari(
     written: list[Path] = []
     for camera in selected:
         cam_arr = data[:, all_cameras.index(camera), :, :, :]
-        image_ext = _frame_extension(sequence.frames_folder, camera)
+        cam_folder = _camera_input_folder(sequence, camera)
+        image_ext = _frame_extension(cam_folder, camera)
         df = _camera_dataframe(cam_arr, subjects, frames, array.axes.labels, camera, sequence.output.name, image_ext)
 
         camera_dir = sequence.output / camera
-        _copy_frames(sequence.frames_folder, camera_dir, camera, frames, image_ext)
+        _copy_frames(cam_folder, camera_dir, camera, frames, image_ext)
 
         out_path = camera_dir / H5_FILENAME
         # format="fixed" (the DeepLabCut default): "table" cannot store a MultiIndex on both axes.

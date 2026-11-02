@@ -8,8 +8,6 @@ import os
 
 class IO:
     def __init__(self, config):
-        # Experiment details
-        self.nice_tool_input_folder = config["io"]["nice_tool_input_folder"]
         # Dataset properties
         self.path_to_calibs = config["dataset_properties"]["path_to_calibrations"]
 
@@ -24,12 +22,6 @@ class IO:
         self.experiment_video_component_folder = config["io"]["experiment_video_component"].replace(
             "<experiment_video_folder>", self.experiment_video_folder
         )
-
-    def get_component_nice_tool_input_folder(self, video_details, dataset_name):
-        folder_path = copy.deepcopy(self.nice_tool_input_folder)
-        folder_path = folder_path.replace("<cur_dataset_name>", dataset_name)
-        folder_path = folder_path.replace("<cur_sequence_id>", video_details["sequence_id"])
-        return folder_path
 
     def get_experiment_video_folder(self):
         return self.experiment_video_folder

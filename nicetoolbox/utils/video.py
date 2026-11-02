@@ -428,7 +428,7 @@ def render_subtitled_track(
         elif fallback_camera and fallback_camera in video_recipe.camera_names:
             chosen = fallback_camera
         if chosen:
-            frame_folder = os.path.join(video_recipe.root_path, chosen, "frames")
+            frame_folder = str(video_recipe.frames_dir(chosen))
         start_frame = video_recipe.range_start
         frame_limit = video_recipe.range_end - video_recipe.range_start
 

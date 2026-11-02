@@ -52,6 +52,7 @@ class VideoDataHandler(BaseModalityHandler):
 
         # Resolved during prepare()
         self.camera_video_paths: Optional[Dict[str, Path]] = None
+        self.frames_folders: Optional[Dict[str, Path]] = None
         self.calibration: Optional[Dict[str, Any]] = None
 
         self.frame_extraction: FrameExtractionConfig = subsequence_context.io.frame_extraction
@@ -67,8 +68,10 @@ class VideoDataHandler(BaseModalityHandler):
         if not self.all_camera_names:
             raise ValueError("No camera names provided.")
 
-        # Resolve one video file per camera from its configured path.
+        # Resolve one video file per camera
         self.camera_video_paths = self._resolve_video_paths()
+        # Resolve one frames folder per camera where to extract frames
+        self.frames_folders = self._resolve_frames_folders()
 
         # Probe each camera video once and expose per-camera resolution.
         infos = self._resolve_video_meta_info()
@@ -94,10 +97,12 @@ class VideoDataHandler(BaseModalityHandler):
         """
         Generates the Recipe config to be injected into the subprocess TOML.
         """
+        # need to convert keys to str for serialization
+        frames_folders = {cam: str(folder) for cam, folder in self.frames_folders.items()}
+
         return VideoInputRecipe(
-            root_path=str(self.nice_input_folder),
-            camera_names=sorted(list(self.all_camera_names)),
-            filename_template="{camera}/frames/" + self.filename_template,
+            frames_folders=frames_folders,
+            filename_template=self.filename_template,
             range_start=self.start_frame,
             range_end=self.start_frame + self.length_frames,
             step=1,
@@ -126,6 +131,17 @@ class VideoDataHandler(BaseModalityHandler):
         for cam in self.all_camera_names:
             track = cameras[cam]
             result[cam] = resolve_single_file(Path(track.path), label=f"Video track '{cam}'")
+        return result
+
+    def _resolve_frames_folders(self) -> Dict[str, Path]:
+        """
+        Resolve the folder holding extracted frames for each active camera.
+
+        Cameras are sorted to keep the same camera order in the input recipe.
+        """
+        result: Dict[str, Path] = {}
+        for cam in sorted(self.all_camera_names):
+            result[cam] = self.io.camera_input_folders[cam] / "frames"
         return result
 
     def _resolve_video_meta_info(self) -> Dict[str, vid.VideoInfo]:
@@ -212,8 +228,8 @@ class VideoDataHandler(BaseModalityHandler):
         Check if the cached frames of a camera ("Source of truth") cover the subsequence
         and were extracted with the configured frame extraction settings.
         """
-        cam_folder = self.nice_input_folder / cam
-        frames_folder = cam_folder / "frames"
+        cam_folder = self.io.camera_input_folders[cam]
+        frames_folder = self.frames_folders[cam]
         start_name = self.filename_template.format(idx=self.start_frame)
         end_name = self.filename_template.format(idx=self.start_frame + self.length_frames - 1)
         if not ((frames_folder / start_name).exists() and (frames_folder / end_name).exists()):
@@ -238,28 +254,28 @@ class VideoDataHandler(BaseModalityHandler):
 
     def _extract_frames_from_video(self, cameras: list[str]) -> None:
         """
-        Extract frames from the resolved video files of the given cameras into the
-        nicetoolbox_input folder, replacing any outdated frames.
+        Extract frames from the resolved video files of the given cameras into their
+        camera input folders, replacing any outdated frames.
         """
         for cam in cameras:
             video_path = self.camera_video_paths[cam]
             logging.info(f"Extracting frames for camera '{cam}' from '{video_path}'...")
 
-            raw_video_info = vid.probe_video(str(video_path))
-            video_info_path = self.nice_input_folder / f"{cam}_meta.json"
-            with open(video_info_path, "w") as f:
-                json.dump(raw_video_info, f, indent=4)
-
-            video_info = vid.json_to_video_info(raw_video_info)
-
-            cam_folder = self.nice_input_folder / cam
-            frames_folder = cam_folder / "frames"
+            cam_folder = self.io.camera_input_folders[cam]
+            frames_folder = self.frames_folders[cam]
 
             # Outdated frames may use another extension, so they would not be overwritten.
             # Settings are removed first, so an interrupted extraction is never trusted.
             (cam_folder / FRAME_EXTRACTION_FILENAME).unlink(missing_ok=True)
             shutil.rmtree(frames_folder, ignore_errors=True)
             frames_folder.mkdir(parents=True)
+
+            raw_video_info = vid.probe_video(str(video_path))
+            video_info_path = cam_folder / "meta.json"
+            with open(video_info_path, "w") as f:
+                json.dump(raw_video_info, f, indent=4)
+
+            video_info = vid.json_to_video_info(raw_video_info)
 
             vid.split_into_frames(
                 str(video_path),

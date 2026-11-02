@@ -61,7 +61,7 @@ def test_sequence_id_only_calibration_key(tmp_path, default_vid_patches):
     video_path.touch()
 
     ctx = make_sequence_context({"cam_front": video_path}, sequence_id="seq_01")
-    io = make_io(tmp_path)
+    io = make_io(tmp_path, ctx)
     make_frames_cache(io, ctx)
 
     calib_path = tmp_path / "calibration.npz"

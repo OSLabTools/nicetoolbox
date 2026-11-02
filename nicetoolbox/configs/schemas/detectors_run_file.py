@@ -93,6 +93,7 @@ class DetectorsRunIO(BaseModel):
     out_sub_folder: Path
 
     nicetoolbox_input_folder: Path
+    nicetoolbox_camera_input_folder: Path
     frame_extraction: FrameExtractionConfig
 
     code_folder: Path
