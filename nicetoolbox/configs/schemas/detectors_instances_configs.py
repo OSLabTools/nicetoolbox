@@ -374,8 +374,7 @@ class Sam3dBodyAlgorithmConfig(BaseAlgorithmConfig):
     triangulate_keypoints: TriangulationConfig
     visualize: bool
     visualize_keypoints_npz_key: str
-    visualize_native_2d: bool
-    visualize_native_3d: bool
+    visualize_native: bool
     keypoint_mapping: str
     hf_repo_id: str
     cache_dir: str

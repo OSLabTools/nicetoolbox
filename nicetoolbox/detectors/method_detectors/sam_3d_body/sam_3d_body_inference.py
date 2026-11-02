@@ -13,11 +13,6 @@ from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoi
 from nicetoolbox_core.video_loaders import ImagePathsByFrameIndexLoader
 
 # ! keep this order
-# renderer.py sets PYOPENGL_PLATFORM="egl" at import time if not already set,
-# but EGL is unavailable on Windows. Block it here, unset it after the import (see below).
-if os.name == "nt":
-    os.environ.setdefault("PYOPENGL_PLATFORM", "pyglet")
-
 # TODO: find a better way to inject non pip-installable modules?
 # import sam3d modules from cloned repository
 SAM3D_VENV_ROOT = Path(sys.prefix)
@@ -25,13 +20,7 @@ SAM3D_REPO_DIR = SAM3D_VENV_ROOT / "src" / "sam-3d-body"
 sys.path.insert(0, str(SAM3D_REPO_DIR))
 from sam_3d_body import SAM3DBodyEstimator, load_sam_3d_body_hf  # noqa: E402
 from sam_3d_body.metadata.mhr70 import pose_info as mhr70_pose_info  # noqa: E402
-from sam_3d_body.visualization.renderer import Renderer  # noqa: E402
 from sam_3d_body.visualization.skeleton_visualizer import SkeletonVisualizer  # noqa: E402
-
-# pyrender renders offscreen through pyglet (WGL) only when PYOPENGL_PLATFORM is unset
-if os.name == "nt" and os.environ.get("PYOPENGL_PLATFORM") == "pyglet":
-    del os.environ["PYOPENGL_PLATFORM"]
-
 
 RAW_INFERENCE_PICKLE_NAME = "sam3d_inference_raw.pkl"
 
@@ -49,32 +38,6 @@ def _intrinsics_tensor(calibration, camera_name, device):
     return torch.as_tensor(K, device=device).unsqueeze(0)
 
 
-def _render_meshes(image, outputs, faces, cam_int):
-    # place every body in the camera frame and merge them into one mesh
-    num_vertices = len(outputs[0]["pred_vertices"])
-    vertices = np.concatenate([o["pred_vertices"] + o["pred_cam_t"] for o in outputs])
-    all_faces = np.concatenate([faces + i * num_vertices for i in range(len(outputs))])
-
-    # same camera as used by the model (calibrated intrinsics or the model's default)
-    if cam_int is not None:
-        K = cam_int[0].cpu().numpy()
-        focal_length, camera_center = K[0, 0], (K[0, 2], K[1, 2])
-    else:
-        focal_length, camera_center = outputs[0]["focal_length"], None  # default: image center
-    renderer = Renderer(focal_length=focal_length, faces=all_faces)
-
-    mesh_color = (0.65098039, 0.74117647, 0.85882353)  # sam3d blue
-    rendered = renderer(
-        vertices,
-        np.zeros(3),
-        image.copy(),
-        mesh_base_color=mesh_color,
-        scene_bg_color=(1, 1, 1),
-        camera_center=camera_center,
-    )
-    return (rendered * 255).astype(np.uint8)
-
-
 @run_inference_entrypoint
 def main(config: dict) -> None:
     logging.info("RUNNING SAM 3D Body inference!")
@@ -86,8 +49,7 @@ def main(config: dict) -> None:
     inference_type = config["inference_type"]
     save_vertices = config["save_vertices"]
     repo_id = config["hf_repo_id"]
-    visualize_native_2d = config["visualize_native_2d"]
-    visualize_native_3d = config["visualize_native_3d"]
+    visualize_native = config["visualize_native"]
     native_viz_folder = config["native_viz_folder"]
 
     # force both HF and torch to work in offline mode
@@ -168,7 +130,7 @@ def main(config: dict) -> None:
             persons_per_camera[camera_name] = persons
 
             # run native 2d visualization
-            if visualize_native_2d:
+            if visualize_native:
                 image = cv2.imread(frame_path)
                 for output in outputs:
                     # expects (K, 3) keypoints with a confidence column
@@ -179,13 +141,9 @@ def main(config: dict) -> None:
                 os.makedirs(out_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), image)
 
-            # run native 3d mesh visualization
-            if visualize_native_3d:
-                image = cv2.imread(frame_path)
-                mesh_image = _render_meshes(image, outputs, estimator.faces, cam_int) if outputs else image
-                out_dir = os.path.join(native_viz_folder, f"{camera_name}_mesh")
-                os.makedirs(out_dir, exist_ok=True)
-                cv2.imwrite(os.path.join(out_dir, f"{real_frame_idx:09d}.jpg"), mesh_image)
+            # TODO: native 3d visualization?
+            # original repo uses opengl and windows manager, but they are hard to maintain
+            # especially cross platform and headless systems
 
         per_frame_outputs.append(persons_per_camera)
 
