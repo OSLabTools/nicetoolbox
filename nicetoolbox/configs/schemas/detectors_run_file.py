@@ -1,8 +1,9 @@
+from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import Annotated, List, Literal, Union
 
-from pydantic import BaseModel, NonNegativeInt, PositiveInt, PrivateAttr
+from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt, PrivateAttr, TypeAdapter
 
 from nicetoolbox_core.errors import ErrorLevel
 
@@ -18,6 +19,67 @@ class LoggingLevelEnum(str, Enum):
     DEBUG = "DEBUG"
 
 
+# =============================================================================
+# Frame extraction confgis
+# =============================================================================
+
+
+class BaseFrameExtraction(ABC, BaseModel):
+    """Base frame extraction config."""
+
+    frame_extension: str
+
+    @abstractmethod
+    def ffmpeg_args(self) -> list[str]: ...
+
+
+class PngFrameExtraction(BaseFrameExtraction):
+    """Config for lossless PNG frames extraction."""
+
+    frame_extension: Literal[".png"]
+    compression_level: int = Field(ge=0, le=9)  # zlib level, higher = smaller and slower
+
+    def ffmpeg_args(self) -> list[str]:
+        return ["-compression_level", str(self.compression_level)]
+
+
+class JpegFrameExtraction(BaseFrameExtraction):
+    """Config for lossy JPEG frames extraction."""
+
+    frame_extension: Literal[".jpg", ".jpeg"]
+    compression_quality: int = Field(ge=1, le=31)  # mjpeg qscale, lower = better quality
+
+    def ffmpeg_args(self) -> list[str]:
+        return ["-q:v", str(self.compression_quality)]
+
+
+# Discriminated on `frame_extension`, so each format only accepts the fields that apply to it.
+FrameExtractionConfig = Annotated[
+    Union[PngFrameExtraction, JpegFrameExtraction],
+    Field(discriminator="frame_extension"),
+]
+
+_FRAME_EXTRACTION_ADAPTER = TypeAdapter(FrameExtractionConfig)
+FRAME_EXTRACTION_FILENAME = "frame_extraction.json"
+
+
+def save_frame_extraction(config: FrameExtractionConfig, cam_folder: Path) -> None:
+    """Write the settings used to extract a camera's frames, so the cache can be validated later."""
+    path = cam_folder / FRAME_EXTRACTION_FILENAME
+    path.write_text(config.model_dump_json(indent=4))
+
+
+def load_frame_extraction(cam_folder: Path) -> FrameExtractionConfig:
+    """Read settings written by `save_frame_extraction`. Raises if missing or invalid."""
+    path = cam_folder / FRAME_EXTRACTION_FILENAME
+    return _FRAME_EXTRACTION_ADAPTER.validate_json(path.read_text())
+
+
+# =============================================================================
+# Detectors Run File Config
+# =============================================================================
+
+
 class DetectorsRunIO(BaseModel):
     """
     I/O paths configuration in detectors pipeline.
@@ -31,6 +93,7 @@ class DetectorsRunIO(BaseModel):
     out_sub_folder: Path
 
     nicetoolbox_input_folder: Path
+    frame_extraction: FrameExtractionConfig
 
     code_folder: Path
     dataset_properties: Path

@@ -8,13 +8,13 @@ import pandas as pd
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL
 from nicetoolbox_core.data.loaded_array import NpzArray, load_array_from_path
 
+from ...configs.schemas.detectors_run_file import load_frame_extraction
 from ...configs.utils import resolve_filter
 from .napari_configs import NapariExportBodyJointsConfig, NapariExportSequenceConfig, NapariWindowConfig
 
 H5_KEY = "df_with_missing"
 COORDS = ("x", "y", "likelihood")
 SCORER = "NICEToolbox"
-IMAGE_EXT = ".png"
 H5_FILENAME = f"CollectedData_{SCORER}.h5"
 
 
@@ -42,6 +42,18 @@ def load_body_joints_array(input_path: Path, npz_key: str) -> NpzArray:
     return array
 
 
+def _frame_extension(frames_folder: Path, camera: str) -> str:
+    """Extension of one camera's frames in the nicetoolbox_input folder, e.g. ".jpg".
+
+    Read from the frame extraction settings the detectors save next to the frames.
+    """
+    cam_folder = frames_folder / camera
+    src_dir = cam_folder / "frames"
+    if not src_dir.is_dir():
+        raise FileNotFoundError(f"Frames folder for camera '{camera}' not found: {src_dir}")
+    return load_frame_extraction(cam_folder).frame_extension
+
+
 def _camera_dataframe(
     cam_arr: np.ndarray,
     subjects: list[str],
@@ -49,6 +61,7 @@ def _camera_dataframe(
     bodyparts: list[str],
     camera: str,
     root_name: str,
+    image_ext: str,
 ) -> pd.DataFrame:
     """Build the wide DLC DataFrame for one camera from a (subjects, frames, joints, 3) slice."""
     n_subjects, n_frames, n_bodyparts, _ = cam_arr.shape
@@ -60,20 +73,17 @@ def _camera_dataframe(
         [(SCORER, subject, bodypart, coord) for subject in subjects for bodypart in bodyparts for coord in COORDS],
         names=["scorer", "individuals", "bodyparts", "coords"],
     )
-    index = pd.MultiIndex.from_tuples([(root_name, camera, f"{frame}{IMAGE_EXT}") for frame in frames])
+    index = pd.MultiIndex.from_tuples([(root_name, camera, f"{frame}{image_ext}") for frame in frames])
     return pd.DataFrame(flat, index=index, columns=columns)
 
 
-def _copy_frames(frames_folder: Path, dest_dir: Path, camera: str, frames: list[str]) -> int:
+def _copy_frames(frames_folder: Path, dest_dir: Path, camera: str, frames: list[str], image_ext: str) -> int:
     """Copy the frames referenced by one camera's annotations next to its annotation file.
 
     An existing folder for this camera is deleted first, so frames left over from an earlier
     run (a wider frame range, a different NPZ) cannot linger beside the new annotations.
     """
     src_dir = frames_folder / camera / "frames"
-    if not src_dir.is_dir():
-        raise FileNotFoundError(f"Frames folder for camera '{camera}' not found: {src_dir}")
-
     if dest_dir.exists():
         shutil.rmtree(dest_dir)
         logging.info(f"Removed previous export for camera '{camera}': {dest_dir}")
@@ -82,7 +92,7 @@ def _copy_frames(frames_folder: Path, dest_dir: Path, camera: str, frames: list[
     missing: list[str] = []
     copied = 0
     for frame in frames:
-        name = f"{frame}{IMAGE_EXT}"
+        name = f"{frame}{image_ext}"
         src = src_dir / name
         if not src.is_file():
             missing.append(name)
@@ -123,10 +133,11 @@ def body_joints_npz_to_napari(
     Builds this layout under `sequence.output`::
 
         <output>/<camera>/CollectedData_<scorer>.h5
-        <output>/<camera>/<frame>.png
+        <output>/<camera>/<frame>.<ext>
 
     Each camera's annotation file sits in the same folder as the frames it annotates.
-    Row-index paths are "<output name>/<camera>/<frame>.png", i.e. relative to the
+    Frames keep the format they were extracted in (see `_frame_extension`).
+    Row-index paths are "<output name>/<camera>/<frame>.<ext>", i.e. relative to the
     project root's parent.
 
     When `cfg.window` is set, only the sampled frames are exported. Frame identity lives in
@@ -152,10 +163,11 @@ def body_joints_npz_to_napari(
     written: list[Path] = []
     for camera in selected:
         cam_arr = data[:, all_cameras.index(camera), :, :, :]
-        df = _camera_dataframe(cam_arr, subjects, frames, array.axes.labels, camera, sequence.output.name)
+        image_ext = _frame_extension(sequence.frames_folder, camera)
+        df = _camera_dataframe(cam_arr, subjects, frames, array.axes.labels, camera, sequence.output.name, image_ext)
 
         camera_dir = sequence.output / camera
-        _copy_frames(sequence.frames_folder, camera_dir, camera, frames)
+        _copy_frames(sequence.frames_folder, camera_dir, camera, frames, image_ext)
 
         out_path = camera_dir / H5_FILENAME
         # format="fixed" (the DeepLabCut default): "table" cannot store a MultiIndex on both axes.

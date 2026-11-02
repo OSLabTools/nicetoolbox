@@ -8,14 +8,22 @@ Also owns camera calibration loading since calibration is video-specific.
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import numpy as np
+from pydantic import ValidationError
 
 from nicetoolbox_core.input_recipes import VideoInputRecipe
 
 from ...configs.models.video_timestamp import timestamp_to_frame_index
+from ...configs.schemas.detectors_run_file import (
+    FRAME_EXTRACTION_FILENAME,
+    FrameExtractionConfig,
+    load_frame_extraction,
+    save_frame_extraction,
+)
 from ...utils import video as vid
 from ...utils.filehandling import resolve_single_file
 from ...utils.logging_utils import log_with_underscore
@@ -24,7 +32,6 @@ from ..subsequence_context import SubsequenceContext
 from .handler import BaseModalityHandler
 
 FRAME_LABEL_TEMPLATE = "{idx:09d}"
-FILENAME_TEMPLATE = f"{FRAME_LABEL_TEMPLATE}.png"
 
 
 class VideoDataHandler(BaseModalityHandler):
@@ -41,12 +48,14 @@ class VideoDataHandler(BaseModalityHandler):
     """
 
     def __init__(self, io: SequenceIO, subsequence_context: SubsequenceContext):
-        # Shared fields
         super().__init__(io, subsequence_context)
 
         # Resolved during prepare()
         self.camera_video_paths: Optional[Dict[str, Path]] = None
         self.calibration: Optional[Dict[str, Any]] = None
+
+        self.frame_extraction: FrameExtractionConfig = subsequence_context.io.frame_extraction
+        self.filename_template: str = FRAME_LABEL_TEMPLATE + self.frame_extraction.frame_extension
 
     @property
     def modality_name(self) -> str:
@@ -88,7 +97,7 @@ class VideoDataHandler(BaseModalityHandler):
         return VideoInputRecipe(
             root_path=str(self.nice_input_folder),
             camera_names=sorted(list(self.all_camera_names)),
-            filename_template="{camera}/frames/" + FILENAME_TEMPLATE,
+            filename_template="{camera}/frames/" + self.filename_template,
             range_start=self.start_frame,
             range_end=self.start_frame + self.length_frames,
             step=1,
@@ -188,41 +197,52 @@ class VideoDataHandler(BaseModalityHandler):
     def _input_data_creation(self) -> None:
         """
         Initializes the data required for running NICE toolbox.
+        Extracts frames only for cameras whose cached frames are missing or outdated.
         """
-        if self._check_frames_exist():
+        stale_cameras = [cam for cam in self.all_camera_names if not self._frames_valid(cam)]
+        if not stale_cameras:
             logging.info("Frames FOUND in nicetoolbox input folder")
-        else:
-            logging.info("EXTRACTING frames from video...")
-            self._extract_frames_from_video()
+            return
 
-    def _check_frames_exist(self) -> bool:
+        logging.info(f"EXTRACTING frames from video for cameras {stale_cameras}...")
+        self._extract_frames_from_video(stale_cameras)
+
+    def _frames_valid(self, cam: str) -> bool:
         """
-        Check if frames exist in the nicetoolbox input folder ("Source of truth").
-
-        Returns:
-            bool: True if frames exist for all cameras, False otherwise.
+        Check if the cached frames of a camera ("Source of truth") cover the subsequence
+        and were extracted with the configured frame extraction settings.
         """
-        start_idx = self.start_frame
-        end_idx = self.start_frame + self.length_frames - 1
+        cam_folder = self.nice_input_folder / cam
+        frames_folder = cam_folder / "frames"
+        start_name = self.filename_template.format(idx=self.start_frame)
+        end_name = self.filename_template.format(idx=self.start_frame + self.length_frames - 1)
+        if not ((frames_folder / start_name).exists() and (frames_folder / end_name).exists()):
+            logging.info(f"No input frames found for camera '{cam}': Files will be created in '{frames_folder}'.")
+            return False
 
-        for cam in self.all_camera_names:
-            cam_folder = self.nice_input_folder / cam / "frames"
+        try:
+            cached = load_frame_extraction(cam_folder)
+        except (OSError, ValidationError) as e:
+            logging.warning(f"Unknown frame extraction settings for camera '{cam}' ({e}). Re-extracting frames.")
+            return False
 
-            start_name = FILENAME_TEMPLATE.format(idx=start_idx)
-            end_name = FILENAME_TEMPLATE.format(idx=end_idx)
-
-            if not ((cam_folder / start_name).exists() and (cam_folder / end_name).exists()):
-                logging.info(f"No input frames found for camera '{cam}': " f"Files will be created in '{cam_folder}'.")
-                return False
+        if cached != self.frame_extraction:
+            logging.warning(
+                f"Frame extraction settings for camera '{cam}' differ from detectors_run_file.toml:\n"
+                f"  cached: {cached!r}\n"
+                f"  config: {self.frame_extraction!r}"
+            )
+            return False
 
         return True
 
-    def _extract_frames_from_video(self) -> None:
+    def _extract_frames_from_video(self, cameras: list[str]) -> None:
         """
-        Extract frames from each camera's resolved video file into the
-        nicetoolbox_input folder.
+        Extract frames from the resolved video files of the given cameras into the
+        nicetoolbox_input folder, replacing any outdated frames.
         """
-        for cam, video_path in self.camera_video_paths.items():
+        for cam in cameras:
+            video_path = self.camera_video_paths[cam]
             logging.info(f"Extracting frames for camera '{cam}' from '{video_path}'...")
 
             raw_video_info = vid.probe_video(str(video_path))
@@ -234,14 +254,22 @@ class VideoDataHandler(BaseModalityHandler):
 
             cam_folder = self.nice_input_folder / cam
             frames_folder = cam_folder / "frames"
-            frames_folder.mkdir(parents=True, exist_ok=True)
+
+            # Outdated frames may use another extension, so they would not be overwritten.
+            # Settings are removed first, so an interrupted extraction is never trusted.
+            (cam_folder / FRAME_EXTRACTION_FILENAME).unlink(missing_ok=True)
+            shutil.rmtree(frames_folder, ignore_errors=True)
+            frames_folder.mkdir(parents=True)
 
             vid.split_into_frames(
                 str(video_path),
                 str(frames_folder) + "/",
                 video_info.frames,
+                frame_extraction=self.frame_extraction,
                 keep_indices=True,
             )
+
+            save_frame_extraction(self.frame_extraction, cam_folder)
 
     def _load_calibration(self) -> dict | None:
         """

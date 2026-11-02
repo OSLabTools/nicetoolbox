@@ -116,16 +116,10 @@ def test_missing_frame_count_ignored_when_length_configured(tmp_path, default_vi
 def test_timestamp_video_start(tmp_path, default_vid_patches):
     # "00-00-02" = 2 seconds at 30fps = frame 60; VIDEO_FRAMES=300 → length=240
     cameras = ["cam_front"]
-    handler, _, io = make_flat_handler(tmp_path, cameras, video_start="00-00-02", video_length=-1)
+    handler, ctx, io = make_flat_handler(tmp_path, cameras, video_start="00-00-02", video_length=-1)
 
-    # make_frames_cache can't handle string video_start — create frames manually
-    from nicetoolbox.detectors.data_handlers.video_handler import FILENAME_TEMPLATE
-
-    for cam in cameras:
-        frames_dir = io.nice_input_folder / cam / "frames"
-        frames_dir.mkdir(parents=True, exist_ok=True)
-        for idx in range(60, VIDEO_FRAMES):
-            (frames_dir / FILENAME_TEMPLATE.format(idx=idx)).write_bytes(b"\x89PNG")
+    # string video_start can't be turned into frame indices by make_frames_cache
+    make_frames_cache(io, ctx, indices=range(60, VIDEO_FRAMES))
 
     handler.prepare()
 

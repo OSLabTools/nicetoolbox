@@ -367,7 +367,7 @@ def test_rejects_camera_folder_without_annotation_file(tmp_path):
     root = tmp_path / "annotations"
     _write_camera(root, "cam3", [0, 1])
     (root / "cam4").mkdir()
-    (root / "cam4" / "000000000.png").write_bytes(b"frame only")
+    (root / "cam4" / "000000000.jpg").write_bytes(b"frame only")
 
     with pytest.raises(FileNotFoundError, match="No annotation file"):
         napari_to_body_joints_npz(_sequence(tmp_path, root), _config())
@@ -383,11 +383,11 @@ def test_rejects_camera_folder_with_several_annotation_files(tmp_path):
 
 
 def test_ignores_frame_images_beside_the_annotation_file(tmp_path):
-    """Our own export leaves .png frames next to the .h5; they must not confuse discovery."""
+    """Our own export leaves .jpg frames next to the .h5; they must not confuse discovery."""
     root = tmp_path / "annotations"
     _write_camera(root, "cam3", [0, 1])
-    (root / "cam3" / "000000000.png").write_bytes(b"frame")
-    (root / "cam3" / "000000001.png").write_bytes(b"frame")
+    (root / "cam3" / "000000000.jpg").write_bytes(b"frame")
+    (root / "cam3" / "000000001.jpg").write_bytes(b"frame")
 
     napari_to_body_joints_npz(_sequence(tmp_path, root), _config())
 

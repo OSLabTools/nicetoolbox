@@ -68,3 +68,13 @@ detector_native_folder = "<out_sub_folder>/_native_outputs/<cur_algorithm_name>"
 detector_native_out_folder = "<detector_native_folder>/detector_output"
 detector_native_visualization_folder = "<detector_native_folder>/visualization"
 detector_run_config_path = "<detector_native_folder>"
+
+# Image format of frames extracted from videos
+[io.frame_extraction]
+frame_extension = ".jpg"     # Options: ".jpg", ".jpeg", ".png"
+compression_quality = 2      # .jpg/.jpeg only: 1 to 31, lower means higher quality
+
+# Alternatively, you can change frames format to png for losseless,
+# but more space consumption and longer processing time
+# frame_extension = ".png"
+# compression_level = 2      # .png only: 0 to 9, higher means smaller files and slower extraction

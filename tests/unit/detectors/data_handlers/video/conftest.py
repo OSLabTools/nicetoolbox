@@ -6,11 +6,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nicetoolbox.configs.schemas.dataset_properties import VideoTrackConfig
-from nicetoolbox.detectors.data_handlers.video_handler import FILENAME_TEMPLATE, VideoDataHandler
+from nicetoolbox.configs.schemas.detectors_run_file import PngFrameExtraction, save_frame_extraction
+from nicetoolbox.detectors.data_handlers.video_handler import FRAME_LABEL_TEMPLATE, VideoDataHandler
 
 # ---------------------------------------------------------------------------
 # Default constants
 # ---------------------------------------------------------------------------
+FRAME_EXTRACTION = PngFrameExtraction(frame_extension=".png", compression_level=2)
+
 CONFIG_START = 0
 CONFIG_STOP = 100
 
@@ -69,6 +72,7 @@ def make_sequence_context(
     ctx.all_camera_names = list(tracks.keys())
     ctx.sequence_id = sequence_id
     ctx.subjects_descr = ["subject_1"]
+    ctx.io.frame_extraction = FRAME_EXTRACTION
     ctx.sequence_properties = MagicMock()
     ctx.sequence_properties.video.cameras = {
         name: VideoTrackConfig(path=path, subjects={"rule": "assign", "subject": "subject_1"})
@@ -86,12 +90,17 @@ def make_io(tmp_path: Path, calibration_file: Path = None):
     return io
 
 
-def make_frames_cache(io, ctx):
+def make_frames_cache(io, ctx, indices: Optional[range] = None, frame_extraction=FRAME_EXTRACTION):
+    """Write cached frames and their extraction settings, as a previous extraction would."""
+    if indices is None:
+        indices = range(ctx.video_start, ctx.video_start + ctx.video_length)
+    filename_template = FRAME_LABEL_TEMPLATE + frame_extraction.frame_extension
     for cam in ctx.all_camera_names:
         frames_dir = io.nice_input_folder / cam / "frames"
         frames_dir.mkdir(parents=True, exist_ok=True)
-        for idx in range(ctx.video_start, ctx.video_start + ctx.video_length):
-            (frames_dir / FILENAME_TEMPLATE.format(idx=idx)).write_bytes(b"\x89PNG")
+        for idx in indices:
+            (frames_dir / filename_template.format(idx=idx)).write_bytes(b"\x89PNG")
+        save_frame_extraction(frame_extraction, io.nice_input_folder / cam)
 
 
 def make_flat_handler(tmp_path: Path, cameras: list[str], **ctx_kwargs):
