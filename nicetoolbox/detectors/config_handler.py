@@ -1,11 +1,13 @@
 import copy
 import fnmatch
+import logging
 from pathlib import Path
 from typing import Any, Generator
 
 from ..configs.project_config_handler import ProjectConfigHandler
 from ..configs.schemas.dataset_properties import DatasetProperties, SequenceConfig
 from ..configs.schemas.detectors_config import DetectorsConfig
+from ..configs.schemas.detectors_instances_configs import DetectorInputConfig
 from ..configs.schemas.detectors_run_file import (
     DetectorsRunFile,
     LoggingLevelEnum,
@@ -15,9 +17,11 @@ from ..configs.schemas.detectors_run_file import (
 from ..configs.schemas.experiment_config import CodeConfig, DetectorsExperimentConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
+from ..configs.schemas.subject_rules import NoneRuleConfig
 from ..configs.utils import model_to_dict, resolve_filter
 from ..utils.config import save_config
 from .data import SequenceData
+from .feature_detectors.subject_system.audio_subject_detector import get_cls
 from .subsequence_context import SubsequenceContext
 
 
@@ -43,6 +47,9 @@ class Configuration(ProjectConfigHandler):
     detectors_config: DetectorsConfig
     dataset_properties: DatasetProperties
     predictions_mapping: PredictionsMappingConfig
+
+    # Selected algorithms dropped by the asset check (gated weights unavailable)
+    skipped_algorithms: set[str]
 
     def __init__(self, project_folder: Path, machine_specifics_file: Path, run_config_file: Path):
         """
@@ -81,6 +88,7 @@ class Configuration(ProjectConfigHandler):
         # Mutates self.run_config.run in place, so downstream iteration and the saved
         # experiment config both see the fully-expanded sequence list.
         self._expand_sequence_wildcards()
+        self.skipped_algorithms = set()
 
     def _expand_sequence_wildcards(self) -> None:
         """
@@ -182,6 +190,11 @@ class Configuration(ProjectConfigHandler):
             if hasattr(algo, "track_names"):
                 algo.track_names = sorted(resolve_filter(algo.track_names, all_track_names))
 
+        # Wire the inputs the sequence's subject rules need (e.g. a diarization) into the subject detectors.
+        # Injection may replace rules for this run only, so it works on a copy of the sequence properties.
+        sequence_properties = copy.deepcopy(sequence_properties)
+        self._inject_subject_inputs(resolved_detectors, sequence_properties)
+
         # Construct frozen model with all resolved values
         runtime_config = SubsequenceContext(
             dataset_name=dataset_name,
@@ -210,6 +223,56 @@ class Configuration(ProjectConfigHandler):
             ) from e
 
         return res_runtime
+
+    def _inject_subject_inputs(self, detectors_config: DetectorsConfig, sequence_properties: SequenceConfig) -> None:
+        # audio_subject_detector and video_subject_detector are special case detectors
+        # that can request additional information
+        run_algorithms = self.run_config.algorithms
+        # rules only need their detectors when a subject detector applies them in this run
+        subject_detectors = [name for name in ["audio_subject_detector"] if name in run_algorithms]
+        if not subject_detectors:
+            return
+
+        # audio tracks
+        tracks_cfg = sequence_properties.audio.tracks or {}
+        for track_name, track_cfg in tracks_cfg.items():
+            rule = track_cfg.subjects
+            specs = get_cls(rule).required_inputs(rule)
+            if not specs:
+                continue
+
+            # a rule's inputs all come from the detector it names
+            algorithm = rule.algorithm
+            if algorithm in self.skipped_algorithms:
+                # gated weights unavailable: run without this track's identities rather than fail the sequence
+                logging.warning(
+                    f"Sequence '{sequence_properties.sequence_id}': audio track '{track_name}' rule '{rule.rule}' "
+                    f"needs detector '{algorithm}', which was skipped (gated weights missing, no HF token). "
+                    f"Falling back to rule 'none': speakers on this track stay unassigned."
+                )
+                track_cfg.subjects = NoneRuleConfig(rule="none")
+                continue
+            if algorithm not in run_algorithms:
+                raise ValueError(
+                    f"Sequence '{sequence_properties.sequence_id}': audio track '{track_name}' rule '{rule.rule}' "
+                    f"needs detector '{algorithm}', which is not in the run. Add it to algorithms in the run file."
+                )
+
+            # make the named detector process this track, on top of its configured tracks
+            algorithm_config = detectors_config.algorithms[algorithm]
+            if not hasattr(algorithm_config, "track_names"):
+                raise ValueError(
+                    f"Sequence '{sequence_properties.sequence_id}': audio track '{track_name}' rule '{rule.rule}' "
+                    f"names detector '{algorithm}', which does not process audio tracks."
+                )
+            if track_name not in algorithm_config.track_names:
+                algorithm_config.track_names = sorted([*algorithm_config.track_names, track_name])
+
+            # add inputs for subject identity system
+            for subject_detector in subject_detectors:
+                inputs = detectors_config.algorithms[subject_detector].inputs
+                for spec in specs:
+                    inputs.setdefault(spec.name, DetectorInputConfig(component=spec.component, algorithm=algorithm))
 
     # -------------------------------------------------------------------------
     # Static Queries (don't depend on runtime context)

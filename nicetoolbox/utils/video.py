@@ -205,7 +205,7 @@ def get_active_log_file() -> Optional[Path]:
 class FFmpegPipeWriter:
     """
     Context manager for streaming NumPy frame arrays directly to FFmpeg via stdin pipe,
-    with optional image frame saving to disk.
+    with optional image frame saving to disk and an optional audio track muxed into the video.
     """
 
     def __init__(
@@ -219,6 +219,9 @@ class FFmpegPipeWriter:
         pix_fmt_out: str = "yuv420p",
         output_params: Optional[list[str]] = None,
         log_file: Optional[Path | str] = None,
+        audio_path: Optional[str] = None,
+        audio_start: Optional[float] = 0.0,
+        audio_duration: Optional[float] = None,
     ):
         out_dir = os.path.dirname(os.path.abspath(output_path))
         if out_dir:
@@ -233,6 +236,14 @@ class FFmpegPipeWriter:
         if output_params:
             params.extend(output_params)
 
+        audio_input = []
+        if audio_path:
+            audio_input = ["-ss", f"{audio_start:.6f}"]
+            if audio_duration is not None:
+                audio_input += ["-t", f"{audio_duration:.6f}"]
+            audio_input += ["-i", audio_path]
+            params.extend(["-map", "0:v:0", "-map", "1:a:0", "-c:a", "aac", "-shortest"])
+
         width, height = size
         # fmt: off
         cmd = [
@@ -245,6 +256,7 @@ class FFmpegPipeWriter:
             "-r", str(fps),
             "-pix_fmt", pix_fmt_in,
             "-i", "pipe:0",
+            *audio_input,
             "-vcodec", codec,
             "-pix_fmt", pix_fmt_out,
             *params,

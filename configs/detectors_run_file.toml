@@ -18,22 +18,23 @@ skip_gated_models_errors = true
 
 # algorithms to run on the data
 algorithms = [
-   "video_subject_detector",                          # subjects identity system
-   "rtmdet_m_person",                                 # person detection
-   "rtmw_l_wholebody", "vitpose_huge",                # body keypoints (multi-camera 2d => 3d)
-   "motionbert",                                      # lifted keypoints (single camera 2d => 3d)
-   "velocity_body_2d", "velocity_body_3d",            # body velocity
-   "body_distance_2d", "body_distance_3d",            # distance between subjects (per dimension)
-   "sam_3d_body_dinov3",                              # 3d body mesh
-   "eth_xgaze", "unigaze",                            # gaze direction
-   "gaze_per_subject",                                # gaze directions fusion (select facial cameras)
-   "gaze_distance_2d", "gaze_distance_3d",            # gaze interaction (for single camera and multi-camera)
-   "spiga",                                           # head orientation
-   "py_feat",                                         # emotions detection
-   "whisperx", "crisper_whisper",                     # audio transcription
-   "eye_closure_score_ear", "eye_state_ear",          # closed eyes detection (2d)
-   "insight_face",                                    # face bounding box detection
-   "mediapipe_face_landmarks",                        # MediaPipe face landmarks and blendshapes
+   "video_subject_detector", "audio_subject_detector",   # subjects identity system
+   "rtmdet_m_person",                                    # person detection
+   "rtmw_l_wholebody", "vitpose_huge",                   # body keypoints (multi-camera 2d => 3d)
+   "motionbert",                                         # lifted keypoints (single camera 2d => 3d)
+   "velocity_body_2d", "velocity_body_3d",               # body velocity
+   "body_distance_2d", "body_distance_3d",               # distance between subjects (per dimension)
+   "sam_3d_body_dinov3",                                 # 3d body mesh
+   "eth_xgaze", "unigaze",                               # gaze direction
+   "gaze_per_subject",                                   # gaze directions fusion (select facial cameras)
+   "gaze_distance_2d", "gaze_distance_3d",               # gaze interaction (for single camera and multi-camera)
+   "spiga",                                              # head orientation
+   "py_feat",                                            # emotions detection
+   "pyannote",                                           # speaker diariazation
+   "whisperx", "crisper_whisper",                        # audio transcription
+   "eye_closure_score_ear", "eye_state_ear",             # closed eyes detection (2d)
+   "insight_face",                                       # face bounding box detection
+   "mediapipe_face_landmarks",                           # MediaPipe face landmarks and blendshapes
 ]
 
 # define which data to run on
@@ -63,7 +64,8 @@ detectors_config = "<configs_folder_path>/detectors_config.toml"
 predictions_mapping = "<configs_folder_path>/predictions_mapping.toml"
 # Final results folder paths for all components and algorithms
 detector_result_folder = "<out_sub_folder>/<cur_component_name>"
-detector_visualization_folder = "<detector_result_folder>/<cur_algorithm_name>/visualization/"
+detector_additional_results_folder = "<detector_result_folder>/<cur_algorithm_name>"
+detector_visualization_folder = "<detector_additional_results_folder>/visualization/"
 # Paths for method detectors native output (from external environments)
 detector_native_folder = "<out_sub_folder>/_native_outputs/<cur_algorithm_name>"
 detector_native_out_folder = "<detector_native_folder>/detector_output"

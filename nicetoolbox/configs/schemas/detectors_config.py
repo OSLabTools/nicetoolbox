@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any, Dict
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from ...utils.graph import topological_sort
 from .detectors_instances_configs import DETECTORS_REGISTRY, BaseAlgorithmConfig
@@ -55,10 +55,18 @@ class VideoSubjectAssignmentConfig(BaseModel):
     confidence_weight: float
 
 
+class AudioSubjectAssignmentConfig(BaseModel):
+    """Audio subjects assignments parameters."""
+
+    # minimal fraction of a subject's pinned range a speaker cluster must cover to be assigned to it
+    min_overlap: float = Field(ge=0.0, le=1.0)
+
+
 class SubjectAssignmentConfig(BaseModel):
     """Per-modality parameters for the subject-assignment algorithm."""
 
     video: VideoSubjectAssignmentConfig
+    audio: AudioSubjectAssignmentConfig
 
 
 # Top-level config in detectors_config.toml

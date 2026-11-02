@@ -1,8 +1,10 @@
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from pydantic import BaseModel, ValidationError
 
 from nicetoolbox.configs.schemas.detectors_instances_configs import DetectorInputConfig
 from nicetoolbox.detectors.in_out import SequenceIO
@@ -29,6 +31,13 @@ class NpzDetectorInput(BaseDetectorInput):
     schema: BaseArraySchema | None = None
 
 
+@dataclass(frozen=True)
+class JsonDetectorInput(BaseDetectorInput):
+    """A declared JSON input, parsed into its pydantic schema when loaded."""
+
+    schema: type[BaseModel] | None = None
+
+
 @dataclass
 class ResolvedInput:
     """A loaded, validated detector input ready for use in compute()."""
@@ -40,6 +49,7 @@ class ResolvedInput:
     upstream_config: BaseAlgorithmConfig
     array: NpzArray | None
     file_path: Path
+    json: BaseModel | dict | None = None
 
     @property
     def data(self) -> np.ndarray:
@@ -72,10 +82,10 @@ def _available_npz_keys(npz_path) -> list[str]:
         return []
 
 
-def _npz_path(cfg: DetectorInputConfig, io: SequenceIO) -> Path:
-    """Locate the file an upstream detector wrote for one configured input."""
+def _input_path(cfg: DetectorInputConfig, io: SequenceIO, ext: str) -> Path:
+    """Locate the file (with extension `ext`, e.g. "npz") an upstream detector wrote for one configured input."""
     result_folder = io.get_detector_output_folder(cfg.component, cfg.algorithm, "result")
-    return result_folder / f"{cfg.algorithm}.npz"
+    return result_folder / f"{cfg.algorithm}.{ext}"
 
 
 def _load_npz_input(spec: NpzDetectorInput, cfg: DetectorInputConfig, npz_path: Path):
@@ -110,6 +120,25 @@ def _load_npz_input(spec: NpzDetectorInput, cfg: DetectorInputConfig, npz_path: 
     return array
 
 
+def _load_json_input(spec: JsonDetectorInput, cfg: DetectorInputConfig, json_path: Path) -> BaseModel | dict:
+    """Load one JSON input, parsed into spec.schema when one is declared (raw dict otherwise)."""
+    if not json_path.exists():
+        raise FileNotFoundError(
+            f"Input '{spec.name}' (component '{cfg.component}', algorithm '{cfg.algorithm}') "
+            f"expects JSON at '{json_path}', but it does not exist."
+        )
+
+    with open(json_path) as f:
+        raw = json.load(f)
+
+    if spec.schema is None:
+        return raw
+    try:
+        return spec.schema.model_validate(raw)
+    except ValidationError as e:
+        raise ValueError(f"Input '{spec.name}' from '{json_path}' failed schema validation:\n{e}") from None
+
+
 def load_detector_inputs(
     declared: list[BaseDetectorInput],
     inputs_cfg: dict[str, DetectorInputConfig],
@@ -130,7 +159,7 @@ def load_detector_inputs(
     Returns:
         Mapping of input handle -> ResolvedInput, one entry per configured input. An optional
         input that is not present in inputs_cfg is omitted from the map; every entry that IS
-        present has a fully loaded array (never None).
+        present is fully loaded (`array` for NPZ inputs, `json` for JSON inputs).
 
     Raises:
         KeyError: If a required (non-optional) input has no matching entry in inputs_cfg.
@@ -150,12 +179,13 @@ def load_detector_inputs(
                 f"but missing from the config's [inputs] table. Available: {list(inputs_cfg)}."
             )
 
-        array, file_path = None, None
+        array, json_data, file_path = None, None, None
         if isinstance(spec, NpzDetectorInput):
-            file_path = _npz_path(input_cfg, io)
+            file_path = _input_path(input_cfg, io, "npz")
             array = _load_npz_input(spec, input_cfg, file_path)
-        # TODO: load parsed json/other comp type here? as dict? as pydantic?
-        # TODO: at least pass json path
+        elif isinstance(spec, JsonDetectorInput):
+            file_path = _input_path(input_cfg, io, "json")
+            json_data = _load_json_input(spec, input_cfg, file_path)
 
         upstream_config = subsequence_context.get_detector_config(input_cfg.algorithm)
         resolved[spec.name] = ResolvedInput(
@@ -166,6 +196,7 @@ def load_detector_inputs(
             upstream_config=upstream_config,
             array=array,
             file_path=file_path,
+            json=json_data,
         )
 
     return resolved

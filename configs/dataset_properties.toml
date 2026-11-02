@@ -41,11 +41,30 @@ view_right.subjects.subject = "person_right"
 
 # ======== Audio configuration ========
 # Define available audio tracks. Audio tracks can be extracted from video files (i.e. mp4, avi)
-# or from separate audio files (i.e. wav, mp3)
+# or from separate audio files (i.e. wav, mp3). Each track has a subject-identity rule
+# declaring which named subjects speak on it.
 [communication_multiview.template.audio.tracks]
-room      = {path = "<data_input_folder>/audio_combined.wav", hears_subjects = [0, 1]}
-left_mic  = {camera = "view_left",  hears_subjects = [0]}
-right_mic = {camera = "view_right", hears_subjects = [1]}
+# left subject microphone
+left_mic.camera = "view_left"  # extract audio embedded in this camera's video
+left_mic.subjects.rule = "assign"  # assign the whole track to one subject
+left_mic.subjects.subject = "person_left"  # subject name
+# right subject microphone
+right_mic.camera = "view_right"  # same, but for right subject
+right_mic.subjects.rule = "assign"
+right_mic.subjects.subject = "person_right"
+# mixed audio (can hear both subjects)
+room.path = "<data_input_folder>/audio_combined.wav"  # extract audio from wav file
+room.subjects.rule = "audio_range"  # use diarization to separate two voices 
+room.subjects.algorithm = "pyannote"  # diarization algorithm name
+room.subjects.ranges.person_left = [{start = "00:00:00", stop = "00:00:02"}]  # samples of left subject speaking
+room.subjects.ranges.person_right = [{start = "00:00:04", stop = "00:00:05"}] # samples of right subject speaking
+
+# You can also specify which stream or channel index to extract:
+# right_channel.path = "<data_input_folder>/audio_combined_stereo.wav"
+# right_channel.channel = 1  # in stereo audio 0 is left, 1 is right channel
+# or take it from video stream
+# left_track.camera = "view_center"
+# left_track.stream = 1  # view_center has three tracks: mixed, left and right tracks
 
 # ======== Evaluation configuration ========
 [communication_multiview.template.annotation]

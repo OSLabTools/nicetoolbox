@@ -55,6 +55,7 @@ class BaseMethod(BaseDetector):
     requires_out_folder: bool
     algorithm_out_folder: str
     result_folders: dict[str, str]
+    additional_results_folders: dict[str, str]
     viz_folders: dict[str, str]
     config_paths: list[Path]
 
@@ -82,6 +83,7 @@ class BaseMethod(BaseDetector):
 
         # (3) Component-Centric Result Folders (<component_name>/)
         self.result_folders = self.compute_result_folders()
+        self.additional_results_folders = self.compute_additional_results_folders()
         self.viz_folders = self.compute_viz_folders(self.visualize)
 
         # (4) Algorithm-Centric Sandbox Paths (_native_outputs/<cur_algorithm_name>/)

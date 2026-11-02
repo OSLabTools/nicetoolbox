@@ -6,7 +6,11 @@ from pydantic import BaseModel, ConfigDict
 from ..configs.models.video_timestamp import VideoTimestamp
 from ..configs.placeholders import resolve_placeholders
 from ..configs.schemas.dataset_properties import SequenceConfig
-from ..configs.schemas.detectors_config import DetectorsConfig, VideoSubjectAssignmentConfig
+from ..configs.schemas.detectors_config import (
+    AudioSubjectAssignmentConfig,
+    DetectorsConfig,
+    VideoSubjectAssignmentConfig,
+)
 from ..configs.schemas.detectors_run_file import DetectorsRunFile, DetectorsRunIO, LoggingLevelEnum, SubsequenceConfig
 from ..configs.schemas.machine_specific_paths import MachineSpecificConfig
 from ..configs.schemas.predictions_mapping import PredictionsMappingConfig
@@ -51,6 +55,18 @@ class SubsequenceContext(BaseModel):
         return list(self.sequence_properties.video.cameras.keys())
 
     @property
+    def camera_expected_subjects(self) -> Dict[str, Optional[List[str]]]:
+        """Per camera, the subjects its rule expects (None if unknown before the subject detector runs)."""
+        cameras = self.sequence_properties.video.cameras
+        return {name: camera.subjects.expected_subjects() for name, camera in cameras.items()}
+
+    @property
+    def track_expected_subjects(self) -> Dict[str, Optional[List[str]]]:
+        """Per audio track, the subjects its rule expects (None if unknown before the subject detector runs)."""
+        tracks = self.sequence_properties.audio.tracks or {}
+        return {name: track.subjects.expected_subjects() for name, track in tracks.items()}
+
+    @property
     def log_level(self) -> LoggingLevelEnum:
         return self.run.log_level
 
@@ -86,6 +102,10 @@ class SubsequenceContext(BaseModel):
     @property
     def video_subject_assignment(self) -> VideoSubjectAssignmentConfig:
         return self.detectors_config.subject_assignment.video
+
+    @property
+    def audio_subject_assignment(self) -> AudioSubjectAssignmentConfig:
+        return self.detectors_config.subject_assignment.audio
 
     # -------------------------------------------------------------------------
     # Config Access (no resolution needed - already resolved)
@@ -126,7 +146,8 @@ class SubsequenceContext(BaseModel):
         Args:
             component: Component name (e.g., 'body_joints')
             algorithm: Algorithm name (e.g., 'hrnetw48')
-            folder_type: One of 'output', 'visualization', 'native_visualization', 'run_config', 'result'
+            folder_type: One of 'output', 'visualization', 'native_visualization', 'run_config', 'result',
+                'additional_results'
 
         Returns:
             Resolved Path to the requested folder
@@ -138,6 +159,7 @@ class SubsequenceContext(BaseModel):
             "native_visualization": self.io.detector_native_visualization_folder,
             "run_config": self.io.detector_run_config_path,
             "result": self.io.detector_result_folder,
+            "additional_results": self.io.detector_additional_results_folder,
         }
 
         if folder_type not in template_map:

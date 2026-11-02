@@ -476,44 +476,98 @@ multitask_model = "<assets>/py_feat/models--py-feat--face_multitask_v2"
 face_detector_model = "<assets>/py_feat/models--py-feat--retinaface_r34"
 
 # ======================================================================
+#                      Speaker Diarization (pyannote)
+# ======================================================================
+
+# separate speakers on shared audio tracks
+# uses hf gated model weights:
+# https://huggingface.co/pyannote/speaker-diarization-community-1
+[algorithms.pyannote]
+algorithm_type = "pyannote"
+env_name = "whisperx"
+# visualization
+visualize = true
+visualize_native = false
+visualize_fallback_camera = "view_center"  # fallback for audio only tracks
+# inference settings
+exclusive = false                  # true: no concurrent speech at the same time
+min_duration_off = 0.0             # fill pauses shorter than this (s) inside one speaker's turn
+embedding_exclude_overlap = true   # build speaker embeddings from non-overlapped speech only
+# inference batch settings
+segmentation_batch_size = 1
+embedding_batch_size = 1
+# model paths
+hf_weights_cache_dir = "<assets>/whisperx"
+[algorithms.pyannote.required_assets]
+pyannote_diarization = "<assets>/whisperx/models--pyannote--speaker-diarization-community-1"
+
+# ======================================================================
 #                      Audio Transcription WhisperX
 # ======================================================================
 
-[algorithms.whisperx]
+# general audio transcription
+[templates.whisperx_template]
 algorithm_type = "whisperx"
-track_names = "*"
-fallback_camera = "view_center"
 env_name = "whisperx"
-model_size = "large-v3"
+track_names = "*"
+# inference settings
 compute_type = "float16"
 batch_size = 16
-language = "en"
+language = "en"  # language code, can be "auto" for automatic detection
 vad_onset = 0.9
 vad_offset = 0.9
-alignment_model_name = "WAV2VEC2_ASR_LARGE_LV60K_960H"
+# visualization
 visualize = true
-# Hugging Face / WhisperX model cache root (directory created at inference if missing).
-hf_weights_cache_dir = "<assets>/whisperx"
-
-[algorithms.whisperx.required_assets]
+visualize_fallback_camera = "view_center"  # fallback for audio only tracks
+# models
+model_size = "large-v3"
+hf_weights_cache_dir = "<assets>/whisperx"  # Hugging Face / WhisperX model cache root
+alignment_model_name = "WAV2VEC2_ASR_LARGE_LV60K_960H"
+[templates.whisperx_template.required_assets]
 faster_whisper = "<assets>/whisperx/models--Systran--faster-whisper-large-v3"
-pyannote_diarization = "<assets>/whisperx/models--pyannote--speaker-diarization-community-1"
 alignment_model = "<assets>/whisperx/hub/checkpoints/wav2vec2_fairseq_large_lv60k_asr_ls960.pth"
 
+# use diarization (assign each word to a subject)
+[algorithms.whisperx]
+template = "whisperx_template"
+[algorithms.whisperx.inputs]
+audio_diarization = { component = "audio_diarization", algorithm = "audio_subject_detector" }
 
-[algorithms.crisper_whisper]
+# skip diariazation, just output unassigned transcription
+[algorithms.whisperx_no_diar]
+template = "whisperx_template"
+
+# ======================================================================
+#                      Audio Transcription CrisperWhisper
+# ======================================================================
+
+# audio transcription finetuned to transcribe verbatims
+[templates.crisper_whisper_template]
 algorithm_type = "crisper_whisper"
-track_names = "*"
-fallback_camera = "view_center"
 env_name = "crisper_whisper"
+track_names = "*"
+# inference
 batch_size = 1
 chunk_length_s = 30
 stride_length_s = 5
+# visualization
 visualize = true
+visualize_fallback_camera = "view_center"  # fallback for audio only tracks
 hf_weights_cache_dir = "<assets>/crisper_whisper"
-
-[algorithms.crisper_whisper.required_assets]
+# models
+[templates.crisper_whisper_template.required_assets]
 crisper_whisper = "<assets>/crisper_whisper/models--nyrahealth--CrisperWhisper"
+
+# use diariazation (assign each word to a subject)
+[algorithms.crisper_whisper]
+template = "crisper_whisper_template"
+[algorithms.crisper_whisper.inputs]
+audio_diarization = { component = "audio_diarization", algorithm = "audio_subject_detector" }
+
+# skip diariazation, just output unassigned transcription
+[algorithms.crisper_whisper_no_diar]
+template = "crisper_whisper_template"
+
 
 # ======================================================================
 #                      Eye Closure Detection (2D)
@@ -572,3 +626,12 @@ confidence_weight = 0.1  # how important confidence comparing to geometric score
 [algorithms.video_subject_detector]
 algorithm_type = "video_subject_detector"
 visualize = true  # draw subject regions?
+
+[subject_assignment.audio]
+min_overlap = 0.3  # a speaker must cover at least this fraction of a subject's pinned range to get its identity
+
+# Service feature detector for audio tracks
+[algorithms.audio_subject_detector]
+algorithm_type = "audio_subject_detector"
+visualize = true  # draw subject segments per track?
+visualize_fallback_camera = "view_center"  # fallback for audio only tracks

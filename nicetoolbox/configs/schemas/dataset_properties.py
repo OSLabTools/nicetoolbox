@@ -1,4 +1,3 @@
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -7,7 +6,12 @@ from pydantic import BaseModel, Field, NonNegativeInt, PrivateAttr, ValidationEr
 from ..models.dict_model import DictModel
 from ..named_wildcards import discover_sequences_for_dataset
 from ..placeholders import PLACEHOLDERS_TYPE, get_placeholders_str, resolve_placeholders_dict, resolve_placeholders_str
-from .subject_rules import VIDEO_SUBJECT_RULES_REGISTRY, BaseRuleConfig
+from .subject_rules import (
+    AUDIO_SUBJECT_RULES_REGISTRY,
+    VIDEO_SUBJECT_RULES_REGISTRY,
+    BaseRuleConfig,
+    parse_subjects_rule,
+)
 
 
 class VideoTrackConfig(BaseModel):
@@ -21,18 +25,7 @@ class VideoTrackConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _parse_subjects_rule(cls, values):
-        # check if subjects already parsed
-        raw = values.get("subjects")
-        if raw is None or isinstance(raw, BaseRuleConfig):
-            return values
-        # get rule id
-        if not isinstance(raw, dict) or "rule" not in raw:
-            raise KeyError("Missing 'rule' key in dataset property assignment rule")
-        rule = raw["rule"]
-        # parse raw dict into subject assignment rule
-        values = deepcopy(values)
-        values["subjects"] = VIDEO_SUBJECT_RULES_REGISTRY.parse(rule, raw)
-        return values
+        return parse_subjects_rule(values, VIDEO_SUBJECT_RULES_REGISTRY)
 
 
 class SequenceVideo(BaseModel):
@@ -64,8 +57,13 @@ class AudioTrackConfig(BaseModel):
     # None will pass all channels to the audio detectors and let them to decide how to process multiple channels
     channel: Optional[NonNegativeInt] = None
 
-    # Which subjects this track can hear. Indices into `subjects_descr`. Must be non-empty.
-    hears_subjects: List[int] = Field(min_length=1)
+    # Subject-identity rule declaring which named subjects speak on this track
+    subjects: BaseRuleConfig
+
+    @model_validator(mode="before")
+    @classmethod
+    def _parse_subjects_rule(cls, values):
+        return parse_subjects_rule(values, AUDIO_SUBJECT_RULES_REGISTRY)
 
     @model_validator(mode="after")
     def validate_source(self):
@@ -135,6 +133,20 @@ class SequenceConfig(BaseModel):
     annotation: SequenceAnnotation = Field(default_factory=SequenceAnnotation)
     video: SequenceVideo = Field(default_factory=SequenceVideo)
     audio: SequenceAudio = Field(default_factory=SequenceAudio)
+
+    @model_validator(mode="after")
+    def _check_expected_subjects(self):
+        """Every subject a camera or audio track rule expects must be declared in `subjects`."""
+        named_rules = [(f"camera '{name}'", camera.subjects) for name, camera in self.video.cameras.items()]
+        named_rules += [(f"audio track '{name}'", track.subjects) for name, track in (self.audio.tracks or {}).items()]
+        for where, rule in named_rules:
+            unknown = [name for name in rule.expected_subjects() or [] if name not in self.subjects]
+            if unknown:
+                raise ValueError(
+                    f"Sequence '{self.sequence_id}': {where} rule '{rule.rule}' expects unknown subjects "
+                    f"{unknown}. Declared subjects: {self.subjects}."
+                )
+        return self
 
 
 class DatasetConfig(BaseModel):

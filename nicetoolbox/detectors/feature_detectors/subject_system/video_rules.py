@@ -153,11 +153,11 @@ class PathVideoRule(BaseVideoRule):
     rule_type = "path"
 
     def compute(self):
-        array = load_array_from_path(self.rule.path, "regions")
+        array = load_array_from_path(self.rule.source, "regions")
         if array is None:
             raise ValueError(
                 f"video_subject_detector: camera '{self.cam_name}' PathRule "
-                f"npz '{self.rule.path}' has no 'regions' key."
+                f"npz '{self.rule.source}' has no 'regions' key."
             )
 
         slab = self.empty_slab()

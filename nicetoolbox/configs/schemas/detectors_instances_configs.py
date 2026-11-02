@@ -347,7 +347,7 @@ class WhisperXConfig(BaseAlgorithmConfig):
     env_name: str
     visualize: bool
     track_names: str | list[str]
-    fallback_camera: Optional[str] = None
+    visualize_fallback_camera: Optional[str] = None  # video frames for tracks not embedded in a camera; None = black
 
     model_size: str
     compute_type: str
@@ -361,6 +361,30 @@ class WhisperXConfig(BaseAlgorithmConfig):
         description="Directory for WhisperX / Hugging Face weight caches (created at inference if missing).",
     )
     required_assets: Dict[str, str] = Field(default_factory=dict)
+
+
+@detector_config("pyannote")
+class PyannoteConfig(BaseAlgorithmConfig):
+    env_name: str
+    track_names: str | list[str] = Field(default_factory=list)
+    visualize: bool
+    visualize_native: bool
+    visualize_fallback_camera: Optional[str] = None  # video frames for tracks not embedded in a camera; None = black
+    hf_weights_cache_dir: str
+    required_assets: Dict[str, str] = Field(default_factory=dict)
+    # some exposed inference params
+    exclusive: bool
+    min_duration_off: float = Field(ge=0.0)
+    embedding_exclude_overlap: bool
+    segmentation_batch_size: int = Field(ge=1)
+    embedding_batch_size: int = Field(ge=1)
+
+    class RuntimeConfig(MethodDetectorRuntime):
+        """Pyannote-specific runtime fields."""
+
+        # Per audio track, the subjects its rule expects; their number is the exact speaker count.
+        # None (rule cannot tell) or no subjects lets pyannote estimate it.
+        track_expected_subjects: Dict[str, Optional[List[str]]]
 
 
 @detector_config("sam_3d_body")
@@ -390,7 +414,7 @@ class CrisperWhisperConfig(BaseAlgorithmConfig):
     track_names: str | list[str]
     env_name: str
     visualize: bool
-    fallback_camera: Optional[str] = None
+    visualize_fallback_camera: Optional[str] = None  # video frames for tracks not embedded in a camera; None = black
 
     batch_size: int
     chunk_length_s: float
@@ -462,6 +486,14 @@ class VideoSubjectSystemConfig(BaseAlgorithmConfig):
     """Config for the VideoSubjectDetector; behavior comes entirely from dataset rules."""
 
     visualize: bool = False
+
+
+@detector_config("audio_subject_detector")
+class AudioSubjectSystemConfig(BaseAlgorithmConfig):
+    """Config for the AudioSubjectDetector; behavior comes entirely from dataset rules."""
+
+    visualize: bool = False
+    visualize_fallback_camera: Optional[str] = None  # video frames for tracks not embedded in a camera; None = black
 
 
 @detector_config("eye_closure_ear")
