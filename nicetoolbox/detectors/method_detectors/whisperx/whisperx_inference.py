@@ -2,39 +2,32 @@
 WhisperX inference entrypoint.
 """
 
-import copy
 import json
 import logging
 import os
 from pathlib import Path
 
 import librosa
-import torch
 import whisperx
 
 from nicetoolbox_core.audio_loaders import AudioStreamLoader
 from nicetoolbox_core.entrypoint import SubprocessResult, run_inference_entrypoint
 
-# Raw packs read back by whisperx_detector.post_inference
+# Raw pack read back by whisperx_detector.post_inference
 RAW_TRANSCRIPTION_JSON_NAME = "whisperx_transcription_raw.json"
-RAW_DIARIZATION_JSON_NAME = "whisperx_diarization_raw.json"
-RAW_SPEAKER_ALIGNED_JSON_NAME = "whisperx_speaker_aligned_raw.json"
 
 
 @run_inference_entrypoint
 def whisperx_inference(config: dict) -> SubprocessResult:
     logging.info("Starting WhisperX Inference Pipeline.")
 
-    subjects_description = config["subjects_descr"]
-    extra_detector_output_folder = config["algorithm_out_folder"]  # additional detector results
-
+    out_folder = config["algorithm_out_folder"]  # additional detector results
     cache_raw = config["hf_weights_cache_dir"]
     assets_dir = str(Path(cache_raw).expanduser())
-    os.makedirs(assets_dir, exist_ok=True)
-    os.environ["TORCH_HOME"] = assets_dir
 
-    # to make sure whisperx components don't make a call to hf
+    # to make sure whisperx components don't make a call to hf or torch
     # via snapshot_download and explicitly use downloaded assets
+    os.environ["TORCH_HOME"] = assets_dir
     os.environ["HF_HUB_CACHE"] = assets_dir
     os.environ["HF_HOME"] = assets_dir
     os.environ["HF_HUB_OFFLINE"] = "1"
@@ -45,8 +38,8 @@ def whisperx_inference(config: dict) -> SubprocessResult:
     vad_onset = config["vad_onset"]
     vad_offset = config["vad_offset"]
     align_model_name = config["alignment_model_name"]
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    compute_type = config["compute_type"] if device == "cuda" else "int8"
+    compute_type = config["compute_type"]
+    device = "cuda"
 
     audio_loader = AudioStreamLoader(config=config, expected_tracks=config["track_names"])
 
@@ -69,12 +62,7 @@ def whisperx_inference(config: dict) -> SubprocessResult:
         model_dir=torch_hub_checkpoints_dir,
     )
 
-    diarize_model = whisperx.diarize.DiarizationPipeline(device=device, cache_dir=assets_dir)
-
-    # Components output storage dicts
     out_transcription = {}
-    out_diarization = {}
-    out_speaker_aligned = {}
 
     for track_name, path, offset, duration in audio_loader.with_progress(desc="WhisperX"):
         logging.info(f"Processing track: {track_name}")
@@ -82,8 +70,6 @@ def whisperx_inference(config: dict) -> SubprocessResult:
         # (1) Load and slice audio track
         sample_rate = 16000  # WhisperX default
         audio, _ = librosa.load(path, sr=sample_rate, offset=offset, duration=duration)
-        hears_subjects = audio_loader.get_hears_subjects(track_name)
-        logging.info(f"Track '{track_name}' hears subjects: {hears_subjects}")
 
         # (2) Transcribe
         result = model.transcribe(audio, batch_size=batch_size, language=language)
@@ -94,55 +80,19 @@ def whisperx_inference(config: dict) -> SubprocessResult:
         )
         out_transcription[track_name] = result_aligned
 
-        # (4) Diarization
-        num_speakers = len(hears_subjects)
-        # TODO: do we even need to run diarization on a single speaker?
-        diarize_segments = diarize_model(audio, min_speakers=num_speakers, max_speakers=num_speakers)
-        if num_speakers == 1:
-            num_speakers_detected = len(diarize_segments["speaker"].unique())
-            if num_speakers_detected != 1:
-                logging.warning(
-                    f"Expected 1 speaker for track '{track_name}' based on hears_subjects, but pyannote found "
-                    f"{num_speakers_detected} unique speakers. Check diarization for this track and tune VAD options."
-                )
-            else:
-                # Assign actual subject name to speaker label since we know there's only 1 speaker for this track
-                # based on hears_subjects
-                diarize_segments["speaker"] = subjects_description[hears_subjects[0]]
-
-        # Keep only the JSON-serializable turn fields
-        out_diarization[track_name] = diarize_segments[["speaker", "start", "end"]].to_dict(orient="records")
-
-        # (5) Assign Speakers
-        result_aligned_copy = copy.deepcopy(result_aligned)  # Avoid modifying original aligned results in place
-        result_final = whisperx.assign_word_speakers(diarize_segments, result_aligned_copy)
-        out_speaker_aligned[track_name] = result_final
-
-        # (6) Save whisperx's built-in SRT as <track>_raw.srt, kept for reference only.
-        os.makedirs(extra_detector_output_folder, exist_ok=True)
+        # (4) Save whisperx's built-in SRT as <track>_raw.srt, kept for reference only.
+        os.makedirs(out_folder, exist_ok=True)
         writer_options = {
             "highlight_words": True,
             "max_line_width": None,
             "max_line_count": None,
         }
-        srt_writer = whisperx.utils.get_writer("srt", extra_detector_output_folder)
-        srt_writer({**result_final, "language": language}, f"{track_name}_raw.wav", writer_options)
+        srt_writer = whisperx.utils.get_writer("srt", out_folder)
+        srt_writer({**result_aligned, "language": language}, f"{track_name}_raw.wav", writer_options)
 
-    # Every component is written as a raw intermediate: post_inference converts them to their
-    # schema models and the framework saves each component's final json.
-    artifacts = {}
-    for component, raw_name, out_dict in [
-        ("audio_transcription", RAW_TRANSCRIPTION_JSON_NAME, out_transcription),
-        ("audio_diarization", RAW_DIARIZATION_JSON_NAME, out_diarization),
-        ("speaker_aligned_transcription", RAW_SPEAKER_ALIGNED_JSON_NAME, out_speaker_aligned),
-    ]:
-        out_dir = config["algorithm_out_folder"]
-        os.makedirs(out_dir, exist_ok=True)
-        save_file = os.path.join(out_dir, raw_name)
-        with open(save_file, "w") as f:
-            json.dump(out_dict, f, indent=4)
-        artifacts[f"{component}_json"] = save_file
+    save_file = os.path.join(out_folder, RAW_TRANSCRIPTION_JSON_NAME)
+    with open(save_file, "w") as f:
+        json.dump(out_transcription, f, indent=4)
 
     logging.info("WhisperX processing complete.")
-
-    return SubprocessResult.from_artifacts(**artifacts)
+    return SubprocessResult.from_artifacts(audio_transcription_json=save_file)

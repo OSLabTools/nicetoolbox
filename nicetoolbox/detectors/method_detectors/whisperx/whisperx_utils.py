@@ -2,11 +2,9 @@ import math
 from typing import Optional
 
 from nicetoolbox_core.data.json_schema import (
-    AlignedTranscription,
     AudioDiarization,
     AudioTranscription,
     JsonMeta,
-    SpeakerAlignedTranscription,
     TrackDiarization,
     TrackTranscription,
 )
@@ -29,17 +27,9 @@ def _mean(values: list[Optional[float]]) -> Optional[float]:
     return sum(present) / len(present) if present else None
 
 
-def _speaker_confidence(speaker: Optional[str], raw_words: list[dict]) -> float:
-    """Fraction of a segment's words carrying exactly this segment's speaker."""
-    if not raw_words:
-        return 0.0
-    agreeing = sum(1 for word in raw_words if word.get("speaker") is not None and word.get("speaker") == speaker)
-    return agreeing / len(raw_words)
-
-
-def _to_word(raw: dict, segment_index: Optional[int] = None, with_speaker: bool = False) -> dict:
+def _to_word(raw: dict, segment_index: Optional[int] = None) -> dict:
     """A word, from whisperx's aligned word record."""
-    word = {
+    return {
         "word": raw["word"],
         "segment_index": segment_index,
         # Alignment can fail to place a word, leaving it without timings.
@@ -47,42 +37,31 @@ def _to_word(raw: dict, segment_index: Optional[int] = None, with_speaker: bool 
         "end": raw.get("end"),
         "confidence": raw.get("score"),
     }
-    if with_speaker:
-        word["speaker"] = raw.get("speaker")
-    return word
 
 
-def _to_segment(raw: dict, with_speaker: bool = False) -> dict:
+def _to_segment(raw: dict) -> dict:
     """A segment, from whisperx's segment record."""
-    segment = {
+    return {
         "text": raw["text"],
         "start": raw["start"],
         "end": raw["end"],
         "confidence": logprob_to_confidence(raw.get("avg_logprob")),
     }
 
-    # check if we have diarization info
-    if with_speaker:
-        speaker = raw.get("speaker")
-        segment["speaker"] = speaker
-        segment_words = raw.get("words", [])
-        segment["speaker_confidence"] = _speaker_confidence(speaker, segment_words)
-    return segment
 
-
-def _parse(raw_track: dict, with_speaker: bool = False) -> tuple[list[dict], list[dict]]:
+def _parse(raw_track: dict) -> tuple[list[dict], list[dict]]:
     """Extract whisperx words and segments."""
     segments = []
     words = []
     for index, raw_segment in enumerate(raw_track["segments"]):
         # extract segment
-        segment = _to_segment(raw_segment, with_speaker=with_speaker)
+        segment = _to_segment(raw_segment)
         segments.append(segment)
 
         # extract all nested words in current segment
         raw_words = raw_segment.get("words", [])
         for raw_word in raw_words:
-            word = _to_word(raw_word, segment_index=index, with_speaker=with_speaker)
+            word = _to_word(raw_word, segment_index=index)
             words.append(word)
 
     return segments, words
@@ -167,31 +146,3 @@ def to_audio_diarization(
         tables={"tracks": ["segments"]},
     )
     return AudioDiarization(meta=meta, tracks=tracks)
-
-
-def to_speaker_aligned_transcription(
-    raw_tracks: dict, subsequence_start: float, subsequence_length: float, algorithm: str
-) -> SpeakerAlignedTranscription:
-    """Convert raw per-track speaker-assigned WhisperX results into the aligned model.
-
-    Args:
-        raw_tracks: {track_name: result} as produced by whisperx.assign_word_speakers.
-        subsequence_start: Source-recording second this subsequence begins at.
-        subsequence_length: Length of the subsequence in seconds. Recorded in meta, and used as
-            the total's end for a track that transcribed to nothing.
-        algorithm: Detector instance name that produced this output.
-    """
-    tracks = {}
-    for track_name, raw in raw_tracks.items():
-        segments, words = _parse(raw, with_speaker=True)
-        total = _to_total(segments, audio_end=subsequence_length)
-        tracks[track_name] = AlignedTranscription(words=words, segments=segments, total=total)
-
-    meta = JsonMeta(
-        component="speaker_aligned_transcription",
-        algorithm=algorithm,
-        subsequence_start=subsequence_start,
-        subsequence_length=subsequence_length,
-        tables={"tracks": ["segments", "words"]},
-    )
-    return SpeakerAlignedTranscription(meta=meta, tracks=tracks)

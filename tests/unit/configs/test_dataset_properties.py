@@ -295,7 +295,7 @@ def test_template_sequence_id_referencing_outer_scope_breaks_override_match(load
                     "sequences": [
                         {
                             "sequence_id": f"{root_posix}_PIS_ID_000",
-                            "audio": {"tracks": {"room": {"path": "/tmp/room.wav", "hears_subjects": [0]}}},
+                            "audio": {"tracks": {"room": {"path": "/tmp/room.wav", "subjects": {"rule": "none"}}}},
                         },
                     ],
                     "template": {
@@ -403,7 +403,7 @@ def test_explicit_sequence_overrides_discovered_by_id(load_dataset_props, datase
                         "sequence_id": "PIS_ID_000",
                         "audio": {
                             "tracks": {
-                                "room": {"path": "/tmp/room.wav", "hears_subjects": [0]},
+                                "room": {"path": "/tmp/room.wav", "subjects": {"rule": "none"}},
                             },
                         },
                     },

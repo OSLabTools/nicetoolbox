@@ -143,7 +143,8 @@ dataset_properties = "<configs_folder_path>/dataset_properties.toml"
 detectors_config = "<configs_folder_path>/detectors_config.toml"
 predictions_mapping = "<configs_folder_path>/predictions_mapping.toml"
 detector_result_folder = "<out_sub_folder>/<cur_component_name>"
-detector_visualization_folder = "<detector_result_folder>/<cur_algorithm_name>/visualization/"
+detector_additional_results_folder = "<detector_result_folder>/<cur_algorithm_name>"
+detector_visualization_folder = "<detector_additional_results_folder>/visualization/"
 detector_native_folder = "<out_sub_folder>/_native_outputs/<cur_algorithm_name>"
 detector_native_out_folder = "<detector_native_folder>/detector_output"
 detector_native_visualization_folder = "<detector_native_folder>/visualization"
@@ -159,7 +160,7 @@ detector_run_config_path = "<detector_native_folder>"
 - `assets` stores the folder path of additional assets, like model checkpoints and weights (str).
 - `asset_manifest` is the path to the asset manifest config that tracks downloadable model weights (str).
 - `dataset_properties`, `detectors_config`, and `predictions_mapping` store where to find those config files (str). All default to the project's `<configs_folder_path>`.
-- `detector_result_folder` and `detector_visualization_folder` define where each detector stores its final results and visualizations for all components and algorithms (str). The final results of all components and algorithms per detector are saved under `detector_result_folder`.
+- `detector_result_folder`, `detector_additional_results_folder` and `detector_visualization_folder` define where each detector stores its final results and visualizations for all components and algorithms (str). The final results of all components and algorithms per detector are saved under `detector_result_folder`.
 - `detector_native_folder`, `detector_native_out_folder`, `detector_native_visualization_folder`, and `detector_run_config_path` define where method detectors store their native outputs (from external environments) and run configs (str).
 
 ## Dataset properties

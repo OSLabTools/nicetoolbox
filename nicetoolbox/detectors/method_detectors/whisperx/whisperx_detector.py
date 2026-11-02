@@ -1,3 +1,7 @@
+"""
+WhisperX method detector class.
+"""
+
 import json
 import os
 
@@ -8,110 +12,94 @@ from nicetoolbox_core.entrypoint import SubprocessResult
 from ....configs.schemas.detectors_instances_configs import MethodDetectorRuntime
 from ....utils import video as vd
 from ....utils.srt import SrtWriter
+from ...detector_inputs import JsonDetectorInput
 from ...detector_outputs import DetectorOutput, JsonDetectorOutput
+from ...subjects import to_speaker_aligned_transcription
 from ..base_method import BaseMethod
-from .whisperx_utils import to_audio_diarization, to_audio_transcription, to_speaker_aligned_transcription
+from .whisperx_utils import to_audio_transcription
 
 
 class WhisperX(BaseMethod):
     algorithm_type = "whisperx"
-    components = ["audio_transcription", "audio_diarization", "speaker_aligned_transcription"]
+    components = ["audio_transcription", "speaker_aligned_transcription"]
 
-    outputs = [
-        JsonDetectorOutput("audio_transcription", schema=AudioTranscription),
-        JsonDetectorOutput("audio_diarization", schema=AudioDiarization),
-        JsonDetectorOutput("speaker_aligned_transcription", schema=SpeakerAlignedTranscription),
+    # inputs and outputs
+    inputs = [
+        JsonDetectorInput("audio_diarization", "audio_diarization", schema=AudioDiarization, optional=True),
     ]
+
+    def resolve_outputs(self) -> list[JsonDetectorOutput]:
+        outputs = [JsonDetectorOutput("audio_transcription", schema=AudioTranscription)]
+        if "audio_diarization" in self.loaded_inputs:  # optional, if have diarization
+            outputs.append(JsonDetectorOutput("speaker_aligned_transcription", schema=SpeakerAlignedTranscription))
+        return outputs
 
     def _initialize_detector(self) -> MethodDetectorRuntime:
         if not self.data.has_audio():
             raise RuntimeError("WhisperX requires audio data but no audio was prepared.")
 
         self.audio_loader = AudioStreamLoader(
-            config=self.data.get_input_recipes(), expected_tracks=self.detector_config.track_names
+            config=self.data.get_input_recipes(),
+            expected_tracks=self.detector_config.track_names,
         )
-
         return super()._initialize_detector()
 
-    def _load_raw(self, component: str, result_manifest: SubprocessResult) -> dict:
-        """Load a component's raw inference pack from its out_folder."""
-        raw_path = result_manifest.artifacts[f"{component}_json"]
-        with open(raw_path) as f:
-            return json.load(f)
-
     def post_inference(self, result_manifest: SubprocessResult) -> DetectorOutput:
-        """Convert the raw inference packs into this detector's component outputs."""
+        """Convert the raw inference pack into this detector's component output.
+
+        The result shares the AudioTranscription schema with CrisperWhisper, so the two
+        backbones stay interchangeable.
+        """
         # Timestamps are relative to the subsequence, since inference is handed sliced audio.
         # Recording where it starts lets a consumer place them back on the source timeline.
-        start = self.audio_loader.offset_seconds
-        length = self.audio_loader.duration_seconds
+        raw_path = result_manifest.artifacts["audio_transcription_json"]
 
-        raw_transcription = self._load_raw("audio_transcription", result_manifest)
+        with open(raw_path) as f:
+            raw_transcription = json.load(f)
+
+        # parse raw transcription
+        out = DetectorOutput()
         transcription = to_audio_transcription(
             raw_transcription,
-            subsequence_start=start,
-            subsequence_length=length,
+            subsequence_start=self.audio_loader.offset_seconds,
+            subsequence_length=self.audio_loader.duration_seconds,
             algorithm=self.algorithm_instance,
         )
-
-        raw_diarization = self._load_raw("audio_diarization", result_manifest)
-        diarization = to_audio_diarization(
-            raw_diarization,
-            subsequence_start=start,
-            subsequence_length=length,
-            algorithm=self.algorithm_instance,
-        )
-
-        raw_speaker_aligned = self._load_raw("speaker_aligned_transcription", result_manifest)
-        speaker_aligned = to_speaker_aligned_transcription(
-            raw_speaker_aligned,
-            subsequence_start=start,
-            subsequence_length=length,
-            algorithm=self.algorithm_instance,
-        )
-
-        # SRTs feed the subtitled-video visualization. Both transcription components get one so
-        # any difference introduced by speaker alignment is visible side by side.
-        srt_writer = SrtWriter()
-        srt_writer.write_tracks(transcription.tracks, self.result_folders["audio_transcription"])
-        srt_writer.write_tracks(speaker_aligned.tracks, self.result_folders["speaker_aligned_transcription"])
-
-        out = DetectorOutput()
         out.add_json("audio_transcription", transcription)
-        out.add_json("audio_diarization", diarization)
-        out.add_json("speaker_aligned_transcription", speaker_aligned)
+
+        # save it to srt
+        srt_writer = SrtWriter()
+        srt_folder = self.additional_results_folders["audio_transcription"]
+        srt_writer.write_tracks(transcription.tracks, srt_folder)
+
+        # try to assign words/segments to speakers
+        if "audio_diarization" in self.loaded_inputs:
+            speaker_aligned = to_speaker_aligned_transcription(
+                transcription,
+                self.loaded_inputs["audio_diarization"].json,
+                algorithm=self.algorithm_instance,
+            )
+            out.add_json("speaker_aligned_transcription", speaker_aligned)
+            # save aligned version to srt
+            path = self.additional_results_folders["speaker_aligned_transcription"]
+            srt_writer.write_tracks(speaker_aligned.tracks, path)
+
         return out
 
     def visualization(self, _) -> None:
-        """
-        Generates visualizations overlaying SRT subtitles onto video files.
-
-        Uses the SRT files generated by our own SrtWriter in post_inference (one per track per
-        component). We render both the audio_transcription and the speaker_aligned_transcription
-        components so that any differences introduced by the speaker-alignment phase are visible.
-
-        For each track we create a new video from the video frames (if available) or a black
-        background (if not) and overlay the SRT subtitles onto it.
-        """
-        if not self.visualize:
-            return
-
-        for component in ("audio_transcription", "speaker_aligned_transcription"):
-            self._visualize_component(component)
-
-    def _visualize_component(self, component: str) -> None:
-        """Bake the per-track SRT of a single component into a subtitled video."""
-        video_recipe = self.data.get_input_recipes().video_input_recipe
-        for track_name in self.audio_loader.tracks:
-            info = self.audio_loader.get_stream_info(track_name)
-
-            vd.render_subtitled_track(
-                srt_path=os.path.join(self.result_folders[component], f"{track_name}.srt"),
-                audio_path=info["source_path"],
-                output_path=os.path.join(self.viz_folders[component], f"{track_name}.mp4"),
-                fps=self.data.fps,
-                default_start_frame=self.data.video_start_frame_index,
-                video_recipe=video_recipe,
-                camera=info.get("camera"),
-                fallback_camera=self.detector_config.fallback_camera,
-            )
+        # for raw and (if produced) aligned transcription
+        for component in [output.component for output in self.declared_outputs]:
+            video_recipe = self.data.get_input_recipes().video_input_recipe
+            # for each audio track
+            for track_name in self.audio_loader.tracks:
+                info = self.audio_loader.get_stream_info(track_name)
+                vd.render_subtitled_track(
+                    srt_path=os.path.join(self.additional_results_folders[component], f"{track_name}.srt"),
+                    audio_path=info["source_path"],
+                    output_path=os.path.join(self.viz_folders[component], f"{track_name}.mp4"),
+                    fps=self.data.fps,
+                    default_start_frame=self.data.video_start_frame_index,
+                    video_recipe=video_recipe,
+                    camera=info.get("camera"),
+                    fallback_camera=self.detector_config.visualize_fallback_camera,
+                )

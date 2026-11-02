@@ -1,6 +1,7 @@
 import pytest
 
 from nicetoolbox.configs.schemas.detectors_config import (
+    AudioSubjectAssignmentConfig,
     DetectorsConfig,
     SubjectAssignmentConfig,
     VideoSubjectAssignmentConfig,
@@ -10,6 +11,7 @@ from nicetoolbox.utils.dependency_sort import sort_detectors_order, topological_
 
 _DEFAULT_SUBJECT_ASSIGNMENT = SubjectAssignmentConfig(
     video=VideoSubjectAssignmentConfig(min_overlap=0.35, confidence_weight=0.1),
+    audio=AudioSubjectAssignmentConfig(min_overlap=0.3),
 )
 
 

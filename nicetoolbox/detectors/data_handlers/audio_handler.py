@@ -95,7 +95,6 @@ class AudioDataHandler(BaseModalityHandler):
         """Prepare a single audio track (embedded or standalone)."""
         stream_idx = track_cfg.stream
         channel_idx = track_cfg.channel
-        hears = track_cfg.hears_subjects
         logging.info(f"Extracting audio track '{track_name}', stream: {stream_idx}, channel: {channel_idx}")
 
         camera = None
@@ -117,7 +116,7 @@ class AudioDataHandler(BaseModalityHandler):
         output_path = self.audio_output_folder / f"{track_name}.wav"
         if output_path.exists():
             logging.info(f"Audio track '{track_name}' already prepared: '{output_path}'")
-            self._register_file(track_name, source_type, hears, output_path, source_path, camera=camera)
+            self._register_file(track_name, source_type, output_path, source_path, camera=camera)
             return
 
         # validate input file with ffprobe before processing
@@ -130,7 +129,7 @@ class AudioDataHandler(BaseModalityHandler):
         # extract with ffmpeg
         logging.info("Extracting Audio Track from file...")
         self._ffmpeg_extract_full(source_path, output_path, stream_idx, channel_idx)
-        self._register_file(track_name, source_type, hears, output_path, source_path, camera=camera)
+        self._register_file(track_name, source_type, output_path, source_path, camera=camera)
         logging.info(f"Audio Track extracted: {output_path}")
 
     # -------------------------------------------------------------------------
@@ -141,7 +140,6 @@ class AudioDataHandler(BaseModalityHandler):
         self,
         track_name: str,
         source_type: str,
-        hears_subjects: List[int],
         output_path: Path,
         source_path: Optional[Path] = None,
         camera: Optional[str] = None,
@@ -170,7 +168,6 @@ class AudioDataHandler(BaseModalityHandler):
             channels=int(channels),
             source_type=source_type,
             camera=camera,
-            hears_subjects=hears_subjects,
         )
 
     # -------------------------------------------------------------------------

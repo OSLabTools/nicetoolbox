@@ -156,20 +156,6 @@ class AudioDataLoader(ABC):
             raise KeyError(f"Track '{track_name}' not found. Available: {list(self.streams.keys())}")
         return self.streams[track_name].channels
 
-    def get_hears_subjects(self, track_name: str) -> List[int]:
-        """Get hears subjects list for a specific track."""
-        if track_name not in self.streams:
-            raise KeyError(f"Track '{track_name}' not found. Available: {list(self.streams.keys())}")
-        return self.streams[track_name].hears_subjects
-
-    def get_tracks_for_subject(self, subject_idx: int) -> List[str]:
-        """Get track names that can hear a specific subject."""
-        result = []
-        for name in self.tracks:
-            if subject_idx in self.streams[name].hears_subjects:
-                result.append(name)
-        return result
-
     def _validate_path(self, path: str) -> bool:
         """Check if an audio file path exists."""
         if not Path(path).exists():

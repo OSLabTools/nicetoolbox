@@ -12,7 +12,7 @@ from ....installation.installer_utils import (
 METADATA = {
     "name": "whisperx",
     "label": "WhisperX",
-    "description": "Speech transcription",
+    "description": "Speech transcription and diarization",
 }
 
 

@@ -1,7 +1,7 @@
 import re
 from typing import Annotated
 
-from pydantic import BeforeValidator
+from pydantic import BaseModel, BeforeValidator, NonNegativeInt
 
 # Accepts both colons (00:01:30) and dashes (00-01-30) as separators
 _TIMESTAMP_PATTERN = re.compile(
@@ -66,3 +66,17 @@ def timestamp_to_frame_index(value: int | str, fps: int) -> int:
 
 # Pydantic type: validates format and normalizes to dash-separated string
 VideoTimestamp = Annotated[str, BeforeValidator(_validate_video_timestamp)]
+
+
+class VideoTimeRange(BaseModel):
+    start: NonNegativeInt | VideoTimestamp
+    stop: NonNegativeInt | VideoTimestamp  # TODO: support -1?
+
+    def to_seconds(self, fps: int) -> tuple[float, float]:
+        """The range as (start, stop) seconds of the source recording."""
+        # a frame index and a timestamp only compare once fps is known, so the order is checked here
+        start = timestamp_to_ms(self.start, fps) / 1000.0
+        stop = timestamp_to_ms(self.stop, fps) / 1000.0
+        if stop <= start:
+            raise ValueError(f"Range stop '{self.stop}' must be after start '{self.start}'.")
+        return start, stop

@@ -1,8 +1,16 @@
+import json
+
 import pytest
 
 from nicetoolbox.configs.schemas.detectors_instances_configs import BaseAlgorithmConfig, DetectorInputConfig
-from nicetoolbox.detectors.detector_inputs import BaseDetectorInput, NpzDetectorInput, load_detector_inputs
+from nicetoolbox.detectors.detector_inputs import (
+    BaseDetectorInput,
+    JsonDetectorInput,
+    NpzDetectorInput,
+    load_detector_inputs,
+)
 from nicetoolbox_core.data.array_schema import VECTOR_2D_CONF_PER_LABEL
+from nicetoolbox_core.data.json_schema import AudioDiarization
 from tests.unit.data.conftest import make_npz
 
 # ---------------------------------------------------------------------------
@@ -157,3 +165,58 @@ class TestNonNpz:
         assert resolved["transcript"].array is None
         assert resolved["transcript"].npz_key is None
         assert resolved["transcript"].algorithm == "whisperx"
+
+
+# ---------------------------------------------------------------------------
+# JSON inputs
+# ---------------------------------------------------------------------------
+
+
+def _write_regions_json(folder, algorithm="audio_subject_detector", speaker="person_left"):
+    """Write an upstream audio_diarization JSON with one segment on one track."""
+    payload = {
+        "meta": {
+            "component": "audio_diarization",
+            "algorithm": algorithm,
+            "subsequence_start": 0.0,
+            "subsequence_length": 10.0,
+        },
+        "tracks": {"left_mic": {"segments": [{"speaker": speaker, "start": 0.0, "end": 10.0}]}},
+    }
+    (folder / f"{algorithm}.json").write_text(json.dumps(payload))
+
+
+class TestJson:
+    _cfg = {"subjects": DetectorInputConfig(component="audio_diarization", algorithm="audio_subject_detector")}
+    _context = FakeContext({"audio_subject_detector": _upstream_config()})
+
+    def test_json_input_parsed_into_schema(self, tmp_path):
+        _write_regions_json(tmp_path)
+        declared = [JsonDetectorInput("audio_diarization", "subjects", schema=AudioDiarization)]
+
+        resolved = load_detector_inputs(declared, self._cfg, FakeIO(tmp_path), self._context)
+
+        regions = resolved["subjects"].json
+        assert isinstance(regions, AudioDiarization)
+        assert regions.tracks["left_mic"].segments[0].speaker == "person_left"
+        assert resolved["subjects"].array is None
+        assert resolved["subjects"].file_path == tmp_path / "audio_subject_detector.json"
+
+    def test_json_input_without_schema_is_raw_dict(self, tmp_path):
+        _write_regions_json(tmp_path)
+        declared = [JsonDetectorInput("audio_diarization", "subjects")]
+
+        resolved = load_detector_inputs(declared, self._cfg, FakeIO(tmp_path), self._context)
+
+        assert resolved["subjects"].json["tracks"]["left_mic"]["segments"][0]["speaker"] == "person_left"
+
+    def test_json_input_missing_file_raises(self, tmp_path):
+        declared = [JsonDetectorInput("audio_diarization", "subjects", schema=AudioDiarization)]
+        with pytest.raises(FileNotFoundError, match="audio_subject_detector.json"):
+            load_detector_inputs(declared, self._cfg, FakeIO(tmp_path), self._context)
+
+    def test_json_input_schema_mismatch_raises(self, tmp_path):
+        (tmp_path / "audio_subject_detector.json").write_text(json.dumps({"tracks": {}}))  # no meta
+        declared = [JsonDetectorInput("audio_diarization", "subjects", schema=AudioDiarization)]
+        with pytest.raises(ValueError, match="schema validation"):
+            load_detector_inputs(declared, self._cfg, FakeIO(tmp_path), self._context)

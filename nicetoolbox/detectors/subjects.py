@@ -2,9 +2,19 @@ import warnings
 
 import numpy as np
 
+from nicetoolbox_core.data.json_schema import (
+    AlignedSegment,
+    AlignedTranscription,
+    AlignedWord,
+    AudioDiarization,
+    AudioTranscription,
+    DiarizationSegment,
+    SpeakerAlignedTranscription,
+    TrackTranscription,
+)
 from nicetoolbox_core.data.loaded_array import NpzArray
 
-from ..configs.schemas.detectors_config import VideoSubjectAssignmentConfig
+from ..configs.schemas.detectors_config import AudioSubjectAssignmentConfig, VideoSubjectAssignmentConfig
 
 
 def cam_sees_subjects_from_regions(subject_regions: NpzArray) -> dict[str, list[int]]:
@@ -134,3 +144,170 @@ def assign_detections(
     # Un-sort back to input order.
     assigned[order] = sorted_assign
     return assigned
+
+
+def assign_speakers_from_ranges(
+    segments: list[DiarizationSegment],
+    ranges: dict[str, list[tuple[float, float]]],
+    config: AudioSubjectAssignmentConfig,
+) -> dict[str, str]:
+    """
+    Assign anonymous diarization speakers to subjects using known ranges per subject.
+
+    Each range is a stretch of time in which only that subject speaks. A speaker's score for a
+    subject is the fraction of the subject's total range time it covers. Pairs scoring below
+    min_overlap are discarded, then the best remaining pair is assigned greedily, one speaker per subject.
+
+    Args:
+        segments: Diarization segments labeled with anonymous speakers (e.g. "SPEAKER_00").
+        ranges: Subject name -> non-empty (start, end) ranges in the same time base as the segments.
+        config: Shared assignment knobs (min_overlap).
+
+    Returns:
+        Anonymous speaker -> subject name, for assigned speakers only.
+    """
+    coverage = range_coverage(segments, ranges)
+    speakers = list(coverage)
+    subjects = list(ranges)
+    if not speakers or not subjects:
+        return {}
+
+    score = np.array([[coverage[speaker][subject] for subject in subjects] for speaker in speakers], dtype=float)
+    score = np.where(score >= config.min_overlap, score, 0.0)
+
+    # Greedy: repeatedly take the argmax cell, assign, zero its row and column.
+    assignment = {}
+    while True:
+        flat_idx = int(np.argmax(score))
+        if score.flat[flat_idx] <= 0.0:
+            break
+        speaker_i, subject_j = np.unravel_index(flat_idx, score.shape)
+        assignment[speakers[speaker_i]] = subjects[subject_j]
+        score[speaker_i, :] = 0.0
+        score[:, subject_j] = 0.0
+    return assignment
+
+
+def _overlap(start_a: float, end_a: float, start_b: float, end_b: float) -> float:
+    """Length of the intersection of two time intervals, 0 if they are disjoint."""
+    return max(0.0, min(end_a, end_b) - max(start_a, start_b))
+
+
+def _ranges_overlap(start: float, end: float, ranges: list[tuple[float, float]]) -> float:
+    """Total length of the intersection of an interval with non-overlapping ranges."""
+    return sum(_overlap(start, end, range_start, range_end) for range_start, range_end in ranges)
+
+
+def range_coverage(
+    segments: list[DiarizationSegment], ranges: dict[str, list[tuple[float, float]]]
+) -> dict[str, dict[str, float]]:
+    """Per anonymous speaker (sorted), the fraction of each subject's total range time during which it speaks."""
+    totals = {subject: sum(end - start for start, end in subject_ranges) for subject, subject_ranges in ranges.items()}
+    coverage = {speaker: dict.fromkeys(ranges, 0.0) for speaker in sorted({segment.speaker for segment in segments})}
+    for segment in segments:
+        for subject, subject_ranges in ranges.items():
+            if totals[subject] > 0.0:
+                overlap = _ranges_overlap(segment.start, segment.end, subject_ranges)
+                coverage[segment.speaker][subject] += overlap / totals[subject]
+    return coverage
+
+
+def merge_ranges(ranges: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Merge overlapping or touching ranges into disjoint ranges, in time order."""
+    merged = []
+    for start, end in sorted(ranges):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def subtract_ranges(start: float, end: float, ranges: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """The parts of the interval [start, end] not covered by any of the ranges, in time order."""
+    pieces = []
+    for range_start, range_end in sorted(ranges):
+        if range_end <= start or range_start >= end:
+            continue
+        if range_start > start:
+            pieces.append((start, range_start))
+        start = max(start, range_end)
+    if end > start:
+        pieces.append((start, end))
+    return pieces
+
+
+def to_speaker_aligned_transcription(
+    transcription: AudioTranscription, diarization: AudioDiarization, algorithm: str
+) -> SpeakerAlignedTranscription:
+    """Label every transcribed track with the speakers of its subject diarization.
+
+    Args:
+        transcription: A transcription detector's output for each track.
+        diarization: Subject-labeled speaker turns per track, in the same subsequence time base.
+        algorithm: Detector instance name that produced this output.
+    """
+    tracks = {}
+    for track_name, track in transcription.tracks.items():
+        if track_name not in diarization.tracks:
+            raise ValueError(
+                f"Track '{track_name}' is not in the '{diarization.meta.algorithm}' diarization "
+                f"(tracks: {sorted(diarization.tracks)})."
+            )
+        tracks[track_name] = assign_transcription_speakers(track, diarization.tracks[track_name].segments)
+
+    meta = transcription.meta.model_copy(update={"component": "speaker_aligned_transcription", "algorithm": algorithm})
+    return SpeakerAlignedTranscription(meta=meta, tracks=tracks)
+
+
+def assign_transcription_speakers(
+    transcription: TrackTranscription, diarization: list[DiarizationSegment]
+) -> AlignedTranscription:
+    """
+    Label a track's transcribed words and segments with the speakers of its diarization.
+
+    Words and segments are labeled independently, each with the speaker whose turns overlap it
+    the longest (the rule of WhisperX's assign_word_speakers). A segment's speaker_confidence is
+    the fraction of its words carrying that same speaker.
+
+    Args:
+        transcription: The track's transcription, in the same time base as the diarization.
+        diarization: The track's speaker turns, labeled with subjects.
+
+    Returns:
+        The transcription with a speaker on every word and segment; None where no turn
+        overlaps it or alignment left it without timings.
+    """
+    words = []
+    for word in transcription.words:
+        speaker = _dominant_speaker(word.start, word.end, diarization)
+        words.append(AlignedWord(**word.model_dump(), speaker=speaker))
+
+    segment_words = [[] for _ in transcription.segments]
+    for word in words:
+        if word.segment_index is not None:
+            segment_words[word.segment_index].append(word)
+
+    segments = []
+    for segment, own_words in zip(transcription.segments, segment_words, strict=True):
+        speaker = _dominant_speaker(segment.start, segment.end, diarization)
+        agreeing = sum(1 for word in own_words if word.speaker is not None and word.speaker == speaker)
+        confidence = agreeing / len(own_words) if own_words else 0.0
+        segments.append(AlignedSegment(**segment.model_dump(), speaker=speaker, speaker_confidence=confidence))
+
+    return AlignedTranscription(total=transcription.total, segments=segments, words=words)
+
+
+def _dominant_speaker(start: float | None, end: float | None, diarization: list[DiarizationSegment]) -> str | None:
+    """The speaker whose turns overlap [start, end] the longest, None if none overlaps it or it is untimed."""
+    if start is None or end is None:
+        return None
+
+    overlap = {}
+    for turn in diarization:
+        overlap[turn.speaker] = overlap.get(turn.speaker, 0.0) + _overlap(start, end, turn.start, turn.end)
+
+    best = max(overlap, key=overlap.get, default=None)
+    if best is None or overlap[best] <= 0.0:
+        return None
+    return best

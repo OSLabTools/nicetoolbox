@@ -32,6 +32,7 @@ class BaseFeature(BaseDetector):
         # Some common fields
         self.subjects_descr = self.data.subjects_descr
         self.result_folders = self.compute_result_folders()
+        self.additional_results_folders = self.compute_additional_results_folders()
         self.viz_folders = self.compute_viz_folders(self.visualize)
 
         # This hook is used to allow detector initialize custom fields

@@ -28,6 +28,7 @@ from .feature_detectors.gaze_interaction.gaze_distance import GazeDistance2D, Ga
 from .feature_detectors.gaze_multiview.gaze_fusion import GazeFusion
 from .feature_detectors.kinematics.velocity_body import VelocityBody2D, VelocityBody3D
 from .feature_detectors.proximity.body_distance import BodyDistance2D, BodyDistance3D
+from .feature_detectors.subject_system.audio_subject_detector import AudioSubjectDetector
 from .feature_detectors.subject_system.video_subject_detector import VideoSubjectDetector
 from .in_out import SequenceIO
 from .method_detectors.crisper_whisper.crisper_whisper_detector import CrisperWhisper
@@ -41,6 +42,7 @@ from .method_detectors.py_feat.py_feat import PyFeat
 from .method_detectors.sam_3d_body.sam_3d_body_detector import Sam3dBody
 from .method_detectors.spiga.spiga_detector import Spiga
 from .method_detectors.unigaze.unigaze_detector import UniGaze
+from .method_detectors.whisperx.pyannote_detector import Pyannote
 from .method_detectors.whisperx.whisperx_detector import WhisperX
 
 # set of all detectors implemented by NICE Toolbox
@@ -56,6 +58,7 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     InsightFace,
     MediapipeFaceLandmarks,
     WhisperX,
+    Pyannote,
     CrisperWhisper,
     Sam3dBody,
     VelocityBody2D,
@@ -68,6 +71,7 @@ DETECTOR_CLASSES: set[BaseDetector] = {
     EyeClosureEar,
     EyeClosureThreshold,
     VideoSubjectDetector,
+    AudioSubjectDetector,
 }
 ALL_DETECTORS = {cls.algorithm_type: cls for cls in DETECTOR_CLASSES}
 
@@ -122,11 +126,13 @@ def main(project_folder_path: Path, machine_specifics_file: Path, run_config_fil
         log_ut.log_with_underscore("No valid algorithms remain after asset checks. Nothing to do.")
         return
 
+    # update list of algos that we can run
+    config.skipped_algorithms = set(config.run_config.algorithms) - set(runnable_algorithms)
+    config.run_config.algorithms = runnable_algorithms
+
     # initialize ffmpeg/ffprobe binary paths from the resolved assets root
     initialize_ffmpeg(manager.assets_root)
 
-    # update config file
-    config.run_config.algorithms = runnable_algorithms
     # save experiment config for visualizer and evaluation
     config.save_experiment_config(main_output_folder)
 

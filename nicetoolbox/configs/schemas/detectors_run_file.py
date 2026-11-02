@@ -104,6 +104,7 @@ class DetectorsRunIO(BaseModel):
     asset_manifest: Path
 
     detector_result_folder: Path
+    detector_additional_results_folder: Path
     detector_visualization_folder: Path
 
     detector_native_folder: Path
