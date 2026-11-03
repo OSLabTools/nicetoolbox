@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 182" width="440" height="182" role="img" aria-label="rtmw_l_wholebody produces body_joints, hand_joints and face_landmarks.">
+  <defs>
+    <marker id="ac-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2980b9"/>
+    </marker>
+  </defs>
+  <g fill="#666666" font-family="sans-serif" font-size="12" text-anchor="middle">
+    <text x="90" y="16">algorithm</text>
+    <text x="350" y="16">components</text>
+  </g>
+  <g fill="none" stroke="#404040" stroke-width="1.5">
+    <rect x="10" y="87" width="160" height="36" rx="4" stroke="#2980b9" stroke-width="2.5"/>
+    <rect x="270" y="32" width="160" height="36" rx="4"/>
+    <rect x="270" y="87" width="160" height="36" rx="4"/>
+    <rect x="270" y="142" width="160" height="36" rx="4"/>
+  </g>
+  <g fill="none" stroke="#2980b9" stroke-width="1.5">
+    <line x1="170" y1="105" x2="268" y2="50" marker-end="url(#ac-arrow)"/>
+    <line x1="170" y1="105" x2="268" y2="105" marker-end="url(#ac-arrow)"/>
+    <line x1="170" y1="105" x2="268" y2="160" marker-end="url(#ac-arrow)"/>
+  </g>
+  <g fill="#404040" font-family="monospace" font-size="13" text-anchor="middle">
+    <text x="90" y="110" fill="#2980b9" font-weight="bold">rtmw_l_wholebody</text>
+    <text x="350" y="55">body_joints</text>
+    <text x="350" y="110">hand_joints</text>
+    <text x="350" y="165">face_landmarks</text>
+  </g>
+</svg>

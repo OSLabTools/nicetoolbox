@@ -232,6 +232,15 @@ compute_group_by = []
 
 ## Aggregation
 
+### Micro and Macro Aggregation
+
+Metrics combine the per-frame results into summary rows in one of two ways:
+
+- **Macro aggregation** (bone length, missing points, PCK, distance error) — the metric is computed per frame, and the `summary_aggr` functions are then applied to these per-frame values within each group independently. Every group is scored on its own.
+- **Micro aggregation** (confusion matrix, ROC AUC, PR curve) — all frames within each `compute_group_by` group are pooled first, and the metric is computed once on that pool. A larger group has proportionally more weight than a smaller one.
+
+Micro aggregation is used for categorical metrics because values like precision, recall or AUC are not defined for a single frame.
+
 ### Aggregation Functions
 
 The `summary_aggr` parameter selects which statistical columns appear in the output CSV. You can either list function names directly (the column name will match the function) or provide custom column names via `{ name = "...", fn = "..." }`.

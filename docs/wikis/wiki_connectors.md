@@ -151,7 +151,7 @@ napari_connector export_body_joints --project_folder_path . --connector_config <
 |---|---|
 | `input` | The `body_joints` NPZ to export |
 | `output` | napari project root; gets a `labeled-data/<camera>/` folder per camera |
-| `frames_folder` | Folder holding the extracted frames, normally `nicetoolbox_input` |
+| `camera_input_folder` | Input folder of each camera with the extracted frames, with `<cur_camera_name>` for the camera name. Same as `nicetoolbox_camera_input_folder` in the run file |
 | `cameras` | Toolbox camera names to export; `"*"` for all |
 | `npz_key` | Which array to read from the NPZ, e.g. `2d_filtered` (top-level, applies to every entry) |
 

@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.abspath(".."))
 
 year = datetime.date.today().year
 project = "NICE Toolbox"
-copyright = f"{year}, Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems"
-author = "Max Planck Society / Optics and Sensing Laboratory - Max Planck Institute for Intelligent Systems"
+copyright = f"{year}, Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V"
+author = "Max-Planck-Gesellschaft zur Förderung der Wissenschaften e.V."
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -47,15 +47,6 @@ extensions = [
     # # Automatically document param types (less noise in class signature)
     # 'sphinx_autodoc_typehints',
 ]
-
-autodoc_mock_imports = [
-    "mmpose.apis",
-    "mmpose",
-    "data",
-    "torch",
-    "torchvision",
-    "face_alignment",
-]  # fix for failing imports using sphinx.ext.autodoc
 
 # Turn on sphinx.ext.autosummary
 autosummary_generate = True

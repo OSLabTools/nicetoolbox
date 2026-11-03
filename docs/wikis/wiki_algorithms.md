@@ -6,9 +6,32 @@
 ```
 
 
+## Subject Identity System
+
+Two service algorithms assign all results to the named subjects of a sequence. They read the `subjects` rules in `dataset_properties.toml` and do not use a model. See the [subject rules wiki](wiki_subject_rules.md).
+
+- **`video_subject_detector`** (`subject_regions` component) computes, for each subject, camera and frame, the image region in which this subject is expected. It uses the `subjects` rule of each camera, for example `vsplit`, `assign` or `bbox`. Most video algorithms take `subject_regions` as input and assign their detections to the subjects with it. The `[subject_assignment.video]` section of `detectors_config.toml` sets how detections are matched to the regions.
+- **`audio_subject_detector`** (`audio_diarization` component) computes, for each audio track, the time segments in which each subject speaks. It uses the `subjects` rule of each track, for example `assign` or `audio_range`. For `audio_range`, it takes the anonymous speakers of a diarization algorithm such as [`pyannote`](#pyannote-speaker-diarization) and gives them subject names. The `[subject_assignment.audio]` section sets `min_overlap` (default `0.3`): the part of a subject's time range that a speaker must cover to get this subject's name. The transcription algorithms take its output as input to assign each word to a subject.
+
+Keep `video_subject_detector` in the `algorithms` list of the run file for video algorithms, and `audio_subject_detector` for audio algorithms with subject names.
+
+## Person Detection (MMDetection)
+
+The NICE Toolbox integrates the **MMDetection framework** to detect people in each camera image. The detected person bounding boxes are the input of the top-down 2D pose estimation models below and of MotionBERT. Each detection is assigned to a subject with the `subject_regions` of the [video subject detector](#subject-identity-system).
+
+All instances share `mmdet_template` and output the **`person_bounding_box`** component. Three instances are configured by default:
+
+- **`rtmdet_m_person`**: RTMDet-medium with weights fine-tuned for person detection. This is the default input of the pose estimation models. [Lyu et al., 2022](https://arxiv.org/abs/2212.07784)
+- **`yolox_s_person`**: YOLOX-small, a fast and modern alternative. [Ge et al., 2021](https://arxiv.org/abs/2107.08430)
+- **`faster_rcnn_person`**: Faster R-CNN, a commonly used baseline. [Ren et al., 2015](https://arxiv.org/abs/1506.01497)
+
+`det_thresh` (default `0.5`) discards boxes with a lower confidence, and `iou_thresh` (default `0.8`) discards a box if it overlaps the box of another subject by more than this value.
+
 ## HRNet, ViTPose, & RTMPose (2D Pose Estimation)
 
-The NICE toolbox integrates the **MMPose framework** to provide a suite of robust **top-down 2D human pose estimation** models. These algorithms operate by first using an object detector (e.g., Faster R-CNN) to extract bounding boxes around subjects, followed by dedicated keypoint localization on those cropped regions. The toolbox supports a range of architectures, from high-precision transformers to real-time optimized CNNs.
+The NICE toolbox integrates the **MMPose framework** to provide a suite of robust **top-down 2D human pose estimation** models. These algorithms operate by first using a person detector (by default `rtmdet_m_person`, see [Person Detection](#person-detection-mmdetection)) to extract bounding boxes around subjects, followed by dedicated keypoint localization on those cropped regions. The toolbox supports a range of architectures, from high-precision transformers to real-time optimized CNNs.
+
+All instances share `mmpose_2d_template` and output the **`body_joints`** component. The whole-body models also output **`hand_joints`** and **`face_landmarks`**. The configured instances are `hrnetw48`, `vitpose_large`, `vitpose_huge`, `rtmpose_l_aic`, `rtmpose_l_wholebody`, `rtmw_l_wholebody` and `rtmpose_m_mpii`.
 
 ### High-Resolution Networks
 - **HRNet (w48)**: A convolutional neural network designed to maintain high-resolution representations throughout the entire inference process. Instead of encoding images into low-resolution feature maps and decoding them later, HRNet connects high-to-low resolution subnetworks in parallel with repeated multi-scale fusion. This preserves fine spatial details and excels at localizing complex or occluded joints.   
@@ -21,6 +44,8 @@ The NICE toolbox integrates the **MMPose framework** to provide a suite of robus
 ### Real-Time Pose Estimation
 - **RTMPose (m/l/wholebody)**: A framework explicitly optimized for real-time multi-person pose estimation. RTMPose utilizes a highly efficient CSPNeXt backbone and replaces traditional heatmap generation with a SimCC-based prediction head (treating keypoint localization as a classification task). This architectural shift delivers an exceptional balance between low latency and high accuracy.   
   [Jiang et al., 2023](https://arxiv.org/abs/2303.07399)
+- **RTMW (l/wholebody)**: An RTMPose-based model for whole-body pose estimation, which predicts body, hand and face keypoints together. It runs as `rtmw_l_wholebody`.   
+  [Jiang et al., 2024](https://arxiv.org/abs/2407.08634)
 
 
 ## MotionBERT (3D body pose lifting)
@@ -29,7 +54,7 @@ The NICE toolbox integrates the **MMPose framework** to provide a suite of robus
 
 In NICE Toolbox, MotionBERT runs as the **`motionbert`** algorithm. It reads 2D keypoints and bounding boxes directly from an existing **`body_joints`** NPZ (default upstream: **`vitpose_huge`**), so subject ordering and tracking stay consistent with the 2D pipeline. The lifter outputs **17 keypoints in Human3.6M order**.
 
-Post-processing applies optional temporal filtering and confidence masking on the 2D and 3D arrays. The upstream algorithm can be configured via **`input_detector_names`** in `detectors_config.toml`
+Post-processing applies optional temporal filtering and confidence masking on the 2D and 3D arrays. The upstream algorithms can be changed in the `[algorithms.motionbert.inputs]` section of `detectors_config.toml`: `pose_2d` selects the 2D body joints, and `person_bboxes` selects the person bounding boxes (default: `rtmdet_m_person`).
 
 [Zhu et al., 2023](https://arxiv.org/abs/2210.06551)
 
@@ -41,7 +66,7 @@ SAM 3D Body uses a gated model on Hugging Face. You must request access and set 
 
 **SAM 3D Body** is a whole-body 3D pose and shape estimation model that recovers 2D/3D keypoints, body mesh vertices, and body/hand/shape parameters in **MHR** (Mesh Human Recovery) parameterization. It supports single- and multi-view setups and uses a DINOv3 or ViT backbone for robust feature extraction.
 
-In the NICE Toolbox, SAM 3D Body runs as the **`sam_3d_body`** algorithm and outputs four components: **`body_joints`** (world-space 3D, requires camera calibration), **`body_joints_local`** (camera-native 3D, always written), **`hand_joints`**, **`hand_joints_local`**, and **`body_mesh`** (mesh vertices and faces).
+In the NICE Toolbox, SAM 3D Body runs as the **`sam_3d_body`** algorithm type. Two instances are configured: **`sam_3d_body_dinov3`** (DINOv3 backbone) and **`sam_3d_body_vith`** (ViT-H backbone). They output five components: **`body_joints`** (world-space 3D, requires camera calibration), **`body_joints_local`** (camera-native 3D, always written), **`hand_joints`**, **`hand_joints_local`**, and **`body_mesh`** (mesh vertices and faces).
 
 
 [Yang et al., 2026](https://arxiv.org/abs/2602.15989)
@@ -91,7 +116,7 @@ Two instances are configured by default: **`gaze_distance_2d`** and **`gaze_dist
 
 **`velocity_body`** (`kinematics` component) computes frame-by-frame movement dynamics — velocity and acceleration — from body joint positions produced by an upstream `body_joints` detector. No separate model weights are required.
 
-Four instances are configured by default: **`velocity_body_2d`** and **`velocity_body_3d`** read from the 2D pose pipeline, while **`velocity_body_motiobert_local`** and **`velocity_body_sam3d_local`** read the camera-native 3D output of MotionBERT and SAM 3D Body respectively.
+Four instances are configured by default: **`velocity_body_2d`** and **`velocity_body_3d`** read from the 2D pose pipeline, while **`velocity_body_motiobert_local`** and **`velocity_body_sam_3d_local`** read the camera-native 3D output of MotionBERT and SAM 3D Body respectively.
 
 ## Proximity
 
@@ -109,13 +134,13 @@ The default `buffalo_l` pack detects faces with **SCRFD-10GF**; the packs also b
 
 ## Py-FEAT (Facial Expression Analysis Toolbox)
 
-**Py-FEAT** is a toolkit for automated facial expression analysis. In the NICE Toolbox it is used for face detection (`img2pose`), action unit recognition (`xgb`, XGBoost-based, continuous AU probabilities), emotion detection (`resmasknet`), and subject identity verification (`facenet`).
+**Py-FEAT** is a toolkit for automated facial expression analysis. In the NICE Toolbox it runs as the **`py_feat`** algorithm and outputs the **`emotion_individual`** component. It is used for face detection (`img2pose`), action unit recognition (`xgb`, XGBoost-based, continuous AU probabilities), emotion detection (`resmasknet`), and subject identity verification (`facenet`).
 
 [Cheong et al., 2023](https://doi.org/10.1007/s42761-023-00191-4)
 
 ## SPIGA (Shape Preserving Facial Landmarks with Graph Attention)
 
-**SPIGA** is a hybrid CNN-GNN model for facial landmark localization and 6DoF head pose estimation. In the NICE Toolbox it is used for **landmark localization** and **head orientation** estimation across all configured cameras. Face detection is handled by InsightFace; outputs are head pose vectors per camera-subject-frame.
+**SPIGA** is a hybrid CNN-GNN model for facial landmark localization and 6DoF head pose estimation. In the NICE Toolbox it runs as the **`spiga`** algorithm and is used for **landmark localization** (`face_landmarks`) and **head orientation** estimation (`head_orientation`) across all configured cameras. Face detection is handled by InsightFace; outputs are head pose vectors per camera-subject-frame.
 
 [Prados-Torreblanca et al., 2022](https://arxiv.org/abs/2210.07233)
 
@@ -136,16 +161,44 @@ Two algorithms support tracking blink/closure states and dynamics from facial la
 - **`eye_closure_ear`** (`eye_closure_score` component): Computes the Eye Aspect Ratio (EAR) as the ratio of eye height to eye width, indicating closure degree. [Soukupová and Čech, 2016](https://vision.fe.uni-lj.si/cvww2016/proceedings/papers/05.pdf)
 - **`eye_closure_threshold`** (`eye_closed_state` component): Categorizes the eye state (closed/open) via a threshold applied to the closure score, with optional duration-based temporal filtering. It outputs per-camera (`per_camera_state`) and global (`global_state`) eye closed states for `"left_eye"`, `"right_eye"`, and `"both_eyes"`.
 
+Four instances are configured by default:
 
-## WhisperX (Audio Transcription & Speaker Diarization)
+- **`eye_closure_score_ear`** computes the EAR score from the face landmarks of `spiga`.
+- **`eye_closure_score_ear_rtmpose`** computes the EAR score from the face landmarks of `rtmw_l_wholebody`.
+- **`eye_state_ear`** detects closed eyes (`threshold = 0.12`). `gaze_weighted_closed_eyes` uses it to interpolate over eye closures.
+- **`eye_blinks_state_ear`** detects blinks: eye closures between `min_duration = 0.05` and `max_duration = 0.5` seconds.
+
+
+## pyannote (Speaker Diarization)
 
 ```{warning}
-WhisperX uses a gated model on Hugging Face for speaker diarization. You must request access and set your token before running. See [Hugging Face access token](../installation.md#hugging-face-access-token).
+pyannote uses a gated model on Hugging Face. You must request access and set your token before running. See [Hugging Face access token](../installation.md#hugging-face-access-token).
 ```
 
-**WhisperX** provides fast automatic speech recognition (ASR) with word-level timestamps and speaker diarization. By integrating voice activity detection (VAD) preprocessing and forced alignment, WhisperX significantly reduces hallucinations and improves timestamp accuracy compared to the original Whisper model. In the NICE toolbox, it is utilized to process audio tracks for transcription and to systematically identify who is speaking and when.
+**pyannote** finds "who speaks when" on an audio track. In the NICE Toolbox it runs as the **`pyannote`** algorithm with the [speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) model, and outputs the **`audio_diarization`** component. It runs in the `whisperx` environment.
 
-The pipeline runs in four stages: VAD preprocessing to segment speech, transcription via a `faster-whisper` backend, forced phoneme alignment for word-level timestamps, and speaker diarization via `pyannote-audio`. Note that speaker labels cannot currently be mapped to specific subjects in the video.
+pyannote separates the different voices, but it does not know the names of the speakers. Its speaker labels are anonymous. To give them subject names, use the `audio_range` subject rule on the track: the [`audio_subject_detector`](#subject-identity-system) then matches each pyannote speaker to a subject. So `pyannote` is necessary only for tracks with the `audio_range` rule.
+
+The main parameters are:
+
+- `exclusive`: if `true`, only one speaker speaks at a time (default `false`).
+- `min_duration_off`: pauses shorter than this value (in seconds) inside the turn of one speaker are filled (default `0.0`).
+- `embedding_exclude_overlap`: if `true`, the speaker embeddings use only speech without overlap (default `true`).
+
+[Bredin, 2023](https://www.isca-archive.org/interspeech_2023/bredin23_interspeech.html)
+
+## WhisperX (Audio Transcription)
+
+**WhisperX** provides fast automatic speech recognition (ASR) with word-level timestamps. By integrating voice activity detection (VAD) preprocessing and forced alignment, WhisperX significantly reduces hallucinations and improves timestamp accuracy compared to the original Whisper model.
+
+The pipeline runs in three stages: VAD preprocessing to segment speech, transcription via a `faster-whisper` backend, and forced phoneme alignment for word-level timestamps. WhisperX does not run the diarization itself. Instead, it takes the `audio_diarization` of the [`audio_subject_detector`](#subject-identity-system) as input and assigns each word to a subject.
+
+Two instances are configured by default. Both share `whisperx_template`:
+
+- **`whisperx`** outputs **`audio_transcription`** and **`speaker_aligned_transcription`**, in which each word has a subject name. It needs `audio_subject_detector` in the `algorithms` list.
+- **`whisperx_no_diar`** outputs only **`audio_transcription`**, without subject names.
+
+`track_names` selects the audio tracks (`"*"` for all tracks), and `language` sets the language code, or `"auto"` for automatic detection.
 
 [Bain et al., 2023](https://arxiv.org/abs/2303.00747)
 
@@ -153,8 +206,13 @@ The pipeline runs in four stages: VAD preprocessing to segment speech, transcrip
 
 **CrisperWhisper** is a fine-tuned Whisper variant focused on **verbatim** speech transcription with highly accurate **word-level timestamps**. Unlike standard Whisper models, which paraphrase and omit disfluencies, CrisperWhisper transcribes every spoken word — including fillers, false starts, and repetitions — and was retrained with an adjusted tokenizer and a custom attention-based timestamp objective to sharply localize word boundaries, even around pauses.
 
-In the NICE Toolbox, CrisperWhisper runs as the **`crisper_whisper`** algorithm and outputs the **`audio_transcription`** component only. It processes each configured audio track independently, returning per-word chunks with start/end timestamps. A post-processing step (ported from the original repository) redistributes inter-word pauses up to a small threshold evenly between adjacent words to refine the boundaries.
+In the NICE Toolbox, CrisperWhisper runs as the **`crisper_whisper`** algorithm type. It processes each configured audio track independently, returning per-word chunks with start/end timestamps. A post-processing step (ported from the original repository) redistributes inter-word pauses up to a small threshold evenly between adjacent words to refine the boundaries.
 
-The raw word chunks are then converted into the same unified `{segments, words}` structure used by WhisperX's `audio_transcription` component, so the two transcription backbones are interchangeable downstream. Note that CrisperWhisper performs neither speaker diarization nor speaker-aligned transcription.
+The raw word chunks are then converted into the same unified `{segments, words}` structure used by WhisperX's `audio_transcription` component, so the two transcription backbones are interchangeable downstream.
+
+Like WhisperX, CrisperWhisper does not run the diarization itself. Two instances are configured by default. Both share `crisper_whisper_template`:
+
+- **`crisper_whisper`** takes the `audio_diarization` of the [`audio_subject_detector`](#subject-identity-system) as input and outputs **`audio_transcription`** and **`speaker_aligned_transcription`**.
+- **`crisper_whisper_no_diar`** outputs only **`audio_transcription`**, without subject names.
 
 [Wagner et al., 2024](https://arxiv.org/abs/2408.16589)

@@ -103,6 +103,8 @@ cd path/to/nicetoolbox
 bash install_linux.sh
 ```
 
+---
+
 When the installation is finished, follow [getting started](getting_started.md) to activate a virtual environment and run detectors.
 
 ### Installation Options
@@ -135,7 +137,7 @@ To update NICE Toolbox, simply [download](#download) the new release into a new 
 
 Some detectors use models that are gated on [Hugging Face](https://huggingface.co/) and require you to accept their terms of use before downloading:
 
-- **WhisperX** uses [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) for speaker diarization.
+- **pyannote** uses [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) for speaker diarization.
 - **SAM 3D Body** uses [facebook/sam-3d-body-dinov3](https://huggingface.co/facebook/sam-3d-body-dinov3).
 
 To get access:

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.2
+
+- New **installer scripts** with an interactive detector selection. The installer now uses [uv](https://github.com/astral-sh/uv) instead of conda and venv for all detector environments. The installation is 4x faster and 22% smaller than in the previous release.
+- **Faster runs and smaller outputs**. On the example sequence, the detectors need 31% less time and generated 7x smaller output than in the previous release.
+- Configurable **frame extraction** with optional **hardware-accelerated decoding**.
+- [MediaPipe Face Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) (`mediapipe_face_landmarks`) for 3D facial landmarks and facial blendshape coefficients.
+- New **person detection** algorithms from [MMDetection](https://github.com/open-mmlab/mmdetection).
+- New **subject identity system** for video and audio. In `dataset_properties.toml`, each camera and audio track declares a subject rule (`vsplit`, `hsplit`, `assign`, `bbox`, `audio_range`, `path`, `none`). All detectors use the subject names of the sequence. See the [subject rules wiki](https://nicetoolbox.readthedocs.io/en/stable/wikis/wiki_subject_rules.html).
+- [pyannote](https://github.com/pyannote/pyannote-audio) (`pyannote`) - speaker diarization is now a separate detector that works with any audio transcription model.
+- New optimized and more stable implementation for **MMPose** and **SAM 3D Body**.
+- Reworked **documentation** with new tutorials on configuring detectors and including your own dataset.
+- Many other small fixes and changes in different detectors and visualizers.
+
+**Breaking changes:**
+- All detector environments now use uv instead of venv and conda. Please reinstall NICE Toolbox.
+- `dataset_properties.toml` uses subject rules instead of `subjects_descr`, `sees_subjects` and `hears_subjects`. Please update it based on the provided example.
+- `machine_specific_paths.toml` requires the new `ffmpeg_hwaccel` field. Add `ffmpeg_hwaccel = 'cuda'`, or `'none'` to decode videos on the CPU.
+- The `[io]` section of `detectors_run_file.toml` has new keys for the new output folder structure. Please update it based on the provided example.
+- The 2D pose estimation algorithms need `video_subject_detector` and a person detector such as `rtmdet_m_person` in the `algorithms` list.
+- `whisperx` no longer runs the speaker diarization itself. Add `audio_subject_detector` (and `pyannote` for the `audio_range` rule) to the `algorithms` list, or use `whisperx_no_diar`.
+- The `sam_3d_body_dinov3` and `sam_3d_body_vith` instances replace `sam_3d_body`. They have new parameters.
+
 ## 0.3.1
 
 - **[License Change]** To support the open-source community and make NICE Toolbox more accessible, our team decided to change the license of the project from `CC BY-NC-SA 4.0` to `AGPL-3.0`. You can learn more about the [new license terms here](https://choosealicense.com/licenses/agpl-3.0/).

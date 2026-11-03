@@ -21,6 +21,8 @@ Per component, each `<algorithm>.npz` file contains several numpy arrays plus a 
 
 | component | contained numpy arrays |
 | - | - |
+| subject_regions | regions |
+| person_bounding_box | bbox_2d, bbox_overlap |
 | body_joints | 2d, 2d_filtered, 2d_interpolated, bbox_2d, 3d |
 | body_joints_local | 3d (camera-native or root-relative, depending on algorithm) |
 | body_mesh | faces, vertices |
@@ -68,7 +70,7 @@ Per component, the `<algorithm_name>.json` file contains the output of the audio
                 "start": "word_start_time",
                 "end": "word_end_time",
                 "score": "word_log_probability_score",
-                "speaker": "speaker_label"
+                "speaker": "subject_name"
             },
             // next word segment ...
         ],
@@ -88,7 +90,9 @@ The `data_description` dictionary details the entries of all numpy files within 
 | 3d, gaze_fused, gaze_fused_filtered | coordinate_x, coordinate_y, coordinate_z | --
 | gaze_2d, gaze_2d_filtered | coordinate_u, coordinate_v | --
 | bbox_2d | full_body | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score |
-| bbox_2d (face) | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score | -- |
+| bbox_2d (face, person) | top_left_x, top_left_y, bottom_right_x, bottom_right_y, confidence_score | -- |
+| regions | top_left_x, top_left_y, bottom_right_x, bottom_right_y | -- |
+| bbox_overlap | per subject: overlap with this subject | -- |
 | blendshapes | list of 52 blendshape names | coefficient |
 | landmarks_2d | list of all landmarks | coordinate_u, coordinate_v |
 | distance_gaze_3d | per subject: to_face_<subject_name> | -- |
@@ -137,6 +141,18 @@ print(arr['data_description'].item()['3d'])
 
 
 
+## Subject regions
+Defines in which part of each camera image each subject is expected. The *video subject detector* computes these regions from the `subjects` rule of each camera in `dataset_properties.toml`, for example by splitting the image into halves (`vsplit`) or by assigning the whole image to one subject (`assign`). See the [subject rules wiki](wiki_subject_rules.md).
+
+Results are stored as a `regions` array in `<output_folder>/subject_regions/video_subject_detector.npz`: one rectangle `[x0, y0, x1, y1]` per subject, camera and frame. Most video algorithms use this component to assign their detections to the subjects, so that the subject order is the same in all results. If `visualize` is `true`, the detector draws the regions on the camera images, which helps to check the subject rules.
+
+## Person bounding box
+Locates each subject in each camera image. Available algorithms are *RTMDet*, *YOLOX* and *Faster R-CNN* (`rtmdet_m_person`, `yolox_s_person`, `faster_rcnn_person`).
+
+Results are stored in `<output_folder>/person_bounding_box/<algorithm_name>.npz`. The `bbox_2d` array holds the top-left and bottom-right image coordinates plus a detection confidence score for each subject, camera and frame. The `bbox_overlap` array holds the overlap (IoU) of each box with the boxes of the other subjects. Boxes with a confidence below `det_thresh` or an overlap above `iou_thresh` are discarded.
+
+The component exists mainly as an input for the top-down pose estimation algorithms and MotionBERT.
+
 ## Body joints
 Identifies and tracks the position of key body joints, (e.g., shoulders, elbows) to analyze body posture and movements. Available algorithms are *HRNet-w48*, *ViTPose* / *ViTPose-Huge*, *RTMPose* variants, *MotionBERT*, and *SAM 3D Body*. The figure below illustrates the key body joints identified. *ViTPose* estimates full-body joints, including arms, shoulders, hips, wrists, and ankles, but excludes foot-specific joints like heels and toes. *HRNet-w48* includes these additional foot joints.
 
@@ -155,7 +171,7 @@ The algorithm's results are smoothed in post-processing using Savitzky-Golay fil
 Joint estimations with a confidence score below 0.60 are marked as missing because they often indicate an occluded joint or an incorrect estimate. These likely incorrect estimations are replaced with missing values, and linear interpolation is applied between the last two non-missing estimates of the joint. If the gap exceeds 1/3 of a second, the joint positions remain empty (see `…_2d_interpolated.csv` or `2d_interpolated.npy` file).
 
 With calibrated stereo cameras, the 3D positions (x, y, and z coordinates) of the body joints are computed via the triangulation method (see `..._3d.csv` or `3d.npy` file). Since 3D estimation is performed after interpolation of the 2D estimations, any missing 2D joint point will also be missing in the 3D results.
-If the user has more than two camera views, the first two camera views listed in the `frameworks.mmpose.camera_names` parameter in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file will be used for triangulation.
+The cameras used for triangulation are set with `triangulation_cameras` in the `triangulate_keypoints` parameter of the algorithm or template in the [`./configs/detectors_config.toml`](../../configs/detectors_config.toml) file, for example `["view_top", "view_center"]`.
 
 ## Body joints local
 Holds 3D body joints in a **camera-native** coordinate system, so — unlike `body_joints` — it does not require camera calibration and is available in single-camera setups. Available algorithms are *SAM 3D Body* (camera-native 3D) and *MotionBERT* (root-relative 3D lifted from 2D keypoints).
@@ -184,7 +200,7 @@ The component holds a single `bbox_2d` array with the top-left and bottom-right 
 ## Face landmarks
 Detects the position of key landmarks to analyze facial expressions and movements. Available algorithms are *HRNet-w48*, *RTMPose (wholebody)*, *SPIGA*, and *InsightFace*. The figure below represents the identified face landmarks.
 
-[<img src="../graphics/face_landmarks.png" height="350">](../graphics/face_lanmarks.png)
+[<img src="../graphics/face_landmarks.png" height="350">](../graphics/face_landmarks.png)
 
 The CSV files containing the <face_landmarks> key and the `<output_folder>/face_landmarks/<algorithm_name>.npz` file represent the results of this component. The post-processing steps and naming conventions are the same as those used for body joints.
 
@@ -279,10 +295,17 @@ Both algorithms also emit per-track subtitle `.srt` files (with word-level highl
 
 ## Audio Diarization
 
-Identifies "who spoke when" within the audio sources. The **audio_diarization** component separates the audio stream into distinct speaker turns. It partitions the audio segments and assigns speaker labels based on the audio tracks, allowing the system to track different speakers throughout a conversation. The intermediate outputs are saved in `<output_folder>/audio_diarization/<algorithm_name>.json`.
+Identifies "who spoke when" within the audio sources. The **audio_diarization** component separates each audio track into speaker turns, with a start and end time for each turn. The outputs are saved in `<output_folder>/audio_diarization/<algorithm_name>.json`.
+
+Two algorithms produce this component:
+
+- *pyannote* (`pyannote`) separates the different voices of a track. Its speaker labels are anonymous, because it does not know the names of the speakers.
+- The *audio subject detector* (`audio_subject_detector`) computes the time segments of each subject from the `subjects` rule of each track. Its speaker labels are the subject names of the sequence. For the `audio_range` rule, it uses the turns of `pyannote` and gives each anonymous speaker a subject name. See the [subject rules wiki](wiki_subject_rules.md#audio-rules).
+
+The transcription algorithms use the output of `audio_subject_detector` to assign each word to a subject. If `visualize` is `true`, both algorithms draw a timeline of the speaker turns.
 
 ## Speaker Aligned Transcription
 
-Combines transcription and diarization results into a single, fully structured format. The **speaker_aligned_transcription** component merges the extracted speech text with the identified speaker turns, mapping the correct speaker labels to the corresponding word or sentence segments. 
+Combines transcription and diarization results into a single, fully structured format. The **speaker_aligned_transcription** component merges the extracted speech text with the speaker turns of the `audio_subject_detector`, so each word and segment gets the name of the subject who said it. Available algorithms are *WhisperX* (`whisperx`) and *CrisperWhisper* (`crisper_whisper`). Their `_no_diar` instances do not produce this component.
 
 The final processed output is saved in `<output_folder>/speaker_aligned_transcription/<algorithm_name>.json`. This component also produces extra outputs (e.g., subtitle `.srt` files in the detector output directory) which are utilized to bake visualizations like subtitle overlays into video files.

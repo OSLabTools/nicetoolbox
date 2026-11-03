@@ -11,7 +11,7 @@ set SOURCEDIR=.
 set BUILDDIR=_build
 
 REM Directories to be removed before building
-set CLEAN_DIRS=_build _otherdir
+set CLEAN_DIRS=_build _autosummary
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (

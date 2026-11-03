@@ -4,13 +4,14 @@
 
 &emsp;&emsp;&emsp;
 [Project page](https://nice.is.tue.mpg.de/) &emsp;&emsp;&emsp;
+[Paper (pre-print)](https://arxiv.org/abs/2610.21786) &emsp;&emsp;&emsp;
 [Documentation](https://nicetoolbox.readthedocs.io/en/stable/index.html) &emsp;&emsp;&emsp;
 [Changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) &emsp;&emsp;&emsp;
 <nicetoolbox@tue.mpg.de>
 
 <br>
 
-> 🚀 We are releasing a new 0.3.1 version that adds new [UniGaze](https://github.com/ut-vision/UniGaze) gaze estimation, [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper) audio transcription, [InsightFace](https://github.com/deepinsight/insightface) face analysis, eye closure and blink detection, [Py-Feat](https://github.com/cosanlab/py-feat) updated to a new version, audio evaluation metrics, a reworked installation, and many other improvements and fixes. Please check [the changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) for more information.
+> 🚀 We are releasing a new 0.3.2 version with a faster and smaller installation, optimized detector runs, [MediaPipe](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) face landmarks and blendshapes, a new subject identity system, reworked documentation, and many other improvements and fixes. Please check [the changelog](https://nicetoolbox.readthedocs.io/en/stable/link_changelog.html) for more information.
 
 NICE Toolbox is an easy-to-use framework for exploring nonverbal human communication.
 It aims to enable the investigation of observable signs that reflect the mental state
@@ -57,9 +58,9 @@ We acknowledge the following tools, methods, and frameworks:
 [face-alignment](https://github.com/1adrianb/face-alignment),
 [WhisperX](https://github.com/m-bain/whisperx),
 [CrisperWhisper](https://github.com/nyrahealth/CrisperWhisper),
+[Mediapipe](https://developers.google.com/edge/mediapipe/solutions/guide),
 [Py-Feat](https://py-feat.org/), and
 [rerun.io](https://rerun.io/).
-[Mediapipe](https://developers.google.com/edge/mediapipe/solutions/guide)
 
 ## Authors
 
@@ -82,3 +83,17 @@ We thank the [MPI-IS Software Workshop](https://is.mpg.de/en/software-workshop) 
 [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html), see [LICENSE](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSE).
 
 NICE Toolbox has optional support for third-party algorithms and models that are distributed under their own licenses. See [LICENSES_ALGORITHMS.md](https://github.com/OSLabTools/nicetoolbox/blob/main/LICENSES_ALGORITHMS.md) for the full list.
+
+## Citation
+
+```bibtex
+@misc{nicetoolbox,
+      title={{NICE Toolbox}: Nonverbal Interpersonal Communication Exploration Toolbox}, 
+      author={Evgrashin, Aleksandr and Schmitt, Carolin and L{\"u}bbing, Timo and Jha, Ashutosh and Zeren, Buket Naz and Bauer, Sophie K. and Kopf-Beck, Johannes and Marx, Anton K. G. and Semm, Anamaria and Erg{\"u}n, G{\"o}kce and Polikovsky, Senya},
+      year={2026},
+      eprint={2610.21786},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2610.21786}, 
+}
+```

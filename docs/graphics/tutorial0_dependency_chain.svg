@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 940 76" width="940" height="76" role="img" aria-label="To get velocity_body_3d, four algorithms must run in order: video_subject_detector passes subject_regions to rtmdet_m_person, which passes person_bounding_box to vitpose_huge, which passes 3D body_joints to velocity_body_3d.">
+  <defs>
+    <marker id="dep-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#404040"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="#404040" stroke-width="1.5">
+    <rect x="10" y="50" width="180" height="40" rx="4"/>
+    <rect x="310" y="50" width="130" height="40" rx="4"/>
+    <rect x="560" y="50" width="110" height="40" rx="4"/>
+    <rect x="790" y="50" width="140" height="40" rx="4" stroke="#2980b9" stroke-width="2.5"/>
+    <line x1="190" y1="70" x2="308" y2="70" marker-end="url(#dep-arrow)"/>
+    <line x1="440" y1="70" x2="558" y2="70" marker-end="url(#dep-arrow)"/>
+    <line x1="670" y1="70" x2="788" y2="70" marker-end="url(#dep-arrow)"/>
+  </g>
+  <g fill="#404040" font-family="monospace" font-size="13" text-anchor="middle">
+    <text x="100" y="75">video_subject_detector</text>
+    <text x="375" y="75">rtmdet_m_person</text>
+    <text x="615" y="75">vitpose_huge</text>
+    <text x="860" y="75" fill="#2980b9" font-weight="bold">velocity_body_3d</text>
+  </g>
+  <g fill="#555555" font-family="monospace" font-size="10" text-anchor="middle">
+    <text x="250" y="62">subject_regions</text>
+    <text x="500" y="62">person_bounding_box</text>
+    <text x="730" y="62">body_joints (3d)</text>
+  </g>
+  <g fill="#666666" font-family="sans-serif" font-size="12" text-anchor="middle">
+    <text x="100" y="108">who is where</text>
+    <text x="375" y="108">finds people</text>
+    <text x="615" y="108">estimates body joints</text>
+    <text x="860" y="108">calculates movement speed</text>
+  </g>
+</svg>
