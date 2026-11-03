@@ -59,6 +59,7 @@ def test_settings_saved_next_to_frames(tmp_path, default_vid_patches):
     assert load_frame_extraction(io.nice_input_folder / "cam_front") == FRAME_EXTRACTION
     split_kwargs = default_vid_patches["split_into_frames"].call_args.kwargs
     assert split_kwargs["frame_extraction"] == FRAME_EXTRACTION
+    assert split_kwargs["hwaccel"] == "cuda"
 
 
 def test_changed_settings_reextract_and_drop_old_frames(tmp_path, default_vid_patches):
