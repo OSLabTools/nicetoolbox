@@ -59,7 +59,7 @@
    :toctree:
    :template: custom-module-template.rst
    :recursive:
-{% for item in modules %}
+{% for item in modules if not item.endswith('inference') %}
    {{ item }}
 {%- endfor %}
 {% endif %}

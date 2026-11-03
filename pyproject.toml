@@ -7,7 +7,7 @@ name = "nicetoolbox"
 description = "NICE Toolbox provides tools for exploring nonverbal human communication using computer vision."
 dynamic = ["readme"]
 requires-python = ">=3.7, <3.12"
-version = "0.0.2"
+version = "0.3.2"
 
 dependencies = [
     "nicetoolbox-core",

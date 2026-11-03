@@ -1,4 +1,4 @@
-# Evaluate Detector Outputs
+# 5. Evaluate Detector Outputs
 
 This tutorial shows how to run the evaluation pipeline on your detector outputs. The evaluation module computes configurable metrics over your experiment's NPZ files and produces CSV summaries and plots.
 
@@ -14,8 +14,8 @@ For a full reference of all available metrics and their parameters, see the [Eva
 
 Before running the evaluation, you need:
 
-- A completed detector run with NPZ output files in your experiment folder (see [Tutorial 1](tutorial1_dataset_single_view.md)).
-- *(For accuracy metrics)* Ground-truth annotation NPZ files stored in a folder that follows the same component structure as your experiment output.
+- A completed detector run with NPZ output files in your experiment folder (see [include your own dataset](tutorial2_include_dataset.md)).
+- *(For metrics with ground truth)* Ground-truth annotation NPZ files stored in a folder that follows the same component structure as your experiment output.
 
 No additional installation is needed — the evaluation pipeline is included in the standard NICE Toolbox environment.
 
@@ -69,11 +69,11 @@ missing_points_summary_aggr = [
 ]
 ```
 
-To get a breakdown per joint, change `group_by` to `["label"]`. To get the most detailed breakdown possible, use `"*"`.
+To get a breakdown per joint, change `missing_points_summary_group_by` to `["label"]`. To get the most detailed breakdown possible, use `"*"`.
 
 ### Example: with ground truth annotations
 
-Accuracy metrics require a ground-truth NPZ file. The `source = "annotation"` field tells the pipeline to look for the ground truth inside the `dataset_properties.toml` config.
+Metrics such as `pck` or `distance_error` require a ground-truth NPZ file. The `source = "annotation"` field tells the pipeline to look for the ground truth inside the `dataset_properties.toml` config.
 
 ```toml
 # dataset_properties.toml
@@ -90,7 +90,7 @@ gaze_interaction = {path = "<annotations_folder>/<sequence_id>_gaze.npz"}
 body_joints      = {path = "<annotations_folder>/<sequence_id>_body_joints.npz"}
 ```
 
-Now we can specify PCK metric to use the `body_joints` annotation as the ground truth for the algorithm:
+Now you can configure the PCK metric to use the `body_joints` annotation as the ground truth:
 
 ```toml
 [metrics."body_pck@10px"]
@@ -106,7 +106,7 @@ summary_aggr = [
 ]
 ```
 
-Alternatevily, you can use other detectors predictions as the ground truth. For example, let's say we believe that `vitpose_huge` will be our ground truth and we want to compare it with `rtmw_l_wholebody`:
+Alternatively, you can use another detector's predictions as the ground truth. For example, to use `vitpose_huge` as the ground truth and compare `rtmw_l_wholebody` with it:
 
 ```toml
 [metrics.body_pck_rtmw_vs_vitpose]
@@ -126,7 +126,7 @@ summary_aggr = [
 
 #### Grouping
 
-The `group_by` parameter controls how fine-grained the output rows are. Results are computed separately for each unique combination of the listed dimensions; everything else is pooled together.
+The `summary_group_by` parameter (`missing_points_summary_group_by` for the missing points metric) controls how fine-grained the output rows are. Results are computed separately for each unique combination of the listed dimensions; everything else is pooled together.
 
 | Dimension | Breaks results down by |
 | - | - |
@@ -139,7 +139,7 @@ The `group_by` parameter controls how fine-grained the output rows are. Results 
 
 Two special values cover the common extremes:
 - `[]` — pool everything, one row per algorithm
-- `"*"` — maximum detail, one row per every combination of all available dimensions
+- `"*"` — maximum detail, one row for each combination of all available dimensions
 
 #### Aggregation
 
@@ -194,7 +194,7 @@ The output folder (e.g. `experiments/20240101_eval/`) contains one subfolder per
 
 **`summary.csv`** is the first file to look at. Each row is a unique combination of the grouping dimensions you specified, plus one column per aggregation function. Open it in any spreadsheet tool or load it with `pandas.read_csv()`.
 
-**`visualization/`** contains automatically generated plots — heatmaps, candle plots, and curve visualisations — saved as PNG files.
+**`visualization/`** contains automatically generated plots — heatmaps, candle plots, and curve visualizations — saved as PNG files.
 
 **`npz/`** contains the raw per-frame arrays in the same structure as detector outputs, which you can use for custom analysis.
 

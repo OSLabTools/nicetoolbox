@@ -1,4 +1,4 @@
-# ELAN Connector: Import Gaze Annotations
+# 6. ELAN Connector: Import Gaze Annotations
 
 This tutorial shows how to import human-annotated gaze data from [ELAN](https://archive.mpi.nl/tla/elan) to use as ground truth for evaluating NICE Toolbox detector outputs. For the full set of tasks and config options, see the [Connectors wiki](../wikis/wiki_connectors.md).
 
@@ -53,7 +53,7 @@ For each interval, use one of the two recognized labels:
 
 Intervals with no label are treated as gaps.
 
-The final result of the labeling will looks something like this:
+The final result of the labeling will look something like this:
 ![ELAN main window](../graphics/elan_main_window.png)
 
 ### Export as tab-delimited text
@@ -84,13 +84,15 @@ Each sequence is a table under `[run.<sequence_id>]`:
 
 ```toml
 [run.sequence_xyz]
-input        = "<dataset_folder>/annotations_raw/gaze_elan/sequence_xyz.txt"
+input        = "<dataset_folder>/annotations_raw/gaze_elan/sequence_xyz_gaze.txt"
 output       = "<elan_output>/sequence_xyz_gaze.npz"
 video        = "<dataset_folder>/sequence_xyz/view_top.mp4"
 start        = 0       # from first frame
 end          = -1      # until the end
-reset_frames = true    # keep the frames order
+reset_frames = false   # keep the original frame numbers (default)
 ```
+
+The template also defines `elan_output = "<output_folder_path>/connectors/elan_import/gaze"`, so the output file is saved in this folder.
 
 | Field          | Description |
 |----------------|-------------|
@@ -138,16 +140,21 @@ Progress and validation messages are printed to the console and written to the l
 
 The connector's primary use case is producing ground-truth annotation files that can be compared against NICE Toolbox detector outputs in the evaluation pipeline.
 
-Once you have a `gaze.npz` from the connector, point the evaluation config at it as the ground-truth source. For example, in `configs/evaluation_config.toml`:
+Once you have a `gaze.npz` from the connector, point the evaluation config at it as the ground-truth source. The file contains the `gaze_look_at_3d` array, which you can compare with the `gaze_interaction` component of the detector run. For example, in `configs/evaluation_config.toml`:
 
 ```toml
-[metrics.gaze_accuracy]
-metric_type   = "accuracy"
-predictions   = { component = "gaze_individual", npz_key = "gaze_look_at_3d" }
-ground_truth  = { path = "<output_folder_path>/connectors/elan_import/sequence_xyz_gaze.npz", npz_key = "gaze_look_at_3d" }
+[metrics.confusion_matrix_gaze_elan]
+metric_type   = "confusion_matrix"
+predictions   = { component = "gaze_interaction", npz_key = "gaze_look_at_3d" }
+ground_truth  = { source = "path", path = "<output_folder_path>/connectors/elan_import/gaze/sequence_xyz_gaze.npz", npz_key = "gaze_look_at_3d" }
+compute_group_by = []
 ```
 
-Before running the evaluation, make sure you have a completed detector run to compare against. If you haven't done that yet, run the detectors first (see [Getting Started](../getting_started.md#5-run-the-nice-toolbox)):
+`source = "path"` tells the evaluation to read the ground truth directly from this file. The confusion matrix reports precision, recall, F1 and accuracy.
+
+Alternatively, copy the file into the annotations folder of your dataset and declare it in `dataset_properties.toml`. Then use `source = "annotation"`, as in the [evaluation tutorial](tutorial5_evaluation.md#example-with-ground-truth-annotations).
+
+Before running the evaluation, make sure you have a completed detector run to compare against. If you haven't done that yet, run the detectors first (see [Getting Started](../getting_started.md#run-detectors)):
 
 ```bash
 run_detectors
