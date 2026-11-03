@@ -22,15 +22,15 @@ from .ffmpeg import get_ffmpeg_path, get_ffprobe_path
 from .system import normalize_ffmpeg_filter_path_in_windows
 
 
-def get_ffmpeg_base_args(video_file: str) -> list:
+def get_ffmpeg_base_args(video_file: str, hwaccel: str) -> list:
     """
     Constructs the base argument list for running ffmpeg.
     """
     # fmt: off
     return [
         get_ffmpeg_path(),
-        # falls back to cpu if no hw decoder found
-        "-hwaccel", "auto",
+        # "none" decodes on cpu; others fail if the hw device can't be created
+        "-hwaccel", hwaccel,
         "-i", video_file,
         "-loglevel", "error",
         "-fps_mode", "passthrough",
@@ -44,6 +44,7 @@ def split_into_frames(
     output_base: str,
     n_frames_expected: Optional[int],
     frame_extraction: FrameExtractionConfig,
+    hwaccel: str,
     keep_indices: bool = True,
 ) -> None:
     """
@@ -51,12 +52,17 @@ def split_into_frames(
     """
     ext = frame_extraction.frame_extension
     output_pattern = os.path.join(output_base, f"%09d_tmp{ext}")
-    cmd = get_ffmpeg_base_args(video_file) + frame_extraction.ffmpeg_args() + [output_pattern]
+    cmd = get_ffmpeg_base_args(video_file, hwaccel) + frame_extraction.ffmpeg_args() + [output_pattern]
 
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
         logging.error(f"FFmpeg failed to process {video_file}.")
+        if hwaccel != "none":
+            logging.error(
+                f"Hardware decoding with ffmpeg_hwaccel = '{hwaccel}' may be unavailable on this machine. "
+                "Try ffmpeg_hwaccel = 'none' in machine_specific_paths.toml to decode on the CPU."
+            )
         raise AssertionError("Splitting video into frames failed. See log for details.") from None
 
     frames_list_tmp = glob.glob(os.path.join(output_base, f"*_tmp{ext}"))

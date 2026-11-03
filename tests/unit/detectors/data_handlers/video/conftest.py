@@ -73,6 +73,7 @@ def make_sequence_context(
     ctx.sequence_id = sequence_id
     ctx.subjects_descr = ["subject_1"]
     ctx.io.frame_extraction = FRAME_EXTRACTION
+    ctx.machine.ffmpeg_hwaccel = "cuda"
     ctx.sequence_properties = MagicMock()
     ctx.sequence_properties.video.cameras = {
         name: VideoTrackConfig(path=path, subjects={"rule": "assign", "subject": "subject_1"})

@@ -57,6 +57,7 @@ class VideoDataHandler(BaseModalityHandler):
 
         self.frame_extraction: FrameExtractionConfig = subsequence_context.io.frame_extraction
         self.filename_template: str = FRAME_LABEL_TEMPLATE + self.frame_extraction.frame_extension
+        self.ffmpeg_hwaccel: str = subsequence_context.machine.ffmpeg_hwaccel
 
     @property
     def modality_name(self) -> str:
@@ -282,6 +283,7 @@ class VideoDataHandler(BaseModalityHandler):
                 str(frames_folder) + "/",
                 video_info.frames,
                 frame_extraction=self.frame_extraction,
+                hwaccel=self.ffmpeg_hwaccel,
                 keep_indices=True,
             )
 

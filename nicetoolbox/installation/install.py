@@ -151,6 +151,9 @@ def create_machine_specifics() -> None:
     DEFAULT_MACHINE_SPECIFICS.write_text(
         "# Optional Hugging Face token for gated Hub models (e.g. sam_3d_body). Leave empty if unused.\n"
         "hugging_face_token = ''\n"
+        "# Hardware acceleration for video decoding (ffmpeg '-hwaccel'), e.g. 'cuda', 'auto', 'd3d11va'.\n"
+        "# Set to 'none' to decode on the CPU, e.g. on machines without a usable NVIDIA GPU.\n"
+        "ffmpeg_hwaccel = 'cuda'\n"
     )
     print(f"Created {DEFAULT_MACHINE_SPECIFICS}")
 
