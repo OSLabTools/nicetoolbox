@@ -9,16 +9,18 @@ Main installer script for:
   - Model asset download
 
 Flags:
-    -y, --yes            Don't prompt; accept defaults (all detectors unless --detectors is given)
-    --detectors=a,b,c    Install only these detectors, without prompting
-    --core-only         Skip all detectors
-    --dev                Also install dev extras (nicetoolbox is always installed editable)
-    --skip-dataset       Skip example dataset download
-    --skip-assets        Skip model asset download
+    -y, --yes               Don't prompt; accept defaults (all detectors unless --detectors is given)
+    --detectors=a,b,c       Install only these detectors, without prompting
+    --core-only             Skip all detectors
+    -d, --dev               Also install dev extras
+    --skip-dataset          Skip example dataset download
+    --skip-assets           Skip model asset download
+    --skip-compile-bytecode Don't precompile installed packages to .pyc bytecode (faster install, slower first run)
 """
 
 import argparse
 import importlib.util
+import os
 import platform
 import sys
 import urllib.request
@@ -345,6 +347,12 @@ def parse_args(detectors: list[dict]) -> argparse.Namespace:
         action="store_true",
         help="Stop at the first detector that fails to install, instead of continuing with the rest (e.g. for CI).",
     )
+    parser.add_argument(
+        "--skip-compile-bytecode",
+        action="store_true",
+        help="Don't precompile installed packages to .pyc bytecode. Speeds up the install, "
+        "but the first run of each detector is slower while Python compiles them.",
+    )
     return parser.parse_args()
 
 
@@ -352,6 +360,12 @@ def main() -> None:
     detectors, install_fn_map = discover_detectors()
     args = parse_args(detectors)
     interactive = not (args.yes or args.core_only or args.detectors is not None)
+
+    # force uv to compile bytecode for faster first run, but slower install
+    if args.skip_compile_bytecode:
+        os.environ.pop("UV_COMPILE_BYTECODE", None)
+    else:
+        os.environ["UV_COMPILE_BYTECODE"] = "1"
 
     separator("NICE Toolbox Installer")
     print(f"Install root : {REPO_ROOT}")
